@@ -1,6 +1,19 @@
 READY FOR MERGE V1
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
+## contracts
+READY FOR MERGE 1.2.0
+C001 · done · `uv run --with jsonschema --with pyyaml --with openapi-spec-validator python contracts/validate.py` · `OK contract 1.2.0: 13 schemas, 30 examples, 7 fixtures, openapi 3.1.0 with 33 paths`
+
+Core/kit follow-up required:
+- core must serve `prescriptions:current` data for helper/coordinator `RefillCard` bindings.
+- core must accept `hello.view_as` only for coordinator/control tokens and keep view-as sockets read-only.
+- core must send optional `snapshot.identity {member_id, name, role, village_name}`.
+- core must read the contract version from `contracts/VERSION` instead of hardcoding `1.1.0` in `core/tests/test_spine.py`.
+- kit must render the contract catalog types `RefillCard` and `TonightCard` from `village_spec.schema.json`.
+
+LD-1: Contracts 1.2.0 is additive: D22 changes are expressed as catalog/binding additions plus Reyes rev 5 fixture changes; no existing schema field or fixture id was renamed.
+
 ## gate
 READY FOR MERGE V0
 G001 · done · uv run pytest core/gate -k roundtrip -q · mocked none
