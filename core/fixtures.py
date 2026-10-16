@@ -49,7 +49,7 @@ async def reset_demo(village_id: str = "v_reyes") -> dict[str, Any]:
             "valid_from": "2026-09-01",
             "valid_until": "2026-10-03",
             "source": {"kind": "system", "ref": "seed", "quote": "Prior bottle in cabinet"},
-            "prescriber": "Dr. Lee",
+            "prescriber": "Dr. Park",
         },
         {
             "med_id": "med_lisinopril_10",
@@ -58,7 +58,7 @@ async def reset_demo(village_id: str = "v_reyes") -> dict[str, Any]:
             "valid_from": "2026-10-03",
             "valid_until": None,
             "source": {"kind": "call", "ref": "conv_setup_0003", "secs": 88},
-            "prescriber": "Dr. Lee",
+            "prescriber": "Dr. Park",
         },
     ]
     if not lisinopril:

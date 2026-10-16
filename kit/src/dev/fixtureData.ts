@@ -55,7 +55,7 @@ const timeline = [
   { event_id: "ev_1016_0811_dose_morning", kind: "dose", at: "2026-10-16T08:11:04-04:00", text: { en: "Morning pills taken", es: "Pastillas de la mañana tomadas" }, source: { kind: "scan", ref: "st_reyes_morning" }, source_label: { en: "Organizer, morning" }, superseded: false },
   { event_id: "ev_1012_0900_shift_1016", kind: "shift", at: "2026-10-12T09:00:00-04:00", text: { en: "Friday: Marco on duty, Ana backup" }, source: { kind: "system", ref: "seed" }, superseded: false },
   { event_id: "ev_1009_1922_incident", kind: "incident", at: "2026-10-09T19:22:15-04:00", text: { en: "Couldn't confirm a $1,500 gift-card request in Marco's name" }, source: { kind: "system", ref: "gate" }, rule_id: "R-MONEY-DEFAULT", superseded: false },
-  { event_id: "ev_1003_1740_med_change", kind: "med_change", at: "2026-10-03T17:40:00-04:00", text: { en: "Lisinopril 10 mg (Dr. Lee)" }, source: { kind: "call", ref: "conv_setup_0003", secs: 41 }, source_label: { en: "Ana's call, Oct 3 at 0:41" }, superseded: false },
+  { event_id: "ev_1003_1740_med_change", kind: "med_change", at: "2026-10-03T17:40:00-04:00", text: { en: "Lisinopril 10 mg (Dr. Park)" }, source: { kind: "call", ref: "conv_setup_0003", secs: 41 }, source_label: { en: "Ana's call, Oct 3 at 0:41" }, superseded: false },
   { event_id: "ev_0901_med_lisinopril_5", kind: "med_change", at: "2026-09-01T10:00:00-04:00", text: { en: "Lisinopril 5 mg" }, source: { kind: "system", ref: "seed" }, source_label: { en: "Prescription on file (FAKE seed)" }, superseded: true }
 ];
 
