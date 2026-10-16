@@ -183,6 +183,7 @@ async def run_release(
     max_repairs: int = 2,
     strict: bool = True,
     history: list[Receipt] | None = None,
+    approved_by: str | None = None,
 ) -> Receipt:
     """Release `spec` as `rev`. Returns the final receipt; `history` (if given) gets every attempt."""
     lock = _locks.setdefault(village_id, asyncio.Lock())
@@ -191,14 +192,14 @@ async def run_release(
                           evals=evals, publisher=publisher or LocalPublisher(), store=store or ReceiptStore(),
                           public_base=public_base, local_base=local_base, inject=inject, trigger=trigger,
                           proposal_id=proposal_id, publish=publish, max_repairs=max_repairs, strict=strict,
-                          history=history if history is not None else [])
+                          history=history if history is not None else [], approved_by=approved_by)
 
 
 async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Broadcast, llm: Any,
                daytona: DaytonaPort, anchor: AnchorPort | None, evals: EvalsPort | None,
                publisher: PublisherPort, store: ReceiptStore, public_base: str | None, local_base: str | None,
                inject: str | None, trigger: str, proposal_id: str | None, publish: bool, max_repairs: int,
-               strict: bool, history: list[Receipt]) -> Receipt:
+               strict: bool, history: list[Receipt], approved_by: str | None = None) -> Receipt:
     run = _Run(village_id, broadcast, store, strict)
     local_base = (local_base or os.environ.get("RELEASE_LOCAL_BASE") or "http://127.0.0.1:8787").rstrip("/")
     public_base = (public_base or os.environ.get("TUNNEL_URL") or local_base).rstrip("/")
@@ -363,7 +364,16 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             prev = await publisher.publish(village_id, rev)
             r["live_rev"] = rev
             r["result"] = "released"
-            await run.end(r, "live", True, t0, summary=f"published_rev {prev if prev is not None else '∅'} → {rev}",
+            live_summary = f"published_rev {prev if prev is not None else '∅'} → {rev}"
+            if approved_by:
+                # Human in the loop (D15): span attribute always; Arize annotation in the background.
+                root.set_attribute("human.approval", f"approved_by:{approved_by}")
+                root.set_attribute("user.id", approved_by)
+                live_summary += f" · approved by {approved_by}"
+                from core.release.annotate import write_human_approval
+
+                _spawn(write_human_approval(obs.span_id_of(root), approved_by, release_id=rel))
+            await run.end(r, "live", True, t0, summary=live_summary,
                           roles_patched=sorted((spec.get("views") or {}).keys()))
             timings["total"] = int((time.perf_counter() - t_total) * 1000)
             LAST_TIMINGS[village_id] = timings

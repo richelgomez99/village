@@ -66,6 +66,7 @@ async def main() -> int:
     ap.add_argument("--spec", default="contracts/fixtures/reyes_spec.json")
     ap.add_argument("--port", type=int, default=8788)
     ap.add_argument("--no-preview", action="store_true")
+    ap.add_argument("--approved-by", default=None, help="member id: marks the release span + writes the Arize human_approval annotation")
     ap.add_argument("--delete", action="store_true", help="delete the sandbox afterwards (use with --cold)")
     args = ap.parse_args()
 
@@ -106,13 +107,17 @@ async def main() -> int:
         receipt = await run_release(
             vid, spec, rev, broadcast=broadcast, llm=llm if model_on else None, daytona=daytona, anchor=anchor,
             evals=ReleaseEvals(llm=llm if model_on else None), local_base=local,
-            inject="contrast" if args.break_contrast else None, history=history,
+            inject="contrast" if args.break_contrast else None, history=history, approved_by=args.approved_by,
         )
         total = time.perf_counter() - t0
         # Anchor MP4: fetched in the background after the session ends; wait for it and serve it once.
         t_rec = time.perf_counter()
         if BACKGROUND:
             await asyncio.wait(list(BACKGROUND), timeout=120)
+        if args.approved_by:
+            from core.release.annotate import LAST as ANN
+
+            print(f"\nArize human_approval annotation: {ANN.get(receipt['id'])}")
         qa_det = receipt["stages"][3]["details"]
         rec_url = qa_det.get("video_url")
         print(f"\nAnchor MP4: {'none' if not rec_url else rec_url} (+{time.perf_counter() - t_rec:.1f}s after release, "

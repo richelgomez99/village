@@ -42,3 +42,10 @@ def trace_id_of(sp: Any) -> str | None:
     if not ctx or not ctx.is_valid:
         return None
     return format(ctx.trace_id, "032x")
+
+
+def span_id_of(sp: Any) -> str | None:
+    ctx = sp.get_span_context()
+    if not ctx or not ctx.is_valid:
+        return None
+    return format(ctx.span_id, "016x")

@@ -99,7 +99,7 @@ class ReleaseService:
 
     def start(self, village: str, rev: int, *, inject: str | None = None, trigger: str = "manual",
               publish: bool = True, proposal_id: str | None = None,
-              spec: dict[str, Any] | None = None) -> dict[str, str]:
+              spec: dict[str, Any] | None = None, approved_by: str | None = None) -> dict[str, str]:
         """Start a release in the background. Raises LookupError (no spec), RuntimeError (busy / no builder)."""
         if self.busy(village):
             raise RuntimeError("release in progress")
@@ -115,7 +115,8 @@ class ReleaseService:
             try:
                 await run_release(village, spec, rev, broadcast=self.broadcast, llm=self.llm, daytona=self.daytona,
                                   anchor=self.anchor, evals=self.evals, publisher=self.publisher, store=self.store,
-                                  inject=inject, trigger=pipeline_trigger, proposal_id=proposal_id, publish=publish)
+                                  inject=inject, trigger=pipeline_trigger, proposal_id=proposal_id, publish=publish,
+                                  approved_by=approved_by)
             except Exception:
                 log.exception("release %s r%s crashed", village, rev)
 
