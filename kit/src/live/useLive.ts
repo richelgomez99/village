@@ -18,9 +18,12 @@ export function liveConfig(client: ClientName, loc: Location = window.location):
   const fake = p.get("fake");
   const env0 = (import.meta as any).env ?? {};
   const stored = readStored();
-  const token = (client === "control" ? p.get("t") ?? p.get("m") : p.get("m")) ?? stored.token ?? `mt_${fake ?? "anonymous"}_offline_demo`;
+  const token =
+    client === "control"
+      ? p.get("t") ?? p.get("m") ?? (fake ? "ct_control_offline_demo" : "control")
+      : p.get("m") ?? stored.token ?? `mt_${fake ?? "anonymous"}_offline_demo`;
   // the village travels with the token: URL, else what we stored next to this token, else env, else (offline) the fake's
-  const village = p.get("village") || (stored.token === token ? stored.village : null) || env0.VITE_VILLAGE || (fake ? FAKE_VILLAGES[0] : "");
+  const village = p.get("village") || (client !== "control" && stored.token === token ? stored.village : null) || env0.VITE_VILLAGE || (fake ? FAKE_VILLAGES[0] : "");
   const env = (import.meta as any).env ?? {};
   const core: string =
     env.VITE_CORE_WS ??

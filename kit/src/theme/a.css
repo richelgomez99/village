@@ -295,3 +295,11 @@ html, body { background: #100D0A; margin: 0; }
 .control .sentence { font-weight: 600; }
 .control .trace { margin-left: 6px; }
 .control.hero .details-toggle { display: none !important; }
+
+/* ROOM-4: live layout = main column (blueprint | work log + chat, phones below) + right column (headline, live, proposal, knows, decisions, ask) */
+.cr-live { display: grid; grid-template-columns: minmax(0, 3fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
+.cr-main { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); gap: 16px; align-items: start; min-width: 0; }
+.cr-stack, .cr-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cr-live .region { grid-column: auto; grid-row: auto; }
+.cr-main .r-phones { grid-column: 1 / -1; }
+@media (max-width: 1100px) { .cr-live, .cr-main { grid-template-columns: 1fr; } }

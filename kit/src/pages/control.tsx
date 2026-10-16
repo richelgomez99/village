@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
-import { answerFollowUp, apiConfig, createVillage, warpClock, type ApiConfig } from "../control/api";
+import { answerFollowUp, apiConfig, createVillage, listDecisions, listVillages, warpClock, type ApiConfig } from "../control/api";
 import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
@@ -19,6 +19,10 @@ import "../theme/a.css";
 
 /** Scene for one village's socket: reduce every validated frame (replayed from the socket's log on mount). */
 export function useScene(socket: VillageSocket, village: string): SceneState {
+  return useSceneWithDispatch(socket, village)[0];
+}
+
+export function useSceneWithDispatch(socket: VillageSocket, village: string) {
   const [scene, dispatch] = useReducer(sceneReducer, village, initialScene);
   useEffect(
     () =>
@@ -28,7 +32,7 @@ export function useScene(socket: VillageSocket, village: string): SceneState {
       }),
     [socket]
   );
-  return scene;
+  return [scene, dispatch] as const;
 }
 
 /** ?hero=1: screenshot mode, dev chrome hidden (connection banner, clock warp, view-as bar). */
@@ -68,7 +72,32 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
   );
   const home = useRef(socket.state.village || cfg?.village || "").current;
   const [list, setList] = useState<string[]>(() => villages ?? defaultVillages(home, cfg));
-  const [tab, setTab] = useState(home || NEW_VILLAGE);
+  // a village is always selected once one is known; only "+ New village" opens the empty founding room
+  const urlVillage = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("village") : null;
+  const [tab, setTabRaw] = useState(home || urlVillage || list[0] || "");
+  const [wantNew, setWantNew] = useState(false);
+  const setTab = (v: string) => {
+    setWantNew(v === NEW_VILLAGE);
+    setTabRaw(v);
+  };
+  useEffect(() => {
+    if (villages || apiCfg.fake) return;
+    let live = true;
+    listVillages(apiCfg).then(
+      (rows) => {
+        if (!live || !rows.length) return;
+        const ids = rows.map((r) => r.id);
+        setList((l) => [...ids, ...l.filter((v) => !ids.includes(v))]);
+      },
+      () => undefined
+    );
+    return () => {
+      live = false;
+    };
+  }, [apiCfg, villages]);
+  useEffect(() => {
+    if (!wantNew && (!tab || tab === NEW_VILLAGE) && list.length) setTabRaw(urlVillage && list.includes(urlVillage) ? urlVillage : list[0]);
+  }, [list, tab, wantNew]); // eslint-disable-line react-hooks/exhaustive-deps
   const [details, setDetails] = useState(false);
   // one control socket per village, opened up front (names for the switcher) and kept: switching never reconnects
   const [sockets, setSockets] = useState<Record<string, VillageSocket>>(() => (home ? { [home]: socket } : {}));
@@ -83,6 +112,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     setSockets((m) => ({ ...m, ...add }));
   }, [list, sockets, make]);
   useEffect(() => () => Object.entries(sockets).forEach(([v, s]) => v !== home && s.close()), []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (typeof window !== "undefined") (window as any).__villages = sockets;
   const names = useVillageNames(sockets);
   const tabs: VillageTab[] = list.map((id) => ({ id, label: names[id] ?? id.replace(/^v_/, "") }));
 
@@ -95,7 +125,10 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     setTab(r.village_id);
   };
 
-  const active = tab === NEW_VILLAGE ? null : sockets[tab];
+  const active = tab === NEW_VILLAGE || !tab ? null : sockets[tab];
+  if (!active && !wantNew && list.length) {
+    return <main className="control" data-test="control" data-village={tab} data-mode="loading"><p className="ws-banner" data-test="ws-banner">Connecting to Core…</p></main>;
+  }
   if (!active) {
     return (
       <main className="control founding" data-test="control" data-village="" data-mode="founding">
@@ -122,7 +155,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     if (b !== "build") p.delete("village");
     window.location.search = p.toString();
   };
-  return <VillageRoom key={tab} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!home && tab !== home} />;
+  return <VillageRoom key={tab} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} />;
 }
 
 /** village.name from each socket's control snapshot (spec), for the switcher pills. */
@@ -146,8 +179,16 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   details?: boolean; onDetails?: (on: boolean) => void; onJump?: (b: ArcBeat) => void; anyone?: boolean;
 }) {
   const state = useSocketState(socket);
-  const scene = useScene(socket, village);
+  const [scene, dispatch] = useSceneWithDispatch(socket, village);
   const founding = isFounding(scene);
+  // decisions log backfill from Core (then control{gate|reasoning} frames keep it live)
+  useEffect(() => {
+    let live = true;
+    listDecisions(api, village).then((rows) => live && rows.length && dispatch({ type: "decisions", rows }), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, village]);
 
   // View as (D21): a read-only socket that asks Core for that member's snapshot; the main stream keeps flowing
   const [viewAs, setViewAs] = useState<string | null>(null);
@@ -215,11 +256,13 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   return (
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32}px` }}>
       <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} />
-      <ArcStrip beat={anyone ? "anyone" : founding ? "build" : scene.beat} onJump={(b) => onJump?.(b)} />
+      <ArcStrip beat={anyone ? "anyone" : founding ? "build" : scene.beat ?? "run"} onJump={(b) => onJump?.(b)} />
       {state.status !== "live" && state.status !== "idle" ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}
-      {founding ? (
+      {!scene.spec && scene.frames === 0 ? (
+        <p className="empty loading" data-test="room-loading">Opening {tabs.find((t) => t.id === village)?.label ?? "the village"}…</p>
+      ) : founding ? (
         <div className="cr-grid">
           <TranscriptRegion lines={scene.transcript} onSend={onAnswer} speakerName={coordinator} onPlayAudio={audioBlocked ? playAudio : undefined} />
           <FoundingWorkRegion blocks={scene.blocks} ledger={scene.ledger} nowMs={socket.nowMs} />
@@ -227,17 +270,23 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
           <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={null} onViewAs={() => {}} live={null} cfg={api} people={people} villageName={scene.villageName} drafts={scene.drafts} draftNew={scene.draftNew} />
         </div>
       ) : (
-        <div className="cr-grid">
-          <BlueprintRegion spec={spec} scene={scene} />
-          <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} details={details} />
-          <AutonomyHeadline rounds={scene.rounds} />
-          {scene.live ? <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} /> : null}
-          <ChatMirror chat={scene.chat} data={scene.data} />
-          {scene.proposal ? <ProposalRegion proposal={scene.proposal} release={scene.release} spec={spec} details={details} /> : null}
-          <KnowsRegion api={api} village={village} data={scene.data} spec={spec} />
-          <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={viewAs} onViewAs={setViewAs} live={liveView} cfg={api} />
-          <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} details={details} />
-          <AskWhyRegion cfg={api} village={village} />
+        <div className="cr-live">
+          <div className="cr-main">
+            <BlueprintRegion spec={spec} scene={scene} />
+            <div className="cr-stack">
+              <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} details={details} />
+              <ChatMirror chat={scene.chat} data={scene.data} />
+            </div>
+            <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={viewAs} onViewAs={setViewAs} live={liveView} cfg={api} />
+          </div>
+          <aside className="cr-side">
+            <AutonomyHeadline rounds={scene.rounds} />
+            {scene.live ? <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} /> : null}
+            {scene.proposal ? <ProposalRegion proposal={scene.proposal} release={scene.release} spec={spec} details={details} /> : null}
+            <KnowsRegion api={api} village={village} data={scene.data} spec={spec} />
+            <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} details={details} />
+            <AskWhyRegion cfg={api} village={village} />
+          </aside>
         </div>
       )}
       <CaptionsLayer ref={capRef} captions={scene.captions} />
@@ -248,7 +297,8 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
 if (typeof document !== "undefined" && document.getElementById("root")) {
   const cfg = liveConfig("control");
   const socket = makeSocket(cfg);
-  socket.connect();
+  // without ?village the room asks Core for its villages (GET /villages) and opens one socket per village itself
+  if (cfg.village) socket.connect();
   (window as any).__village = socket;
   createRoot(document.getElementById("root")!).render(<ControlRoom socket={socket} cfg={cfg} />);
 }

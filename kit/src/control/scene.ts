@@ -204,8 +204,23 @@ function stageWords(stage: string, items: any[], spec: any): string {
   }
 }
 
-export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; village?: string }): SceneState {
+const ACTOR_ROLE: Record<string, AgentRole> = { evolve: "Watcher", watcher: "Watcher", gate: "Verifier", voice: "Verifier", "voice:setup": "Founder", builder: "Builder", release: "Builder", founder: "Founder", explainer: "Explainer" };
+
+export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; village?: string } | { type: "decisions"; rows: any[] }): SceneState {
   if (f.type === "reset") return initialScene(f.village ?? s.village);
+  if (f.type === "decisions") {
+    // GET /villages/{id}/decisions backfill: oldest last, never duplicating live rows
+    const known = new Set(s.decisions.map((d) => d.id));
+    const rows: DecisionRow[] = f.rows
+      .filter((r) => r && r.text && r.kind !== "plan" && !known.has(String(r.id)))
+      .map((r) => {
+        const text = String(r.text).replace(ROUND_PREFIX, "");
+        return { id: String(r.id), at: String(r.at ?? ""), text, role: ACTOR_ROLE[String(r.actor)] ?? "Watcher", mode: textMode(text, r.mode), source: String(r.actor ?? ""), trace_id: r.trace_id };
+      })
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    const autonomy = rows.reduce((c, r) => ({ ...c, [r.mode]: c[r.mode] + 1 }), s.autonomy);
+    return { ...s, autonomy, decisions: [...s.decisions, ...rows].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 100) };
+  }
   const frames = s.frames + 1;
   const fv = frameVillage(f);
   if (s.village && fv && fv !== s.village) return s;
@@ -257,7 +272,7 @@ function withRoundsAndChat(s: SceneState, data: Record<string, unknown>): SceneS
   let next = s;
   const r = data["rounds:latest"] as { counts?: Record<Mode, number>; rows?: any[] } | null | undefined;
   if (r && typeof r === "object") {
-    const rows: RoundRow[] = (r.rows ?? []).map((x: any, i: number) => ({ id: String(x.id ?? `rr_${i}`), at: String(x.at ?? ""), text: String(x.text ?? "").replace(ROUND_PREFIX, ""), mode: (x.mode ?? "acted_alone") as Mode, role: "Watcher", rule_id: x.rule_id }));
+    const rows: RoundRow[] = (r.rows ?? []).map((x: any, i: number) => ({ id: String(x.id ?? x.decision_id ?? `rr_${i}`), at: String(x.at ?? ""), text: String(x.text ?? "").replace(ROUND_PREFIX, ""), mode: (x.mode ?? "acted_alone") as Mode, role: ACTOR_ROLE[String(x.role ?? x.actor ?? "watcher").toLowerCase()] ?? "Watcher", rule_id: x.rule_id }));
     next = { ...next, rounds: { counts: r.counts ?? next.rounds.counts, rows: rows.length ? rows : next.rounds.rows } };
   }
   const chat = data["chat:village"];
