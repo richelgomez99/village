@@ -39,7 +39,7 @@ T004 · done · `uv run python scripts/push_procedures.py --dry-run --all` · mo
 T005 · done · `uv run pytest core/voice/tests/test_mock_core.py -q` · mocked: Core answers from contracts/fixtures/scam_call_tool_requests.json
 T006 · consumed · merged from core on main; voice imports core.services lazily and falls back to fixture stubs when a service is missing
 T010 · done · `uv run pytest core/voice/tests/test_tools.py -q` · mocked: fixture fallback for exact scam variants; real core delegation covered by test
-T011 · pending · init hook next
+T011 · done · `uv run pytest core/voice/tests/test_init_hook.py -q` · mocked: call rows kept in in-memory voice-call log
 T012 · pending · outbound calls use FakeDialer in tests; live dialing blocked by Twilio geo-permissions until operator fixes
 T014 · pending · post-call HMAC next
 T013/T015 · core-owned · merged core has verification persistence/idempotency; remaining WS prompt/incident binding is core acceptance surface
