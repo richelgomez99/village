@@ -54,7 +54,7 @@ describe("fixture roles via the fake server", () => {
     const card = container.querySelector("[data-test='refill-card']")!;
     expect(card.textContent).toContain("Refill checklist");
     expect(card.textContent).toContain("Friday refill · Marco");
-    expect(card.textContent).toContain("lisinopril 10 mg (changed Oct 3, Dr. Lee; was 5 mg)");
+    expect(card.textContent).toContain("lisinopril 10 mg (changed Oct 3, Dr. Park; was 5 mg)");
     expect(card.querySelectorAll("[data-test='refill-item']")).toHaveLength(4);
     expect(card.querySelector("s[data-test='refill-superseded']")?.textContent).toBe("5 mg");
   });
