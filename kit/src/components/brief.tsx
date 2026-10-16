@@ -63,7 +63,12 @@ export function WhatVillageDid({ data, bind = "rounds:latest", title = "What Vil
   const rows = arr<NonNullable<Rounds["rows"]>[number]>(r.rows);
   return (
     <Card test="what-village-did" title={<Bi value={title} />}>
-      <p className="wvd-counts" data-test="wvd-counts">
+      <div className="wvd-stats" data-test="wvd-stats">
+        <span className="wvd-stat"><b>{alone}</b> on its own</span>
+        <span className="wvd-stat"><b>{asked}</b> asked a person</span>
+        <span className="wvd-stat"><b>{refused}</b> refused itself</span>
+      </div>
+      <p className="wvd-counts small muted" data-test="wvd-counts">
         Did {alone} {alone === 1 ? "thing" : "things"} on its own · asked a person {asked} · refused itself {refused}
       </p>
       {rows.length ? (

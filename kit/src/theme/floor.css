@@ -296,3 +296,30 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .chat-panel .card[data-full="true"] .chat { flex: 1; overflow-y: auto; }
 .chat-compact .chat-bubble { font-size: 15px; padding: 8px 10px; }
 .app [hidden] { display: none !important; }
+
+/* Visual distinctness per job (view.theme; village-agnostic) */
+.wvd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.wvd-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 10px; border-radius: 12px; background: var(--sage-soft); font-size: 13px; font-weight: 600; color: var(--ink2); }
+.wvd-stat b { font-family: var(--display); font-size: 32px; line-height: 1; color: var(--ink); }
+.plan-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+/* coordinator = dense dashboard: hero strip, section headers, smaller type, two columns on wide screens */
+.app[data-theme="dashboard"] { font-size: 15px; }
+.app[data-theme="dashboard"] .card { padding: 12px 14px; }
+.app[data-theme="dashboard"] .card-title { font-size: 17px; margin-bottom: 6px; }
+.app[data-theme="dashboard"] [data-test="right-now"] { background: var(--sage); color: #fff; border-color: var(--sage); }
+.app[data-theme="dashboard"] [data-test="right-now"] .card-title { color: #fff; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px; }
+.app[data-theme="dashboard"] .right-now { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); font-weight: 600; }
+@media (min-width: 900px) {
+  .app[data-theme="dashboard"] .screen-tabbed { max-width: 1180px; margin: 0 auto; }
+  .app[data-theme="dashboard"] .screen-tabbed .tab-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  .app[data-theme="dashboard"] .screen-tabbed .tab-panel > [data-test="right-now"],
+  .app[data-theme="dashboard"] .screen-tabbed .tab-panel > .needs-yes,
+  .app[data-theme="dashboard"] .screen-tabbed .tab-panel[data-tab="chat"] > * { grid-column: 1 / -1; }
+}
+
+/* helper = one column, giant answer, few cards, generous spacing */
+.app[data-theme="family"] .screen-tabbed { max-width: 560px; margin: 0 auto; }
+.app[data-theme="family"] .screen-tabbed .tab-panel { gap: 20px; }
+.app[data-theme="family"] .helper-headline { font-size: 38px; line-height: 1.1; }
+.app[data-theme="family"] .headline .card { padding: 22px; }
