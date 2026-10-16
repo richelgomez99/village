@@ -63,6 +63,10 @@ LD-9: LD-8 superseded: the builder lane measured Sonnet 5.5 direct (founding 65.
 LD-10: AWS TTFT is "about 520–600 ms" (RESULTS 01); the brief's "~550 ms" sits inside that range but isn't the recorded figure.
 LD-11: The ElevenLabs "first live call 12:23" facts come from the orchestrator's message, not RESULTS.md; add a RESULTS row so the Devpost claim has a source.
 LD-12: Merge note: `.specify/feature.json` (worktree-local spec-kit pointer to 007) blocked `git merge main`; copied it aside, checked out main's version, merged, restored the local value (no stash). Still uncommitted, not ours.
+P009 · done · PITCH-4: merged main (D33–D36, RESULTS live rebuild/first call/founding, contract 1.3.1); docs/PITCH.md opener A + paced Build to 9/10 + 12 s rebuild + receptionist + pill switch + numbers once + Thanksgiving table demo; DEVPOST/README numbers (12 s, 18/31 s call, 65.8 s + resume, 379/114/114 tests), six 1.3.0 components + tabs from life areas, honest live/recorded/designed line, gallery; docs/hero/*.png from the live Core (390×844 @2x phones, 1920×1080 room); CHECKPOINTS 13:40
+LD-13: Test counts measured by the pitch lane at merge: `uv run pytest -q` (SURREAL_DB_URL empty, memory off, fake dialer, model off) 379 passed; `cd kit && npx vitest run` 114 passed (20 files); `uv run pytest core/gate -q` 114 passed. Ran `npm ci` in kit/ to get node_modules (no tracked files changed).
+LD-14: Ana's live phone shows "What Village did: 3 on its own · 2 asked · 1 refused" (live state), RESULTS has 3/1/1 (seeded round). Captions avoid the live counts; pages quote RESULTS.
+LD-15: Old PITCH.md said "three money requests in nine days" and "forty seconds"; RESULTS says 2 calls in 30 days and refusal at 31 s. Fixed.
 T019 · done · `uv run pytest core/tests/test_messages.py -q` · `message` rows with `msg_<MMDD>_<HHMM>_<n>` ids (memory mirror + Surreal `message` table via db.create_message); reset_demo seeds the pre-14:02 rows of `messages_reyes_seed.json`
 T020 · done · same · LIVE on message → hub `chat{village, message}` to every non-elder socket + control; `services.post_message`; `chat:village` (last 50) on non-elder snapshots
 T021 · done · same · `POST /villages/{id}/messages` (Bearer member token; elder/control 403) + `GET …/messages?after=&limit=&kind=`; `@Village…` → `core.builder.ask(village, question)` when importable, else fixed fallback text with `refs` = last decisions from the log; answer posted as `kind answer, reply_to` · mocked: builder ask absent in this branch → fallback answer
@@ -79,6 +83,7 @@ LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VI
 LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
+READY FOR MERGE PITCH-4
 READY FOR MERGE PITCH-3
 READY FOR MERGE PITCH-2
 READY FOR MERGE V0
