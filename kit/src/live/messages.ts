@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "1.2.0" as const;
+export const CONTRACT_VERSION = "1.2.1" as const;
 
 const localized = z.union([z.string(), z.record(z.string(), z.string())]);
 

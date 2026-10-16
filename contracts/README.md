@@ -107,6 +107,10 @@ Keys are the exact `bind` strings used in the role's view; shapes are enforced b
 
 ## CHANGELOG
 
+### 1.2.1 (Oct 16, 11:58; orchestrator; additive)
+- `decision.schema.json`: optional `mode: acted_alone | asked_human | refused` (D23 autonomy ledger; core previously carried it in `refs`).
+- `ws_messages.schema.json`: `control.kind` += `caption` (`{es, en, speaker?, final?}`: live call turn for the projector, D18) and `ledger` (`{id, at, status: queued|running|done|retrying|fallback|refused, what, result?, role?, mode?, decision_id?, trace_id?, elapsed_ms?}`: agent work rows, D20/D23); `reasoning.payload.source` += `watcher | founder | verifier | explainer`; `reasoning.payload.mode` optional.
+
 ### 1.1.0 (Oct 16, applies RECONCILE.md "To apply" + the lane READMEs in specs/001, 002, 003, 005, 006; D16)
 Minor bump: additive paths, kinds and fields; no existing field renamed. Every schema `x-contract-version`, `common#/$defs/contract_version`, every fixture and example `contract_version`, and `openapi.info.version` moved to `1.1.0` in one step (a `hello` with `1.0.0` now gets `error{contract_mismatch}`).
 - **New schemas:** `message.schema.json` (D16 chat row), `decision.schema.json` (decision log row), `facts.schema.json` (fact / uncertainty views, every response with `degraded`).
