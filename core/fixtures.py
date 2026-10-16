@@ -68,7 +68,11 @@ async def reset_demo(village_id: str | None = None, *, keep_others: bool = False
             if other != village_id:
                 await seed_village(other)
     people = spec["blueprint"]["people"]
-    tokens = {str(p["name"]).split()[0].lower(): p["id"] for p in people if (spec.get("channels", {}).get(p["id"]) or [])}
+    def _token_name(name: str) -> str:
+        words = [w for w in name.split() if w.rstrip(".").lower() not in {"mr", "mrs", "ms", "dr", "the"}]
+        return (words or name.split() or ["member"])[0].lower()
+
+    tokens = {_token_name(str(p["name"])): p["id"] for p in people if (spec.get("channels", {}).get(p["id"]) or [])}
     tokens["control"] = "control"
     return {
         "village": village_id,
