@@ -81,10 +81,10 @@
     ],
     "rules": ["emergency_911_first", "medical_priority_matching", "rumor_check", "address_privacy", "consent_before_calls"],
     "life_areas": [
-      { "id": "health", "label": "Health: power-dependent needs", "need_ids": ["n_powered_medical_device", "n_refrigerated_medication"], "modules": ["coordinator:nb", "coordinator:ci", "volunteer:nb", "voice:block-line", "outbound:T2"], "rules": ["P-911-01", "P-MP-01", "P-MP-02", "P-MP-03"] },
-      { "id": "information", "label": "Information: rumors", "need_ids": ["n_rumors"], "modules": ["coordinator:vf", "resident:vf", "coordinator:src"], "rules": ["P-RU-01", "P-RU-02", "P-RU-03", "P-RU-04"] },
-      { "id": "home", "label": "Home: heat and the newborn", "need_ids": ["n_infant"], "modules": ["coordinator:rb", "volunteer:rb", "resident:ci"], "rules": ["P-MP-01"] },
-      { "id": "daily_living", "label": "Getting around: stairs", "need_ids": ["n_mobility"], "modules": ["coordinator:nb", "resident:ci"], "rules": ["P-MP-01", "P-PR-02"] }
+      { "id": "health", "label": "Health: oxygen, insulin, power", "need_ids": ["n_powered_medical_device", "n_refrigerated_medication"], "modules": ["coordinator:nb", "coordinator:ci", "volunteer:nb", "voice:block-line", "outbound:T2"], "rules": ["P-911-01", "P-MP-01", "P-MP-02", "P-MP-03"] },
+      { "id": "information", "label": "Rumors: what's true", "need_ids": ["n_rumors"], "modules": ["coordinator:vf", "resident:vf", "coordinator:src"], "rules": ["P-RU-01", "P-RU-02", "P-RU-03", "P-RU-04"] },
+      { "id": "home", "label": "Cooling: the newborn and the heat", "need_ids": ["n_infant"], "modules": ["coordinator:rb", "volunteer:rb", "resident:ci"], "rules": ["P-MP-01"] },
+      { "id": "daily_living", "label": "Stairs: wheelchair and walk-ups", "need_ids": ["n_mobility"], "modules": ["coordinator:nb", "resident:ci"], "rules": ["P-MP-01", "P-PR-02"] }
     ]
   },
   "channels": {
@@ -103,9 +103,10 @@
       "theme": "dashboard",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "W 147th St — blackout", "subtitle": "Block coordinator" }, "children": ["al", "st", "areas", "nb", "rb", "vf", "ci", "cl", "src", "chat", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "W 147th St — blackout", "subtitle": "Block coordinator" }, "children": ["al", "st", "plan", "areas", "nb", "rb", "vf", "ci", "cl", "src", "chat", "e911"] },
         "al": { "type": "Alert", "props": { "source": "official", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No active alerts", "show_escalation_status": true } },
         "st": { "type": "StatusGrid", "props": { "title": "Right now", "labels": ["Open needs", "Matched", "Overdue check-ins", "Unverified claims"], "binds": ["needs:open?count", "needs:matched?count", "checkins:overdue?count", "claims:topic=all?count"] } },
+        "plan": { "type": "PlanBoard", "props": { "title": "This shift", "bind": "plan:shift_today" } },
         "nb": { "type": "NeedBoard", "props": { "title": "Needs by priority", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status", "matched_resource", "language"], "redact_for_roles": ["resident", "volunteer"], "allow_match": true } },
         "rb": { "type": "ResourceBoard", "props": { "title": "Offered by neighbors", "bind": "resources:available", "resource_types": ["generator", "vehicle", "ice", "cooling_center"], "show_constraints": true } },
         "vf": { "type": "VerifiedInfoFeed", "props": { "title": "Rumor check", "bind": "claims:topic=all", "topics": ["power_restoration", "cooling_centers", "water", "heat_alerts"], "trust_levels_shown": ["official", "verified_volunteer", "unverified_neighbor"], "hide_unverified_for_roles": ["resident", "volunteer"] } },
@@ -119,6 +120,7 @@
       "needs_served": {
         "al": ["n_safety", "n_rumors"],
         "st": ["n_powered_medical_device", "n_refrigerated_medication", "n_rumors"],
+        "plan": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "nb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "rb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "vf": ["n_rumors"],
@@ -135,16 +137,18 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "W 147th St — what to do now" }, "children": ["al", "ci", "vf", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "W 147th St — what to do now" }, "children": ["al", "ci", "vf", "chat", "e911"] },
         "al": { "type": "Alert", "props": { "source": "official", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No official alerts right now" } },
         "ci": { "type": "CheckIn", "props": { "title": "Are you OK?", "subjects": ["b_okafor", "b_james"], "bind": "checkins:village", "interval_minutes": 60, "escalate_after_minutes": 90, "big": true } },
         "vf": { "type": "VerifiedInfoFeed", "props": { "title": "Checked facts", "bind": "claims:topic=all", "topics": ["power_restoration", "cooling_centers", "water", "heat_alerts"], "trust_levels_shown": ["official", "verified_volunteer"], "hide_unverified_for_roles": ["resident", "volunteer"] } },
+        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } },
         "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": true } }
       },
       "needs_served": {
         "al": ["n_safety"],
         "ci": ["n_infant", "n_mobility"],
         "vf": ["n_rumors"],
+        "chat": ["n_safety"],
         "e911": ["n_safety"]
       }
     },
@@ -153,9 +157,10 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Who needs help first" }, "children": ["al", "nb", "rb", "chat", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "Who needs help first" }, "children": ["al", "nb", "plan", "rb", "chat", "e911"] },
         "al": { "type": "Alert", "props": { "source": "coordinator", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No requests for you right now", "show_escalation_status": true } },
         "nb": { "type": "NeedBoard", "props": { "title": "Open needs (by priority)", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status"], "redact_for_roles": ["resident", "volunteer"], "allow_match": false } },
+        "plan": { "type": "PlanBoard", "props": { "title": "This shift", "bind": "plan:shift_today" } },
         "rb": { "type": "ResourceBoard", "props": { "title": "What neighbors offered", "bind": "resources:available", "resource_types": ["generator", "vehicle", "ice", "cooling_center"], "show_constraints": true } },
         "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } },
         "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": false } }
@@ -165,6 +170,7 @@
         "nb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "rb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "chat": ["n_safety"],
+        "plan": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "e911": ["n_safety"]
       }
     }

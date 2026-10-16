@@ -134,8 +134,14 @@ def claims(vid: str, topic: str = "all") -> list[dict[str, Any]]:
     for r in _data(vid).get("rumors", []):
         src = (r.get("official_source") or {}).get("name", "the official source")
         verdict = r.get("expected_verdict") or "check"
-        rows.append({"id": r["id"], "claim": r.get("claim"), "verdict": verdict, "url": (r.get("official_source") or {}).get("url"),
-                     "text": {"en": f"Heard: {r.get('claim')} · Check: {src}"}})
+        row = {"id": r["id"], "claim": r.get("claim"), "verdict": verdict, "url": (r.get("official_source") or {}).get("url")}
+        if r.get("finding") or r.get("checked_at"):
+            where = ", ".join(x for x in (src, r.get("checked_at")) if x)
+            found = f" · {r['finding']}" if r.get("finding") else ""
+            row.update(text={"en": f"Heard: {r.get('claim')}{found} ({where})"}, status="checked")
+        else:
+            row.update(text={"en": f"Heard: {r.get('claim')} · Check: {src}"}, status="checking")
+        rows.append(row)
     return rows
 
 

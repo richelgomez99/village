@@ -178,7 +178,7 @@ async def test_block_village_binds_and_reyes_fixes() -> None:
     d = snapshot_data("coordinator", coord, block)
     for key in ("checkins:village", "needs:open", "resources:available", "claims:topic=all"):
         assert d[key] and all(r["text"]["en"] for r in d[key]), key
-    assert any(r["status"] == "ok" for r in d["checkins:village"]) and any(r["status"] == "urgent" for r in d["checkins:village"])
+    assert any(r["status"] == "ok" for r in d["checkins:village"])  # seeded check-ins; urgent needs stay open below even once checked
     assert d["needs:open"][0]["text"]["en"].startswith("Urgent")
     assert any("checked" in a["status"]["en"] for a in life_areas(block))
     vid = villages.default_village_id()

@@ -36,8 +36,14 @@ async def _write_decision(row: dict[str, Any]) -> None:
     await db.create_decision(row)
 
 
+def _direct_drafts(village: str) -> list[dict[str, Any]]:
+    from core.voice.institution_calls import fact_drafts
+    return fact_drafts(village)
+
+
 def get_memory_deps() -> MemoryDeps:
-    return MemoryDeps(client=get_client(), events=_events, prescriptions=_rx, now=_now, write_decision=_write_decision)
+    return MemoryDeps(client=get_client(), events=_events, prescriptions=_rx, now=_now, write_decision=_write_decision,
+                      extra={"drafts": _direct_drafts})
 
 
 @router.get("/facts")

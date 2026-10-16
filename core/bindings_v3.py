@@ -57,6 +57,17 @@ def _proposal_plan(village_id: str, plan_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _data_plan(village_id: str, plan_id: str) -> dict[str, Any] | None:
+    """A plan the village's data file declares under "plans" (seeded checklists, e.g. a shift plan)."""
+    try:
+        got = (villages.village_data(village_id).get("plans") or {}).get(plan_id)
+    except Exception:
+        return None
+    if not got:
+        return None
+    return {"items": _items_from(got), **{k: got[k] for k in ("title", "date") if isinstance(got, dict) and got.get(k)}}
+
+
 def plan(village_id: str, plan_id: str) -> dict[str, Any]:
     held = PLANS.get((village_id, plan_id))
     if held is not None:
@@ -72,6 +83,8 @@ def plan(village_id: str, plan_id: str) -> dict[str, Any]:
         found = None
     if found is None:
         found = _proposal_plan(village_id, plan_id)
+    if found is None:
+        found = _data_plan(village_id, plan_id)
     if found is None:
         return {"items": []}
     return {k: v for k, v in found.items() if v is not None}

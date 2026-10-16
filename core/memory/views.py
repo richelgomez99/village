@@ -37,6 +37,9 @@ def mirror(deps: MemoryDeps, village: str) -> list[dict[str, Any]]:
     rx = deps.prescriptions(village)
     drafts = [d for e in deps.events(village) if (e.get("village") or e.get("village_id")) in (None, village)
               for d in facts_from_event(e, rx)]
+    extra = deps.extra.get("drafts")
+    if extra is not None:  # facts written outside the ledger (e.g. institution calls)
+        drafts += [dict(d) for d in extra(village)]
     chains: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for d in drafts:
         chains.setdefault((d["entity"], d["key"]), []).append(d)
@@ -200,6 +203,9 @@ async def facts_view(deps: MemoryDeps, village: str, *, subject: str | None = No
     elif not cards and mir_s:
         resp.update(degraded=True, degraded_reason="outbox_backlog")
         cards = [card_from_draft(d) for d in mir_s if _valid_at(card_from_draft(d), at)]
+    if as_of is None and not resp["degraded"] and deps.extra.get("drafts") is not None:
+        have = {(c["entity"], c["key"]) for c in cards}  # direct (non-ledger) facts AM hasn't surfaced yet
+        cards += [card_from_draft(d) for d in mir_s if d.get("event_id") is None and not d["superseded"] and (d["entity"], d["key"]) not in have]
     if subject:
         cards = [c for c in cards if c["entity"] == subject]
     cards.sort(key=lambda c: c["observed_at"], reverse=True)

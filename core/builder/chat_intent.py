@@ -21,12 +21,15 @@ CHANGE_TOOL = {
     "input_schema": {
         "type": "object", "additionalProperties": False, "required": ["event"],
         "properties": {
-            "event": {"type": "string"}, "date_day": {"type": "integer"}, "month": {"type": "string"}, "place": {"type": "string"},
+            "event": {"type": "string", "description": "short name, 2-5 words (e.g. 'Thanksgiving', 'the cooling-center move')"}, "date_day": {"type": "integer"}, "month": {"type": "string"}, "place": {"type": "string"},
             "people_count": {"type": "integer"},
             "brings": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["who", "what"], "properties": {"who": {"type": "string"}, "what": {"type": "string"}}}},
             "arrivals": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["who"], "properties": {"who": {"type": "string"}, "train": {"type": "string"}, "pickup_at": {"type": "string"}, "pickup_place": {"type": "string"}}}},
             "dietary": {"type": "array", "items": {"type": "string"}},
             "rule": {"type": "string"},
+            "time": {"type": "string", "description": "when it happens, as said (e.g. '3', '3:30')"},
+            "rides": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["riders"], "properties": {"driver": {"type": "string", "description": "who drives (empty if nobody named yet)"}, "riders": {"type": "string"}, "at": {"type": "string"}}}},
+            "stays": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["who", "with"], "properties": {"who": {"type": "string"}, "with": {"type": "string"}}}},
         },
     },
 }
@@ -44,6 +47,21 @@ def strip_mention(text: str) -> str:
 
 NEED_RE = re.compile(r"\b(need someone|needs? (somebody|someone|help)|can anyone|can someone|anyone (can|free|around)|who can|who'?s (on|free)|take care of|cover( for)?|swap|tomorrow|tonight)\b", re.I)
 INTENTS = ("why", "change", "need", "chit_chat")
+PLACE_RE = re.compile(r"\b(cooling cent(er|re)s?|hospitals?|shelters?|librar(y|ies))\b", re.I)
+CALL_ASK_RE = re.compile(r"\b(power|open|take|takes|taking|call)\b", re.I)
+
+
+def is_call_out(village_id: str, text: str, author: str | None) -> bool:
+    """Coordinator asks whether places have power / take people, and the village lists institutions."""
+    from core import village as village_reg
+
+    if not (PLACE_RE.search(text) and CALL_ASK_RE.search(text)):
+        return False
+    try:
+        data = village_reg.village_data(village_id)
+    except Exception:
+        return False
+    return bool(data.get("institutions")) and author in (None, "control", village_reg.coordinator_id(village_id))
 
 
 async def classify(text: str, llm: Any | None = None) -> str:
@@ -92,7 +110,33 @@ def extract_rules(text: str) -> dict[str, Any]:
     rule = re.search(r"\b(no [a-z ]+? at the table)\b", t, re.I)
     if rule:
         out["rule"] = rule.group(1)
+    out.update(_group_rules(t, out))
     return out
+
+
+NAME = r"(?:(?:the|Mr\.|Mrs\.|Ms\.|Dr\.) )?[A-ZÁÉÍÓÚ][a-zá-ú]+(?: [A-ZÁÉÍÓÚ][a-zá-ú]+)?"
+
+
+def _group_rules(t: str, out: dict[str, Any]) -> dict[str, Any]:
+    """Group plans (no family vocabulary): '<X> drives <Y>', '<X> stays with <thing>', '<Y> needs a ride', 'to <place> at <time>'."""
+    got: dict[str, Any] = {}
+    tm = re.search(r"\bat (\d{1,2}(?::\d{2})?)\s*(am|pm|a\.m\.|p\.m\.)?(?!\w)(?!:\d)", t, re.I)
+    if tm:
+        got["time"] = tm.group(1)
+    rides = [{"driver": d, "riders": r.strip(), "at": got.get("time", "")} for d, r in re.findall(rf"\b({NAME}) (?:drives|picks up|takes) ({NAME}(?: and {NAME})?)", t)]
+    rides += [{"driver": "", "riders": w, "at": got.get("time", "")} for w in re.findall(rf"\b({NAME}) needs a ride", t)]
+    if rides:
+        got["rides"] = rides
+    stays = [{"who": w, "with": x.strip()} for w, x in re.findall(rf"\b({NAME}) stays (?:with|at|by) ((?:Mrs?\.|Ms\.|Dr\.|[^,.:;])+?)(?=,| and [A-Z]|[.;:]|$)", t)]
+    if stays:
+        got["stays"] = stays
+    mv = re.search(r"\bmov(?:e|ing) [^.]*?\bto (?:the )?([A-Z][^,:.]*?)(?= at \d|[,:.]|$)", t)
+    if mv:
+        got["place"] = mv.group(1).strip()
+        kind = re.search(r"\b(cooling|warming|charging|relief|meal)[- ]cent(?:er|re)", t, re.I)
+        if out.get("event") == "the plan":
+            got["event"] = f"the {kind.group(1).lower()}-center move" if kind else "the move"
+    return got
 
 
 async def extract_change(text: str, llm: Any | None = None) -> dict[str, Any]:
@@ -101,9 +145,26 @@ async def extract_change(text: str, llm: Any | None = None) -> dict[str, Any]:
         return rules
     try:
         out = await llm.tool_call(system="Extract only what was said; never invent people, times or dishes.", messages=[{"role": "user", "content": strip_mention(text)}], tool=CHANGE_TOOL, max_tokens=800)
-        return {**rules, **{k: v for k, v in out.items() if v not in (None, "", [])}}
+        got = {**rules, **{k: v for k, v in out.items() if v not in (None, "", [])}}
+        if rules.get("event") not in (None, "the plan") or len(str(got.get("event", ""))) > 40:
+            got["event"] = rules.get("event") if rules.get("event") not in (None, "the plan") else str(got["event"])[:40].rsplit(" ", 1)[0]
+        return got
     except Exception:
         return rules
+
+
+HONORIFICS = {"the", "mr.", "mrs.", "ms.", "dr.", "mr", "mrs", "ms", "dr"}
+
+
+def member_id(spec: dict[str, Any], said: str) -> str:
+    """'Priya' / 'the Okafors' / 'Mrs. Alvarez' → member id ('' if nobody in the blueprint matches)."""
+    words = [w.strip(".,").lower() for w in said.split() if w.lower() not in HONORIFICS]
+    keys = {w for w in words} | {w[:-1] for w in words if w.endswith("s")}
+    for p in spec["blueprint"]["people"]:
+        toks = {w.strip(".,()&").lower() for w in p["name"].split()} - HONORIFICS
+        if keys & toks:
+            return p["id"]
+    return ""
 
 
 def _first(spec: dict[str, Any], pid: str | None) -> str:
@@ -124,14 +185,36 @@ def plan_lines(ch: dict[str, Any], *, pickup_by: str | None) -> list[str]:
     lines += [d.replace("needs a", ":").replace(" : ", ": ") for d in ch.get("dietary", [])]
     if ch.get("rule"):
         lines.append(f"Rule: {ch['rule']}")
+    lines += [i["text"] for i in _group_items(ch, None)]
     return [l[:80] for l in lines][:12]
+
+
+def _at(x: str | None) -> str:
+    return f" at {x}" if x else ""
+
+
+def _group_items(ch: dict[str, Any], spec: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Rides, stays and the move itself as PlanBoard items; owner = the named member (or open)."""
+    mid = (lambda s: member_id(spec, s)) if spec else (lambda s: "")
+    out: list[dict[str, Any]] = []
+    if ch.get("place") and (ch.get("rides") or ch.get("stays")):
+        out.append({"text": f"Move to {ch['place']}{_at(ch.get('time'))}", "kind": "move", "owner": "", "when": ch.get("time", ""), "status": "planned", "note": ""})
+    for r in ch.get("rides", []):
+        at = r.get("at") or ch.get("time", "")
+        if r.get("driver"):
+            out.append({"text": f"{r['driver']} drives {r['riders']}{_at(at)}", "kind": "pickup", "owner": mid(r["driver"]), "when": at, "status": "claimed", "note": "", "for": mid(r["riders"])})
+        else:
+            out.append({"text": f"Ride for {r['riders']}{_at(at)}", "kind": "pickup", "owner": "", "when": at, "status": "open", "note": "who?", "for": mid(r["riders"])})
+    for st in ch.get("stays", []):
+        out.append({"text": f"{st['who']} stays with {st['with']}", "kind": "stay", "owner": mid(st["who"]), "when": "", "status": "claimed", "note": ""})
+    return out
 
 
 PLANS: dict[str, dict[str, dict[str, Any]]] = {}  # village → plan_id → {id, title, items}; core serves `plan:<id>` from here
 
 
 def plan_id_for(ch: dict[str, Any]) -> str:
-    ev = re.sub(r"[^a-z0-9]+", "_", str(ch.get("event", "plan")).lower()).strip("_")[:20] or "plan"
+    ev = re.sub(r"[^a-z0-9]+", "_", re.sub(r"^the ", "", str(ch.get("event", "plan")).lower())).strip("_")[:20].strip("_") or "plan"
     month_n = {"Jan": "01", "Nov": "11", "Dec": "12"}.get(ch.get("month", ""), "")
     day = f"{int(ch['date_day']):02d}" if ch.get("date_day") else ""
     return f"{ev}_{month_n}{day}" if day else ev
@@ -155,6 +238,7 @@ def plan_items(ch: dict[str, Any], spec: dict[str, Any], *, pickup_by: str | Non
         out.append({"text": f"Rule: {ch['rule']}", "kind": "rule", "owner": "", "when": "", "status": "noted", "note": ""})
     if ch.get("people_count"):
         out.insert(0, {"text": f"{ch['people_count']} people at {ch.get('place', 'home')}", "kind": "headcount", "owner": "", "when": "", "status": "noted", "note": ""})
+    out += _group_items(ch, spec)
     return out[:24]
 
 
@@ -182,7 +266,9 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
     lines = plan_lines(ch, pickup_by=pickup_by)
     plan_id = plan_id_for(ch)
     items = plan_items(ch, spec, pickup_by=pickup_by)
-    need = next((n["id"] for n in spec["blueprint"]["needs"] if n.get("domain") == "scheduling"), "n_safety")
+    need = next((n["id"] for d in ("scheduling", "logistics") for n in spec["blueprint"]["needs"] if n.get("domain") == d), None) or next((n["id"] for n in spec["blueprint"]["needs"]), "n_safety")
+    if not center and (ch.get("rides") or ch.get("stays")):  # a group (no care recipient): rides / stays plan
+        return _group_change_ops(spec, ch, plan_id, items, lines, need)
     ops: dict[str, list[dict[str, Any]]] = {}
     served: dict[str, dict[str, list[str]]] = {}
     highlight: dict[str, list[str]] = {}
@@ -255,6 +341,70 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
             "plan": {"id": plan_id, "title": title, "items": items}}
 
 
+def _group_change_ops(spec: dict[str, Any], ch: dict[str, Any], plan_id: str, items: list[dict[str, Any]], lines: list[str], need: str) -> dict[str, Any]:
+    """Group village (D35): an existing PlanBoard is re-pointed at the new plan (old items kept under it);
+    each view whose members are named gets one line in third person (shared views), in the right place."""
+    from .patch import apply_to_copy
+
+    event = str(ch.get("event") or "The plan")
+    ev_cap = event[:1].upper() + event[1:]
+    ev_cap = ev_cap[4:5].upper() + ev_cap[5:] if ev_cap.lower().startswith("the ") else ev_cap
+    when = str(ch.get("time") or "")
+    when = f"{when}:00" if when.isdigit() else when
+    title = (f"{ev_cap} · {when}" if when else ev_cap)[:60]
+    names = {p["id"]: p for p in spec["blueprint"]["people"]}
+    cand = copy.deepcopy(spec)
+    ops: dict[str, list[dict[str, Any]]] = {}
+    served: dict[str, dict[str, list[str]]] = {}
+    highlight: dict[str, list[str]] = {}
+    changes: list[dict[str, str]] = []
+    kept: list[dict[str, Any]] = []
+    for role, view in spec["views"].items():
+        els = view["elements"]
+        kids = list(els[view.get("root", "s")].get("children", []))
+        root = view.get("root", "s")
+        pb = next((k for k in kids if els.get(k, {}).get("type") == "PlanBoard"), None)
+        mine = {p["id"] for p in spec["blueprint"]["people"] if p.get("view") == role}
+        role_ops: list[dict[str, Any]] = []
+        hl: list[str] = []
+        if pb:
+            old = str(els[pb]["props"].get("bind", ""))
+            if old.startswith("plan:") and not kept:
+                try:
+                    from core.bindings_v3 import plan as plan_of
+
+                    kept = [i for i in plan_of(spec["village"]["id"], old[5:]).get("items", []) if isinstance(i, dict)]
+                except Exception:
+                    kept = []
+            role_ops.append({"op": "replace", "path": f"/elements/{pb}/props", "value": {**els[pb]["props"], "title": title, "bind": f"plan:{plan_id}"}})
+            hl.append(pb)
+            changes.append({"en": f"{role.capitalize()}: the '{els[pb]['props'].get('title', 'plan')}' board becomes '{title}' (new today, the rest of the shift stays under it)", "es": f"{role}: '{title}'"})
+        bits = []
+        for i in items:
+            if i.get("owner") in mine and i["kind"] != "move":
+                bits.append(i["text"])
+            elif i.get("for") in mine:
+                who = names.get(i["for"], {}).get("name", "")
+                drv = i["text"].split(" drives ")[0] if " drives " in i["text"] else ""
+                said = i["text"].split(" drives ", 1)[-1].rsplit(" at ", 1)[0] if drv else i["text"][len("Ride for "):].rsplit(" at ", 1)[0]
+                bits.append(f"{drv} picks up {said}{_at(i.get('when'))}" if drv else f"{said}: ride{_at(i.get('when'))}, still being arranged")
+        if bits and len(kids) + 1 <= 12 and "plan_event" not in els:
+            at = (kids.index(pb) + 1) if pb else 1
+            text = (f"New today · {title}: " + " · ".join(bits))[:200]
+            role_ops += [{"op": "add", "path": "/elements/plan_event", "value": {"type": "Text", "props": {"text": text, "size": "m", "tone": "info"}}}, {"op": "add", "path": f"/elements/{root}/children/{at}", "value": "plan_event"}]
+            hl.append("plan_event")
+            changes.append({"en": f"{role.capitalize()}: one line under the {'plan' if pb else 'alert'}: \"{text[:120]}\"", "es": text[:120]})
+        if not role_ops:
+            continue
+        nxt, errs = apply_to_copy(cand, role, {"ops": role_ops, "needs_served": {}})
+        if nxt is None:
+            continue
+        cand, ops[role], served[role], highlight[role] = nxt, role_ops, {}, hl
+    plan = {"id": plan_id, "title": title, "items": (items + [{**k, "note": k.get("note") or "earlier this shift"} for k in kept])[:24]}
+    return {"ops": ops, "needs_served": served, "highlight": highlight, "blueprint_ops": [], "changes": changes[:6], "title": title, "lines": lines, "plan": plan,
+            "stays": "Nothing else changes; the plan is the group's, Village only keeps it in one place."}
+
+
 async def propose_change(village_id: str, text: str, author: str | None, *, llm: Any | None = None) -> dict[str, Any]:
     """Change request → Evolve proposal record (same STORE/approve/release path as core.evolve.proposals)."""
     from core import services
@@ -291,7 +441,7 @@ async def propose_change(village_id: str, text: str, author: str | None, *, llm:
     errs = ev.validate(proposal)
     if errs:
         raise ValueError(f"proposal invalid: {errs[:2]}")
-    stays = "Nothing else changes; the plan is the family's, Village only keeps it in one place."
+    stays = built.get("stays") or "Nothing else changes; the plan is the family's, Village only keeps it in one place."
     rec = {"proposal": proposal, "options": None, "voice_ops": built["blueprint_ops"], "highlight": built["highlight"],
            "key": f"chat:{slug}", "detected_by": "chat_request", "evidence_meta": {"text": text},
            "evidence_labels": [f"{asker}'s message"], "what_happened": proposal["rationale"],
@@ -321,6 +471,13 @@ async def route_chat(village_id: str, text: str, author: str | None = None, *, l
     """Core's @Village hook (`core.builder.ask(village_id, text)`): returns {text, refs, trace_id}."""
     from .ask import ask
 
+    if intent in (None, "call_out") and is_call_out(village_id, text, author):
+        import asyncio
+
+        from core.voice.institution_calls import institutions, intro_text, run_calls
+
+        asyncio.ensure_future(run_calls(village_id))
+        return {"text": intro_text(village_id), "refs": [{"kind": "rule", "id": str(i.get("id")), "label": str(i.get("name"))[:80]} for i in institutions(village_id)], "intent": "call_out"}
     intent = intent or await classify(text, llm)
     if intent == "need":
         res = await answer_need(village_id, text, author, post_answer=False)
@@ -451,7 +608,7 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     reply = await _answer_open_ask(message)
     if reply:
         return reply
-    intent = await classify(text, llm)
+    intent = "call_out" if is_call_out(village_id, text, author) else await classify(text, llm)
     if intent == "chit_chat":
         return None
     if intent == "need":

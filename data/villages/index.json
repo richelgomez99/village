@@ -8,15 +8,39 @@
       "events": "contracts/fixtures/events_reyes_seed.json",
       "messages": "contracts/fixtures/messages_reyes_seed.json",
       "prescriptions": [
-        {"med_id": "med_lisinopril_5", "name": "lisinopril", "dose": "5 mg", "valid_from": "2026-09-01", "valid_until": "2026-10-03",
-         "source": {"kind": "system", "ref": "seed", "quote": "Prior bottle in cabinet"}, "prescriber": "Dr. Park"},
-        {"med_id": "med_lisinopril_10", "name": "lisinopril", "dose": "10 mg", "valid_from": "2026-10-03", "valid_until": null,
-         "source": {"kind": "call", "ref": "conv_setup_0003", "secs": 88}, "prescriber": "Dr. Park"}
+        {
+          "med_id": "med_lisinopril_5",
+          "name": "lisinopril",
+          "dose": "5 mg",
+          "valid_from": "2026-09-01",
+          "valid_until": "2026-10-03",
+          "source": {
+            "kind": "system",
+            "ref": "seed",
+            "quote": "Prior bottle in cabinet"
+          },
+          "prescriber": "Dr. Park"
+        },
+        {
+          "med_id": "med_lisinopril_10",
+          "name": "lisinopril",
+          "dose": "10 mg",
+          "valid_from": "2026-10-03",
+          "valid_until": null,
+          "source": {
+            "kind": "call",
+            "ref": "conv_setup_0003",
+            "secs": 88
+          },
+          "prescriber": "Dr. Park"
+        }
       ]
     },
     "v_w147": {
       "spec": "contracts/fixtures/block_spec.json",
-      "data": "data/villages/block_blackout.json"
+      "data": "data/villages/block_blackout.json",
+      "events": "contracts/fixtures/events_w147_seed.json",
+      "messages": "contracts/fixtures/messages_w147_seed.json"
     }
   }
 }
