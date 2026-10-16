@@ -4,6 +4,10 @@ import { text, type View } from "../renderer/view";
 
 export const ATTENTION_TYPES = new Set(["Alert", "Proposal", "VerificationPrompt", "IncidentCard"]);
 const LAYOUT = new Set(["Screen", "Header", "Text", "Stack"]);
+/** one-tap actions (Call Mamá, 911) never move off Home */
+const PINNED = new Set(["BigButton", "ContactCard"]);
+/** below this many tab-able elements one screen is enough (Marco: Home · Chat) */
+const MIN_FOR_TABS = 4;
 
 export interface Tab { id: string; label: string; elements: string[] }
 export interface TabPlan {
@@ -55,7 +59,9 @@ export function planTabs(view: View, data: Record<string, unknown>, lang: string
   const order = [...labels.keys()];
   const byArea = new Map<string, string[]>();
   const unassigned: string[] = [];
-  for (const id of others) {
+  const pinned = others.filter((id) => PINNED.has(view.elements[id].type));
+  const movable = others.filter((id) => !PINNED.has(view.elements[id].type));
+  for (const id of movable) {
     const needs = view.needs_served?.[id] ?? [];
     const area = needs.map((n) => needArea.get(n)).find(Boolean);
     if (area) byArea.set(area, [...(byArea.get(area) ?? []), id]);
@@ -63,6 +69,6 @@ export function planTabs(view: View, data: Record<string, unknown>, lang: string
   }
   const areas: Tab[] = order.filter((a) => byArea.has(a)).map((a) => ({ id: a, label: labels.get(a) ?? a, elements: byArea.get(a)! }));
   // one area is not a choice: keep it on Home (Marco: Home · Chat; Lucía: Home · Chat)
-  if (areas.length < 2) return { attention, headline, homeRest: others, areas: [], chat };
-  return { attention, headline, homeRest: unassigned, areas, chat };
+  if (areas.length < 2 || movable.length < MIN_FOR_TABS) return { attention, headline, homeRest: others, areas: [], chat };
+  return { attention, headline, homeRest: others.filter((id) => pinned.includes(id) || unassigned.includes(id)), areas, chat };
 }
