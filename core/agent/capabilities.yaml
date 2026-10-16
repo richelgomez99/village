@@ -1,55 +1,112 @@
+# Capabilities catalog (AGENT.md §4, D20, D22). The Founder scores each capability per person:
+# applies_when (roles / need domains / village kinds / preconditions) and fits (profile constraints)
+# gate whether it is a candidate; score = weight + 2 per matched need (max 2) + role_bonus. Reasons go to decision rows.
+version: 2
+pick:
+  min_score: 4
+  max_per_person: 3
 capabilities:
   phone_line:
-    applies_when: center prefers phone or needs voice support
-    fits: voice questions, check-ins, scam reporting
-    cost_to_person: answers or places a phone call
+    label: "Phone line"
+    applies_when:
+      text: "the person calls in rather than opening an app (center of a care village, phone-only resident)"
+      roles: [care_recipient, resident, business]
+    fits:
+      text: "phone or phone+app; any memory; any language"
+      tech_comfort: [phone, both]
+    weight: 4
+    cost_to_person: "calls one number; nothing to install or remember"
     risk_class: medium
-    implements: [mom-line, block-line]
+    implements: ["voice:mom-line", "voice:block-line", "BigButton:call_village"]
   receptionist_line:
-    applies_when: repeated unknown callers or claimed-family money requests
-    fits: screens unknown callers before reaching the center
-    cost_to_person: known callers may hear one extra question
+    label: "Village answers unknown callers first"
+    applies_when:
+      text: "repeated claimed-family money requests (2+ attempts); proposed by Evolve, not at founding"
+      roles: [care_recipient]
+      need_domains: [money]
+      requires: [money_attempts_2]
+    fits:
+      text: "phone users"
+      tech_comfort: [phone, both]
+    weight: 3
+    cost_to_person: "known callers may hear one extra question"
     risk_class: high
-    implements: [report_money_request, await_verification]
-  refill_day:
-    applies_when: medication changes or refill owner exists
-    fits: coordinator/helper refill checklist with superseded dose history
-    cost_to_person: helper reviews a list before filling organizer
-    risk_class: medium
-    implements: [PillOrganizer, Timeline]
-  check_in_call:
-    applies_when: center consents to periodic calls
-    fits: asks about organizer state and symptoms without giving medical advice
-    cost_to_person: short scheduled call
-    risk_class: medium
-    implements: [CallLog, Timeline]
+    implements: ["voice:receptionist", "report_money_request", "await_verification"]
   is_it_my_turn:
-    applies_when: rota or missed visits are mentioned
-    fits: caregiver sees current duty and swap options
-    cost_to_person: app check or nudge
+    label: "Is it my turn?"
+    applies_when:
+      text: "turns or visits are unclear (scheduling need)"
+      roles: [caregiver, professional_caregiver, volunteer]
+      need_domains: [scheduling]
+    fits:
+      text: "app users; one question answered at a glance (shift workers)"
+      tech_comfort: [app, both]
+    weight: 4
+    cost_to_person: "one glance at the app, or a 3 PM nudge"
     risk_class: low
-    implements: [CareRota, HelperAnswer]
+    implements: [HelperAnswer, CareRota]
   dashboard:
-    applies_when: one coordinator needs cross-area view
-    fits: life areas, incidents, refill state, rota, history
-    cost_to_person: denser app view
+    label: "Coordinator dashboard"
+    applies_when:
+      text: "one person coordinates across several life areas"
+      roles: [coordinator]
+    fits:
+      text: "app users comfortable with a denser screen"
+      tech_comfort: [app, both]
+    weight: 4
+    cost_to_person: "a denser app view"
     risk_class: low
-    implements: [LifeAreas, IncidentCard, Timeline, StatusGrid]
+    implements: [LifeAreas, IncidentCard, VerificationPrompt, RefillCard, CareRota, Timeline]
   village_chat:
-    applies_when: non-elder members coordinate
-    fits: incident posts, receipts, cited answers, approvals
-    cost_to_person: app feed
+    label: "Village chat"
+    applies_when:
+      text: "non-center members coordinate; Village posts incidents, receipts and cited answers"
+      roles: [coordinator, caregiver, professional_caregiver, resident, volunteer]
+    fits:
+      text: "app users (never the center's elder view)"
+      tech_comfort: [app, both]
+    weight: 3
+    role_bonus: {coordinator: 2}
+    cost_to_person: "an app feed to read"
     risk_class: medium
     implements: [VillageChat]
   fridge_card:
-    applies_when: center needs offline safety script
-    fits: family word, Village number, 911-first reminder
-    cost_to_person: printed card in home
+    label: "Fridge card"
+    applies_when:
+      text: "the center needs an offline safety script (scam calls, pills, 911 first)"
+      roles: [care_recipient]
+      need_domains: [money, medication, safety]
+      kinds: [care]
+    fits:
+      text: "anyone; printed in their language"
+    weight: 3
+    cost_to_person: "a printed card on the fridge"
     risk_class: low
     implements: [printable_fridge_card]
-  rumor_check:
-    applies_when: block or crisis village has public claims
-    fits: verifies official updates and hides unverified claims where risky
-    cost_to_person: volunteers report sources
+  refill_day:
+    label: "Refill day checklist"
+    applies_when:
+      text: "medications with changes or refills, filled by whoever is on duty"
+      roles: [caregiver, professional_caregiver]
+      need_domains: [medication, logistics]
+      kinds: [care]
+    fits:
+      text: "app users who fill the organizer"
+      tech_comfort: [app, both]
+    weight: 2
+    cost_to_person: "reviews a short list before filling the organizer"
     risk_class: medium
-    implements: [VerifiedInfoFeed, SourceCard]
+    implements: [RefillCard, Timeline]
+  check_in_call:
+    label: "Evening check-in call"
+    applies_when:
+      text: "medication or health need for someone who is reached by phone; they can decline"
+      roles: [care_recipient, resident]
+      need_domains: [medication, health_observation, safety, resources]
+    fits:
+      text: "phone users; respects quiet hours; asks consent first when not given"
+      tech_comfort: [phone, both]
+    weight: 2
+    cost_to_person: "a short call; can say no"
+    risk_class: medium
+    implements: [TonightCard, CallLog, "outbound:check_in"]
