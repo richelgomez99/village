@@ -357,3 +357,4 @@ html, body { background: #100D0A; margin: 0; }
 .control .intake-desc { margin: 0 0 8px; font-style: italic; }
 .control .intake-meter { font-weight: 600; }
 .control .qr-tile a { color: inherit; }
+.control .nav-section .nav-wide { grid-column: 1 / -1; }

@@ -69,6 +69,8 @@ function SendLine({ test, label, placeholder, onSend, hint }: { test: string; la
 
 /* ---------------- Build = the intake ---------------- */
 
+const ORIGIN: Record<string, string> = { follow_up: "from a follow-up answer", data: "from the village's records", answer: "from an answer", member: "from another member" };
+
 export function BuildSection({ scene, onAddDetail, live }: { scene: SceneState; onAddDetail: (text: string) => Promise<any>; live: boolean }) {
   const spec = scene.spec;
   const desc = spec?.blueprint?.description;
@@ -110,11 +112,11 @@ export function BuildSection({ scene, onAddDetail, live }: { scene: SceneState; 
           </ul>
         </Box>
       ) : null}
-      <Box test="build-others" title="Answers from others">
+      <Box test="build-others" title="Added after your first words">
         {fromOthers.length ? (
-          <ul>{fromOthers.map((n) => <li key={n.id} data-test="other-answer">{txt(n.text)} <span className="muted small">· from {n.origin}</span></li>)}</ul>
+          <ul>{fromOthers.map((n) => <li key={n.id} data-test="other-answer">{txt(n.text)} <span className="muted small">· {ORIGIN[n.origin] ?? `from ${n.origin}`}</span></li>)}</ul>
         ) : (
-          <p className="empty muted small">No one else has answered for this village yet.</p>
+          <p className="empty muted small">Nothing added since the first description.</p>
         )}
       </Box>
       <SendLine
@@ -123,7 +125,13 @@ export function BuildSection({ scene, onAddDetail, live }: { scene: SceneState; 
         placeholder="e.g. Her pharmacy changed to the one on 37th Ave"
         hint={live ? "Goes to the founding conversation that's open now." : "The founding is finished; Core decides whether it can still take a detail."}
         onSend={async (t) => {
-          const r = await onAddDetail(t);
+          let r: any;
+          try {
+            r = await onAddDetail(t);
+          } catch (x) {
+            if ((x as Error).message === "404") throw new Error("404: no founding conversation is open for this village, so the detail wasn't taken");
+            throw x;
+          }
           const m = r?.meter ? ` · ${r.meter.covered ?? r.meter.value ?? ""}` : "";
           return r?.next_question ? `Village heard it${m}. Next: ${r.next_question}` : "Village heard it.";
         }}
@@ -186,7 +194,7 @@ export function RebuildSection({ spec, rows, options, error, onDecide, onReceipt
   const weighed = rows.filter((p) => options[p.id]?.candidates?.length);
   return (
     <div className="nav-section" data-test="section-rebuild">
-      {error ? <p className="small warn" data-test="proposals-error">Couldn't read proposals from Core ({error}).</p> : null}
+      {error ? <p className="small warn nav-wide" data-test="proposals-error">Couldn't read proposals from Core ({error}).</p> : null}
       <Box test="rebuild-pending" title="Waiting for your yes">
         {pending.length ? (
           <ul>
