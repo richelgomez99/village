@@ -31,7 +31,7 @@ env_from_file() {
 ADMIN_KEY="${ADMIN_KEY:-$(env_from_file ADMIN_KEY)}"
 DEMO_CLOCK="${DEMO_CLOCK:-$(env_from_file DEMO_CLOCK)}"
 CORE_URL="${CORE_URL:-$(env_from_file CORE_URL)}"
-CORE_URL="${CORE_URL:-http://127.0.0.1:8787}"
+CORE_URL="${CORE_URL:-http://127.0.0.1:8790}"  # D27
 DEMO_CLOCK="${DEMO_CLOCK:-2026-10-16T20:50:00-04:00}"
 SCOPES='["events_today","verifications","proposals","tokens","counters"]'
 
@@ -86,8 +86,8 @@ ok "fixtures seeded (Reyes village, events, prescriptions, member tokens)"
 
 # 4. Pre-warm
 warm_out=$(uv run python -m core.tools.warm) || fail "warm" "core.tools.warm exited non-zero" "uv run python -m core.tools.warm"
-if echo "$warm_out" | grep -qi "stub"; then
-  ok "warm ran, but it is a STUB: no Daytona sandbox or Anchor session pre-warmed"
+if echo "$warm_out" | grep -qiE "stub|absent|\"failed\""; then
+  ok "warm ran but did NOT pre-warm (sandbox/Anchor cold; first release will be slow): $(echo "$warm_out" | tail -n 1)"
 else
   ok "warm: $(echo "$warm_out" | tail -n 1)"
 fi
