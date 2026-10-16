@@ -37,6 +37,7 @@ def test_log_dose_writes_decision_and_event_frame() -> None:
 
         decisions = client.get("/villages/v_reyes/decisions").json()["decisions"]
         assert decisions[-1]["gate"]["decision"] == "record"
+        assert decisions[-1]["event_ids"]
 
 
 def test_ws_contract_mismatch_closes_with_error() -> None:

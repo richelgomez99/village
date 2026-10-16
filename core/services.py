@@ -113,10 +113,13 @@ async def decide(
     }
     inp = {"village_state": _village_state(village_id), "event": candidate, "alloc": alloc}
     if idempotency_key:
+        cached = await db.get_idem(idempotency_key)
+        if cached:
+            return copy.deepcopy(cached["decision"])
         inp["idempotency_key"] = idempotency_key
     decision = _gate_decide(inp)
     decision["id"] = decision.get("id") or alloc["decision_id"]
-    await db.create_decision({
+    decision_row = {
         "id": decision["id"],
         "village_id": village_id,
         "at": clock.now().isoformat(),
@@ -126,9 +129,27 @@ async def decide(
         "rule_id": decision["rule_id"],
         "refs": [{"kind": "mode", "id": "acted_alone"}],
         "source": candidate.get("source", {"kind": "system", "ref": "gate"}),
-        "gate": decision,
-    })
+        "gate": copy.deepcopy(decision),
+        "event_ids": [],
+    }
+    await db.create_decision(decision_row)
     await control(village_id, "gate", {"decision": decision})
+    written_events = []
+    for draft in decision.get("writes", []):
+        event = await record_event(
+            village_id,
+            draft,
+            actor=candidate["actor"],
+            source=candidate["source"],
+            decision_id=decision["id"],
+        )
+        written_events.append(event)
+        decision_row["event_ids"].append(event["id"])
+        if draft.get("kind") == "escalation" and decision.get("escalate"):
+            decision["escalate"]["related_event_id"] = event["id"]
+    decision["_events"] = written_events
+    if idempotency_key:
+        await db.put_idem(idempotency_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "at": clock.now().isoformat()})
     return decision
 
 
@@ -182,17 +203,7 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             candidate,
             idempotency_key=f"{request.get('conversation_id', 'conv_stub')}:{request.get('tool_call_id', name)}",
         )
-        events = []
-        for draft in decision.get("writes", []):
-            events.append(
-                await record_event(
-                    village_id,
-                    draft,
-                    actor=candidate["actor"],
-                    source=candidate["source"],
-                    decision_id=decision["id"],
-                )
-            )
+        events = decision.get("_events", [])
         first_event = events[0] if events else None
         say = decision.get("say", {}).get("es", "")
         return {

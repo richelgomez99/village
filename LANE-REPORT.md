@@ -5,7 +5,7 @@ T004 · done · `uv run python -m core.db --apply`; `uv run pytest core/tests/te
 T005 · done · `uv run python -m core.tools.seed`; `uv run pytest core/tests/test_fixtures.py -q` · fixture seed resets app tables, loads Reyes spec/events/views/members, and generated member tokens; no hashed slot tokens because D22 cuts lid scans from V0
 T006 · done · `uv run pytest core/tests/test_spine.py -q` · one WebSocket hub and DB change-feed fan-out work; SurrealDB Cloud writes are mirrored, and the local asyncio feed is the fallback/live source for demo acceptance
 T007 · done · `uv run pytest core/tests/test_bindings.py -q` · V0 dose-day and rota bindings are role-aware; elder hides med names; helper receives no dose payload on D22 check-in path
-T008 · partial · `uv run pytest core/tests/test_spine.py -q` · decisions are persisted and broadcast; uses `core/gate_fallback.py` until gate lane merges
+T008 · done · `uv run pytest core/tests/test_spine.py -q` · `services.decide` loads state, mints alloc ids, calls merged gate or `core/gate_fallback.py`, persists/broadcasts decision rows, writes returned drafts, and records caused event ids
 T009 · cut · not run · `/s/{slot_token}` optional per D22 addendum; not implemented in this increment
 T010 · partial · `uv run pytest core/tests/test_spine.py -q` · HTTP action/tool path and decisions endpoint work; WS inbound actions not wired yet
 T011 · done · `acceptance/run.sh V0 --lane core` · acceptance covers D22 check-in tool path, prescriptions, clock warp and core tests; gate lane tests not present in this worktree yet
