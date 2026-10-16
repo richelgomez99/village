@@ -13,3 +13,6 @@
 | 07 | Arize (10:42) | PASS (exporter) | register project=village; traced Bedrock haiku-4-5 call 1825 ms; CHAIN>AGENT>GUARDRAIL/TOOL spans; force_flush 326 ms. UI confirmation pending (operator) |
 | 08 | tool server | RUNNING on :8787 | Funnel URL https://richel-macbook.tail8feae0.ts.net preset in .env; enable click pending |
 | 09 | ElevenLabs (10:50) | PARTIAL | TTS PASS (50 KB mp3, 656 ms). Agent + tool + call blocked on TUNNEL_URL (Funnel not yet enabled by operator). Twilio number +1 848 257 9221 bought; upgrade + import pending |
+
+## Spine (core lane, 10:37)
+- 3 WS clients (elder/coordinator/helper snapshots from the Reyes fixture) → `POST /tools/log_dose` → gate → SurrealDB Cloud write → change feed → `event` frame on all 3 clients in **~130 ms** (tool call to last frame). Decision row written. `uv run pytest -q` 16 core tests + 49 gate tests green offline.
