@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/village_spec.schema.json",
   "title": "VillageSpec",
   "description": "The whole generated village: blueprint (people + capability profiles, needs, life areas, rules), per-member channels, per-role views (flat adjacency lists, builder render_app shape), policies, voice lines, printables and custom components. Produced by builder (or the fixture), stored by core, rendered by kit, built by release. Cross-field invariants that JSON Schema cannot express are listed in contracts/README.md §Invariants and are enforced by core's pydantic model.",
-  "x-contract-version": "1.2.0",
+  "x-contract-version": "1.2.1",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "rev", "village", "blueprint", "channels", "views", "policies", "voice_lines", "printables", "custom_components"],
@@ -275,7 +275,7 @@
         "ScamCheck", "IncidentCard", "LifeAreas", "VerificationPrompt", "HelperAnswer", "Proposal", "PillOrganizer",
         "VillageChat", "RefillCard", "TonightCard"
       ],
-      "description": "26 catalog types of 1.0.0 + VillageChat (1.1.0, D16) + RefillCard, TonightCard (1.2.0, D22)."
+      "description": "26 catalog types of 1.0.0 + VillageChat (1.1.0, D16) + RefillCard, TonightCard (1.2.1, D22)."
     },
     "component_type": {
       "anyOf": [ { "$ref": "#/$defs/catalog_type" }, { "type": "string", "pattern": "^Custom[A-Z][A-Za-z0-9]{2,28}$" } ]
@@ -283,7 +283,7 @@
 
     "bind": {
       "type": "string",
-      "description": "Binding grammar = builder_system.md DATA BINDINGS (incl. verifications:mine, verifications:pending?member=me, incidents:open|subject=<id>, blueprint:life_areas) + contract additions proposals:pending, rota:current?member=me, valid_at=week, chat:village (1.1.0), prescriptions:current (1.2.0, D22). Core resolves binds into snapshot.data / event.data keyed by the exact bind string.",
+      "description": "Binding grammar = builder_system.md DATA BINDINGS (incl. verifications:mine, verifications:pending?member=me, incidents:open|subject=<id>, blueprint:life_areas) + contract additions proposals:pending, rota:current?member=me, valid_at=week, chat:village (1.1.0), prescriptions:current (1.2.1, D22). Core resolves binds into snapshot.data / event.data keyed by the exact bind string.",
       "pattern": "^(facts:[a-z_]+(\\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\\.(on_duty|backup))?(\\?member=me)?|alerts:active(\\?count)?|needs:(open|matched)(\\?count)?|resources:available(\\?count)?|claims:(topic=[a-z_]+)(\\?count)?|checkins:(village|overdue)(\\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\\?count)?|verifications:(mine|pending\\?member=me)|proposals:pending(\\?count)?|blueprint:life_areas|chat:village(\\?count)?|prescriptions:current)$"
     },
 
@@ -345,7 +345,7 @@
     "props_BigButton": {
       "type": "object", "additionalProperties": false, "required": ["label", "action"],
       "properties": {
-        "label": { "$ref": "#/$defs/label" }, "action": { "$ref": "common.schema.json#/$defs/action_name" }, "action_arg": { "type": "string", "maxLength": 80, "description": "call_member: a member id (kit dials tel:<member phone>). call_number: an E.164 / short code, or the literal 'village' = the Village line (village.village_number, also sent as snapshot.identity.village_number; 1.2.0, D22). log_dose: slot:current | slot:<slot>." },
+        "label": { "$ref": "#/$defs/label" }, "action": { "$ref": "common.schema.json#/$defs/action_name" }, "action_arg": { "type": "string", "maxLength": 80, "description": "call_member: a member id (kit dials tel:<member phone>). call_number: an E.164 / short code, or the literal 'village' = the Village line (village.village_number, also sent as snapshot.identity.village_number; 1.2.1, D22). log_dose: slot:current | slot:<slot>." },
         "icon": { "$ref": "#/$defs/icon" }, "tone": { "$ref": "#/$defs/button_tone" }, "confirm": { "type": "boolean" }, "confirm_text": { "type": "string", "maxLength": 120 },
         "speak": { "type": "string", "maxLength": 120 }
       },
@@ -450,7 +450,7 @@
     },
     "props_RefillCard": {
       "type": "object", "additionalProperties": false, "required": ["bind"],
-      "description": "1.2.0 (D22). The refill checklist for whoever is on duty on refill day: every current prescription (name, dose, schedule) and, where a dose changed, the superseded dose struck through with who changed it and when ('lisinopril 10 mg now, was 5 mg, changed Oct 3 by Dr. Lee'). Data: bind prescriptions:current → bv_prescriptions. Shows med names, so invariant 9 (validate.py): never in a theme elder view.",
+      "description": "1.2.1 (D22). The refill checklist for whoever is on duty on refill day: every current prescription (name, dose, schedule) and, where a dose changed, the superseded dose struck through with who changed it and when ('lisinopril 10 mg now, was 5 mg, changed Oct 3 by Dr. Lee'). Data: bind prescriptions:current → bv_prescriptions. Shows med names, so invariant 9 (validate.py): never in a theme elder view.",
       "properties": {
         "bind": { "const": "prescriptions:current" },
         "title": { "$ref": "#/$defs/label" },
@@ -463,7 +463,7 @@
     },
     "props_TonightCard": {
       "type": "object", "additionalProperties": false, "required": ["bind"],
-      "description": "1.2.0 (D22). Elder: who is caring for her tonight, e.g. 'Esta noche cuida Marco'. Data: bind rota:current.on_duty (or .backup) → bv_person; null = nobody assigned (amber, 'Nadie asignado esta noche'); absent key = render nothing. Spoken by read-aloud.",
+      "description": "1.2.1 (D22). Elder: who is caring for her tonight, e.g. 'Esta noche cuida Marco'. Data: bind rota:current.on_duty (or .backup) → bv_person; null = nobody assigned (amber, 'Nadie asignado esta noche'); absent key = render nothing. Spoken by read-aloud.",
       "properties": {
         "bind": { "type": "string", "pattern": "^rota:current\\.(on_duty|backup)$" },
         "title": { "$ref": "#/$defs/label" },
@@ -550,7 +550,7 @@
 
   "examples": [
     {
-      "contract_version": "1.2.0",
+      "contract_version": "1.2.1",
       "rev": 1,
       "village": { "id": "v_demo", "name": "Demo family", "kind": "care", "lang": "en", "timezone": "America/New_York", "coordinator_id": "m_sam", "care_recipient_id": "m_rose" },
       "blueprint": {
