@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     surreal_db_user: str = Field(default="", alias="SURREAL_DB_USER")
     surreal_db_pass: str = Field(default="", alias="SURREAL_DB_PASS")
     admin_key: str = Field(default="change-me-admin-key", alias="ADMIN_KEY")
+    # D30: the demo village id; empty -> data/villages/index.json "default". Never hardcoded in core/.
+    demo_village_id: str = Field(default="", alias="DEMO_VILLAGE_ID")
     demo_clock: str = Field(default="2026-10-16T20:50:00-04:00", alias="DEMO_CLOCK")
     bedrock_sonnet_model: str = Field(default="anthropic.claude-sonnet-5-5", alias="BEDROCK_SONNET_MODEL")
     bedrock_haiku_model: str = Field(default="anthropic.claude-haiku-5-5", alias="BEDROCK_HAIKU_MODEL")

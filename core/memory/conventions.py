@@ -56,7 +56,7 @@ def am_entity(entity: str, village: str) -> dict[str, str]:
 
 
 def entity_from_am(ref: str | None, village: str | None = None) -> str:
-    """'entity:person/carmen_reyes_(m_carmen)' or a name -> village entity id."""
+    """'entity:person/<first>_<last>_(<member id>)' or a name -> village entity id."""
     if not ref:
         return "village"
     m = _ID_SUFFIX.search(ref)

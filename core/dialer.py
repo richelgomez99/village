@@ -127,7 +127,9 @@ async def dial_verification(verification_id: str) -> dict[str, Any]:
     from core import services
 
     name = str(db.members.get(member_id, {}).get("name", member_id)).split()[0]
-    village = row.get("village", "v_reyes")
+    from core.village import member_village
+
+    village = row.get("village") or member_village(member_id)
     try:
         await services.ledger(village, f"dial:{verification_id}", "running", f"Calling {name} to verify", role="Verifier")
         result = await OutboundService(dialer).place(OutboundRequest(member_id=member_id, verification_id=verification_id))

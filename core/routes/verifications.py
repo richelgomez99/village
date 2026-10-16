@@ -18,7 +18,7 @@ async def answer_verification(verification_id: str, body: dict) -> dict:
         raise HTTPException(status_code=422, detail="verification_answer must be yes, no, or unsure")
 
     via = body.get("via") or ("outbound_call" if body.get("call_sid") else "app_prompt")
-    member_id = body.get("member_id") or row.get("claimed_member_id", "m_marco")
+    member_id = body.get("member_id") or row.get("claimed_member_id")
     if member_id != row.get("claimed_member_id", member_id):
         raise HTTPException(status_code=403, detail="answering member is not claimed member")
 

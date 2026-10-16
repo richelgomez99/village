@@ -2,14 +2,33 @@ from __future__ import annotations
 
 from typing import Any
 
+from core import village as villages
 from core.clock import clock
 from core.db import db
 
 
-def view_binds(role: str) -> set[str]:
+def _v(village_id: str | None) -> str:
+    return village_id or villages.default_village_id()
+
+
+def _recipient(village_id: str | None) -> str | None:
+    return villages.care_recipient_id(_v(village_id))
+
+
+def _shift(village_id: str | None = None) -> dict[str, Any] | None:
+    vid = _v(village_id)
+    return next((ev for ev in reversed(db.events) if ev["kind"] == "shift" and ev.get("village", vid) == vid), None)
+
+
+def _on_duty(village_id: str | None = None) -> str | None:
+    shift = _shift(village_id)
+    return (shift["payload"].get("on_duty") if shift else None) or villages.default_on_duty(_v(village_id))
+
+
+def view_binds(role: str, village_id: str | None = None) -> set[str]:
     if role == "control":
         return {"*"}
-    view = db.views.get(("v_reyes", role), {})
+    view = db.views.get((_v(village_id), role), {})
     binds: set[str] = set()
     for element in view.get("elements", {}).values():
         bind = element.get("props", {}).get("bind")
@@ -18,9 +37,9 @@ def view_binds(role: str) -> set[str]:
     return binds
 
 
-def _slot_meds(slot: str) -> list[str]:
+def _slot_meds(slot: str, village_id: str | None = None) -> list[str]:
     meds = []
-    for med in _family().get("medications", []):
+    for med in _family(village_id).get("medications", []):
         if med.get("valid_until") or med.get("status") == "superseded":
             continue
         if any(entry.get("slot") == slot for entry in med.get("schedule", [])):
@@ -28,8 +47,9 @@ def _slot_meds(slot: str) -> list[str]:
     return meds
 
 
-def dose_day(subject: str = "m_carmen", *, show_med_names: bool = False, date: str | None = None) -> dict[str, Any]:
+def dose_day(subject: str | None = None, *, show_med_names: bool = False, date: str | None = None, village_id: str | None = None) -> dict[str, Any]:
     """bv_dose_day: {date, slots: [bv_dose_slot]}; slot `meds` only for views with med names (never elder)."""
+    subject = subject or _recipient(village_id)
     day = date or clock.now().date().isoformat()
     now_hhmm = clock.now().strftime("%H:%M")
     slots = []
@@ -58,16 +78,16 @@ def dose_day(subject: str = "m_carmen", *, show_med_names: bool = False, date: s
             "via": via if via in {"lid_qr", "phone_line", "app"} else None,
         }
         if show_med_names:
-            item["meds"] = _slot_meds(slot)
+            item["meds"] = _slot_meds(slot, village_id)
         slots.append(item)
     return {"date": day, "slots": slots}
 
 
-def dose_week(subject: str = "m_carmen", *, show_med_names: bool = False) -> dict[str, Any]:
+def dose_week(subject: str | None = None, *, show_med_names: bool = False, village_id: str | None = None) -> dict[str, Any]:
     from datetime import timedelta as _td
 
     today = clock.now().date()
-    return {"days": [dose_day(subject, show_med_names=show_med_names, date=(today - _td(days=n)).isoformat()) for n in range(6, -1, -1)]}
+    return {"days": [dose_day(subject, show_med_names=show_med_names, date=(today - _td(days=n)).isoformat(), village_id=village_id) for n in range(6, -1, -1)]}
 
 
 def _person(member_id: str | None) -> dict[str, Any] | None:
@@ -76,16 +96,16 @@ def _person(member_id: str | None) -> dict[str, Any] | None:
     return {"member_id": member_id, "name": str(db.members.get(member_id, {}).get("name", member_id)).split()[0]}
 
 
-def _next_shift(member_id: str, after: str) -> str | None:
-    week = _family().get("care_rota", {}).get("week_of_2026-10-12", [])
+def _next_shift(member_id: str, after: str, village_id: str | None = None) -> str | None:
+    week = _family(village_id).get("care_rota", {}).get("week_of_2026-10-12", [])
     later = [day["date"] for day in week if day.get("on_duty") == member_id and day["date"] > after]
     return later[0] if later else None
 
 
-def rota_me(member_id: str) -> dict[str, Any]:
-    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
-    on_duty = shift["payload"].get("on_duty") if shift else "m_marco"
-    backup = shift["payload"].get("backup") if shift else "m_ana"
+def rota_me(member_id: str, village_id: str | None = None) -> dict[str, Any]:
+    shift = _shift(village_id)
+    on_duty = (shift["payload"].get("on_duty") if shift else None) or villages.default_on_duty(_v(village_id))
+    backup = (shift["payload"].get("backup") if shift else None) or villages.default_backup(_v(village_id))
     date = shift["payload"].get("date") if shift else clock.now().date().isoformat()
     mine = member_id == on_duty
     name = _person(on_duty)["name"]
@@ -95,22 +115,14 @@ def rota_me(member_id: str) -> dict[str, Any]:
         "on_duty": _person(on_duty),
         "backup": _person(backup),
         "until": None,
-        "next_shift": _next_shift(member_id, date),
+        "next_shift": _next_shift(member_id, date, village_id),
         "answer": {"en": "Yes. Tonight until 9:30. Nothing to do unless Village calls you." if mine else f"No. {name} is on tonight."},
     }
 
 
-_FAMILY_CACHE: dict[str, Any] = {}
-
-
-def _family() -> dict[str, Any]:
-    if not _FAMILY_CACHE:
-        import json
-
-        from core.settings import ROOT
-
-        _FAMILY_CACHE.update(json.loads((ROOT / "data" / "villages" / "reyes_family.json").read_text()))
-    return _FAMILY_CACHE
+def _family(village_id: str | None = None) -> dict[str, Any]:
+    """The village's data file from data/villages/index.json (meds, rota); {} if it has none."""
+    return villages.village_data(_v(village_id))
 
 
 def _dose_mg(dose: str) -> float | None:
@@ -120,10 +132,11 @@ def _dose_mg(dose: str) -> float | None:
         return None
 
 
-def prescriptions_current(subject: str = "m_carmen") -> dict[str, Any]:
-    """bv_prescriptions (contract 1.2.0, D22): current meds from reyes_family.json, with supersession
+def prescriptions_current(subject: str | None = None, village_id: str | None = None) -> dict[str, Any]:
+    """bv_prescriptions (contract 1.2.0, D22): current meds from the village data file, with supersession
     from med_change ledger rows. Never bound on the elder view."""
-    family = _family()
+    subject = subject or _recipient(village_id)
+    family = _family(village_id)
     changes = {
         ev["payload"]["to"]["med_id"]: ev
         for ev in db.events
@@ -151,12 +164,12 @@ def prescriptions_current(subject: str = "m_carmen") -> dict[str, Any]:
             item["changed_by"] = "Dr. Park"
             item["superseded"] = {"dose_text": payload["from"]["dose"], "valid_until": payload.get("effective", item["valid_from"])}
             item["source"] = change["source"]
-            item["source_label"] = {"en": "Ana's call, Oct 3", "es": "Llamada de Ana, 3 oct"}
+            caller = _member_name(change.get("actor") if str(change.get("actor", "")).startswith(("m_", "b_")) else villages.coordinator_id(_v(village_id)) or "")
+            item["source_label"] = {"en": f"{caller}'s call, Oct 3", "es": f"Llamada de {caller}, 3 oct"}
             changed_items.append(item)
         else:
             other_items.append(item)
-    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
-    owner = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+    owner = _on_duty(village_id)
     today = clock.now().date()
     days_to_friday = (4 - today.weekday()) % 7
     from datetime import timedelta as _td
@@ -171,10 +184,9 @@ def prescriptions_current(subject: str = "m_carmen") -> dict[str, Any]:
     }
 
 
-def life_areas() -> list[dict[str, Any]]:
-    spec = db.specs.get("v_reyes", {})
-    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
-    on_duty = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
+    spec = db.specs.get(_v(village_id), {})
+    on_duty = _on_duty(village_id)
     name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
     stopped = sum(1 for row in db.verifications.values() if row.get("state") in {"denied", "late_denied"})
     doses = sum(1 for ev in db.events if ev["kind"] == "dose" and str(ev.get("at", "")).startswith(clock.now().date().isoformat()))
@@ -194,14 +206,13 @@ def life_areas() -> list[dict[str, Any]]:
     return out
 
 
-def on_duty_person() -> dict[str, Any]:
-    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
-    on_duty = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+def on_duty_person(village_id: str | None = None) -> dict[str, Any]:
+    on_duty = _on_duty(village_id)
     return {"member_id": on_duty, "name": str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]}
 
 
-def rota_week() -> list[dict[str, Any]]:
-    week = _family().get("care_rota", {}).get("week_of_2026-10-12", [])
+def rota_week(village_id: str | None = None) -> list[dict[str, Any]]:
+    week = _family(village_id).get("care_rota", {}).get("week_of_2026-10-12", [])
     days = {day["date"]: dict(day) for day in week}
     for ev in db.events:  # ledger shift rows override the planned rota
         if ev["kind"] == "shift" and ev["payload"].get("date") in days:
@@ -211,7 +222,7 @@ def rota_week() -> list[dict[str, Any]]:
 
 _TIMELINE_TEXT = {
     "med_change": lambda p: {"en": f"{p.get('med', 'med')} changed {p.get('from', {}).get('dose', '')} → {p.get('to', {}).get('dose', '')}", "es": f"{p.get('med', 'med')} cambió {p.get('from', {}).get('dose', '')} → {p.get('to', {}).get('dose', '')}"},
-    "dose": lambda p: {"en": f"{p.get('slot', '')} pills taken", "es": f"pastillas de la {('mañana' if p.get('slot') == 'morning' else 'noche')} tomadas"},
+    "dose": lambda p: {"en": f"{p.get('slot', '')} pills taken", "es": f"pastillas ({p.get('slot', '')}) tomadas"},
     "money_request": lambda p: {"en": f"Money request in {p.get('claimed_identity', 'someone')}'s name", "es": f"Pedido de dinero a nombre de {p.get('claimed_identity', 'alguien')}"},
     "incident": lambda p: p.get("title") or {"en": "Incident", "es": "Incidente"},
     "verification_denied": lambda p: {"en": "Real contact said it wasn't them", "es": "El contacto real dijo que no fue"},
@@ -220,7 +231,17 @@ _TIMELINE_TEXT = {
 }
 
 
-def timeline(subject: str = "m_carmen", limit: int = 30) -> list[dict[str, Any]]:
+def _dose_text(payload: dict[str, Any], village_id: str | None) -> dict[str, str]:
+    """Slot words come from the village data file (dose_slots[slot].spoken_es), never from code."""
+    out = _TIMELINE_TEXT["dose"](payload)
+    spoken = (_family(village_id).get("dose_slots", {}).get(payload.get("slot", "")) or {}).get("spoken_es")
+    if spoken:
+        out = {**out, "es": f"{spoken.split(' (')[0].removeprefix('las ')} tomadas"}
+    return out
+
+
+def timeline(subject: str | None = None, limit: int = 30, village_id: str | None = None) -> list[dict[str, Any]]:
+    subject = subject or _recipient(village_id)
     superseded_meds = {ev["payload"].get("from", {}).get("med_id") for ev in db.events if ev["kind"] == "med_change"}
     items = []
     for ev in db.events:
@@ -232,50 +253,57 @@ def timeline(subject: str = "m_carmen", limit: int = 30) -> list[dict[str, Any]]
             "event_id": ev["id"],
             "kind": ev["kind"],
             "at": ev["at"],
-            "text": text_fn(payload),
+            "text": _dose_text(payload, village_id) if ev["kind"] == "dose" else text_fn(payload),
             "source": ev["source"],
             "superseded": ev["kind"] == "med_change" and payload.get("to", {}).get("med_id") in superseded_meds,
         })
     return items[-limit:]
 
 
-def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
-    binds = view_binds(role)
+def snapshot_data(role: str, member_id: str | None, village_id: str | None = None) -> dict[str, Any]:
+    vid = _v(village_id)
+    binds = view_binds(role, vid)
+    subject = _recipient(vid)
     if role == "control":
-        member_id = member_id or "m_marco"  # Control Room three-phones region renders Marco's per-member cards
+        # Control Room three-phones region renders the default verifier's per-member cards
+        member_id = member_id or villages.default_verifier(vid) or villages.default_on_duty(vid)
     data: dict[str, Any] = {}
     if "*" in binds or "alerts:active" in binds:
-        data["alerts:active"] = active_alerts(role)
+        data["alerts:active"] = active_alerts(role, vid)
     if member_id and ("*" in binds or "verifications:pending?member=me" in binds):
         data["verifications:pending?member=me"] = pending_verification_prompt(member_id)
     if member_id and ("*" in binds or "verifications:mine" in binds):
         data["verifications:mine"] = my_verification(member_id)
     if "*" in binds or "incidents:open" in binds:
         data["incidents:open"] = open_incidents()
-    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=today" in binds:
-        data["facts:dose_event?subject=m_carmen&valid_at=today"] = dose_day("m_carmen", show_med_names=role != "elder")
-    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=week" in binds:
-        data["facts:dose_event?subject=m_carmen&valid_at=week"] = dose_week("m_carmen", show_med_names=role != "elder")
+    if subject:
+        today_key = f"facts:dose_event?subject={subject}&valid_at=today"
+        week_key = f"facts:dose_event?subject={subject}&valid_at=week"
+        if "*" in binds or today_key in binds:
+            data[today_key] = dose_day(subject, show_med_names=role != "elder", village_id=vid)
+        if "*" in binds or week_key in binds:
+            data[week_key] = dose_week(subject, show_med_names=role != "elder", village_id=vid)
     if member_id and ("*" in binds or "rota:current?member=me" in binds):
-        data["rota:current?member=me"] = rota_me(member_id)
+        data["rota:current?member=me"] = rota_me(member_id, vid)
     if "*" in binds or "blueprint:life_areas" in binds:
-        data["blueprint:life_areas"] = life_areas()
+        data["blueprint:life_areas"] = life_areas(vid)
     if "*" in binds or "rota:week" in binds:
-        data["rota:week"] = rota_week()
-    if "*" in binds or "timeline:subject=m_carmen" in binds:
-        data["timeline:subject=m_carmen"] = timeline("m_carmen")
+        data["rota:week"] = rota_week(vid)
+    if subject and ("*" in binds or f"timeline:subject={subject}" in binds):
+        data[f"timeline:subject={subject}"] = timeline(subject, village_id=vid)
     if "*" in binds or "rota:current.on_duty" in binds:
-        data["rota:current.on_duty"] = on_duty_person()
-    if role != "elder" and ("*" in binds or "prescriptions:current" in binds):
-        data["prescriptions:current"] = prescriptions_current("m_carmen")
+        data["rota:current.on_duty"] = on_duty_person(vid)
+    if subject and role != "elder" and ("*" in binds or "prescriptions:current" in binds):
+        data["prescriptions:current"] = prescriptions_current(subject, vid)
     if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
-        data["chat:village"] = [m for m in db.messages if m.get("village", "v_reyes") == "v_reyes"][-50:]
+        data["chat:village"] = [m for m in db.messages if m.get("village", vid) == vid][-50:]
     return data
 
 
-def changed(event: dict[str, Any], role: str, member_id: str | None = None) -> dict[str, Any]:
+def changed(event: dict[str, Any], role: str, member_id: str | None = None, village_id: str | None = None) -> dict[str, Any]:
+    vid = village_id or event.get("village") or _v(None)
     if event["kind"] in {"verification_pending", "verification_confirmed", "verification_denied", "verification_timeout"}:
-        data: dict[str, Any] = {"alerts:active": active_alerts(role)}
+        data: dict[str, Any] = {"alerts:active": active_alerts(role, vid)}
         verification_id = event.get("payload", {}).get("verification_id")
         verification = db.verifications.get(verification_id) if verification_id else None
         if member_id and verification and verification.get("claimed_member_id") == member_id:
@@ -285,20 +313,20 @@ def changed(event: dict[str, Any], role: str, member_id: str | None = None) -> d
     if event["kind"] in {"incident", "ack"}:
         data = {"incidents:open": open_incidents()}
         if event["kind"] == "incident":
-            data["alerts:active"] = active_alerts(role)
-            binds = view_binds(role)
+            data["alerts:active"] = active_alerts(role, vid)
+            binds = view_binds(role, vid)
             if "*" in binds or "blueprint:life_areas" in binds:
-                data["blueprint:life_areas"] = life_areas()
+                data["blueprint:life_areas"] = life_areas(vid)
         return data
     if event["kind"] in {"med_change", "shift"} and role != "elder":
-        binds = view_binds(role)
+        binds = view_binds(role, vid)
         if "*" in binds or "prescriptions:current" in binds:
-            return {"prescriptions:current": prescriptions_current("m_carmen")}
+            return {"prescriptions:current": prescriptions_current(None, vid)}
         return {}
     if event["kind"] == "dose":
         return {
             key: value
-            for key, value in snapshot_data(role, member_id).items()
+            for key, value in snapshot_data(role, member_id, vid).items()
             if key.startswith("facts:dose_event")
         }
     return {}
@@ -313,7 +341,7 @@ def pending_verification_prompt(member_id: str) -> dict[str, Any] | None:
         "question": _verification_question(verification),
         "detail": _verification_detail(verification),
         "deadline": verification["deadline"],
-        "subject": verification.get("subject", "m_carmen"),
+        "subject": verification.get("subject") or _recipient(verification.get("village")),
     }
 
 
@@ -332,22 +360,26 @@ def my_verification(member_id: str) -> dict[str, Any] | None:
     }
 
 
-def active_alerts(role: str) -> list[dict[str, Any]]:
+def active_alerts(role: str, village_id: str | None = None) -> list[dict[str, Any]]:
+    vid = _v(village_id)
     alerts = []
     for verification in db.verifications.values():
         if verification.get("status") not in {"pending", "denied", "timeout"}:
             continue
+        if verification.get("village", vid) != vid:
+            continue
+        claimed_name = _member_name(verification["claimed_member_id"])
         if verification.get("status") == "pending":
             severity = "warn"
             title = {"es": "No mande dinero todavia"} if role == "elder" else {"en": "Possible scam"}
             body = (
-                {"es": "Estamos confirmando con Marco."}
+                {"es": f"Estamos confirmando con {claimed_name}."}
                 if role == "elder"
                 else {"en": f"Someone claiming to be {_member_name(verification['claimed_member_id'])} asked for money. Village is checking."}
             )
         elif verification.get("status") == "denied":
             severity = "danger"
-            title = {"es": "Ese no era Marco"} if role == "elder" else {"en": "Scam stopped"}
+            title = {"es": f"Ese no era {claimed_name}"} if role == "elder" else {"en": "Scam stopped"}
             body = {"es": "No mande dinero."} if role == "elder" else {"en": "The request was denied by the real contact."}
         else:
             severity = "warn"
@@ -433,9 +465,12 @@ def _latest_verification(member_id: str, *, states: set[str] | None = None) -> d
 def _verification_question(verification: dict[str, Any]) -> dict[str, str]:
     amount = verification.get("request", {}).get("amount")
     amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
+    vid = verification.get("village")
+    word_en = villages.relationship_word(vid, verification.get("subject") or _recipient(vid), "en")
+    word_es = villages.relationship_word(vid, verification.get("subject") or _recipient(vid), "es")
     return {
-        "en": f"Did you just call Mamá asking for {amount_s}?",
-        "es": f"¿Acaba de llamar a Mamá pidiendo {amount_s}?",
+        "en": f"Did you just call {word_en} asking for {amount_s}?",
+        "es": f"¿Acaba de llamar a {word_es} pidiendo {amount_s}?",
     }
 
 
@@ -470,7 +505,9 @@ def _incident_provenance(event: dict[str, Any], verification: dict[str, Any] | N
     if money and money.get("source"):
         src = money["source"]
         secs = src.get("secs")
-        label = f"Mamá's call, at {int(secs) // 60}:{int(secs) % 60:02d}" if isinstance(secs, (int, float)) else "Mamá's call"
+        vid = event.get("village")
+        word = villages.relationship_word(vid, (verification or {}).get("subject") or _recipient(vid), "en")
+        label = f"{word}'s call, at {int(secs) // 60}:{int(secs) % 60:02d}" if isinstance(secs, (int, float)) else f"{word}'s call"
         provenance.append({"label": label, "source": {k: v for k, v in src.items() if k in {"kind", "ref", "secs", "url"}}})
     answered = next((ev for ev in db.events if ev["kind"] in {"verification_denied", "verification_confirmed"} and ev.get("payload", {}).get("verification_id") == vid), None)
     if answered and answered.get("source"):

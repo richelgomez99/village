@@ -9,6 +9,8 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model, model_validator
 
+from core import village
+
 COMMON_REQUIRED = {
     "log_dose": ["conversation_id", "caller_id", "call_secs", "utterance", "confidence"],
     "report_symptom": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "emergency_signals"],
@@ -125,12 +127,28 @@ def load_services() -> Any:
         return fixture_services
 
 
+def _await_say(status: str, body: dict[str, Any]) -> str:
+    """Gate-owned Spanish line for an await result; names come from the village spec."""
+    from core.gate.say import say as gate_say
+
+    vid = body.get("village_id") or village.default_village_id()
+    claimed_id = body.get("claimed_member_id") or village.default_verifier(vid)
+    key = {"confirmed": "money_confirmed", "denied": "money_denied"}.get(status, "money_timeout")
+    return gate_say(
+        key,
+        claimed_name=village.first_name(vid, claimed_id),
+        pronoun=village.pronoun(village.person(vid, claimed_id)),
+        coordinator_name=village.first_name(vid, village.coordinator_id(vid)),
+        recipient_name=village.first_name(vid, village.care_recipient_id(vid)),
+    )["es"]
+
+
 @asynccontextmanager
 async def tool_span(tool_name: str, body: dict[str, Any]):
     span = {
         "kind": "TOOL",
         "tool": tool_name,
-        "session.id": f"village-{body.get('village_id', 'v_reyes')}",
+        "session.id": f"village-{body.get('village_id') or village.default_village_id()}",
         "user.id": body.get("caller_id") or body.get("member_id") or "unknown",
         "ok": False,
     }
@@ -182,13 +200,7 @@ class ToolHandler:
         if tool_name == "await_verification" and hasattr(self.services, "await_verification"):
             result = await self.services.await_verification(body["verification_id"], max_wait_s=30)
             status = result.get("status", "timeout")
-            say = {
-                "confirmed": "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo.",
-                "denied": "Ese no era Marco. No mande dinero. Ana ya lo sabe.",
-                "timeout": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
-                "unsure": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
-                "unreachable": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
-            }.get(status, "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.")
+            say = _await_say(status, body)
             return {
                 "decision": "advise_talk_to_coordinator" if status == "confirmed" else "advise_do_not_send",
                 "say": say,
@@ -210,7 +222,7 @@ class ToolHandler:
                 body["verification_id"],
                 body["verification_answer"],
                 via=body.get("via") or "outbound_call",
-                member_id=body.get("member_id") or "m_marco",
+                member_id=body.get("member_id") or village.default_verifier(body.get("village_id")),
                 quote=body.get("listener_quote"),
                 call_sid=body.get("call_sid"),
             )

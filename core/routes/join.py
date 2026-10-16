@@ -66,7 +66,7 @@ async def redeem(body: dict) -> dict:
     person["consent"] = consent
     phone = body.get("phone")
     if isinstance(phone, str) and phone.startswith("+") and phone[1:].isdigit():
-        person["phone"] = phone  # the judge playing Marco gets Marco's verification call (D11)
+        person["phone"] = phone  # the judge playing a verifier gets that member's verification call (D11)
     await db.upsert_record("member", member_id, person)
     token = member_token(member_id)
     return {"member_id": member_id, "member_token": token, "app_url": f"./?m={token}", "role": person.get("view")}

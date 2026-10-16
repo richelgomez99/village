@@ -300,3 +300,37 @@ Open risks:
 - The rules extractor was written with the 50 cases visible: treat 28/30 as a regression baseline, not a generalization claim. The Haiku prompt names the Reyes family; same caveat, smaller.
 - Dataset is 50 hand-written cases (30/20); a perfect score on it is not a field rate. Pitch should say "on our 50-case eval set".
 - The detector's `fact` refs are synthesized keys (`fact:money_request:<subject>:<date>`), not read back from Agent Memory.
+
+## platform
+READY FOR MERGE PLATFORM
+
+Branch `platform-sweep` (worktree `/Users/rgomez/village-platform`), D30 sweep: no village names or ids live in `core/` anymore.
+
+- **Grep** `grep -ri -E "carmen|marco|lucia|lucía|reyes|ana\b" core --exclude-dir=tests`: **231 hits in 35 files before** (185 of them outside the allowed `core/watcher/fixtures/`; the 265 figure was from 12:05), **46 hits in 1 file after**, all of them in `core/watcher/fixtures/reyes_nights.json`, which is an allowed home. Outside the fixtures it returns nothing.
+- **Tests**: `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake uv run pytest -q` → 249 passed (245 + 4 new). `acceptance/run.sh V0 --lane core` and `acceptance/run.sh V1 --lane core` (real-socket scam flow) both pass.
+- **Village registry**: `data/villages/index.json` maps each village id to its contract spec, data file, seed events, seed messages and seed prescriptions. `core/village.py` holds every lookup: default village, spec (live `db.specs` first, else the fixture), people, coordinator, care recipient, verifier, on-duty fallback, relationship word, family word, quiet hours. It also has the pure `state_from_spec()`, which builds GateInput.village_state from a spec (P-QH-01, R-MONEY-DEFAULT and R-MONEY-VERIFY params, pronoun from relation).
+- **Files changed**: `core/village.py` (new), `core/settings.py` (`DEMO_VILLAGE_ID`), `.env.example`, `data/villages/index.json` (new), `core/fixtures.py`, `core/app.py`, `core/bindings.py`, `core/ws_hub.py`, `core/services.py`, `core/gate_fallback.py`, `core/db.py`, `core/dialer.py`, `core/auth.py`, `core/routes/{ws,clock,admin,verifications,join}.py`, `core/gate/say.py`, `core/gate/rules/{common,money}.py`, `core/gate/sm_verification.py`, `core/voice/{init_hook,tools,outbound,post_call}.py`, `core/memory/{client,conventions,ledger_subscriber,views}.py`, `core/watcher/{rounds,routes}.py`, `core/release/{service,evals,floor_tests}.py`, `core/obs/tracing.py`, `core/tools/{seed,wsclient}.py`, and the new test `core/gate/tests/test_two_villages.py`.
+- **Two-village gate test** (`core/gate/tests/test_two_villages.py`, 4 passed): it builds village_state from `reyes_spec.json` and `block_spec.json` with the same `state_from_spec`, then runs the same rules on both.
+  - P-QH-01: a dose-window tick at 21:50 sends no reminder in the care village (its quiet hours are 21:30-07:00) and sends `remind` in the block (its spec has no P-QH-01).
+  - R-MONEY-DEFAULT: a verification answer of `no` or `unsure` gives `advise_do_not_send` in both villages. The notify goes to that village's own coordinator (`m_ana` vs `b_tanya`), and the `say` text names that coordinator, so the two decisions differ.
+- **Both villages served at once**: one Core process, one `reset_demo()`.
+  - `/ws?village=v_w147&m=b_tanya` → snapshot `{"village": "v_w147", "role": "coordinator", "member_id": "b_tanya"}`, identity Tanya / "West 147th Block — Heat & Blackout", 10-element coordinator view from `block_spec.json`. `m=b_tanya` with no village resolves to v_w147 as well.
+  - `/ws?village=v_reyes&m=m_ana` → `{"village": "v_reyes", "role": "coordinator", "member_id": "m_ana"}`, identity "Familia Reyes".
+  - `/ws?village=v_reyes&m=m_carmen` → `role: "elder"`.
+  - `uv run python -m core.tools.seed --village v_w147` (or `--village v_reyes`, plus `--keep`) seeds any registered village.
+
+### Lane decisions
+- LD-P1: `DEMO_VILLAGE_ID` defaults to an empty string in `core/settings.py`. When it is empty, the default comes from `data/villages/index.json` `"default"`, so `v_reyes` appears only in `.env.example` and `data/`. A settings default of `v_reyes` would itself trip the grep.
+- LD-P2: `reset_demo(village)` resets everything, seeds the chosen village, and also seeds every other registered village, so both villages are always live. `keep_others=True` re-seeds just one village.
+- LD-P3: say templates take `{coordinator_name}` and `{recipient_name}`. `finish()` fills them from village_state. If a village has no such member, neutral words are used (es "su familia", en "your family").
+- LD-P4: the live gate's quiet hours now come from the spec's P-QH-01 (`21:30-07:00`). `services._village_state` used to hardcode `22:30`. No test depended on the old value.
+- LD-P5: the default money verifier is the first consented `money_verifier` who is not the coordinator. This is read from village_state members, because the gate schema forbids extra keys such as `trusted_contacts`. The default on-duty member is the first caregiver, helper or volunteer in the spec.
+- LD-P6: the voice init hook finds the caller by phone among the village's spec people, and an unknown or empty caller resolves to the care recipient. The demo override is `DEMO_ELDER_CALLER_ID`. A spec-derived `DEMO_<RECIPIENT FIRST NAME>_CALLER_ID` is also accepted, so existing `.env` files keep working.
+- LD-P7: slot words in the Spanish timeline come from `dose_slots[slot].spoken_es` in the village data file. Any word ending in "ana", such as "mañana", trips the `ana\b` grep.
+- LD-P8: `outbound` `family_label` is now the spec's village name ("Familia Reyes"), not "the Reyes family".
+
+### Open risks
+- `db.events` and `db.verifications` are global lists. The bindings filter alerts, shifts, chat and money requests by village, but `open_incidents()`, `timeline()` and dose facts filter only by subject. They do not leak between the two villages today (the block has no incidents), but a block incident would show in any Reyes view that binds `incidents:open`.
+- The block's own binds (needs, resources, rumors) have no bindings in core yet. Tanya's snapshot carries her view but its data is only `alerts:active` and `chat:village`.
+- `step_verification`'s incident `notified` reads `current["coordinator_id"]`, and that is empty unless the caller sets it. In practice services overwrites it through `_enrich_incident`.
+- The `core/memory/routes.py` header default still uses the default village's coordinator.

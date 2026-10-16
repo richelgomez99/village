@@ -157,7 +157,11 @@ class MemoryClient:
         return {"degraded": False, "status": r["status"], "ms": r["ms"], "turn_id": (r["data"] or {}).get("turnId")}
 
     # ---------------------------------------------------------------- reads
-    async def fact_history(self, entity: str, key: str, *, village: str = "v_reyes") -> dict[str, Any]:
+    async def fact_history(self, entity: str, key: str, *, village: str | None = None) -> dict[str, Any]:
+        if not village:
+            from core.village import default_village_id
+
+            village = default_village_id()
         e = cv.am_entity(entity, village)
         path = f"/entities/{quote(e['type'])}/{quote(e['name'], safe='')}/history/{quote(cv.norm_key(key))}"
         r = await self._req("GET", path, "fact_history")
@@ -219,7 +223,7 @@ class MemoryClient:
     async def query(self, text: str, as_of: Any = None, *, village: str | None = None, k: int = 5,
                     members: list[str] | None = None) -> dict[str, Any]:
         """Hybrid recall. Lens = village scope OR each member scope (lenses are not hierarchical;
-        verified live: [[village/v_reyes]] alone misses facts in village/v_reyes/m_carmen)."""
+        verified live: [[village/<id>]] alone misses facts in village/<id>/<member id>)."""
         body: dict[str, Any] = {"query": text, "k": k, "source": "village"}
         if village:
             mids = members if members is not None else sorted(cv.member_names())

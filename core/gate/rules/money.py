@@ -61,7 +61,7 @@ def decide_money(inp: GateInput) -> dict[str, Any] | None:
         return _money_never(inp)
 
     if kind == "money_request":
-        if _benign_money_to_carmen(payload, text):
+        if _benign_money_to_subject(payload, text):
             return finish(inp, "R-NOOP", "record")
         if payload.get("claimed_member_id") is None:
             return _money_unknown(inp, payload)
@@ -79,13 +79,13 @@ def decide_money(inp: GateInput) -> dict[str, Any] | None:
     if kind == "outbound_call" and payload.get("reason") == "verification":
         return _verification_call_decision(inp, payload)
 
-    if kind == "ask_family" and "no le diga" in text and "ana" in text:
+    if kind == "ask_family" and "no le diga" in text and _mentions_coordinator(inp, text):
         out = finish(
             inp,
             "R-AUTONOMY",
             "escalate_family",
             "money_share_disclosure",
-            {"claimed_name": "Marco"},
+            {"claimed_name": member_name(inp.village_state, _default_verifier(inp))},
             ["R-MONEY-DEFAULT"],
         )
         out["notify"] = [coordinator_notify(inp, "warn", "money_safety_share_disclosure")]
@@ -241,8 +241,8 @@ def _verification_answer_decision(inp: GateInput, payload: dict[str, Any]) -> di
 
 def _await_decision(inp: GateInput, payload: dict[str, Any]) -> dict[str, Any]:
     verification = _open_verification(inp, payload["verification_id"]) or {}
-    claimed_id = verification.get("claimed_member_id", "m_marco")
-    claimed_name = member_name(inp.village_state, claimed_id, "Marco")
+    claimed_id = verification.get("claimed_member_id") or _default_verifier(inp)
+    claimed_name = member_name(inp.village_state, claimed_id, "la persona")
     state = verification.get("state", "pending")
     if state in {"denied", "late_denied"}:
         return finish(inp, "R-MONEY-DEFAULT", "advise_do_not_send", "money_denied", {"claimed_name": claimed_name})
@@ -263,7 +263,7 @@ def _await_decision(inp: GateInput, payload: dict[str, Any]) -> dict[str, Any]:
 
 def _deadline_decision(inp: GateInput) -> dict[str, Any]:
     verification = inp.village_state.get("open_verifications", [{}])[0]
-    claimed_id = verification.get("claimed_member_id", "m_marco")
+    claimed_id = verification.get("claimed_member_id") or _default_verifier(inp)
     out = finish(inp, "R-MONEY-DEFAULT", "allow")
     out["writes"] = [
         {
@@ -387,6 +387,23 @@ def _redact_digits(text: str) -> str:
     return re.sub(r"\d", "X", text)
 
 
+def _default_verifier(inp: GateInput) -> str | None:
+    """First consented money verifier other than the coordinator (from the spec via village_state)."""
+    state = inp.village_state
+    verifiers = [m["id"] for m in state.get("members", []) if (m.get("consent") or {}).get("money_verifier")]
+    others = [m for m in verifiers if m != state.get("coordinator_id")]
+    if others or verifiers:
+        return (others or verifiers)[0]
+    recent = [v.get("claimed_member_id") for v in state.get("open_verifications", []) if v.get("claimed_member_id")]
+    return recent[-1] if recent else None
+
+
+def _mentions_coordinator(inp: GateInput, text: str) -> bool:
+    member = member_by_id(inp.village_state, inp.village_state.get("coordinator_id")) or {}
+    names = {str(member.get("name", "")).lower(), *[str(a).lower() for a in member.get("aliases", [])]} - {""}
+    return any(re.search(rf"\b{re.escape(n)}\b", text) for n in names)
+
+
 def _event_text(payload: dict[str, Any]) -> str:
     return " ".join(str(payload.get(k, "")) for k in ("utterance", "text", "claimed_identity")).lower()
 
@@ -397,5 +414,5 @@ def _asks_village_to_handle_money(text: str) -> bool:
     )
 
 
-def _benign_money_to_carmen(payload: dict[str, Any], text: str) -> bool:
+def _benign_money_to_subject(payload: dict[str, Any], text: str) -> bool:
     return payload.get("direction") == "to_subject" or ("paga" in text and "debe" in text)

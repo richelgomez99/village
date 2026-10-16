@@ -17,6 +17,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
+from core import village as village_reg
 from core.memory import conventions as cv
 from core.memory.outbox import Outbox
 from core.settings import ROOT
@@ -26,10 +27,19 @@ SKIP = {"qa", "reminder", "escalation", "ack", "help_request", "pattern", "spec_
         "village_activated", "invite_redeemed"}
 
 
+def _vid(event: dict[str, Any]) -> str:
+    return event.get("village") or event.get("village_id") or village_reg.default_village_id()
+
+
+def _subject(event: dict[str, Any], p: dict[str, Any]) -> str:
+    """Payload subject, else the village's care recipient (from its spec)."""
+    return p.get("subject") or village_reg.care_recipient_id(_vid(event)) or "village"
+
+
 def _draft(event: dict[str, Any], entity: str, key: str, value: Any, text: str, *,
            observed_at: Any = None, source: dict[str, Any] | None = None, role: str | None = None) -> dict[str, Any]:
     d = {
-        "village": event.get("village") or event.get("village_id") or "v_reyes",
+        "village": _vid(event),
         "entity": entity, "key": cv.norm_key(key), "value": str(value)[:400], "text": text[:300],
         "observed_at": cv.iso(observed_at or event.get("at")), "recorded_at": cv.iso(event.get("at")),
         "source": source or event.get("source") or {"kind": "system", "ref": "ledger"},
@@ -56,7 +66,7 @@ def facts_from_event(event: dict[str, Any], prescriptions: Iterable[dict[str, An
     if kind in SKIP:
         return []
     if kind == "med_change":
-        subj, med = p.get("subject", "m_carmen"), p.get("med", "med")
+        subj, med = _subject(event, p), p.get("med", "med")
         key = f"{med}_dose"
         eff = p.get("effective") or event.get("at")
         who = p.get("prescriber") or "the doctor"
@@ -75,16 +85,16 @@ def facts_from_event(event: dict[str, Any], prescriptions: Iterable[dict[str, An
     if kind == "dose":
         t = p.get("taken_at") or event.get("at")
         hhmm = cv.to_dt(t).strftime("%-I:%M %p") if cv.to_dt(t) else t
-        return [_draft(event, p.get("subject", "m_carmen"), "last_dose_taken", cv.iso(t),
+        return [_draft(event, _subject(event, p), "last_dose_taken", cv.iso(t),
                        f"{p.get('slot', '').capitalize()} pills logged at {hhmm} via {p.get('via', '?')}.", observed_at=t)]
     if kind in ("dose_repeat_scan", "dose_repeat"):
-        return [_draft(event, p.get("subject", "m_carmen"), "last_repeat_dose_attempt",
+        return [_draft(event, _subject(event, p), "last_repeat_dose_attempt",
                        f"{p.get('slot', '?')} {cv.iso(event.get('at'))}", "Tried to log the same pills twice; blocked.")]
     if kind == "money_request":
         amt = p.get("amount")
         txt = f"Money request: ${amt:,} {p.get('method', '')} claimed by {p.get('claimed_identity', '?')}." if isinstance(amt, (int, float)) \
             else f"Money request claimed by {p.get('claimed_identity', '?')}."
-        return [_draft(event, p.get("subject", "m_carmen"), "last_money_request",
+        return [_draft(event, _subject(event, p), "last_money_request",
                        f"{event.get('id')}: {amt} {p.get('currency', '')} {p.get('method', '')} claimed {p.get('claimed_identity', '?')}", txt)]
     if kind.startswith("verification_"):
         vid = p.get("verification_id", "ver_unknown")
@@ -141,7 +151,7 @@ class LedgerSubscriber:
     def on_event(self, event: dict[str, Any]) -> int:
         """Enqueue facts for one ledger row. Returns how many were new."""
         n = 0
-        for d in facts_from_event(event, self._rx(event.get("village", "v_reyes"))):
+        for d in facts_from_event(event, self._rx(_vid(event))):
             args = {k: d[k] for k in ("entity", "key", "value", "source", "village", "agent", "observed_at", "event_id", "rule_id")}
             if d.get("extra_labels"):
                 args["extra_labels"] = d["extra_labels"]
@@ -177,8 +187,8 @@ class LedgerSubscriber:
     def on_post_call(self, payload: dict[str, Any]) -> int:
         data = payload.get("data", payload)
         conv = payload.get("conversation_id") or data.get("conversation_id") or "unknown_conversation"
-        village = payload.get("village_id") or (payload.get("dynamic_variables") or {}).get("village_id") or "v_reyes"
-        member = payload.get("member_id") or (payload.get("dynamic_variables") or {}).get("member_id") or "m_carmen"
+        village = payload.get("village_id") or (payload.get("dynamic_variables") or {}).get("village_id") or village_reg.default_village_id()
+        member = payload.get("member_id") or (payload.get("dynamic_variables") or {}).get("member_id") or village_reg.care_recipient_id(village) or "village"
         transcript = data.get("transcript") or payload.get("transcript") or []
         lines = []
         if isinstance(transcript, list):

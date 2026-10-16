@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+from core import village as villages
 from core.clock import clock
 from core.db import db
 from core.gate import step_verification
@@ -44,6 +45,52 @@ async def now() -> datetime:
     return clock.now()
 
 
+def _vid(village_id: str | None) -> str:
+    return village_id or villages.default_village_id()
+
+
+def _recipient(village_id: str | None) -> str | None:
+    return villages.care_recipient_id(_vid(village_id))
+
+
+def _coord(village_id: str | None) -> str | None:
+    return villages.coordinator_id(_vid(village_id))
+
+
+def _verifier(village_id: str | None) -> str | None:
+    return villages.default_verifier(_vid(village_id)) or villages.default_on_duty(_vid(village_id))
+
+
+def _rel(village_id: str | None, lang: str = "en") -> str:
+    """How the village speaks about its care recipient (spec theme.relationship_words / short_name)."""
+    vid = _vid(village_id)
+    return villages.relationship_word(vid, _recipient(vid), lang) or "them"
+
+
+def _coord_name(village_id: str | None) -> str:
+    vid = _vid(village_id)
+    return villages.first_name(vid, _coord(vid), "the coordinator")
+
+
+def _resolve_member(village_id: str | None, claimed: Any) -> str | None:
+    """A member id (`m_`/`b_`), or a first name / alias matched against the village's spec people."""
+    if not claimed:
+        return None
+    text = str(claimed)
+    if text.startswith(("m_", "b_")):
+        return text
+    import unicodedata
+
+    def fold(value: str) -> str:
+        return unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()
+
+    for person in villages.people(_vid(village_id)):
+        names = [part for part in str(person.get("name", "")).split() if part.rstrip(".").lower() not in {"mr", "mrs", "ms", "dr"}]
+        if names and fold(names[0]) == fold(text.split()[0]):
+            return person["id"]
+    return None
+
+
 def _next_id(prefix: str, rows: list[dict[str, Any]]) -> str:
     return f"{prefix}_{len(rows) + 1:04d}"
 
@@ -52,7 +99,8 @@ def _claimed_name(row: dict[str, Any]) -> str:
     member = db.members.get(row.get("claimed_member_id") or "", {})
     if member.get("name"):
         return str(member["name"]).split()[0]
-    return str(row.get("claimed_identity") or row.get("claimed_member_id") or "Marco").split()[0]
+    fallback = villages.first_name(row.get("village"), _verifier(row.get("village")), "the family member")
+    return str(row.get("claimed_identity") or row.get("claimed_member_id") or fallback).split()[0]
 
 
 def _say(key: str, **vars: Any) -> dict[str, str]:
@@ -71,7 +119,15 @@ def _decision_for_verification(row: dict[str, Any]) -> dict[str, Any]:
     else:
         say_key, decision, rules = "money_timeout", "advise_do_not_send", ["R-MONEY-DEFAULT"]
     say_vars = {"claimed_name": claimed_name}
-    say_text = _say(say_key, claimed_name=claimed_name, pronoun="he")
+    vid = _vid(row.get("village"))
+    claimed_person = villages.person(vid, row.get("claimed_member_id"))
+    say_text = _say(
+        say_key,
+        claimed_name=claimed_name,
+        pronoun=villages.pronoun(claimed_person) if claimed_person else "he",
+        coordinator_name=_coord_name(vid),
+        recipient_name=villages.first_name(vid, _recipient(vid), _rel(vid)),
+    )
     out = {
         "id": f"dc_{row['id']}_{state or 'verification'}",
         "rule_id": "R-MONEY-DEFAULT",
@@ -85,7 +141,7 @@ def _decision_for_verification(row: dict[str, Any]) -> dict[str, Any]:
         "rules_fired": rules,
     }
     if state in {"denied", "late_denied"}:
-        out["notify"] = [{"member_id": "m_ana", "channel": "app", "severity": "high", "reason": "scam_stopped"}]
+        out["notify"] = [{"member_id": _coord(vid), "channel": "app", "severity": "high", "reason": "scam_stopped"}]
     return out
 
 
@@ -125,9 +181,9 @@ def _verification_status_for_voice(row: dict[str, Any]) -> str:
 def _normalize_verification(row: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(row)
     created_at = normalized.get("created_at") or clock.now().isoformat()
-    normalized.setdefault("village", "v_reyes")
-    normalized.setdefault("subject", "m_carmen")
-    normalized.setdefault("claimed_member_id", "m_marco")
+    normalized.setdefault("village", villages.member_village(normalized.get("claimed_member_id")))
+    normalized.setdefault("subject", _recipient(normalized["village"]))
+    normalized.setdefault("claimed_member_id", _verifier(normalized["village"]))
     normalized.setdefault("claimed_identity", normalized["claimed_member_id"])
     normalized.setdefault("origin", "report_money_request")
     normalized.setdefault("conversation_id", None)
@@ -198,48 +254,29 @@ def _gate_decide(inp: dict[str, Any]) -> dict[str, Any]:
 
 
 def _village_state(village_id: str) -> dict[str, Any]:
-    spec = db.specs.get(village_id, {})
-    members = []
-    for person in spec.get("blueprint", {}).get("people", []):
-        consent = person.get("consent", {})
-        members.append({
-            "id": person["id"],
-            "name": person["name"].split()[0],
-            "aliases": [person["name"].split()[0].lower()],
-            "role": person["role"],
-            "pronoun": "she" if person["id"] in {"m_carmen", "m_ana", "m_lucia"} else "he",
-            "has_app_session": person["id"] != "m_carmen",
-            "consent": {
-                "ai_calls": bool(consent.get("ai_calls")),
-                "app_prompts": bool(consent.get("app_prompts")),
-                "dose_logging": bool(consent.get("dose_logging", False)),
-                "money_verifier": bool(consent.get("money_verifier", False)),
-                "share_with": consent.get("share_with", []),
-                "money_safety_share_with": consent.get("money_safety_share_with", []),
-            },
-        })
-    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
+    """GateInput.village_state from the village's live spec (D30: rules are parameters, read from the spec)."""
+    spec = db.specs.get(village_id) or villages.fixture_spec(village_id)
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift" and ev.get("village", village_id) == village_id), None)
     today = clock.now().date().isoformat()
-    return {
-        "village_id": village_id,
-        "now": clock.now().isoformat(),
-        "timezone": "America/New_York",
-        "kill_switch": False,
-        "coordinator_id": "m_ana",
-        "care_recipient_id": "m_carmen",
-        "quiet_hours": "22:30-07:00",
-        "rota_today": {
+    rota = None
+    if shift:
+        rota = {
             "date": today,
-            "on_duty": shift["payload"].get("on_duty") if shift else "m_marco",
-            "backup": shift["payload"].get("backup") if shift else "m_ana",
-        },
-        "members": members,
-        "dose_windows": [],
-        "open_verifications": [],
-        "recent_money_requests": [
-            {"event_id": ev["id"], "at": ev["at"]} for ev in db.events if ev["kind"] == "money_request"
+            "on_duty": shift["payload"].get("on_duty") or villages.default_on_duty(village_id),
+            "backup": shift["payload"].get("backup") or villages.default_backup(village_id),
+        }
+    state = villages.state_from_spec(
+        spec,
+        now=clock.now().isoformat(),
+        rota_today=rota or {"date": today, "on_duty": villages.default_on_duty(village_id), "backup": villages.default_backup(village_id)},
+        recent_money_requests=[
+            {"event_id": ev["id"], "at": ev["at"]}
+            for ev in db.events
+            if ev["kind"] == "money_request" and ev.get("village", village_id) == village_id
         ],
-    }
+    )
+    state["village_id"] = village_id
+    return state
 
 
 async def decide(
@@ -287,7 +324,7 @@ async def decide(
         await db.upsert_verification({
             "id": verification["id"],
             "village": village_id,
-            "subject": candidate.get("payload", {}).get("subject", "m_carmen"),
+            "subject": candidate.get("payload", {}).get("subject") or _recipient(village_id),
             "claimed_member_id": verification["claimed_member"],
             "claimed_identity": candidate.get("payload", {}).get("claimed_identity", verification["claimed_member"]),
             "origin": candidate.get("payload", {}).get("origin", "report_money_request"),
@@ -360,13 +397,13 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
     if request.get("conversation_id"):
         cached_probe = await db.get_idem(f"{request.get('conversation_id')}:{request.get('tool_call_id', name)}")
         if not (cached_probe and cached_probe.get("response")):
-            village = request.get("village_id", "v_reyes")
+            village = _vid(request.get("village_id"))
             if request.get("utterance"):
                 await caption(village, str(request["utterance"])[:300], speaker=_speaker(request))
     response = await _handle_tool(name, request)
     if request.get("conversation_id") and isinstance(response, dict):
         await ledger(
-            request.get("village_id", "v_reyes"),
+            _vid(request.get("village_id")),
             f"tool:{request.get('conversation_id')}:{request.get('tool_call_id', name)}",
             "done",
             f"Phone line · {name.replace('_', ' ')}",
@@ -379,11 +416,13 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
 
 def _speaker(request: dict[str, Any]) -> str:
     caller = str(request.get("caller_id") or request.get("member_id") or "")
-    for member_id, person in db.members.items():
-        if caller in {member_id, person.get("phone")}:
-            first = str(person.get("name", member_id)).split()[0].lower()
-            return first if first in {"carmen", "marco", "ana"} else "caller"
-    return "carmen"
+    vid = _vid(request.get("village_id"))
+    for person in villages.people(vid):
+        if caller and caller in {person["id"], person.get("phone")}:
+            return villages.first_name(vid, person["id"]).lower() or "caller"
+    if caller and any(caller in {mid, p.get("phone")} for mid, p in db.members.items()):
+        return "caller"
+    return villages.first_name(vid, _recipient(vid), "caller").lower()
 
 
 async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
@@ -395,19 +434,19 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             return copy.deepcopy(cached["response"])
 
     if name == "log_dose":
-        village_id = request.get("village_id", "v_reyes")
+        village_id = _vid(request.get("village_id"))
         taken_at = request.get("taken_at") or clock.now().isoformat()
         candidate = {
             "village": village_id,
             "kind": "dose",
             "payload": {
-                "subject": "m_carmen",
+                "subject": _recipient(village_id),
                 "slot": request.get("slot") if request.get("slot") not in (None, "current") else "evening",
                 "taken_at": taken_at,
                 "confidence": "confirmed" if request.get("confidence") == "confirmed_by_caller" else "uncertain",
                 "via": "phone_line",
             },
-            "actor": "m_carmen",
+            "actor": _recipient(village_id),
             "source": {
                 "kind": "call",
                 "ref": request.get("conversation_id", "conv_stub"),
@@ -443,17 +482,16 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
         return response
 
     if name == "report_money_request":
-        village_id = request.get("village_id", "v_reyes")
+        village_id = _vid(request.get("village_id"))
         deadline = (clock.now() + timedelta(seconds=45)).isoformat()
-        claimed = request.get("claimed_member")
-        claimed_member_id = claimed if str(claimed).startswith("m_") else "m_marco" if claimed in {"marco", None} else None
+        claimed_member_id = _resolve_member(village_id, request.get("claimed_member"))
         candidate = {
             "village": village_id,
             "kind": "money_request",
             "payload": {
-                "subject": "m_carmen",
-                "claimed_member_id": claimed_member_id or "m_marco",
-                "claimed_identity": request.get("claimed_identity", "Marco"),
+                "subject": _recipient(village_id),
+                "claimed_member_id": claimed_member_id or _verifier(village_id),
+                "claimed_identity": request.get("claimed_identity") or villages.first_name(village_id, claimed_member_id or _verifier(village_id)),
                 "amount": request.get("amount", 0),
                 "currency": request.get("currency", "USD"),
                 "method": request.get("method", "unknown"),
@@ -462,7 +500,7 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
                 "utterance": request.get("utterance", ""),
                 "deadline": deadline,
             },
-            "actor": "m_carmen",
+            "actor": _recipient(village_id),
             "source": {"kind": "call", "ref": request.get("conversation_id", "conv_stub"), "secs": int(request.get("call_secs", 0)), "quote": request.get("utterance", "")},
             "at": clock.now().isoformat(),
         }
@@ -518,7 +556,7 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             request["verification_id"],
             request["verification_answer"],
             via=request.get("via") or "outbound_call",
-            member_id=request.get("member_id") or db.verifications.get(request["verification_id"], {}).get("claimed_member_id", "m_marco"),
+            member_id=request.get("member_id") or db.verifications.get(request["verification_id"], {}).get("claimed_member_id"),
             quote=request.get("listener_quote"),
             call_sid=request.get("call_sid"),
         )
@@ -538,18 +576,18 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             response = copy.deepcopy(example["response"])
             if name == "log_dose":
                 await record_event(
-                    request.get("village_id", "v_reyes"),
+                    _vid(request.get("village_id")),
                     {
                         "kind": "dose",
                         "payload": {
-                            "subject": "m_carmen",
+                            "subject": _recipient(request.get("village_id")),
                             "slot": response.get("data", {}).get("slot", request.get("slot", "evening")),
                             "taken_at": response.get("data", {}).get("taken_at"),
                             "confidence": "confirmed",
                             "via": "phone_line",
                         },
                     },
-                    actor="m_carmen",
+                    actor=_recipient(request.get("village_id")),
                     source={
                         "kind": "call",
                         "ref": request.get("conversation_id", "conv_stub"),
@@ -570,7 +608,7 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
 
 
 async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
-    member_id = request.get("member_id", "m_carmen")
+    member_id = request.get("member_id") or _recipient(village_id)
     req_id = request.get("req_id")
     idem_key = f"{member_id}:{req_id}" if req_id else None
     if idem_key:
@@ -617,14 +655,14 @@ async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> 
         return result
     if name == "start_verification":
         payload = request.get("payload") or request
-        claimed = request.get("arg") or payload.get("claimed_member_id") or payload.get("claimed_member") or "m_marco"
-        claimed_member_id = claimed if str(claimed).startswith("m_") else "m_marco"
+        claimed = request.get("arg") or payload.get("claimed_member_id") or payload.get("claimed_member")
+        claimed_member_id = _resolve_member(village_id, claimed) or _verifier(village_id)
         candidate = {
             "village": village_id,
             "kind": "money_request",
             "payload": {
                 "origin": "start_verification",
-                "subject": payload.get("subject", "m_carmen"),
+                "subject": payload.get("subject") or _recipient(village_id),
                 "claimed_member_id": claimed_member_id,
                 "claimed_identity": payload.get("claimed_identity", claimed_member_id),
                 "amount": payload.get("amount"),
@@ -701,21 +739,22 @@ _COUNTERS: dict[str, int] = {}
 
 def _incident_text(row: dict[str, Any], incident_type: str) -> tuple[dict[str, str], dict[str, str]]:
     name = _claimed_name(row)
+    rel_en, rel_es = _rel(row.get("village"), "en"), _rel(row.get("village"), "es")
     amount = row.get("request", {}).get("amount")
     amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
     if incident_type == "suspected_scam":
         return (
             {"en": "Scam stopped", "es": "Estafa detenida"},
             {
-                "en": f"Someone claiming to be {name} asked Mamá for {amount_s}. {name} confirmed it wasn't him. She was told not to send money.",
-                "es": f"Alguien que dijo ser {name} le pidió {amount_s} a Mamá. {name} confirmó que no fue él. Le dijimos que no mande dinero.",
+                "en": f"Someone claiming to be {name} asked {rel_en} for {amount_s}. {name} confirmed it wasn't him. She was told not to send money.",
+                "es": f"Alguien que dijo ser {name} le pidió {amount_s} a {rel_es}. {name} confirmó que no fue él. Le dijimos que no mande dinero.",
             },
         )
     return (
         {"en": "Money request not confirmed", "es": "Pedido de dinero sin confirmar"},
         {
-            "en": f"Someone claiming to be {name} asked Mamá for {amount_s}. Village could not reach {name} in time. She was told not to send money.",
-            "es": f"Alguien que dijo ser {name} le pidió {amount_s} a Mamá. Village no pudo confirmar con {name} a tiempo. Le dijimos que no mande dinero.",
+            "en": f"Someone claiming to be {name} asked {rel_en} for {amount_s}. Village could not reach {name} in time. She was told not to send money.",
+            "es": f"Alguien que dijo ser {name} le pidió {amount_s} a {rel_es}. Village no pudo confirmar con {name} a tiempo. Le dijimos que no mande dinero.",
         },
     )
 
@@ -735,7 +774,7 @@ def _enrich_incident(row: dict[str, Any], draft: dict[str, Any]) -> dict[str, An
     request = row.get("request", {})
     if request.get("pattern_flag"):
         payload["pattern_flag"] = request["pattern_flag"]
-    payload["notified"] = ["m_ana", row.get("claimed_member_id", "m_marco")]
+    payload["notified"] = [m for m in [_coord(row.get("village")), row.get("claimed_member_id")] if m]
     return draft
 
 
@@ -767,7 +806,7 @@ async def apply_verification_step(
     if not updated:
         return None, []
     row = updated[0]
-    village = row.get("village", "v_reyes")
+    village = _vid(row.get("village"))
     written = []
     for draft in emits:
         if draft["kind"] == "incident":
@@ -892,7 +931,8 @@ def _reasoning_text(decision: dict[str, Any], candidate: dict[str, Any]) -> str:
         name = str(db.members.get(verification.get("claimed_member", ""), {}).get("name", "the family member")).split()[0]
         by = " and phone" if "outbound_call" in verification.get("channels", []) else ""
         consent = " (he consented)" if by else ""
-        return f"Money request in {name}'s name → check with the real {name} by app{by}{consent} → hold Carmen on the line."
+        recipient = villages.first_name(candidate.get("village"), _recipient(candidate.get("village")), "the caller")
+        return f"Money request in {name}'s name → check with the real {name} by app{by}{consent} → hold {recipient} on the line."
     say_en = (decision.get("say") or {}).get("en", "")
     text = f"{candidate.get('kind', 'input')} → {decision.get('rule_id')}: {decision.get('decision')}"
     return f"{text} · “{say_en}”"[:400] if say_en else text[:400]
@@ -901,11 +941,13 @@ def _reasoning_text(decision: dict[str, Any], candidate: dict[str, Any]) -> str:
 def _terminal_reasoning(row: dict[str, Any]) -> str:
     name = _claimed_name(row)
     state = row.get("state")
+    vid = row.get("village")
+    rel, coord = _rel(vid), _coord_name(vid)
     if state in {"denied", "late_denied"}:
-        return f"{name} said it wasn't him → tell Mamá not to send any money → incident to Ana."
+        return f"{name} said it wasn't him → tell {rel} not to send any money → incident to {coord}."
     if state in {"confirmed", "late_confirmed"}:
-        return f"{name} confirmed it was him → Village still never sends money → Mamá talks to Ana first."
-    return f"No answer from {name} by the deadline → default is don't send → incident to Ana."
+        return f"{name} confirmed it was him → Village still never sends money → {rel} talks to {coord} first."
+    return f"No answer from {name} by the deadline → default is don't send → incident to {coord}."
 
 
 async def reasoning(village_id: str, text: str, *, source: str = "gate", kind: str = "decision", mode: str | None = None) -> None:
@@ -947,7 +989,7 @@ async def control(village_id: str, kind: str, payload: dict[str, Any]) -> None:
 _CHAT_TASKS: set[asyncio.Task[Any]] = set()
 _NUDGED: set[str] = set()
 _INCIDENT_POSTED: set[str] = set()
-ASK_FALLBACK_TEXT = "I can't look that up right now. Every decision Village made is in the decision log; Ana can open it from the app."
+ASK_FALLBACK_TEXT = "I can't look that up right now. Every decision Village made is in the decision log; the coordinator can open it from the app."
 
 
 def _message_id() -> str:
@@ -1091,15 +1133,16 @@ async def post_incident_message(village_id: str, event: dict[str, Any]) -> dict[
     _INCIDENT_POSTED.add(incident_id)
     verification_id = payload.get("verification_id")
     row = db.verifications.get(verification_id or "", {})
-    name = _claimed_name(row) if row else "Marco"
+    name = _claimed_name(row) if row else villages.first_name(village_id, _verifier(village_id), "a family member")
+    rel_en, rel_es = _rel(village_id, "en"), _rel(village_id, "es")
     amount = row.get("request", {}).get("amount") if row else None
     amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
     if payload.get("type") == "suspected_scam":
-        en = f"Someone called Mamá as {name}, asking for {amount_s}. I asked {name}; he said it wasn’t him. I told her not to send money. Nothing was sent."
-        es = f"Alguien llamó a Mamá diciendo ser {name} y pidió {amount_s}. Le pregunté a {name}; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada."
+        en = f"Someone called {rel_en} as {name}, asking for {amount_s}. I asked {name}; he said it wasn’t him. I told her not to send money. Nothing was sent."
+        es = f"Alguien llamó a {rel_es} diciendo ser {name} y pidió {amount_s}. Le pregunté a {name}; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada."
     else:
-        en = f"Someone called Mamá as {name}, asking for {amount_s}. I couldn’t reach {name} in time, so I told her not to send money."
-        es = f"Alguien llamó a Mamá diciendo ser {name} y pidió {amount_s}. No pude confirmar con {name} a tiempo; le dije a ella que no mande dinero."
+        en = f"Someone called {rel_en} as {name}, asking for {amount_s}. I couldn’t reach {name} in time, so I told her not to send money."
+        es = f"Alguien llamó a {rel_es} diciendo ser {name} y pidió {amount_s}. No pude confirmar con {name} a tiempo; le dije a ella que no mande dinero."
     refs: list[dict[str, str]] = [{"kind": "event", "id": event["id"], "label": "incident"}]
     if verification_id:
         refs.append({"kind": "verification", "id": verification_id, "label": f"{name} answered" if payload.get("type") == "suspected_scam" else "check"})
@@ -1115,8 +1158,9 @@ async def post_incident_message(village_id: str, event: dict[str, Any]) -> dict[
     )
 
 
-async def rota_nudge_tick(village_id: str = "v_reyes") -> int:
+async def rota_nudge_tick(village_id: str | None = None) -> int:
     """At/after 15:00 local, post one nudge per day to the on-duty member, citing the shift row."""
+    village_id = _vid(village_id)
     now_dt = clock.now()
     if now_dt.hour < 15:
         return 0
@@ -1127,16 +1171,17 @@ async def rota_nudge_tick(village_id: str = "v_reyes") -> int:
     if shift is None:
         return 0
     _NUDGED.add(key)
-    on_duty = shift["payload"].get("on_duty", "m_marco")
+    on_duty = shift["payload"].get("on_duty") or villages.default_on_duty(village_id)
+    rel_en, rel_es = _rel(village_id, "en"), _rel(village_id, "es")
     name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
     await post_message(
         village_id,
         author="village",
         kind="nudge",
-        text=f"{name}, you're on tonight. Evening pills are at 8:00; I'll call Mamá and let you know.",
+        text=f"{name}, you're on tonight. Evening pills are at 8:00; I'll call {rel_en} and let you know.",
         text_i18n={
-            "en": f"{name}, you're on tonight. Evening pills are at 8:00; I'll call Mamá and let you know.",
-            "es": f"{name}, hoy te toca. Las pastillas de la noche son a las 8:00; yo llamo a Mamá y te aviso.",
+            "en": f"{name}, you're on tonight. Evening pills are at 8:00; I'll call {rel_en} and let you know.",
+            "es": f"{name}, hoy te toca. Las pastillas de la noche son a las 8:00; yo llamo a {rel_es} y te aviso.",
         },
         refs=[{"kind": "event", "id": shift["id"], "label": "tonight's rota"}],
         source={"kind": "system", "ref": "scheduler"},

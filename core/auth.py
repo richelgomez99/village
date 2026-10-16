@@ -1,5 +1,5 @@
-"""Demo token resolution. Accepted member tokens: the member id (`m_marco`), a minted token
-`mt_<firstname>_<anything>` (QR / fixture form, e.g. mt_marco_9Qe2vLx7Rk3pZ0aB), or the
+"""Demo token resolution. Accepted member tokens: the member id (`m_<first>` / `b_<first>`), a minted
+token `mt_<firstname>_<anything>` (QR / fixture form), or the
 control token (`control`, or CONTROL_TOKEN from the environment)."""
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def resolve_token(token: str | None) -> str | None:
     if token.startswith("mt_"):
         first = token.split("_")[1] if token.count("_") >= 1 else ""
         for member_id, person in db.members.items():
-            if member_id == f"m_{first}" or _ascii(str(person.get("name", "")).split()[0]) == first:
+            if member_id in {f"m_{first}", f"b_{first}"} or _ascii(str(person.get("name", "")).split()[0]) == first:
                 return member_id
     return None
 
