@@ -1,0 +1,301 @@
+import type { CatalogProps } from "../renderer/catalog";
+import { useCtx } from "../renderer/context";
+import { text } from "../renderer/view";
+import { k } from "../i18n/strings";
+import { fmtDay, fmtTime, mmss, secondsLeft, useNow } from "../util/time";
+import { Bi, Card, Icon, memberName } from "./shared";
+
+const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
+const SEVERITY_WORD: Record<string, Record<string, string>> = {
+  es: { danger: "Urgente", warn: "Atención", info: "Aviso" },
+  en: { danger: "Urgent", warn: "On hold", info: "Info" }
+};
+
+export function Countdown({ deadline, showDefault = true }: { deadline: string; showDefault?: boolean }) {
+  const ctx = useCtx();
+  const now = useNow(ctx.nowMs);
+  const s = secondsLeft(deadline, now);
+  const total = 45;
+  return (
+    <div className="countdown" data-test="countdown" role="timer" aria-live="off" data-seconds={s}>
+      <div className="countdown-num" data-say="">{mmss(s)}</div>
+      <div className="countdown-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (s / total) * 100)}%` }} /></div>
+      {showDefault ? <p className="countdown-default">{k("then_default", ctx.lang)}</p> : null}
+    </div>
+  );
+}
+
+interface BvAlert {
+  id: string;
+  severity: "danger" | "warn" | "info";
+  title: unknown;
+  body: unknown;
+  verification?: { id: string; claimed_member_id: string; deadline: string; status: string };
+  escalation?: { to: string; channel: string; status: string };
+}
+
+export function Alert({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const levels: string[] = props.severity_levels ?? ["danger", "warn", "info"];
+  const alerts = arr<BvAlert>(ctx.data[props.bind]).filter((a) => levels.includes(a.severity));
+  if (!alerts.length) {
+    return (
+      <section className="alert alert-empty" data-test="alert" data-count="0">
+        <Icon name="check" />
+        <span data-say="">{props.empty_text ?? k("no_alerts", ctx.lang)}</span>
+      </section>
+    );
+  }
+  return (
+    <div className="alerts" data-test="alerts" data-count={alerts.length}>
+      {alerts.map((a) => (
+        <section key={a.id} className={`alert alert-${a.severity}`} data-test="alert" data-severity={a.severity} data-alert-id={a.id} role="alert">
+          <div className="alert-head">
+            <Icon name={a.severity === "info" ? "help" : "shield"} />
+            <span className="chip">{(SEVERITY_WORD[ctx.lang] ?? SEVERITY_WORD.en)[a.severity]}</span>
+          </div>
+          <h2 className="alert-title"><Bi value={a.title} /></h2>
+          <p className="alert-body"><Bi value={a.body} /></p>
+          {props.show_countdown && a.verification?.status === "pending" ? <Countdown deadline={a.verification.deadline} /> : null}
+          {props.show_escalation_status && a.escalation ? (
+            <p className="alert-escalation" data-test="escalation" data-status={a.escalation.status}>
+              <Icon name="phone" /> {k("escalation", ctx.lang, { name: memberName(a.escalation.to, ctx.data) })} · {a.escalation.status}
+            </p>
+          ) : null}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+interface DoseSlot { slot: string; status: string; taken_at: string | null; via: string | null; lid_color?: string; meds?: string[] }
+
+const STATUS_ICON: Record<string, string> = { taken: "✓", uncertain: "?", missed: "✗", due: "●", upcoming: "○" };
+
+export function DoseTracker({ id, props }: CatalogProps) {
+  const ctx = useCtx();
+  const day = ctx.data[props.bind] as { slots?: DoseSlot[] } | undefined;
+  const slots = arr<DoseSlot>(day?.slots);
+  const showMeds = props.show_med_names === true && ctx.view.theme !== "elder";
+  return (
+    <Card test="dose-tracker" title={props.title ? <Bi value={props.title} /> : undefined} extra={{ "data-big": props.big ? "true" : undefined }}>
+      <ul className="dose-slots">
+        {(props.slots as string[]).map((slotId) => {
+          const s = slots.find((x) => x.slot === slotId);
+          const status = s?.status ?? "upcoming";
+          const statusText = k(status as "taken", ctx.lang);
+          return (
+            <li key={slotId} className={`dose-slot st-${status}`} data-test="dose-slot" data-slot={slotId} data-status={status}>
+              <span className="lid" style={s?.lid_color ? ({ "--lid": s.lid_color } as React.CSSProperties) : undefined} aria-hidden="true" />
+              <span className="dose-name" data-say="">{slotLabel(slotId, ctx.lang)}</span>
+              <span className="dose-status" data-say="">
+                {STATUS_ICON[status] ?? ""} {statusText}
+                {s?.taken_at ? ` · ${fmtTime(s.taken_at, ctx.lang)}` : ""}
+              </span>
+              {showMeds && s?.meds?.length ? <span className="dose-meds" data-test="dose-meds">{s.meds.join(" · ")}</span> : null}
+              {props.allow_log && status === "due" && ctx.view.theme !== "elder" ? (
+                <button type="button" className="btn btn-soft" disabled={ctx.disabled} onClick={() => ctx.send({ name: "log_dose", arg: `slot:${slotId}`, element_id: id })}>
+                  {k("taken", ctx.lang)}
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+function slotLabel(slot: string, lang: string): string {
+  const es: Record<string, string> = { morning: "Mañana", evening: "Noche", noon: "Mediodía", night: "Noche" };
+  const en: Record<string, string> = { morning: "Morning", evening: "Evening", noon: "Noon", night: "Night" };
+  return (lang === "es" ? es : en)[slot] ?? slot;
+}
+
+interface RotaMe { is_my_turn: boolean; on_duty: { name: string }; backup: { name: string }; until: string | null; next_shift: string | null; answer: unknown; status_line?: unknown }
+
+export function HelperAnswer({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const v = ctx.data[props.bind] as RotaMe | null | undefined;
+  return (
+    <Card test="helper-answer" title={<Bi value={props.question} />} tone={v?.is_my_turn ? "sage" : undefined} extra={{ "data-my-turn": v ? String(v.is_my_turn) : undefined }}>
+      {v ? (
+        <>
+          <p className="helper-answer" data-test="helper-answer-text"><Bi value={v.answer} /></p>
+          {props.show_status && v.status_line ? <p className="muted"><Bi value={v.status_line} /></p> : null}
+          {props.show_next_shift && v.next_shift ? <p className="muted" data-say="">{k("next_shift", ctx.lang, { date: fmtDay(v.next_shift, ctx.lang) })}</p> : null}
+        </>
+      ) : (
+        <p className="muted">{k("nothing_yet", ctx.lang)}</p>
+      )}
+    </Card>
+  );
+}
+
+interface TimelineItem { event_id: string; kind: string; at: string; text: unknown; source: { kind: string; ref: string; secs?: number }; source_label?: unknown; rule_id?: string; superseded: boolean }
+
+function kindMatches(kinds: string[] | undefined, kind: string): boolean {
+  if (!kinds?.length) return true;
+  if (kinds.includes(kind)) return true;
+  if (kinds.includes("verification") && kind.startsWith("verification_")) return true;
+  if (kinds.includes("dose_blocked") && (kind === "dose_repeat_scan" || kind === "dose_repeat")) return true;
+  return false;
+}
+
+export function Timeline({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const items = arr<TimelineItem>(ctx.data[props.bind])
+    .filter((i) => kindMatches(props.event_kinds, i.kind))
+    .filter((i) => props.show_superseded || !i.superseded)
+    .slice(0, props.limit ?? 50);
+  return (
+    <Card test="timeline" title={props.title ? <Bi value={props.title} /> : undefined}>
+      {items.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
+      <ol className="timeline">
+        {items.map((i) => (
+          <li key={i.event_id} className="tl-row" data-test="timeline-row" data-kind={i.kind} data-superseded={i.superseded}>
+            <time className="tl-time">{fmtDay(i.at, ctx.lang)} {fmtTime(i.at, ctx.lang)}</time>
+            <span className="tl-text">
+              {i.superseded ? <s><Bi value={i.text} /></s> : <Bi value={i.text} />}
+              {i.superseded ? <span className="chip chip-gray"> {k("superseded", ctx.lang)}</span> : null}
+            </span>
+            {props.show_provenance ? (
+              <span className="tl-source" data-test="provenance">
+                {k("source", ctx.lang)}: {i.source_label ? text(i.source_label, ctx.lang) : `${i.source.kind} ${i.source.ref}${i.source.secs != null ? ` @${mmss(Math.round(i.source.secs))}` : ""}`}
+                {i.rule_id ? ` · ${i.rule_id}` : ""}
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
+interface RotaDay { date: string; day: string; on_duty: string; backup: string }
+
+export function CareRota({ id, props }: CatalogProps) {
+  const ctx = useCtx();
+  const days = arr<RotaDay>(ctx.data[props.bind]);
+  return (
+    <Card test="care-rota" title={props.title ? <Bi value={props.title} /> : undefined}>
+      <table className="rota">
+        <tbody>
+          {days.map((d) => {
+            const mine = props.highlight_current_user && d.on_duty === ctx.memberId;
+            return (
+              <tr key={d.date} data-test="rota-row" data-date={d.date} data-on-duty={d.on_duty} className={mine ? "mine" : undefined}>
+                <th scope="row">{d.day}</th>
+                <td data-say="">{memberName(d.on_duty, ctx.data)}</td>
+                {props.show_backup ? <td className="muted">{k("backup", ctx.lang)}: {memberName(d.backup, ctx.data)}</td> : null}
+                {props.allow_swap && d.on_duty === ctx.memberId ? (
+                  <td><button type="button" className="btn btn-link" disabled={ctx.disabled} onClick={() => ctx.send({ name: "swap_shift", arg: d.date, element_id: id })}>Swap</button></td>
+                ) : null}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {days.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
+    </Card>
+  );
+}
+
+interface LifeArea { id: string; label: string; status: unknown; rules?: string[]; trusted_contacts?: string[] }
+
+export function LifeAreas({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const areas = arr<LifeArea>(ctx.data[props.bind]).filter((a) => (props.areas as string[]).includes(a.id));
+  return (
+    <Card test="life-areas" title={props.title ? <Bi value={props.title} /> : undefined}>
+      <ul className="areas">
+        {areas.map((a) => (
+          <li key={a.id} className={`area area-${a.id}`} data-test="life-area" data-area={a.id}>
+            <span className="area-label">{a.label}</span>
+            <span className="chip" data-test="life-area-status"><Bi value={a.status} /></span>
+            {props.show_rules && a.rules?.length ? <span className="mono small">{a.rules.join(" · ")}</span> : null}
+            {props.show_contacts && a.trusted_contacts?.length ? <span className="small muted">{a.trusted_contacts.map((m) => memberName(m, ctx.data)).join(", ")}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function PillOrganizer({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const week = ctx.data[props.bind] as { days?: { date: string; slots: DoseSlot[] }[] } | undefined;
+  const byDay = new Map<string, DoseSlot[]>();
+  for (const d of arr<{ date: string; slots: DoseSlot[] }>(week?.days)) {
+    byDay.set(WEEKDAYS[new Date(`${d.date}T12:00:00-04:00`).getDay()], d.slots);
+  }
+  const days: string[] = props.days ?? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return (
+    <Card test="pill-organizer" title={props.title ? <Bi value={props.title} /> : undefined}>
+      <table className="organizer">
+        <thead>
+          <tr><th />{days.map((d) => <th key={d} scope="col">{d}</th>)}</tr>
+        </thead>
+        <tbody>
+          {(props.slots as string[]).map((slot, i) => (
+            <tr key={slot}>
+              <th scope="row">{props.labels[i]}</th>
+              {days.map((d) => {
+                const st = byDay.get(d)?.find((s) => s.slot === slot)?.status ?? "upcoming";
+                return (
+                  <td key={d} data-test="pill-lid" data-day={d} data-slot={slot} data-status={st} style={{ "--lid": props.lid_colors[i] } as React.CSSProperties}>
+                    <span aria-label={`${d} ${props.labels[i]}: ${st}`}>{STATUS_ICON[st] ?? ""}</span>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+interface RefillItem { med: string; dose: string; changed?: { at: string; by: string; was: string; source?: string } }
+interface RefillData { day: string; owner: string; items: RefillItem[]; source_label?: string }
+
+/** D22: the refill checklist for whoever is on duty on refill day. Superseded doses are struck through, never deleted. */
+export function RefillCard({ props }: CatalogProps) {
+  const ctx = useCtx();
+  const v = ctx.data[props.bind] as RefillData | undefined;
+  if (!v) return null;
+  const owner = props.owner ?? v.owner;
+  return (
+    <Card test="refill-card" title={k("refill_title", ctx.lang, { day: props.day ?? v.day, owner })} extra={{ "data-owner": owner }}>
+      <ul className="refill">
+        {v.items.map((it) => (
+          <li key={it.med} data-test="refill-item" data-med={it.med} data-changed={it.changed ? "true" : undefined} className={it.changed ? "changed" : undefined}>
+            <span className="refill-med" data-say="">{it.med} {it.dose}</span>
+            {it.changed ? (
+              <span className="refill-change" data-test="refill-change">
+                {" "}({ctx.lang === "es" ? "cambió" : "changed"} {it.changed.at}, {it.changed.by}; {k("was", ctx.lang)} <s data-test="refill-superseded">{it.changed.was}</s>)
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {v.source_label ? <p className="small muted">{k("source", ctx.lang)}: {v.source_label}</p> : null}
+    </Card>
+  );
+}
+
+/** Elder: "Esta noche cuida Marco" (CarmenB / TonightCard). Absent key = render nothing; null = nobody (amber). */
+export function TonightCard({ props }: CatalogProps) {
+  const ctx = useCtx();
+  if (!(props.bind in ctx.data)) return null;
+  const p = ctx.data[props.bind] as { name?: string } | null;
+  return (
+    <section className={`tonight ${p ? "tonight-ok" : "tonight-nobody"}`} data-test="tonight-card" data-on-duty={p?.name ?? ""}>
+      <Icon name={p ? "heart" : "help"} />
+      <span data-say="">{p?.name ? k("tonight", ctx.lang, { name: p.name }) : k("tonight_nobody", ctx.lang)}</span>
+    </section>
+  );
+}
