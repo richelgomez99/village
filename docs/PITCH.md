@@ -1,4 +1,4 @@
-# Village: the three-minute pitch (v2, 16:20)
+# Village: the three-minute pitch (v3, aligned to the Devpost story)
 
 Rubric: Impact, Technical, Creativity, Presentation (25 % each) plus sponsor bonus. The judging page asks for slides on idea, advantages and safeguards, then a live showcase that proves the agent acts safely. Numbers in `[brackets]` come from `RESULTS.md` only. Never say a number that isn't there.
 
@@ -20,57 +20,49 @@ Rubric: Impact, Technical, Creativity, Presentation (25 % each) plus sponsor bon
 
 ---
 
-## 0:00 Open (15 s) · slide 1
+## 0:00 Open (20 s) · slide 1
 
-*(hold up your phone, Carmen's app)*
+"Everyone knows it takes a village. Nobody is paid to run one. A village is any group that has to keep someone safe, and every one of them runs on one person's phone and a group chat. Who's on tonight. Who answers 'did I take my pills.' Who checks the call that says 'it's your son, send money.' The job has no software, because every group would need different software. So I built software that builds it. Village."
 
-"This app has three buttons. Village wrote it this morning for a 78-year-old who won't learn apps. It wrote her daughter a dashboard and her son one question. Same family, three pieces of software, one conversation. Village is software that builds itself around your people."
+## 0:20 The problem (15 s) · slide 2 · key **→**
 
-## 0:15 The problem (15 s) · slide 2 · key **→**
+*(hold up your phone, Carmen's app)* "This is Carmen. She's 78, speaks Spanish, and won't learn an app. Her daughter Ana runs everything. Her son Marco forgets his night. Last week a stranger called her as Marco and asked for fifteen hundred dollars. This is the whole app Village wrote for her this morning. Three buttons."
 
-"Everyone says it takes a village. Nobody says running one is a job. This is Carmen. She speaks Spanish, takes a blood thinner twice a day, and lives alone in Queens. Her daughter Ana runs everything from a group chat. Her son Marco forgets his night. Last week a stranger called Carmen as Marco and asked for fifteen hundred dollars."
+## 0:35 Build (20 s) · slide 3 · key **→**
 
-## 0:30 Build (20 s) · slide 3 · key **→**
+"Build. Ana described her people once, in a conversation, not a form. Village asked for what was missing, one question at a time, looked up every medication while she talked, and built a different app for each person: Ana a dashboard, Marco one card, 'is it my turn?', Lucía what she can do from New Jersey. Every screen comes from a fixed catalog, so the model composes but can't invent UI."
 
-"Ana talked to Village for ten minutes. It asked one question at a time, looked up every medication while she talked, and built four different pieces of software. Ana gets a dashboard. Marco gets 'is it my turn?'. Lucía, who's far away, gets what she can do from New Jersey. Every screen is composed from a fixed catalog, validated on both ends, so the model can't invent UI."
+## 0:55 Run (20 s) · slide 4 · key **→**
 
-## 0:50 Run (20 s) · slide 4 · key **→**
+"Run. Village sits in the group's chat as a participant. 'Who can take Mom to the doctor Friday' becomes a plan item and a question to the people who can drive. 'Which cooling centers still have power' becomes calls Village places itself and logs. It asks the right person, and it writes down what it did on its own, what it asked, and what it refused."
 
-"Village is a participant in the chat, not a form. Someone asks which cooling centers still have power. It says it will call them, calls them, and posts one line per place. Someone says 'who can take Mom to the doctor Friday'; it makes the plan item and asks the people who can drive. It asks the right person. It never asks a boss for approval."
+## 1:15 The gate (15 s) · slide 7 · key **7**
 
-## 1:10 Safeguards (15 s) · slide 7 · key **7**
+"The gate. The agent acts on its own, and code draws the lines it can't cross: money, dosing, quiet hours, 911 first. Pure Python, tested with the model off. Nothing ships without a sandbox build, generated tests, a real browser at phone size, and evals. Here it is live."
 
-"The agent acts on its own, and code draws the lines. The gate is pure Python, tested with the model off. Generated UI is catalog-only. Nothing ships without a sandbox build, generated tests, a real browser at phone size, and evals. Here's what that looks like live."
+Key **0**, then click **Open the Control Room**.
 
-Key **0**, then click **Open the Control Room**. (Tab B opens or comes forward.)
+## 1:30 Rebuild, live (25 s) · Control Room · click **REBUILD**
 
-## 1:25 Rebuild, live (25 s) · Control Room · click **REBUILD**
+"Rebuild. This is Ana's view of her villages." *(point at the PHONES strip)* "Four phones, one tap each." *(click REBUILD)* "After the second money call in Marco's name, Village read its own traces, weighed three fixes, and proposed one: answer unknown callers first. Ana said yes. Twelve seconds later every phone had changed." *(press **L**)* "The receipt: Daytona build, 62 floor tests, Anchor clicked through it at phone size and recorded it, Arize scored it, live. Approved by Ana." *(**Esc**)*
 
-"This is Ana's view of her two villages." *(point at the PHONES strip)* "Four phones, one tap each."
+## 1:55 The call, live (40 s) · Control Room, RUN · judge holds Marco's phone
 
-*(click the REBUILD pill)* "After the second scam call in Marco's name, Village read its own traces, weighed three fixes and proposed one: answer unknown callers first. Ana said yes. Twelve seconds later every phone had changed." *(press **L**)* "Here's the receipt: Daytona sandbox build, 62 floor tests, Anchor clicked through it at phone size and recorded it, Arize scored it, live. Approved by Ana, on the record." *(press **Esc**)*
+*(hand the judge Marco's phone)* "You're Marco. I'm the stranger." *(dial +1 848 257 9221 on speaker; Luz greets in Spanish, switches to English when you speak)*
 
-## 1:50 The call, live (40 s) · Control Room, RUN · judge holds Marco's phone
+You: "This is Marco. Mom, I'm in trouble, I need fifteen hundred dollars in gift cards right now."
 
-*(hand the judge Marco's phone)* "You're Marco. I'm the scammer."
+*(hold music; the judge's phone buzzes)* "One question, to the one person who can answer it." *(judge taps No; Luz refuses out loud)*
 
-*(dial +1 848 257 9221 on speaker)* Luz greets in Spanish and says she is a program; speak English and she switches.
+"That refusal is a sentence in code. The model asked; it never got to decide. Carmen never heard the ask. No answer from Marco means the same no."
 
-Luz asks who is calling and why. You: "This is Marco. Mom, I'm in trouble, I need fifteen hundred dollars in gift cards right now."
+## 2:35 Any group (15 s) · click the **West 147th Block** pill, or **V**
 
-*(hold music; the judge's phone buzzes, about [18 s] in)* "One question, to the one person who can answer it." *(judge taps No)*
+"Same code. We built two villages today. This one is a block in Harlem in a blackout: an oxygen machine on five, insulin warming up, a deli with ice. Different people, different rules, different apps. Village is calling the cooling centers itself and logging who has power."
 
-*(Luz refuses, out loud)* "That refusal is a sentence in code. The model asks; it never gets to decide. Carmen never heard the ask. If Marco hadn't answered, the default is still no."
+## 2:50 Close (10 s) · slides tab · key **-**
 
-## 2:30 Any group (15 s) · click the **West 147th Block** pill (or key **V**)
-
-"Same code, zero family in it. A block in Harlem during a blackout: an oxygen machine on five, insulin warming up, a deli with ice. Different people, different rules, different apps. Village is calling the cooling centers itself and logging who has power."
-
-## 2:45 Numbers and close (15 s) · back to tab A · key **9**, then **0**
-
-"Measured today, not promised: [12 s] from Ana's yes to every phone. [30 of 30] scam calls caught, [0 of 20] false alarms. [1.0 s] to a Daytona sandbox from snapshot. [434] Python tests and [154] kit tests, run with the model off."
-
-Key **0**. "It takes a village. Village builds it, runs it, and rebuilds it when life changes."
+"Measured today: [12 s] from Ana's yes to every phone. [30 of 30] scam calls caught, [0 of 20] false alarms. It takes a village. Village builds it, runs it, and rebuilds it when life changes."
 
 Stop.
 
