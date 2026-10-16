@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "village": "v_reyes",
   "description": "Village chat rows (D16, message.schema.json) for the Reyes village across the Protect → Evolve arc, chronological; mirrors design/Chat.dc.html frame by frame (nudge · Marco · scam stopped · Lucía · suggests a change · Ana @Village · answer · updated). Times follow the contract clock (scam at Fri 2026-10-16 14:02, see contracts/README.md 'Decisions made in v1' #1; the design mock shows the same beats on the D17 evening clock) and refs point at ids in events_reyes_seed.json / ws_sequence_scam.json / proposal.schema.json / release.schema.json. The first nudge cites the morning lid scan the seed ledger actually has (ev_1016_0811_dose_morning) in place of the mock's evening lid. Load after events_reyes_seed.json; kit renders it as the chat:village binding (fake WS) and replays rows after `at` 14:02 as chat frames; core reset_demo seeds the first two rows and lets the live flow write the rest.",
   "clients_that_see_it": ["ana", "marco", "lucia", "control"],

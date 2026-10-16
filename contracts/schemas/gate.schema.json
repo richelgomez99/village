@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/gate.schema.json",
   "title": "Gate case (GateInput → Decision)",
   "description": "The deterministic policy gate: decide(input: GateInput) -> Decision, pure (no network, no LLM, no Agent Memory, no clock reads: 'now' is in the input; ids are pre-minted by core in input.alloc). An instance of this root schema is one test case. Lanes use $defs/gate_input and $defs/decision.",
-  "x-contract-version": "1.1.0",
+  "x-contract-version": "1.2.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["input", "decision"],

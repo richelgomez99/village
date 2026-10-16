@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/message.schema.json",
   "title": "Village chat message",
   "description": "One row of the SurrealDB `message` table (D16, contracts 1.1.0): the village group chat with Village as a participant. Members write only kind=chat (POST /villages/{id}/messages); `village` posts are created by core from ledger rows (incident, proposal, receipt, nudge) or by the builder's ask() (answer) and always carry at least one ref; `system` posts are lifecycle lines ('Ana invited everyone', 'Marco joined'). Append-only: a correction is a new message, never an edit. Chat rows are NOT ledger events; Village posts cite ledger rows by id in refs[]. Fanned out as WS `chat` frames to every member socket whose view is not elder, plus control; bound as chat:village (last 50). Never on the safety path.",
-  "x-contract-version": "1.1.0",
+  "x-contract-version": "1.2.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "village", "author", "kind", "text", "refs", "source", "at"],
