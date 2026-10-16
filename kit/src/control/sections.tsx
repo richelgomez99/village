@@ -226,7 +226,7 @@ export function RebuildSection({ spec, rows, options, error, onDecide, onReceipt
           </ul>
         ) : <p className="empty muted small">No changes yet.</p>}
       </Box>
-      <Box test="rebuild-declined" title="Not now">
+      <Box test="rebuild-declined" title="Declined or didn't ship">
         {declined.length ? (
           <ul>{declined.map((p) => <li key={p.id} data-test="declined-proposal"><b>{txt(p.title)}</b> <span className="muted small">· {p.status === "failed" ? "didn't pass the release checks" : `declined${p.rejected_by ? ` by ${personName(spec, p.rejected_by)}` : ""}`}{p.rejected_at ? ` · ${when(p.rejected_at)}` : ""}</span></li>)}</ul>
         ) : <p className="empty muted small">Nothing declined.</p>}
