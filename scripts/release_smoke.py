@@ -1,6 +1,6 @@
 """Run the real release pipeline once against the Reyes fixture and print measured timings.
 
-  uv run --with daytona --with anchorbrowser --with playwright python scripts/release_smoke.py [--break-contrast] [--cold]
+  uv run --with daytona --with anchorbrowser --with playwright --with boto3 python scripts/release_smoke.py [--break-contrast] [--cold]
 
 Real Daytona sandbox (reuses RELEASE_SANDBOX_ID when set and not --cold), real Anchor when a public
 URL answers (TUNNEL_URL candidate, else the Daytona signed preview of the same build), else local
@@ -23,6 +23,9 @@ os.chdir(ROOT)
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
+# An empty AWS_BEARER_TOKEN_BEDROCK makes the anthropic SDK send "Bearer " (illegal header); drop empties so SigV4 is used.
+for _k in [k for k, v in os.environ.items() if k.startswith(("AWS_", "ANTHROPIC_")) and v == ""]:
+    os.environ.pop(_k)
 
 
 def register_arize() -> str:
@@ -60,8 +63,10 @@ async def main() -> int:
     ap.add_argument("--break-contrast", action="store_true", help="inject a 4.1:1 theme token; the Builder must fix it")
     ap.add_argument("--cold", action="store_true", help="create a fresh sandbox instead of reusing RELEASE_SANDBOX_ID")
     ap.add_argument("--rev", type=int, default=None)
+    ap.add_argument("--spec", default="contracts/fixtures/reyes_spec.json")
     ap.add_argument("--port", type=int, default=8788)
     ap.add_argument("--no-preview", action="store_true")
+    ap.add_argument("--delete", action="store_true", help="delete the sandbox afterwards (use with --cold)")
     args = ap.parse_args()
 
     arize = register_arize()
@@ -75,8 +80,9 @@ async def main() -> int:
     if args.cold:
         os.environ.pop("RELEASE_SANDBOX_ID", None)
     model_on = os.environ.get("VILLAGE_LLM", "off") != "off"
-    spec = json.loads((ROOT / "contracts/fixtures/reyes_spec.json").read_text())
-    rev = args.rev or (3 if args.break_contrast else 4)
+    spec = json.loads((ROOT / args.spec).read_text())
+    vid = spec["village"]["id"]
+    rev = args.rev or (3 if args.break_contrast else int(spec.get("rev", 1)))
     local = f"http://127.0.0.1:{args.port}"
     server, server_task = await serve_local(args.port)
     daytona = DaytonaBuilder(preview=not args.no_preview)
@@ -97,7 +103,7 @@ async def main() -> int:
     history: list[dict] = []
     try:
         receipt = await run_release(
-            "v_reyes", spec, rev, broadcast=broadcast, llm=llm if model_on else None, daytona=daytona, anchor=anchor,
+            vid, spec, rev, broadcast=broadcast, llm=llm if model_on else None, daytona=daytona, anchor=anchor,
             evals=ReleaseEvals(llm=llm if model_on else None), local_base=local,
             inject="contrast" if args.break_contrast else None, history=history,
         )
@@ -105,7 +111,7 @@ async def main() -> int:
         total = time.perf_counter() - t0
         server.should_exit = True
         await asyncio.wait_for(server_task, 5)
-    timings = dict(LAST_TIMINGS.get("v_reyes", {}))
+    timings = dict(LAST_TIMINGS.get(vid, {}))
     timings["wall_total"] = int(total * 1000)
     print("\nReceipts:")
     for r in history:
@@ -131,7 +137,7 @@ async def main() -> int:
         trace.get_tracer_provider().force_flush()  # type: ignore[attr-defined]
     except Exception:
         pass
-    await daytona.close(delete=False)
+    await daytona.close(delete=args.delete)
     return 0 if receipt["result"] == "released" else 1
 
 

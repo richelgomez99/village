@@ -235,6 +235,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             await run.start(r, "anchor_qa")
             candidate = await publisher.stage(village_id, rev, res.dist_dir) if res.dist_dir else f"/v/{village_id}/r/{rev}/"
             r["candidate_path"] = candidate
+            views = spec.get("views") or {}
+            role = "elder" if "elder" in views else next(iter(views), "elder")
             qa_dir = (bundle.ROOT / "var" / "releases" / village_id / f"r{rev}" / "qa")
             qa_dir.mkdir(parents=True, exist_ok=True)
             if anchor is None:
@@ -245,9 +247,9 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             else:
                 with obs.span("anchor_qa", "TOOL", village=village_id, node="anchor_qa", parent_node="builder",
                               **{"tool.name": "anchor_qa"}) as sp:
-                    qa = await anchor.qa(f"{public_base}{candidate}?role=elder", village_id=village_id, rev=rev,
-                                         out_dir=qa_dir, local_url=f"{local_base}{candidate}?role=elder",
-                                         alt_url=f"{res.preview_url}?role=elder" if res.preview_url else None)
+                    qa = await anchor.qa(f"{public_base}{candidate}?role={role}", village_id=village_id, rev=rev,
+                                         out_dir=qa_dir, local_url=f"{local_base}{candidate}?role={role}",
+                                         alt_url=f"{res.preview_url}?role={role}" if res.preview_url else None)
                     obs.finish(sp, qa.ok, output={"assertions": qa.assertions, "degraded": qa.degraded}, error=qa.error)
                 timings["anchor"] = int((time.perf_counter() - t0) * 1000)
                 ev = [{"kind": "screenshot", "url": f"{public_base}/releases/{rel}/qa/{p.name}", "label": p.stem[:80], "viewport": qa.viewport}

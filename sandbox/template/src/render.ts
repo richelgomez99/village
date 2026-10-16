@@ -75,6 +75,6 @@ export function renderElement(view: View, id: string): ReactNode {
 }
 
 export function renderView(view: View): ReactNode {
-  return h("div", { dir: view.dir ?? "ltr", lang: view.lang, style: { background: "#FBF6EE", minHeight: "100vh", fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif" } },
+  return h("div", { dir: view.dir ?? "ltr", lang: view.lang, "data-theme": view.theme, style: { background: "#FBF6EE", minHeight: "100vh", fontFamily: "Atkinson Hyperlegible, system-ui, sans-serif" } },
     renderElement(view, view.root));
 }

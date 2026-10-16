@@ -28,6 +28,7 @@ MEASURE_JS = """() => {
       h: Math.round(e.getBoundingClientRect().height), fs: parseFloat(getComputedStyle(e).fontSize), visible: vis(e) })),
     e911: q('[data-type="ContactCard"]').filter(e => (e.getAttribute('href') || '').includes('911')).map(e => ({ visible: vis(e), h: Math.round(e.getBoundingClientRect().height) })),
     title: (document.querySelector('h1') || {}).textContent || '',
+    theme: (document.querySelector('[data-theme]') || { dataset: {} }).dataset.theme || 'elder',
   };
 }"""
 
@@ -37,6 +38,12 @@ def _ms(t0: float) -> int:
 
 
 def assertions_from(m: dict[str, Any], min_h: int = 88, min_fs: int = 28, n_buttons: int = 3) -> list[dict[str, Any]]:
+    if m.get("theme", "elder") != "elder":
+        out = [{"name": f"{m['theme']} view rendered", "ok": bool(m.get("title")), "detail": m.get("title", "")[:60]}]
+        for b in m["buttons"]:
+            ok = b["visible"] and b["h"] >= 48
+            out.append({"name": f"BigButton {b['id']} visible ≥48px", "ok": bool(ok), "detail": f"h={b['h']}px font={b['fs']}px"})
+        return out
     out = [{"name": f"{n_buttons} elder BigButtons", "ok": len(m["buttons"]) == n_buttons, "detail": f"found {len(m['buttons'])}"}]
     for b in m["buttons"]:
         ok = b["visible"] and b["h"] >= min_h and b["fs"] >= min_fs

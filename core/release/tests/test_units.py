@@ -84,3 +84,14 @@ def test_parse_vitest():
     assert (p, f) == (45, 1)
     assert fails[0].startswith("floor.test.ts › floor/contrast › elder BigButton tone=info")
     assert "contrast 4.1:1 on elder Text" in fails[0]
+
+
+def test_anchor_assertions_elder_and_other():
+    from core.release.anchor_qa import assertions_from
+
+    btn = {"id": "b", "text": "x", "h": 88, "fs": 28, "visible": True}
+    elder = assertions_from({"theme": "elder", "buttons": [btn] * 3, "e911": [{"visible": True, "h": 90}], "title": "Hola"})
+    assert all(a["ok"] for a in elder) and len(elder) == 5
+    assert not all(a["ok"] for a in assertions_from({"theme": "elder", "buttons": [btn] * 2, "e911": [], "title": "x"}))
+    other = assertions_from({"theme": "family", "buttons": [dict(btn, h=56)], "e911": [], "title": "Block"})
+    assert all(a["ok"] for a in other)
