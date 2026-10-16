@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/ws_messages.schema.json",
   "title": "WebSocket messages",
   "description": "The ONE realtime protocol (D4): GET /ws?village=<id>&m=<member_token>, one socket per client, JSON text frames, one message per frame, discriminated by `type`. Client → server: hello (first frame, required), ack, action, ping. Server → client: snapshot (always first reply to hello and after any rev gap), patch, event, control (Control Room only), prompt, result, pong, error. Reconnect with backoff 0.5 s → 8 s and send hello with last_rev; server answers with a fresh snapshot. Clients apply patch only if patch.base_rev == local rev, otherwise send hello again.",
-  "x-contract-version": "1.3.0",
+  "x-contract-version": "1.3.1",
   "oneOf": [
     {
       "$ref": "#/$defs/client_message"
@@ -98,7 +98,7 @@
         },
         "view_as": {
           "$ref": "common.schema.json#/$defs/member_id",
-          "description": "1.3.0 (D21 'View as'). Render this member's view on this socket: the server answers with the snapshot that member would get (role, member_id, spec = views[their view], data resolved for them, identity with view_as: true) and keeps streaming as them. Only honored for the control token (Control Room) or a coordinator's member token for a member of the same village; any other caller gets error{code: not_allowed} and the socket stays as itself. Actions sent on a view_as socket are refused (not_allowed): View as is read-only. Send a new hello (no view_as) to go back."
+          "description": "1.3.1 (D21 'View as'). Render this member's view on this socket: the server answers with the snapshot that member would get (role, member_id, spec = views[their view], data resolved for them, identity with view_as: true) and keeps streaming as them. Only honored for the control token (Control Room) or a coordinator's member token for a member of the same village; any other caller gets error{code: not_allowed} and the socket stays as itself. Actions sent on a view_as socket are refused (not_allowed): View as is read-only. Send a new hello (no view_as) to go back."
         }
       }
     },
@@ -293,7 +293,7 @@
         "data",
         "now"
       ],
-      "description": "1.3.0 adds optional identity (D21 identity chip). Clients fall back to deriving it from role/member_id when absent.",
+      "description": "1.3.1 adds optional identity (D21 identity chip). Clients fall back to deriving it from role/member_id when absent.",
       "properties": {
         "type": {
           "const": "snapshot"
@@ -527,7 +527,7 @@
               "type": "null"
             }
           ],
-          "description": "1.3.0 (D22). RefillCard. Never sent to elder views."
+          "description": "1.3.1 (D22). RefillCard. Never sent to elder views."
         },
         "^chat:village$": {
           "anyOf": [
@@ -570,7 +570,7 @@
         "role",
         "village_name"
       ],
-      "description": "1.3.0 (D21). Who this socket is rendering, for the identity chip ('You're Marco · Familia Reyes'). Control Room without view_as: member_id null, name 'Control Room', role control. A judge on the shared family QR gets the helper role with name 'Family'.",
+      "description": "1.3.1 (D21). Who this socket is rendering, for the identity chip ('You're Marco · Familia Reyes'). Control Room without view_as: member_id null, name 'Control Room', role control. A judge on the shared family QR gets the helper role with name 'Family'.",
       "properties": {
         "member_id": {
           "anyOf": [
@@ -625,7 +625,7 @@
         "owner_member_id",
         "items"
       ],
-      "description": "1.3.0 (D22). Value of prescriptions:current: the current prescription record for the care recipient with supersession where a dose changed (from med_change ledger rows / Agent Memory fact history). Never sent to elder views (no med names on the elder view).",
+      "description": "1.3.1 (D22). Value of prescriptions:current: the current prescription record for the care recipient with supersession where a dose changed (from med_change ledger rows / Agent Memory fact history). Never sent to elder views (no med names on the elder view).",
       "properties": {
         "subject": {
           "$ref": "common.schema.json#/$defs/member_id"
@@ -1241,6 +1241,13 @@
           "items": {
             "$ref": "common.schema.json#/$defs/member_id"
           }
+        },
+        "need_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "1.3.1: the blueprint.needs ids this area covers (the kit derives tabs from it)."
         }
       }
     },
@@ -1522,7 +1529,7 @@
             "caption",
             "ledger"
           ],
-          "description": "1.1.0 added proposal and blueprint. 1.3.0 added caption (live call turn es/en for the projector, D18) and ledger (agent work rows: time · status · what · result, D20/D23)."
+          "description": "1.1.0 added proposal and blueprint. 1.3.1 added caption (live call turn es/en for the projector, D18) and ledger (agent work rows: time · status · what · result, D20/D23)."
         },
         "payload": {
           "type": "object"
@@ -1583,7 +1590,7 @@
                       "asked_human",
                       "refused"
                     ],
-                    "description": "1.3.0: autonomy mode of the row (D23)."
+                    "description": "1.3.1: autonomy mode of the row (D23)."
                   },
                   "trace_id": {
                     "$ref": "common.schema.json#/$defs/trace_id"
@@ -2200,7 +2207,7 @@
   "examples": [
     {
       "type": "hello",
-      "contract_version": "1.3.0",
+      "contract_version": "1.3.1",
       "village": "v_reyes",
       "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB",
       "last_rev": 5,
@@ -2208,7 +2215,7 @@
     },
     {
       "type": "hello",
-      "contract_version": "1.3.0",
+      "contract_version": "1.3.1",
       "village": "v_reyes",
       "member_token": "ct_control_Zq81mWv3Lp0x",
       "client": "control",

@@ -107,6 +107,9 @@ Keys are the exact `bind` strings used in the role's view; shapes are enforced b
 
 ## CHANGELOG
 
+### 1.3.1 (Oct 16, 13:25; orchestrator; additive patch)
+- `ws_messages` `bv_life_area.need_ids[]` so the kit derives a person's tabs from the life areas their cards serve (UX-UPGRADE).
+
 ### 1.3.0 (Oct 16, 13:15; orchestrator; additive, minor)
 - Six catalog types (UX-UPGRADE): `RightNow`, `WhatVillageDid` (bind `rounds:latest`), `SinceYourTurn` (`events:since_last_turn?member=me`), `PlanBoard` (`plan:<id>`), `ScreenedCalls` (`calls:screened`), `FactCard` (`facts:history?subject=&key=`); bind grammar + `ws_messages` data shapes `bv_rounds`, `bv_since_turn`, `bv_plan`, `bv_screened_calls`, `bv_fact_history`.
 

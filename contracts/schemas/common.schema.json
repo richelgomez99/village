@@ -3,9 +3,9 @@
   "$id": "https://village.contracts/v1/common.schema.json",
   "title": "Village shared definitions",
   "description": "Leaf definitions shared by every Village contract. Referenced as common.schema.json#/$defs/<name>. Not an instance schema on its own.",
-  "x-contract-version": "1.3.0",
+  "x-contract-version": "1.3.1",
   "$defs": {
-    "contract_version": { "const": "1.3.0", "description": "Bump in contracts/VERSION, every schema's x-contract-version, and here, together." },
+    "contract_version": { "const": "1.3.1", "description": "Bump in contracts/VERSION, every schema's x-contract-version, and here, together." },
 
     "village_id": { "type": "string", "pattern": "^v_[a-z0-9_]{2,40}$", "examples": ["v_reyes", "v_w147"] },
     "member_id": { "type": "string", "pattern": "^[a-z]_[a-z0-9_]{1,40}$", "examples": ["m_carmen", "b_tanya"] },
@@ -134,7 +134,7 @@
     },
 
     "member_channel": {
-      "description": "Per-member channels assigned by the builder (D3, D13). app:<role_key> = the role view. 1.3.0 (D22): refill_day = this member owns the refill checklist (RefillCard) on refill day; check_in_call = optional evening check-in call to the care recipient (needs her consent; she can decline). lid_qr stays valid but is no longer assigned in the Reyes fixture (D22 retired lid stickers).",
+      "description": "Per-member channels assigned by the builder (D3, D13). app:<role_key> = the role view. 1.3.1 (D22): refill_day = this member owns the refill checklist (RefillCard) on refill day; check_in_call = optional evening check-in call to the care recipient (needs her consent; she can decline). lid_qr stays valid but is no longer assigned in the Reyes fixture (D22 retired lid stickers).",
       "anyOf": [
         { "enum": ["lid_qr", "phone_line", "outbound_calls", "fridge_card", "verification:app_prompt", "verification:call", "refill_day", "check_in_call"] },
         { "type": "string", "pattern": "^app:[a-z][a-z_]{1,23}$" }

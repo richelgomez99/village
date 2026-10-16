@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.3.0",
+  "contract_version": "1.3.1",
   "village": "v_reyes",
   "description": "Village chat rows (D16, message.schema.json) for the Reyes village across the Protect → Evolve arc, chronological; mirrors design/Chat.dc.html frame by frame (nudge · Marco · scam stopped · Lucía · suggests a change · Ana @Village · answer · updated). Times follow the contract clock (scam at Fri 2026-10-16 14:02, see contracts/README.md 'Decisions made in v1' #1; the design mock shows the same beats on the D17 evening clock) and refs point at ids in events_reyes_seed.json / ws_sequence_scam.json / proposal.schema.json / release.schema.json. The first nudge cites the morning lid scan the seed ledger actually has (ev_1016_0811_dose_morning) in place of the mock's evening lid. Load after events_reyes_seed.json; kit renders it as the chat:village binding (fake WS) and replays rows after `at` 14:02 as chat frames; core reset_demo seeds the first two rows and lets the live flow write the rest.",
   "clients_that_see_it": ["ana", "marco", "lucia", "control"],
@@ -20,8 +20,8 @@
     },
     {
       "id": "msg_1016_1402_incident", "village": "v_reyes", "author": "village", "kind": "incident",
-      "text": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.",
-      "text_i18n": { "en": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.", "es": "Alguien llamó a Mamá diciendo ser Marco y pidió $2,000. Le pregunté a Marco; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada." },
+      "text": "Someone called Mamá as Marco, asking for $2,000. Village asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.",
+      "text_i18n": { "en": "Someone called Mamá as Marco, asking for $2,000. Village asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.", "es": "Alguien llamó a Mamá diciendo ser Marco y pidió $2,000. Le pregunté a Marco; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada." },
       "mention": null, "reply_to": null,
       "refs": [
         { "kind": "event", "id": "ev_1016_1402_money", "label": "her call, 0:09" },
@@ -38,8 +38,8 @@
     },
     {
       "id": "msg_1016_1405_proposal", "village": "v_reyes", "author": "village", "kind": "proposal",
-      "text": "Yes, second attempt this month. Want me to give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.",
-      "text_i18n": { "en": "Yes, second attempt this month. Want me to give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.", "es": "Sí, segundo intento este mes. ¿Quieren que le ponga a Mamá un botón “¿Es de verdad?” y les avise a todos de cualquier intento nuevo? Ana decide." },
+      "text": "Yes, second attempt this month. Village can give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.",
+      "text_i18n": { "en": "Yes, second attempt this month. Village can give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.", "es": "Sí, segundo intento este mes. ¿Quieren que le ponga a Mamá un botón “¿Es de verdad?” y les avise a todos de cualquier intento nuevo? Ana decide." },
       "mention": null, "reply_to": "msg_1016_1404_lucia",
       "refs": [
         { "kind": "proposal", "id": "prop_reyes_scamcheck", "label": "Approve · Not now" },
@@ -56,11 +56,11 @@
     },
     {
       "id": "msg_1016_1405_answer", "village": "v_reyes", "author": "village", "kind": "answer",
-      "text": "The caller claimed to be Marco, so I checked with Marco. Lucía isn’t set up for calls (her choice at joining).",
-      "text_i18n": { "en": "The caller claimed to be Marco, so I checked with Marco. Lucía isn’t set up for calls (her choice at joining).", "es": "Quien llamó dijo ser Marco, así que confirmé con Marco. Lucía no está configurada para llamadas (lo eligió al unirse)." },
+      "text": "The caller claimed to be Marco, so Village checked with Marco. Lucía isn’t set up for calls (her choice at joining).",
+      "text_i18n": { "en": "The caller claimed to be Marco, so Village checked with Marco. Lucía isn’t set up for calls (her choice at joining).", "es": "Quien llamó dijo ser Marco, así que confirmé con Marco. Lucía no está configurada para llamadas (lo eligió al unirse)." },
       "mention": null, "reply_to": "msg_1016_1405_ana",
       "refs": [
-        { "kind": "decision", "id": "dc_1016_1402_money", "label": "rule R-MONEY-VERIFY" },
+        { "kind": "decision", "id": "dc_1016_1402_money", "label": "the rule: no money in a family member's name without that person's yes" },
         { "kind": "event", "id": "ev_1011_2005_consent_lucia", "label": "consent record" }
       ],
       "source": { "kind": "system", "ref": "builder" }, "trace_id": "7c1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f", "at": "2026-10-16T14:05:48-04:00"
