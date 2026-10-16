@@ -90,3 +90,16 @@ def _rewrite_values(value: Any, replacements: dict[str, str]) -> Any:
     if isinstance(value, dict):
         return {replacements.get(key, key): _rewrite_values(item, replacements) for key, item in value.items()}
     return value
+
+
+def strip_chat(view: dict[str, Any]) -> dict[str, Any]:
+    """Reference view without VillageChat (Core/ensure_chat inserts it)."""
+    out = deepcopy(view)
+    chat_ids = [eid for eid, el in out["elements"].items() if el.get("type") == "VillageChat"]
+    for eid in chat_ids:
+        out["elements"].pop(eid)
+        out.get("needs_served", {}).pop(eid, None)
+    for el in out["elements"].values():
+        if "children" in el:
+            el["children"] = [c for c in el["children"] if c not in chat_ids]
+    return out
