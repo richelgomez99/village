@@ -64,7 +64,8 @@
                   "vp",
                   "ans",
                   "refill",
-                  "b_mom"
+                  "b_mom",
+                  "chat"
                 ]
               },
               "al": {
@@ -121,6 +122,17 @@
                   "action_arg": "m_carmen",
                   "confirm": false
                 }
+              },
+              "chat": {
+                "type": "VillageChat",
+                "props": {
+                  "bind": "chat:village",
+                  "composer": true,
+                  "title": "Village chat",
+                  "mention_label": "@Village",
+                  "allow_approve": false,
+                  "limit": 50
+                }
               }
             },
             "needs_served": {
@@ -140,6 +152,9 @@
               ],
               "b_mom": [
                 "n_turns"
+              ],
+              "chat": [
+                "n_safety"
               ]
             }
           },
