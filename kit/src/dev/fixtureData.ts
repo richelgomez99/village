@@ -6,15 +6,55 @@ import blockSpec from "../../../contracts/fixtures/block_spec.json";
 import chatSeed from "../../../contracts/fixtures/messages_reyes_seed.json";
 import type { View } from "../renderer/view";
 
-export type FakeClient = "carmen" | "ana" | "marco" | "lucia" | "control";
+export type FakeClient = "carmen" | "ana" | "marco" | "lucia" | "control" | "tanya" | "darnell";
 
 export const FAKE_CLIENTS: Record<FakeClient, { member_id: string | null; role: string; name: string }> = {
   carmen: { member_id: "m_carmen", role: "elder", name: "Carmen" },
   ana: { member_id: "m_ana", role: "coordinator", name: "Ana" },
   marco: { member_id: "m_marco", role: "helper", name: "Marco" },
   lucia: { member_id: "m_lucia", role: "helper", name: "Lucía" },
-  control: { member_id: null, role: "control", name: "Control Room" }
+  control: { member_id: null, role: "control", name: "Control Room" },
+  // West 147th (block_spec.json): the same renderer, a different village
+  tanya: { member_id: "b_tanya", role: "coordinator", name: "Tanya" },
+  darnell: { member_id: "b_darnell", role: "volunteer", name: "Darnell" }
 };
+const BLOCK_CLIENTS = new Set<FakeClient>(["tanya", "darnell"]);
+
+/** FAKE block data in the shapes the boards read (rows with text) until core-glue-5 seeds the block. */
+export function blockData(client: FakeClient): Record<string, unknown> {
+  const B = blockSpec as any;
+  const members: Record<string, unknown> = {};
+  for (const p of B.blueprint.people) members[`member:${p.id}`] = { member_id: p.id, name: String(p.name) };
+  const lifeAreas = B.blueprint.life_areas.map((a: any) => ({ id: a.id, label: a.label, need_ids: a.need_ids, status: { en: ({ health: "2 medical needs · 1 matched", information: "3 rumors checked", home: "1 family needs a cool room", daily_living: "2 neighbors can't do stairs" } as Record<string, string>)[a.id] ?? "ok" } }));
+  const needs = [
+    { id: "nd_1", text: "Mrs. Alvarez, 4C: oxygen concentrator without power, tank ~2 h", priority: "powered_medical_device" },
+    { id: "nd_2", text: "Mr. Chen, 2A: insulin warming, needs ice or a fridge", priority: "refrigerated_medication" },
+    { id: "nd_3", text: "Okafor family, 5B: newborn in a hot apartment", priority: "infant" },
+    { id: "nd_4", text: "Mr. James, 3D: power wheelchair battery at 20%, can't do stairs", priority: "mobility" }
+  ];
+  const resources = [
+    { id: "rs_1", text: "Priya: car, can drive to the cooling center (until 9 PM)" },
+    { id: "rs_2", text: "Ramírez Deli: 10 bags of ice, generator for phone charging" },
+    { id: "rs_3", text: "Darnell: can carry, knock on doors floors 3-5" }
+  ];
+  const chat = [
+    { id: "msg_b1", village: "v_w147", author: "village", kind: "nudge", text: "Mrs. Alvarez's tank has about 2 hours. Darnell is closest.", refs: [{ kind: "event", id: "ev_b1", label: "her call to the block line" }], source: { kind: "call", ref: "conv_b1" }, at: "2026-10-16T13:20:00-04:00" },
+    { id: "msg_b2", village: "v_w147", author: "b_darnell", kind: "chat", text: "On my way to 4C.", refs: [], source: { kind: "app", ref: "b_darnell" }, at: "2026-10-16T13:22:00-04:00" }
+  ];
+  if (client === "darnell") return { ...members, "alerts:active": [], "needs:open": needs, "resources:available": resources, "chat:village": chat };
+  return {
+    ...members,
+    "alerts:active": [],
+    "blueprint:life_areas": lifeAreas,
+    "needs:open?count": 4, "needs:matched?count": 1, "checkins:overdue?count": 1, "claims:topic=all?count": 2,
+    "needs:open": needs,
+    "resources:available": resources,
+    "claims:topic=all": [{ id: "cl_1", text: "\"Power back at 6\": not confirmed by Con Edison (checked 1:15 PM)" }, { id: "cl_2", text: "Cooling center at the library is open until 10 PM (city page)" }],
+    "checkins:village": [{ id: "ck_1", text: "Mrs. Alvarez: answered 1:10 PM" }, { id: "ck_2", text: "Mr. Chen: answered 1:05 PM" }, { id: "ck_3", text: "Mr. James: no answer since 12:30 (overdue)" }, { id: "ck_4", text: "Okafor family: answered 12:58 PM" }],
+    "calls:line=block-line": [{ id: "cll_1", text: "1:18 PM · Mrs. Alvarez · oxygen · matched to Darnell" }, { id: "cll_2", text: "12:51 PM · unknown caller asked for building keys · refused" }],
+    "chat:village": chat
+  };
+}
 
 export function clientForMember(memberId: string): FakeClient | null {
   return (Object.keys(FAKE_CLIENTS) as FakeClient[]).find((c) => FAKE_CLIENTS[c].member_id === memberId) ?? null;
@@ -155,6 +195,10 @@ export function fakeSnapshot(client: FakeClient, opts: { viewAs?: boolean; rev?:
   const identity = fakeIdentity(client, opts.viewAs);
   if (client === "control") {
     return { type: "snapshot", contract_version: "1.3.2", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: controlData(), now: SNAPSHOT_NOW, identity };
+  }
+  if (BLOCK_CLIENTS.has(client)) {
+    const B = blockSpec as any;
+    return { type: "snapshot", contract_version: "1.3.2", rev: B.rev, village: B.village.id, role: meta.role, member_id: meta.member_id, spec: B.views[meta.role] as View, data: blockData(client), now: SNAPSHOT_NOW, identity: { ...identity, village_name: B.village.name } };
   }
   const view = (reyesSpec as any).views[meta.role] as View;
   return { type: "snapshot", contract_version: "1.3.2", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW, identity };

@@ -236,3 +236,17 @@ describe("kit-members-2 fixes", () => {
     expect(container.querySelector("[data-test='tab-money'] [data-test='incident-card']")).not.toBeNull();
   });
 });
+
+describe("block apps through the fake (same renderer, another village)", () => {
+  it("Tanya: Home · Health · Information · Chat with seeded boards; Darnell: Home · Chat", async () => {
+    vi.useFakeTimers();
+    const t = mount("tanya");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect([...t.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Health", "Information", "Chat"]);
+    expect(t.container.querySelectorAll("[data-board='NeedBoard'] li").length).toBe(4);
+    expect(t.container.querySelector("[data-test='screen']")?.textContent).not.toMatch(/\bb_[a-z]+/);
+    const d = mount("darnell");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect([...d.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Chat"]);
+  });
+});
