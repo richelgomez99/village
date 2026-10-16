@@ -151,7 +151,7 @@ class FakeSocket extends EventTarget {
       const viewAs: string | undefined = f.view_as;
       const asClient = viewAs ? clientForMember(viewAs) : null;
       this.target = asClient ?? this.me;
-      this.emit(fakeSnapshot(this.target));
+      this.emit(fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me }));
       this.hub.scheduleStart();
     } else if (f.type === "ping") {
       this.emit({ type: "pong", ts: f.ts });

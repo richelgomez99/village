@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { IdentityChip, PromptOverlay, StatusStrip, ViewAs, ViewingAsBanner, type ViewAsOption } from "../components/chrome";
 import { memberName } from "../components/shared";
-import { PRESCRIPTIONS, withRefill } from "../dev/fixtureData";
 import { k } from "../i18n/strings";
 import type { LiveState, VillageSocket } from "../live/ws";
 import type { RenderCtx } from "../renderer/context";
@@ -20,7 +19,7 @@ export function useSocketState(socket: VillageSocket): LiveState {
   return state;
 }
 
-export function MemberApp({ socket, demo = null, captions = false }: { socket: VillageSocket; demo?: string | null; captions?: boolean }) {
+export function MemberApp({ socket, captions = false }: { socket: VillageSocket; captions?: boolean }) {
   const state = useSocketState(socket);
   const lang = state.view?.lang ?? "en";
   const dir = state.view?.dir ?? "ltr";
@@ -29,15 +28,8 @@ export function MemberApp({ socket, demo = null, captions = false }: { socket: V
     document.documentElement.dir = dir;
   }, [lang, dir]);
 
-  const { view, data } = useMemo(() => {
-    let v = state.view;
-    let d = state.data;
-    if (demo === "refill" && v && (state.role === "helper" || state.role === "coordinator")) {
-      v = withRefill(v, state.role);
-      if (!("prescriptions:current" in d)) d = { ...d, "prescriptions:current": PRESCRIPTIONS };
-    }
-    return { view: v, data: d };
-  }, [state.view, state.data, state.role, demo]);
+  const view = state.view;
+  const data = state.data;
 
   const send = useCallback((a: Parameters<RenderCtx["send"]>[0]) => socket.action(a), [socket]);
   const ack = useCallback((id: string) => socket.ack(id), [socket]);
@@ -57,7 +49,7 @@ export function MemberApp({ socket, demo = null, captions = false }: { socket: V
       <StatusStrip state={state} lang={lang} />
       <div className="topbar">
         {canViewAs ? <ViewAs options={REYES_MEMBERS} current={state.viewAs} self={state.self?.memberId ?? null} onPick={(m) => socket.viewAs(m)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
-        <IdentityChip memberId={state.memberId} role={state.role} village={state.village} lang={lang} />
+        <IdentityChip memberId={state.memberId} role={state.role} village={state.village} lang={lang} identity={state.identity} />
       </div>
       {state.viewAs ? <ViewingAsBanner name={memberName(state.viewAs)} onBack={() => socket.viewAs(null)} lang="en" /> : null}
       {ctx ? (

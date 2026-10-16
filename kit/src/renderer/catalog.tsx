@@ -17,6 +17,6 @@ export const CATALOG: Record<string, ComponentType<CatalogProps>> = {
   SourceCard: GenericBoard, SymptomLog: GenericBoard, CallLog: GenericBoard, NeedBoard: GenericBoard,
   ResourceBoard: GenericBoard, VerifiedInfoFeed: GenericBoard, CheckIn: GenericBoard,
   Checklist, VillageChat,
-  // kit extensions (LD-3)
+  // 1.2.0 (D22)
   RefillCard, TonightCard
 };

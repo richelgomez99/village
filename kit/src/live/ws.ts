@@ -1,7 +1,7 @@
 import type { Operation } from "fast-json-patch";
 import { applyViewPatch, viewSchema, type View } from "../renderer/view";
 import type { ActionRequest, ResultInfo } from "../renderer/context";
-import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type PromptFrame, type ServerFrame } from "./messages";
+import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type Identity, type PromptFrame, type ServerFrame } from "./messages";
 
 export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "closed";
 
@@ -17,6 +17,8 @@ export interface LiveState {
   /** who this socket really is (first snapshot); differs from role/memberId while viewing as someone (D21). */
   self: { role: string; memberId: string | null } | null;
   viewAs: string | null;
+  /** snapshot.identity (1.2.0) when the server sends it. */
+  identity: Identity | null;
   view: View | null;
   /** full VillageSpec on control snapshots. */
   spec: unknown;
@@ -44,7 +46,7 @@ type Listener = (s: LiveState) => void;
 export function initialLiveState(village = "v_reyes"): LiveState {
   return {
     status: "idle", attempt: 0, closedReason: null, lastError: null, rev: 0, village, role: "", memberId: null,
-    self: null, viewAs: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
+    self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
   };
 }
 
@@ -194,7 +196,7 @@ export class VillageSocket {
         }
         const self = this.s.self && this.s.viewAs ? this.s.self : { role: f.role, memberId: f.member_id };
         this.set({
-          status: "live", attempt: 0, rev: f.rev, village: f.village, role: f.role, memberId: f.member_id, self,
+          status: "live", attempt: 0, rev: f.rev, village: f.village, role: f.role, memberId: f.member_id, self, identity: f.identity ?? null,
           view, spec: f.role === "control" ? f.spec : null, data: { ...f.data }, highlight: [], lastError,
           prompt: this.s.viewAs ? null : this.s.prompt
         });
