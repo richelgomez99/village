@@ -18,7 +18,31 @@ CANNED = {
     "cover_yes": ["Sure, I can take {day}.", "Yes, I've got {day}.", "Okay, {day} is mine.", "I can do {day}, no problem."],
     "plan_yes": ["Yes, I can {what} on {day}.", "I've got it: {what}, {day}.", "Sure, I'll {what} {day}."],
     "on_duty_no": ["Can't this time, sorry. Work.", "I can't {day}, sorry.", "Not this {day}, something came up.", "Can't make it {day}."],
+    # a business / resource member on the group's list (a deli with ice, a neighbor with a generator): it sends, it doesn't come
+    "resource_yes": ["We'll send someone over with {what} in fifteen minutes. Medical needs first.",
+                     "Yes. {what} is on its way, give us fifteen minutes.",
+                     "We have it. Someone's bringing {what} up in about fifteen minutes."],
 }
+
+
+def persona_kind(village_id: str, member: str) -> str:
+    """'business' for a resource member (role business/resource in the spec), else 'person'."""
+    from core import village as villages
+
+    role = str((villages.person(village_id, member) or {}).get("role") or "").lower()
+    return "business" if role in {"business", "resource", "shop"} else "person"
+
+
+def canned_line(village_id: str, member: str, role: str, ask: dict[str, Any]) -> tuple[str, str]:
+    """(line, yes|no) for an actor's reply, by persona and ask type; pure apart from the spec lookup."""
+    what = ask.get("what") or "it"
+    day = ask.get("day") or "today"
+    if persona_kind(village_id, member) == "business":
+        return random.choice(CANNED["resource_yes"]).format(what=what, day=day), "yes"
+    if role == "plan" or ask.get("type") == "plan":
+        return random.choice(CANNED["plan_yes"]).format(day=day, what=ask.get("what") or "do it"), "yes"
+    key = "cover_yes" if role == "cover" else "on_duty_no"
+    return random.choice(CANNED[key]).format(day=day), ("yes" if role == "cover" else "no")
 
 
 def actors() -> set[str]:
@@ -44,7 +68,7 @@ def _is_actor(village_id: str, member: str) -> bool:
     return member in names or first in names or member.removeprefix("m_") in names
 
 
-ACTOR_TOOL = {"name": "say", "description": "The one short chat line this family member sends.",
+ACTOR_TOOL = {"name": "say", "description": "The one short chat line this member of the group sends.",
               "input_schema": {"type": "object", "properties": {"text": {"type": "string", "description": "<= 15 words, casual, no emoji"}}, "required": ["text"]}}
 
 
@@ -99,17 +123,11 @@ async def _reply(village_id: str, ask_id: str, member: str, role: str) -> None:
     ask = asks.ASKS.get(gid)
     if not ask or ask["status"] != "open":
         return
-    if role == "plan" or ask.get("type") == "plan":  # answer the actual ask: the what + when that was extracted
-        line = random.choice(CANNED["plan_yes"]).format(day=ask["day"], what=ask.get("what") or "do it")
-        answer = "yes"
-    else:
-        key = "cover_yes" if role == "cover" else "on_duty_no"
-        line = random.choice(CANNED[key]).format(day=ask["day"])
-        answer = "yes" if role == "cover" else "no"
+    line, answer = canned_line(village_id, member, role, ask)  # persona-aware: a deli sends ice, a sibling takes a night
     name = (ask.get("names") or {}).get(member) or member
     question = (ask.get("questions") or {}).get(member, "") or (ask.get("what") or "")
     line = await model_line(name, answer, ask["day"], question) or line
     gid = asks.BY_MEMBER_ASK.get(ask_id, (ask_id, member))[0]
     await asks.post(village_id, author=member, kind="chat", text=f"[demo] {line}", refs=[{"kind": "member", "id": member, "label": villages.first_name(village_id, member)}, {"kind": "ask", "id": ask_id, "label": "demo actor"}],
                     source={"kind": "system", "ref": "demo_actor"}, reply_to=(asks.ASKS.get(gid) or {}).get("message_id"))
-    await asks.answer(ask_id, member, "yes" if role in ("cover", "plan") else "no")
+    await asks.answer(ask_id, member, answer)
