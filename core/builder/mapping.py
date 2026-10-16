@@ -207,3 +207,17 @@ def json_text(value: Any) -> str:
     import json
 
     return json.dumps(value, ensure_ascii=False)
+
+
+def components_for(capability: str) -> list[str]:
+    """Catalog component types a capability implements (capabilities.yaml `implements`, catalog types only)."""
+    from .capabilities import catalog
+    from .validate import catalog_types
+
+    types = set(catalog_types())
+    return [c for c in catalog()["capabilities"].get(capability, {}).get("implements", []) if c in types]
+
+
+def capability_components(plan_by_member: dict[str, list[str]]) -> dict[str, list[str]]:
+    """member → catalog components chosen through their capabilities (why this screen? → this capability)."""
+    return {m: list(dict.fromkeys(c for cap in caps for c in components_for(cap))) for m, caps in plan_by_member.items()}

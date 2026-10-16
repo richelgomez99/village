@@ -11,9 +11,9 @@ def _fx(name: str) -> dict:
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
-def test_catalog_has_eight_capabilities_with_required_fields() -> None:
+def test_catalog_has_nine_capabilities_with_required_fields() -> None:
     caps = {c["id"]: c for c in list_capabilities()}
-    assert set(caps) == {"phone_line", "receptionist_line", "is_it_my_turn", "dashboard", "village_chat", "fridge_card", "refill_day", "check_in_call"}
+    assert set(caps) == {"phone_line", "receptionist_line", "is_it_my_turn", "dashboard", "village_chat", "fridge_card", "refill_day", "check_in_call", "event_plan"}
     for c in caps.values():
         for key in ("applies_when", "fits", "cost_to_person", "risk_class", "implements"):
             assert key in c, (c["id"], key)
@@ -49,3 +49,18 @@ def test_decision_rows_carry_reason_and_mode() -> None:
     assert "phone line" in carmen["text"] and "fits tech_comfort phone" in carmen["text"]
     assert mode_of(carmen) == "acted_alone"
     assert all(len(r["text"]) <= 400 for r in rows)
+
+
+def test_capabilities_map_to_1_3_components() -> None:
+    from core.builder.mapping import capability_components, components_for
+
+    assert components_for("dashboard")[:2] == ["RightNow", "WhatVillageDid"]
+    assert components_for("is_it_my_turn")[:2] == ["HelperAnswer", "SinceYourTurn"]
+    assert components_for("refill_day") == ["RefillCard", "FactCard"]
+    assert components_for("receptionist_line") == ["ScreenedCalls"]
+    assert components_for("event_plan") == ["PlanBoard"]
+    plan = plan_capabilities(_fx("reyes_spec.json"))
+    assert "event_plan" not in {c for caps in plan.as_dict().values() for c in caps}  # only via a change request
+    comps = capability_components(plan.as_dict())
+    assert "RightNow" in comps["m_ana"] and "SinceYourTurn" in comps["m_marco"]
+    assert "event_plan" in plan_capabilities(_fx("reyes_spec.json"), signals={"event_planned": True}).for_member("m_ana")
