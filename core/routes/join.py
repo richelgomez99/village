@@ -87,7 +87,8 @@ async def _builder_redeem(body: dict) -> dict | None:
             pass
     token = out["member_token"]
     return {"member_id": member_id, "member_token": token, "village": village_id,
-            "app_url": f"./?m={token}&village={village_id}", "role": person.get("view")}
+            "app_url": f"./?m={token}&village={village_id}", "role": person.get("view"),
+            **({"consent_event": out["consent_event"]} if out.get("consent_event") else {})}
 
 
 @router.post("/auth/redeem")
