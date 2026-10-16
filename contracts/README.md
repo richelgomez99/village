@@ -107,6 +107,9 @@ Keys are the exact `bind` strings used in the role's view; shapes are enforced b
 
 ## CHANGELOG
 
+### 1.3.2 (Oct 16, 13:40; orchestrator; additive patch)
+- `voice_tools` `req_relay_message` (receptionist takes a message → family chat + screened-call log).
+
 ### 1.3.1 (Oct 16, 13:25; orchestrator; additive patch)
 - `ws_messages` `bv_life_area.need_ids[]` so the kit derives a person's tabs from the life areas their cards serve (UX-UPGRADE).
 

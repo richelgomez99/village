@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.3.1",
+  "contract_version": "1.3.2",
   "village": "v_reyes",
   "description": "WebSocket frames each client sees during the headline scam flow, in order (t = server time). Clients are already connected at rev 5 ('connect' shows Marco's hello/snapshot, with the D22 RefillCard and the D21 identity). 'start' is common to every outcome; then exactly one of denied / timeout_tail / confirmed_tail follows. Matches scam_call_tool_requests.json.",
   "clients": {
@@ -30,7 +30,7 @@
         "dir": "c2s",
         "msg": {
           "type": "hello",
-          "contract_version": "1.3.1",
+          "contract_version": "1.3.2",
           "village": "v_reyes",
           "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB",
           "last_rev": 5,
@@ -43,7 +43,7 @@
         "dir": "s2c",
         "msg": {
           "type": "snapshot",
-          "contract_version": "1.3.1",
+          "contract_version": "1.3.2",
           "rev": 5,
           "village": "v_reyes",
           "role": "helper",

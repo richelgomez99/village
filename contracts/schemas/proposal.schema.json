@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/proposal.schema.json",
   "title": "Evolve proposal",
   "description": "A proposed spec change from Evolve (D13: detect → investigate → fix → verify → human approves). Produced by evals (detector + evidence) and builder (patch_app ops), verified by release, approved by the coordinator (R-SPEC), applied by core as WS `patch` messages per role. Status flow: proposed → verifying → ready → approved → applied; or rejected / failed. 1.1.0: approve (POST /villages/{id}/proposals/{pid}/approve, WS/app action approve_proposal, voice tool answer_proposal) is allowed on `proposed` (starts verification and auto-applies on ready) as well as `ready`; 409 for verifying | approved | applied | rejected | failed. Reject (…/reject, action reject_proposal) is allowed on proposed | verifying | ready and records rejected_by / rejected_at.",
-  "x-contract-version": "1.3.1",
+  "x-contract-version": "1.3.2",
   "$ref": "#/$defs/proposal",
 
   "$defs": {

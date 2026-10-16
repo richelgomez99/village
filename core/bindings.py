@@ -271,7 +271,7 @@ def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
             item["rules"] = area["rules"]
         if area.get("trusted_contacts"):
             item["trusted_contacts"] = area["trusted_contacts"]
-        # 1.3.1: the needs this area serves, so the kit derives each person's tabs (spec order, no duplicates)
+        # 1.3.2: the needs this area serves, so the kit derives each person's tabs (spec order, no duplicates)
         need_ids = list(area.get("need_ids") or area.get("needs") or [])
         for need in spec.get("blueprint", {}).get("needs", []):
             if (need.get("life_area") or need.get("area")) == area["id"] and need.get("id") and need["id"] not in need_ids:

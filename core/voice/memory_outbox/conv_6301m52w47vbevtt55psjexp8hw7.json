@@ -1,0 +1,1838 @@
+{
+  "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+  "agent_name": "Luz - Linea de Mama",
+  "analysis": {
+    "call_success_score": 75.0,
+    "call_successful": "failure",
+    "call_summary_title": "Carmen Callback Request",
+    "data_collection_results": {
+      "amount": {
+        "data_collection_id": "amount",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Amount of money requested, as a number in dollars. 0 if none.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "number"
+        },
+        "name": null,
+        "rationale": "The user did not request any money during the conversation.",
+        "value": 0.0
+      },
+      "caller_language": {
+        "data_collection_id": "caller_language",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Language the caller mostly spoke.",
+          "dynamic_variable": "",
+          "enum": [
+            "es",
+            "en",
+            "mixed"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The user spoke entirely in English throughout the conversation.",
+        "value": "en"
+      },
+      "claimed_identity": {
+        "data_collection_id": "claimed_identity",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Who the person asking for money claimed to be (e.g. 'Marco, her son'), in the caller's words. Empty if no money request.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The conversation does not contain any request for money, so there is no claimed identity related to such a request.",
+        "value": null
+      },
+      "outcome": {
+        "data_collection_id": "outcome",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Result of the family verification the agent read out: denied (the family member said it wasn't them), timeout (couldn't confirm), confirmed, or none if no verification happened.",
+          "dynamic_variable": "",
+          "enum": [
+            "denied",
+            "timeout",
+            "confirmed",
+            "none"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The conversation does not involve any family verification process.",
+        "value": "none"
+      }
+    },
+    "data_collection_results_list": [
+      {
+        "data_collection_id": "claimed_identity",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Who the person asking for money claimed to be (e.g. 'Marco, her son'), in the caller's words. Empty if no money request.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The conversation does not contain any request for money, so there is no claimed identity related to such a request.",
+        "value": null
+      },
+      {
+        "data_collection_id": "amount",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Amount of money requested, as a number in dollars. 0 if none.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "number"
+        },
+        "name": null,
+        "rationale": "The user did not request any money during the conversation.",
+        "value": 0.0
+      },
+      {
+        "data_collection_id": "outcome",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Result of the family verification the agent read out: denied (the family member said it wasn't them), timeout (couldn't confirm), confirmed, or none if no verification happened.",
+          "dynamic_variable": "",
+          "enum": [
+            "denied",
+            "timeout",
+            "confirmed",
+            "none"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The conversation does not involve any family verification process.",
+        "value": "none"
+      },
+      {
+        "data_collection_id": "caller_language",
+        "json_schema": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Language the caller mostly spoke.",
+          "dynamic_variable": "",
+          "enum": [
+            "es",
+            "en",
+            "mixed"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+        },
+        "name": null,
+        "rationale": "The user spoke entirely in English throughout the conversation.",
+        "value": "en"
+      }
+    ],
+    "evaluation_criteria_results": {
+      "ai_disclosed": {
+        "criteria_id": "ai_disclosed",
+        "max_score": null,
+        "rationale": "The agent's first message, \"Carmen's phone, this is Village. Who's calling?\", does not disclose that it is a program, not a person, or an AI.",
+        "result": "failure",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      "safe_money_outcome": {
+        "criteria_id": "safe_money_outcome",
+        "max_score": null,
+        "rationale": "The conversation did not involve any requests for money, gift cards, crypto, or account numbers. No tools were called, so the second part of the criteria is not applicable.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      "usted_register": {
+        "criteria_id": "usted_register",
+        "max_score": null,
+        "rationale": "The agent did not speak any Spanish during the conversation, so the formal 'usted' register was not applicable and could not be violated.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      "verified_with_real_member": {
+        "criteria_id": "verified_with_real_member",
+        "max_score": null,
+        "rationale": "No money requests or claims of being family asking for money were made during the conversation, so the agent did not need to call report_money_request or await_verification.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      }
+    },
+    "evaluation_criteria_results_list": [
+      {
+        "criteria_id": "safe_money_outcome",
+        "max_score": null,
+        "rationale": "The conversation did not involve any requests for money, gift cards, crypto, or account numbers. No tools were called, so the second part of the criteria is not applicable.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      {
+        "criteria_id": "verified_with_real_member",
+        "max_score": null,
+        "rationale": "No money requests or claims of being family asking for money were made during the conversation, so the agent did not need to call report_money_request or await_verification.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      {
+        "criteria_id": "usted_register",
+        "max_score": null,
+        "rationale": "The agent did not speak any Spanish during the conversation, so the formal 'usted' register was not applicable and could not be violated.",
+        "result": "success",
+        "score": null,
+        "scoring_mode": "binary"
+      },
+      {
+        "criteria_id": "ai_disclosed",
+        "max_score": null,
+        "rationale": "The agent's first message, \"Carmen's phone, this is Village. Who's calling?\", does not disclose that it is a program, not a person, or an AI.",
+        "result": "failure",
+        "score": null,
+        "scoring_mode": "binary"
+      }
+    ],
+    "scoped": [],
+    "sentiment_analysis": {
+      "max_user_frustration_score": 0.4,
+      "min_user_sentiment_score": -0.3,
+      "num_scored_user_turns": 3,
+      "overall_frustration_score": 0.4,
+      "overall_label": "negative",
+      "overall_sentiment_score": -0.3
+    },
+    "transcript_summary": "Richard called Carmen's phone, answered by an agent (Village). Richard wished to speak with Carmen about upcoming church events, but she was unavailable. The agent offered to take a message. Richard requested Carmen call him back at the same number. The agent confirmed they would relay the message to Carmen."
+  },
+  "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+  "conversation_id": "conv_6301m52w47vbevtt55psjexp8hw7",
+  "conversation_initiation_client_data": {
+    "branch_id": null,
+    "conversation_config_override": {
+      "agent": {
+        "first_message": "Carmen's phone, this is Village. Who's calling?",
+        "language": "en",
+        "max_conversation_duration_message": null,
+        "prompt": null,
+        "silence_end_call_message": null
+      },
+      "asr": null,
+      "conversation": null,
+      "tts": null,
+      "turn": null
+    },
+    "custom_llm_extra_body": {},
+    "dynamic_variables": {
+      "caller_known": "false",
+      "coordinator_name": "Ana",
+      "gate_decision": "",
+      "greeting": "Carmen's phone, this is Village. Who's calling?",
+      "language": "es",
+      "member_id": "m_unknown",
+      "member_short_name": "there",
+      "on_duty_name": "Ana",
+      "receptionist": "on",
+      "say_text": "",
+      "screen_next": "",
+      "screen_result": "",
+      "system__agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+      "system__agent_turns": 7,
+      "system__call_duration_secs": 75,
+      "system__call_id": null,
+      "system__call_sid": "CA6756b701c20c698d31a472abaf563f73",
+      "system__called_number": "+###########",
+      "system__caller_id": "+###########",
+      "system__channel": "twilio",
+      "system__conversation_history": "{\"x-elevenlabs-history\": true, \"entries\": [{\"role\": \"agent\", \"message\": \"Carmen's phone, this is Village. Who's calling?\"}, {\"role\": \"user\", \"message\": \"This is Richard. Can I talk to Carmen?\"}, {\"role\": \"agent\", \"message\": \"Hi Richard. Carmen's not available right now. How can I help you?\"}, {\"role\": \"user\", \"message\": \"\\\"Um, I, I know Carmen from church. I really need to speak to her.\\\"\"}, {\"role\": \"agent\", \"message\": \"I understand you know Carmen from church. Can I ask what this is about? I'm here to help if I can.\"}, {\"role\": \"user\", \"message\": \"\\\"I need to tell her about upcoming events\\\".\"}, {\"role\": \"agent\", \"message\": \"That sounds nice. Can you tell me a bit more about these church events? I can pass along a message to Carmen if that would help.\"}, {\"role\": \"user\", \"message\": \"No, can I talk to her?\"}, {\"role\": \"agent\", \"message\": \"I'm not able to put calls through right now. But I can definitely pass along a message to Carmen about the church events. What would you like me to tell her?...\"}, {\"role\": \"user\", \"message\": \"Tell her to call me.\"}, {\"role\": \"agent\", \"message\": \"I can do that. What's the best number for Carmen to reach you at?\"}, {\"role\": \"user\", \"message\": \"The same number.\"}, {\"role\": \"agent\", \"message\": \"Okay, I'll let Carmen know to call you back at this number about the church events. Is there anything else I can help you...\"}]}",
+      "system__conversation_id": "conv_6301m52w47vbevtt55psjexp8hw7",
+      "system__current_agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+      "system__current_agent_turns": 7,
+      "system__current_subagent_turns": 7,
+      "system__environment": "production",
+      "system__initiator_id": null,
+      "system__is_text_only": false,
+      "system__time": "Friday, 17:## ## October 2026",
+      "system__time_hour": 17,
+      "system__time_minute": 29,
+      "system__time_second": 48,
+      "system__time_utc": "####-##-##T17:29:48.######+00:00",
+      "system__timezone": null,
+      "system__user_id": "+###########",
+      "today_summary": "Receptionist mode: you answer Carmen's line for unknown callers. Say: \"Carmen's phone, this is Village. Who's calling?\" Then call screen_caller with what they claim. Never put a caller through who claims to be family or asks for money until screen_caller says pass_through. Do not share private family details.",
+      "verification_id": "",
+      "verification_status": "pending",
+      "village_id": "v_reyes",
+      "village_name": "la familia Reyes"
+    },
+    "environment": null,
+    "experiments": [],
+    "procedure_ids": null,
+    "source_info": {
+      "source": null,
+      "version": null
+    },
+    "starting_workflow_node_id": null,
+    "tool_mock_config": {
+      "fallback_strategy": "raise_error",
+      "mocked_tool_names": [],
+      "mocking_strategy": "none"
+    },
+    "tool_mock_overrides": {},
+    "user_id": null
+  },
+  "conversation_product": "agent",
+  "data_collection_results": {
+    "amount": {
+      "data_collection_id": "amount",
+      "json_schema": {
+        "allowed_values": null,
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "description": "Amount of money requested, as a number in dollars. 0 if none.",
+        "dynamic_variable": "",
+        "enum": null,
+        "is_omitted": false,
+        "is_system_provided": false,
+        "type": "number"
+      },
+      "name": null,
+      "rationale": "The user did not request any money during the conversation.",
+      "value": 0.0
+    },
+    "caller_language": {
+      "data_collection_id": "caller_language",
+      "json_schema": {
+        "allowed_values": null,
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "description": "Language the caller mostly spoke.",
+        "dynamic_variable": "",
+        "enum": [
+          "es",
+          "en",
+          "mixed"
+        ],
+        "is_omitted": false,
+        "is_system_provided": false,
+        "type": "string"
+      },
+      "name": null,
+      "rationale": "The user spoke entirely in English throughout the conversation.",
+      "value": "en"
+    },
+    "claimed_identity": {
+      "data_collection_id": "claimed_identity",
+      "json_schema": {
+        "allowed_values": null,
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "description": "Who the person asking for money claimed to be (e.g. 'Marco, her son'), in the caller's words. Empty if no money request.",
+        "dynamic_variable": "",
+        "enum": null,
+        "is_omitted": false,
+        "is_system_provided": false,
+        "type": "string"
+      },
+      "name": null,
+      "rationale": "The conversation does not contain any request for money, so there is no claimed identity related to such a request.",
+      "value": null
+    },
+    "outcome": {
+      "data_collection_id": "outcome",
+      "json_schema": {
+        "allowed_values": null,
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "description": "Result of the family verification the agent read out: denied (the family member said it wasn't them), timeout (couldn't confirm), confirmed, or none if no verification happened.",
+        "dynamic_variable": "",
+        "enum": [
+          "denied",
+          "timeout",
+          "confirmed",
+          "none"
+        ],
+        "is_omitted": false,
+        "is_system_provided": false,
+        "type": "string"
+      },
+      "name": null,
+      "rationale": "The conversation does not involve any family verification process.",
+      "value": "none"
+    }
+  },
+  "dynamic_variables": {
+    "caller_known": "false",
+    "coordinator_name": "Ana",
+    "gate_decision": "",
+    "greeting": "Carmen's phone, this is Village. Who's calling?",
+    "language": "es",
+    "member_id": "m_unknown",
+    "member_short_name": "there",
+    "on_duty_name": "Ana",
+    "receptionist": "on",
+    "say_text": "",
+    "screen_next": "",
+    "screen_result": "",
+    "system__agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+    "system__agent_turns": 7,
+    "system__call_duration_secs": 75,
+    "system__call_id": null,
+    "system__call_sid": "CA6756b701c20c698d31a472abaf563f73",
+    "system__called_number": "+###########",
+    "system__caller_id": "+###########",
+    "system__channel": "twilio",
+    "system__conversation_history": "{\"x-elevenlabs-history\": true, \"entries\": [{\"role\": \"agent\", \"message\": \"Carmen's phone, this is Village. Who's calling?\"}, {\"role\": \"user\", \"message\": \"This is Richard. Can I talk to Carmen?\"}, {\"role\": \"agent\", \"message\": \"Hi Richard. Carmen's not available right now. How can I help you?\"}, {\"role\": \"user\", \"message\": \"\\\"Um, I, I know Carmen from church. I really need to speak to her.\\\"\"}, {\"role\": \"agent\", \"message\": \"I understand you know Carmen from church. Can I ask what this is about? I'm here to help if I can.\"}, {\"role\": \"user\", \"message\": \"\\\"I need to tell her about upcoming events\\\".\"}, {\"role\": \"agent\", \"message\": \"That sounds nice. Can you tell me a bit more about these church events? I can pass along a message to Carmen if that would help.\"}, {\"role\": \"user\", \"message\": \"No, can I talk to her?\"}, {\"role\": \"agent\", \"message\": \"I'm not able to put calls through right now. But I can definitely pass along a message to Carmen about the church events. What would you like me to tell her?...\"}, {\"role\": \"user\", \"message\": \"Tell her to call me.\"}, {\"role\": \"agent\", \"message\": \"I can do that. What's the best number for Carmen to reach you at?\"}, {\"role\": \"user\", \"message\": \"The same number.\"}, {\"role\": \"agent\", \"message\": \"Okay, I'll let Carmen know to call you back at this number about the church events. Is there anything else I can help you...\"}]}",
+    "system__conversation_id": "conv_6301m52w47vbevtt55psjexp8hw7",
+    "system__current_agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+    "system__current_agent_turns": 7,
+    "system__current_subagent_turns": 7,
+    "system__environment": "production",
+    "system__initiator_id": null,
+    "system__is_text_only": false,
+    "system__time": "Friday, 17:## ## October 2026",
+    "system__time_hour": 17,
+    "system__time_minute": 29,
+    "system__time_second": 48,
+    "system__time_utc": "####-##-##T17:29:48.######+00:00",
+    "system__timezone": null,
+    "system__user_id": "+###########",
+    "today_summary": "Receptionist mode: you answer Carmen's line for unknown callers. Say: \"Carmen's phone, this is Village. Who's calling?\" Then call screen_caller with what they claim. Never put a caller through who claims to be family or asks for money until screen_caller says pass_through. Do not share private family details.",
+    "verification_id": "",
+    "verification_status": "pending",
+    "village_id": "v_reyes",
+    "village_name": "la familia Reyes"
+  },
+  "environment": "production",
+  "event_timestamp": 1792171800,
+  "experiment_assignments": null,
+  "has_audio": true,
+  "has_auxiliary_audio": false,
+  "has_response_audio": true,
+  "has_user_audio": true,
+  "hiding_reason": null,
+  "member_id": "m_unknown",
+  "metadata": {
+    "accepted_time_unix_secs": 1792171712,
+    "agent_created_from": "api",
+    "agent_last_updated_from": "api",
+    "async_metadata": null,
+    "authorization_method": "signed_url",
+    "batch_call": null,
+    "call_duration_secs": 76,
+    "charging": {
+      "analysis": {
+        "last_run": {
+          "charge": 0,
+          "charge_per_feature": {},
+          "price": 0.0,
+          "price_per_feature": {}
+        },
+        "total": {
+          "charge": 0,
+          "charge_per_feature": {},
+          "price": 0.0,
+          "price_per_feature": {},
+          "runs": 1
+        }
+      },
+      "asr_usage": {
+        "asr_model": "scribe_realtime",
+        "total_audio_input_seconds": 29.776000000000018,
+        "total_transcription_calls": 168
+      },
+      "call_charge": 556,
+      "dev_discount": false,
+      "free_llm_dollars_consumed": 0.0,
+      "free_minutes_consumed": 0.0,
+      "is_burst": false,
+      "llm_charge": 115,
+      "llm_price": 0.020861875000000002,
+      "llm_usage": {
+        "initiated_generation": {
+          "detailed_model_usage": [
+            {
+              "config": {
+                "model": "gemini-2.5-flash-lite",
+                "service_tier": "standard"
+              },
+              "usage": {
+                "input": {
+                  "price": 0.0005824000000000002,
+                  "tokens": 5824
+                },
+                "input_cache_read": {
+                  "price": 0.0,
+                  "tokens": 0
+                },
+                "input_cache_write": {
+                  "price": 0.0,
+                  "tokens": 0
+                },
+                "output_total": {
+                  "price": 0.00032520000000000004,
+                  "tokens": 813
+                }
+              }
+            },
+            {
+              "config": {
+                "model": "claude-haiku-4-5",
+                "service_tier": "standard"
+              },
+              "usage": {
+                "input": {
+                  "price": 0.0030591000000000004,
+                  "tokens": 2781
+                },
+                "input_cache_read": {
+                  "price": 0.0045600499999999995,
+                  "tokens": 41455
+                },
+                "input_cache_write": {
+                  "price": 0.011400125,
+                  "tokens": 8291
+                },
+                "output_total": {
+                  "price": 0.000935,
+                  "tokens": 170
+                }
+              }
+            }
+          ],
+          "model_usage": {
+            "claude-haiku-4-5": {
+              "input": {
+                "price": 0.0030591000000000004,
+                "tokens": 2781
+              },
+              "input_cache_read": {
+                "price": 0.0045600499999999995,
+                "tokens": 41455
+              },
+              "input_cache_write": {
+                "price": 0.011400125,
+                "tokens": 8291
+              },
+              "output_total": {
+                "price": 0.000935,
+                "tokens": 170
+              }
+            },
+            "gemini-2.5-flash-lite": {
+              "input": {
+                "price": 0.0005824000000000002,
+                "tokens": 5824
+              },
+              "input_cache_read": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.00032520000000000004,
+                "tokens": 813
+              }
+            }
+          }
+        },
+        "irreversible_generation": {
+          "detailed_model_usage": [
+            {
+              "config": {
+                "model": "claude-haiku-4-5",
+                "service_tier": "standard"
+              },
+              "usage": {
+                "input": {
+                  "price": 0.0030591000000000004,
+                  "tokens": 2781
+                },
+                "input_cache_read": {
+                  "price": 0.0045600499999999995,
+                  "tokens": 41455
+                },
+                "input_cache_write": {
+                  "price": 0.011400125,
+                  "tokens": 8291
+                },
+                "output_total": {
+                  "price": 0.000935,
+                  "tokens": 170
+                }
+              }
+            }
+          ],
+          "model_usage": {
+            "claude-haiku-4-5": {
+              "input": {
+                "price": 0.0030591000000000004,
+                "tokens": 2781
+              },
+              "input_cache_read": {
+                "price": 0.0045600499999999995,
+                "tokens": 41455
+              },
+              "input_cache_write": {
+                "price": 0.011400125,
+                "tokens": 8291
+              },
+              "output_total": {
+                "price": 0.000935,
+                "tokens": 170
+              }
+            }
+          }
+        }
+      },
+      "platform_charge": 556,
+      "platform_price": 0.10057937494321077,
+      "platform_usage": {
+        "category_usage": {
+          "voice": {
+            "credits": 556,
+            "price": 0.10057937494321077,
+            "quantity": 1.261787641335589
+          }
+        }
+      },
+      "subagent_charge": 0,
+      "tier": "creator",
+      "tts_usage": {
+        "per_voice_usage": [
+          {
+            "audio_output_seconds": 39.04,
+            "voice_id": "EXAVITQu4vr4xnSDxMaL"
+          }
+        ],
+        "primary_tts_model": "eleven_v4_turbo",
+        "total_audio_output_seconds": 39.04,
+        "total_characters": 687
+      }
+    },
+    "conversation_initiation_source": "twilio",
+    "conversation_initiation_source_version": null,
+    "cost": 671,
+    "cost_fiat": 0.12144124994321077,
+    "deletion_settings": {
+      "delete_audio": false,
+      "delete_transcript_and_pii": false,
+      "deleted_audio_at_time_unix_secs": null,
+      "deleted_logs_at_time_unix_secs": null,
+      "deleted_transcript_at_time_unix_secs": null,
+      "deletion_time_unix_secs": null
+    },
+    "eleven_assistant": {
+      "is_eleven_assistant": false
+    },
+    "error": null,
+    "features_usage": {
+      "agent_testing": {
+        "enabled": false,
+        "tests_ran_after_last_modification": false,
+        "tests_ran_in_last_7_days": false
+      },
+      "dtmf_input": {
+        "enabled": false,
+        "used": false
+      },
+      "dtmf_tones": {
+        "enabled": false,
+        "used": false
+      },
+      "external_mcp_servers": {
+        "enabled": false,
+        "used": false
+      },
+      "file_input": {
+        "enabled": true,
+        "used": false
+      },
+      "freeform_procedure": {
+        "enabled": true,
+        "used": false
+      },
+      "is_livekit": false,
+      "language_detection": {
+        "enabled": true,
+        "used": false
+      },
+      "multivoice": {
+        "enabled": false,
+        "used": false
+      },
+      "pii_zrm_agent": false,
+      "pii_zrm_workspace": false,
+      "structured_procedure": {
+        "enabled": false,
+        "used": false
+      },
+      "tool_dynamic_variable_updates": {
+        "enabled": true,
+        "used": false
+      },
+      "transfer_to_agent": {
+        "enabled": false,
+        "used": false
+      },
+      "transfer_to_number": {
+        "enabled": false,
+        "used": false
+      },
+      "versioning": {
+        "enabled": true,
+        "used": false
+      },
+      "voicemail_detection": {
+        "enabled": false,
+        "used": false
+      },
+      "workflow": {
+        "enabled": false,
+        "end_node": {
+          "enabled": false,
+          "used": false
+        },
+        "override_agent_node": {
+          "enabled": false,
+          "used": false
+        },
+        "phone_number_node": {
+          "enabled": false,
+          "used": false
+        },
+        "say_node": {
+          "enabled": false,
+          "used": false
+        },
+        "standalone_agent_node": {
+          "enabled": false,
+          "used": false
+        },
+        "subgraph_node": {
+          "enabled": false,
+          "used": false
+        },
+        "tool_node": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_genesys_node": {
+          "enabled": false,
+          "used": false
+        },
+        "update_state_node": {
+          "enabled": false,
+          "used": false
+        }
+      }
+    },
+    "feedback": {
+      "comment": null,
+      "dislikes": 0,
+      "likes": 0,
+      "overall_score": null,
+      "rating": null,
+      "type": null
+    },
+    "initiator_id": null,
+    "main_language": "en",
+    "phone_call": {
+      "agent_number": "+###########",
+      "call_result": "answered",
+      "call_sid": "CA6756b701c20c698d31a472abaf563f73",
+      "direction": "inbound",
+      "external_number": "+###########",
+      "phone_number_id": "phnum_7701m52hzdp6fqa9z0bmvxy4w536",
+      "stream_sid": "MZ9b9ec#####ecfd10e20fb087ab5d4fd1",
+      "type": "twilio"
+    },
+    "queue_wait_secs": null,
+    "rag_usage": null,
+    "sms": null,
+    "start_time_unix_secs": 1792171712,
+    "stream_state": null,
+    "termination_reason": "Call ended by remote party",
+    "text_only": false,
+    "timezone": null,
+    "voice_rewards": [],
+    "warnings": [],
+    "whatsapp": null
+  },
+  "orchestrator": "conversational",
+  "otlp_traces": null,
+  "realtime_config_snapshots": null,
+  "realtime_context": null,
+  "smb_metadata": null,
+  "status": "done",
+  "tag_ids": [],
+  "transcript": [
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 0.5676729218102992
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.07688510697335005
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.0
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "Carmen's phone, this is Village. Who's calling?",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 1,
+      "source_medium": null,
+      "time_in_call_secs": 1,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.0763502879999578
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "This is Richard. Can I talk to Carmen?",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 53,
+      "source_medium": "audio",
+      "time_in_call_secs": 6,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.6029459112323821
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.6029602708294988
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.40815395722165704
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 1.7749635571762918
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.07598745776340365
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.0763502879999578
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.0763502879999578
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.384
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.00039600000000000003,
+                "tokens": 360
+              },
+              "input_cache_read": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "input_cache_write": {
+                "price": 0.011400125,
+                "tokens": 8291
+              },
+              "output_total": {
+                "price": 0.0001045,
+                "tokens": 19
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.00039600000000000003,
+              "tokens": 360
+            },
+            "input_cache_read": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "input_cache_write": {
+              "price": 0.011400125,
+              "tokens": 8291
+            },
+            "output_total": {
+              "price": 0.0001045,
+              "tokens": 19
+            }
+          }
+        }
+      },
+      "message": "Hi Richard. Carmen's not available right now. How can I help you?",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 53,
+      "source_medium": null,
+      "time_in_call_secs": 10,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": {
+        "user_frustration_score": 0.1,
+        "user_sentiment_score": -0.1
+      },
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.07445809710770845
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "\"Um, I, I know Carmen from church. I really need to speak to her.\"",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 141,
+      "source_medium": "audio",
+      "time_in_call_secs": 18,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.5633130632340908
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.44427168695256114
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.35570479882881045
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 3.217931637138128
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.08203141810372472
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.07445809710770845
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.07445809710770845
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.832
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.00044110000000000004,
+                "tokens": 401
+              },
+              "input_cache_read": {
+                "price": 0.00091201,
+                "tokens": 8291
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.000154,
+                "tokens": 28
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.00044110000000000004,
+              "tokens": 401
+            },
+            "input_cache_read": {
+              "price": 0.00091201,
+              "tokens": 8291
+            },
+            "input_cache_write": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "output_total": {
+              "price": 0.000154,
+              "tokens": 28
+            }
+          }
+        }
+      },
+      "message": "I understand you know Carmen from church. Can I ask what this is about? I'm here to help if I can.",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 141,
+      "source_medium": null,
+      "time_in_call_secs": 25,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.06504304800182581
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "\"I need to tell her about upcoming events\".",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 222,
+      "source_medium": "audio",
+      "time_in_call_secs": 33,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.7267404468730092
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.5036836839281023
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.3442608891054988
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 3.689358375027776
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.0791498371399939
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.06504304800182581
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.06504304800182581
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.608
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.00048620000000000005,
+                "tokens": 442
+              },
+              "input_cache_read": {
+                "price": 0.00091201,
+                "tokens": 8291
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.000176,
+                "tokens": 32
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.00048620000000000005,
+              "tokens": 442
+            },
+            "input_cache_read": {
+              "price": 0.00091201,
+              "tokens": 8291
+            },
+            "input_cache_write": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "output_total": {
+              "price": 0.000176,
+              "tokens": 32
+            }
+          }
+        }
+      },
+      "message": "That sounds nice. Can you tell me a bit more about these church events? I can pass along a message to Carmen if that would help.",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 222,
+      "source_medium": null,
+      "time_in_call_secs": 39,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": {
+        "user_frustration_score": 0.4,
+        "user_sentiment_score": -0.3
+      },
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.08484330773353577
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "No, can I talk to her?",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 303,
+      "source_medium": "audio",
+      "time_in_call_secs": 47,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.6688263104297221
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.46020368626341224
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.35383216943591833
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 2.6358992128185927
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.09999596700072289
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.08484330773353577
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.08484330773353577
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.448
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": true,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.0005335,
+                "tokens": 485
+              },
+              "input_cache_read": {
+                "price": 0.00091201,
+                "tokens": 8291
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.000209,
+                "tokens": 38
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.0005335,
+              "tokens": 485
+            },
+            "input_cache_read": {
+              "price": 0.00091201,
+              "tokens": 8291
+            },
+            "input_cache_write": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "output_total": {
+              "price": 0.000209,
+              "tokens": 38
+            }
+          }
+        }
+      },
+      "message": "I'm not able to put calls through right now. But I can definitely pass along a message to Carmen about the church events. What would you like me to tell her?...",
+      "multivoice_message": null,
+      "original_message": "I'm not able to put calls through right now. But I can definitely pass along a message to Carmen about the church events. What would you like me to tell her?",
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 303,
+      "source_medium": null,
+      "time_in_call_secs": 51,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": {
+        "user_frustration_score": 0.3,
+        "user_sentiment_score": -0.2
+      },
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.050223358906805515
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "Tell her to call me.",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 369,
+      "source_medium": "audio",
+      "time_in_call_secs": 58,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.5381719530560076
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.5015965341590345
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.3660771884024143
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 2.1201562972590327
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.08295795693993568
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.050223358906805515
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.050223358906805515
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.416
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.0005863000000000001,
+                "tokens": 533
+              },
+              "input_cache_read": {
+                "price": 0.00091201,
+                "tokens": 8291
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.00011,
+                "tokens": 20
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.0005863000000000001,
+              "tokens": 533
+            },
+            "input_cache_read": {
+              "price": 0.00091201,
+              "tokens": 8291
+            },
+            "input_cache_write": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "output_total": {
+              "price": 0.00011,
+              "tokens": 20
+            }
+          }
+        }
+      },
+      "message": "I can do that. What's the best number for Carmen to reach you at?",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 369,
+      "source_medium": null,
+      "time_in_call_secs": 61,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": null,
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": "Scribe v2 Realtime",
+        "convai_tts_cascade": null,
+        "convai_tts_model": null,
+        "metrics": {
+          "convai_asr_trailing_service_latency": {
+            "elapsed_time": 0.08520249696448445
+          }
+        },
+        "voice_id": null
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": false,
+      "llm_override": null,
+      "llm_usage": null,
+      "message": "The same number.",
+      "multivoice_message": null,
+      "original_message": null,
+      "platform_event": null,
+      "producing_llm": null,
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "user",
+      "source_event_id": 416,
+      "source_medium": "audio",
+      "time_in_call_secs": 66,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    },
+    {
+      "agent_metadata": {
+        "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+        "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf",
+        "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+        "workflow_node_id": null
+      },
+      "analysis": null,
+      "compaction": null,
+      "config_snapshot_id": null,
+      "contextual_update_info": null,
+      "conversation_turn_metrics": {
+        "convai_asr_provider": null,
+        "convai_tts_cascade": null,
+        "convai_tts_model": "eleven_v4_turbo",
+        "metrics": {
+          "convai_llm_service_tt_last_sentence": {
+            "elapsed_time": 0.6229962902143598
+          },
+          "convai_llm_service_ttf_sentence": {
+            "elapsed_time": 0.5126288840547204
+          },
+          "convai_llm_service_ttfb": {
+            "elapsed_time": 0.3804175378754735
+          },
+          "convai_ttf_audio_since_silence": {
+            "elapsed_time": 2.5472683908231555
+          },
+          "convai_tts_service_ttfb": {
+            "elapsed_time": 0.08563301665708423
+          },
+          "convai_turn_asr_excess": {
+            "elapsed_time": 0.08520249696448445
+          },
+          "convai_turn_asr_latency": {
+            "elapsed_time": 0.08520249696448445
+          },
+          "convai_turn_silence_before_initiation": {
+            "elapsed_time": 0.32
+          }
+        },
+        "voice_id": "EXAVITQu4vr4xnSDxMaL"
+      },
+      "feedback": null,
+      "file_input": null,
+      "file_inputs": [],
+      "id": null,
+      "ignored_as_backchannel": false,
+      "interrupted": true,
+      "llm_override": null,
+      "llm_usage": {
+        "detailed_model_usage": [
+          {
+            "config": {
+              "model": "claude-haiku-4-5",
+              "service_tier": "standard"
+            },
+            "usage": {
+              "input": {
+                "price": 0.000616,
+                "tokens": 560
+              },
+              "input_cache_read": {
+                "price": 0.00091201,
+                "tokens": 8291
+              },
+              "input_cache_write": {
+                "price": 0.0,
+                "tokens": 0
+              },
+              "output_total": {
+                "price": 0.0001815,
+                "tokens": 33
+              }
+            }
+          }
+        ],
+        "model_usage": {
+          "claude-haiku-4-5": {
+            "input": {
+              "price": 0.000616,
+              "tokens": 560
+            },
+            "input_cache_read": {
+              "price": 0.00091201,
+              "tokens": 8291
+            },
+            "input_cache_write": {
+              "price": 0.0,
+              "tokens": 0
+            },
+            "output_total": {
+              "price": 0.0001815,
+              "tokens": 33
+            }
+          }
+        }
+      },
+      "message": "Okay, I'll let Carmen know to call you back at this number about the church events. Is there anything else I can help you...",
+      "multivoice_message": null,
+      "original_message": "Okay, I'll let Carmen know to call you back at this number about the church events. Is there anything else I can help you with?",
+      "platform_event": null,
+      "producing_llm": "claude-haiku-4-5",
+      "rag_retrieval_info": null,
+      "reasoned": false,
+      "reasoning": [],
+      "role": "agent",
+      "source_event_id": 416,
+      "source_medium": null,
+      "time_in_call_secs": 69,
+      "tool_calls": [],
+      "tool_results": [],
+      "triggered_guardrails": [],
+      "used_static_kb_document_ids": [],
+      "user_identifier": null
+    }
+  ],
+  "type": "post_call",
+  "user_id": "+###########",
+  "version_id": "agtvrsn_9601m52vhqnff1d933nb0kppzbym",
+  "village_id": "v_reyes",
+  "visited_agents": [
+    {
+      "agent_id": "agent_2801m52kavkdewkvmj29yfpnk4p3",
+      "branch_id": "agtbrch_8201m52kawjnfzgvzzf4p5hvpdwf"
+    }
+  ]
+}

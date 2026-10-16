@@ -17,7 +17,7 @@ export interface LiveState {
   /** who this socket really is (first snapshot); differs from role/memberId while viewing as someone (D21). */
   self: { role: string; memberId: string | null } | null;
   viewAs: string | null;
-  /** snapshot.identity (1.3.1) when the server sends it. */
+  /** snapshot.identity (1.3.2) when the server sends it. */
   identity: Identity | null;
   view: View | null;
   /** full VillageSpec on control snapshots. */

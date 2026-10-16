@@ -1,4 +1,4 @@
-// Brief blocks (contract 1.3.1 catalog types RightNow · WhatVillageDid · SinceYourTurn, plus PlanBoard · ScreenedCalls · FactCard).
+// Brief blocks (contract 1.3.2 catalog types RightNow · WhatVillageDid · SinceYourTurn, plus PlanBoard · ScreenedCalls · FactCard).
 // Composed from snapshot.data in plain words; no village, person or element id is named here.
 import type { CatalogProps } from "../renderer/catalog";
 import { useCtx } from "../renderer/context";
@@ -102,7 +102,7 @@ export function SinceLastTurn({ data, lang, bind = "events:since_last_turn?membe
 }
 
 
-/** RightNow (1.3.1): who's on tonight · the center person's pills · the last thing that happened, from whatever binds are in data. */
+/** RightNow (1.3.2): who's on tonight · the center person's pills · the last thing that happened, from whatever binds are in data. */
 export function RightNow({ props }: CatalogProps) {
   const ctx = useCtx();
   const lines = rightNowLines(ctx.data, ctx.nowMs(), ctx.lang);
@@ -130,7 +130,7 @@ export function SinceYourTurn({ props }: CatalogProps) {
 }
 
 interface PlanItem { text: unknown; owner?: string; when?: string; status?: string; kind?: string; note?: unknown }
-/** PlanBoard (1.3.1, D36): who brings what, when; owners by name. */
+/** PlanBoard (1.3.2, D36): who brings what, when; owners by name. */
 export function PlanBoard({ props }: CatalogProps) {
   const ctx = useCtx();
   const v = ctx.data[props.bind] as { title?: unknown; date?: string; items?: PlanItem[] } | null | undefined;
@@ -156,7 +156,7 @@ export function PlanBoard({ props }: CatalogProps) {
 
 const OUTCOME: Record<string, string> = { passed_through: "put through", held: "held", refused: "refused", unknown: "not sure" };
 interface Screened { at: string; claimed?: string; outcome: string; verified_by?: string; say?: unknown }
-/** ScreenedCalls (1.3.1, D19): calls Village answered first, in words. */
+/** ScreenedCalls (1.3.2, D19): calls Village answered first, in words. */
 export function ScreenedCalls({ props }: CatalogProps) {
   const ctx = useCtx();
   const rows = arr<Screened>(ctx.data[props.bind]).slice(0, props.max_rows ?? 6);
@@ -178,7 +178,7 @@ export function ScreenedCalls({ props }: CatalogProps) {
   );
 }
 
-/** FactCard (1.3.1, D32): one fact with history from facts:history?subject=&key=; live history via REST when api is set. */
+/** FactCard (1.3.2, D32): one fact with history from facts:history?subject=&key=; live history via REST when api is set. */
 export function FactCard({ props }: CatalogProps) {
   const ctx = useCtx();
   const m = /^facts:history\?subject=([a-z]_[a-z0-9_]+)&key=([a-z0-9_]+)$/.exec(props.bind);

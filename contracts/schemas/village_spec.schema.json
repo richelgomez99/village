@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/village_spec.schema.json",
   "title": "VillageSpec",
   "description": "The whole generated village: blueprint (people + capability profiles, needs, life areas, rules), per-member channels, per-role views (flat adjacency lists, builder render_app shape), policies, voice lines, printables and custom components. Produced by builder (or the fixture), stored by core, rendered by kit, built by release. Cross-field invariants that JSON Schema cannot express are listed in contracts/README.md §Invariants and are enforced by core's pydantic model.",
-  "x-contract-version": "1.3.1",
+  "x-contract-version": "1.3.2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -923,7 +923,7 @@
         "ScreenedCalls",
         "FactCard"
       ],
-      "description": "26 catalog types of 1.0.0 + VillageChat (1.1.0, D16) + RefillCard, TonightCard (1.3.1, D22)."
+      "description": "26 catalog types of 1.0.0 + VillageChat (1.1.0, D16) + RefillCard, TonightCard (1.3.2, D22)."
     },
     "component_type": {
       "anyOf": [
@@ -938,7 +938,7 @@
     },
     "bind": {
       "type": "string",
-      "description": "Binding grammar = builder_system.md DATA BINDINGS (incl. verifications:mine, verifications:pending?member=me, incidents:open|subject=<id>, blueprint:life_areas) + contract additions proposals:pending, rota:current?member=me, valid_at=week, chat:village (1.1.0), prescriptions:current (1.3.1, D22). Core resolves binds into snapshot.data / event.data keyed by the exact bind string. 1.3.1: rounds:latest, events:since_last_turn?member=me, plan:<id>, calls:screened, facts:history?subject=&key=.",
+      "description": "Binding grammar = builder_system.md DATA BINDINGS (incl. verifications:mine, verifications:pending?member=me, incidents:open|subject=<id>, blueprint:life_areas) + contract additions proposals:pending, rota:current?member=me, valid_at=week, chat:village (1.1.0), prescriptions:current (1.3.2, D22). Core resolves binds into snapshot.data / event.data keyed by the exact bind string. 1.3.2: rounds:latest, events:since_last_turn?member=me, plan:<id>, calls:screened, facts:history?subject=&key=.",
       "pattern": "^(facts:[a-z_]+(\\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\\.(on_duty|backup))?(\\?member=me)?|alerts:active(\\?count)?|needs:(open|matched)(\\?count)?|resources:available(\\?count)?|claims:(topic=[a-z_]+)(\\?count)?|checkins:(village|overdue)(\\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\\?count)?|verifications:(mine|pending\\?member=me)|proposals:pending(\\?count)?|blueprint:life_areas|chat:village(\\?count)?|prescriptions:current|rounds:latest|events:since_last_turn\\?member=me|plan:[a-z0-9_]+|calls:screened|facts:history\\?subject=[a-z]_[a-z0-9_]+&key=[a-z0-9_]+)$"
     },
     "element": {
@@ -1820,7 +1820,7 @@
         "action_arg": {
           "type": "string",
           "maxLength": 80,
-          "description": "call_member: a member id (kit dials tel:<member phone>). call_number: an E.164 / short code, or the literal 'village' = the Village line (village.village_number, also sent as snapshot.identity.village_number; 1.3.1, D22). log_dose: slot:current | slot:<slot>."
+          "description": "call_member: a member id (kit dials tel:<member phone>). call_number: an E.164 / short code, or the literal 'village' = the Village line (village.village_number, also sent as snapshot.identity.village_number; 1.3.2, D22). log_dose: slot:current | slot:<slot>."
         },
         "icon": {
           "$ref": "#/$defs/icon"
@@ -2568,7 +2568,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D22). The refill checklist for whoever is on duty on refill day: every current prescription (name, dose, schedule) and, where a dose changed, the superseded dose struck through with who changed it and when ('lisinopril 10 mg now, was 5 mg, changed Oct 3 by Dr. Lee'). Data: bind prescriptions:current → bv_prescriptions. Shows med names, so invariant 9 (validate.py): never in a theme elder view.",
+      "description": "1.3.2 (D22). The refill checklist for whoever is on duty on refill day: every current prescription (name, dose, schedule) and, where a dose changed, the superseded dose struck through with who changed it and when ('lisinopril 10 mg now, was 5 mg, changed Oct 3 by Dr. Lee'). Data: bind prescriptions:current → bv_prescriptions. Shows med names, so invariant 9 (validate.py): never in a theme elder view.",
       "properties": {
         "bind": {
           "const": "prescriptions:current"
@@ -2605,7 +2605,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D22). Elder: who is caring for her tonight, e.g. 'Esta noche cuida Marco'. Data: bind rota:current.on_duty (or .backup) → bv_person; null = nobody assigned (amber, 'Nadie asignado esta noche'); absent key = render nothing. Spoken by read-aloud.",
+      "description": "1.3.2 (D22). Elder: who is caring for her tonight, e.g. 'Esta noche cuida Marco'. Data: bind rota:current.on_duty (or .backup) → bv_person; null = nobody assigned (amber, 'Nadie asignado esta noche'); absent key = render nothing. Spoken by read-aloud.",
       "properties": {
         "bind": {
           "type": "string",
@@ -2967,7 +2967,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (UX-UPGRADE). The leader's one-glance strip: who is on tonight, the center person's state (pills, last check-in/call), open asks. Data: bind rounds:latest + rota:current + facts:dose_event?…today, composed by the kit from snapshot.data; bind names the primary key.",
+      "description": "1.3.2 (UX-UPGRADE). The leader's one-glance strip: who is on tonight, the center person's state (pills, last check-in/call), open asks. Data: bind rounds:latest + rota:current + facts:dose_event?…today, composed by the kit from snapshot.data; bind names the primary key.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -2986,7 +2986,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D23 autonomy ledger). 'Tonight Village did N things on its own · asked you M · refused itself K' with rows in words, role chips, mode chips. bind rounds:latest.",
+      "description": "1.3.2 (D23 autonomy ledger). 'Tonight Village did N things on its own · asked you M · refused itself K' with rows in words, role chips, mode chips. bind rounds:latest.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -3007,7 +3007,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D24 handoff). 'Since your last turn': up to N lines from events since the member's last shift, each with a source. bind events:since_last_turn?member=me.",
+      "description": "1.3.2 (D24 handoff). 'Since your last turn': up to N lines from events since the member's last shift, each with a source. bind events:since_last_turn?member=me.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -3028,7 +3028,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D36). A plan with owners and times: who brings what, pickups, schedule, constraints. bind plan:<plan_id> (items with owner, when, status, note). Offers/needs (D24 #1) are PlanBoard items with kind need|offer.",
+      "description": "1.3.2 (D36). A plan with owners and times: who brings what, pickups, schedule, constraints. bind plan:<plan_id> (items with owner, when, status, note). Offers/needs (D24 #1) are PlanBoard items with kind need|offer.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -3051,7 +3051,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D19 receptionist). Calls Village answered first: when, who they claimed to be, outcome (passed through / held / refused), who verified. bind calls:screened.",
+      "description": "1.3.2 (D19 receptionist). Calls Village answered first: when, who they claimed to be, outcome (passed through / held / refused), who verified. bind calls:screened.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -3072,7 +3072,7 @@
       "required": [
         "bind"
       ],
-      "description": "1.3.1 (D32, SurrealDB Agent Memory). One fact with history: current value, superseded values struck through, source chip (call + second + quote), as-of toggle. bind facts:history?subject=<member>&key=<fact_key>.",
+      "description": "1.3.2 (D32, SurrealDB Agent Memory). One fact with history: current value, superseded values struck through, source chip (call + second + quote), as-of toggle. bind facts:history?subject=<member>&key=<fact_key>.",
       "properties": {
         "bind": {
           "$ref": "#/$defs/bind"
@@ -3088,7 +3088,7 @@
   },
   "examples": [
     {
-      "contract_version": "1.3.1",
+      "contract_version": "1.3.2",
       "rev": 1,
       "village": {
         "id": "v_demo",
