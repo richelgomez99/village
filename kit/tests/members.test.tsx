@@ -55,7 +55,7 @@ describe("tabs from life areas (generic)", () => {
   });
   it("block volunteer: the match board leads Home; offers on their area tab", () => {
     const p = planTabs(view(B, "volunteer"), areasData(B), "en");
-    expect(p.headline).toBe("nb");
+    expect(p.headline).toBe("plan");
     expect(p.areas.map((a) => a.id)).toEqual(["health"]);
     expect(p.chat).toBe("chat");
   });
@@ -247,7 +247,7 @@ describe("block apps through the fake (same renderer, another village)", () => {
     vi.useFakeTimers();
     const t = mount("tanya");
     await act(async () => { vi.advanceTimersByTime(10); });
-    expect([...t.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Health", "Information", "Chat"]);
+    expect([...t.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Health", "Rumors", "Chat"]);
     expect(t.container.querySelectorAll("[data-board='NeedBoard'] li").length).toBe(4);
     expect(t.container.querySelector("[data-test='screen']")?.textContent).not.toMatch(/\bb_[a-z]+/);
     const d = mount("darnell");

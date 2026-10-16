@@ -9,6 +9,11 @@
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; }
   .wrap { height:100%; display:grid; grid-template-columns: 44fr 56fr; }
   .wrap.solo { grid-template-columns: 0fr 1fr; }
+  .wrap.room { grid-template-columns: 27fr 73fr; }
+  .wrap.room h2 { font-size:clamp(22px, 1.9vw, 34px); }
+  .wrap.room p, .wrap.room li { font-size:clamp(15px, 1.1vw, 20px); }
+  .wrap.room .num { font-size:clamp(28px, 2.6vw, 44px); }
+  .wrap.room .grid { grid-template-columns: 1fr; }
   .wrap.solo .deck, .wrap.solo .foot { display:none; }
   .deck { height:100%; display:grid; place-items:center; overflow:hidden; }
   .stage { height:100%; background:#0f1412; display:grid; place-items:center; border-left:1px solid rgba(0,0,0,.15); position:relative; }
@@ -98,6 +103,8 @@
   const frame=document.getElementById('frame'), stage=document.getElementById('stage'), tag=document.getElementById('tag');
   function show(n){ slides.forEach((s,k)=>s.classList.toggle('on',k===n)); i=n; location.hash=n; document.getElementById('pos').textContent=(n+1)+' / '+slides.length;
     const sec=slides[n], src=sec.dataset.frame||''; stage.className='stage '+(sec.dataset.mode||'wide'); tag.textContent=sec.dataset.tag||'';
+    const wrap=document.getElementById('wrap'); wrap.classList.toggle('room', (sec.dataset.mode||'wide')==='wide');
+    setTimeout(()=>{ if ((sec.dataset.mode||'wide')==='wide') frame.focus(); }, 300);
     if (src && frame.getAttribute('src')!==src) frame.setAttribute('src', src); document.getElementById('pop').href=src||'#'; }
   addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(Math.min(i+1,slides.length-1)); else if(e.key==='ArrowLeft'||e.key==='PageUp') show(Math.max(i-1,0)); else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); else if(e.key==='l'||e.key==='L') document.getElementById('wrap').classList.toggle('solo'); else if(e.key==='r'||e.key==='R') frame.setAttribute('src', frame.getAttribute('src')); });
   document.querySelector('.deck').addEventListener('click',e=>{ const r=e.currentTarget.getBoundingClientRect(); if(e.clientX-r.left>r.width/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
