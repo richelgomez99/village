@@ -223,24 +223,14 @@ async def propose(village_id: str, evidence: dict[str, Any], options: dict[str, 
     coord_name = villages.first_name(village_id, coord, "the coordinator")
     _SEQ[village_id] = _SEQ.get(village_id, 0) + 1
     pid = f"prop_{_slug(village_id)}_receptionist_{_SEQ[village_id]}"
-    count = evidence.get("count", 2)
-    changes = [{"en": f"+ Village answers unknown callers on {rel_en}'s line first; family rings straight through",
-                "es": f"+ Village contesta primero a desconocidos en la línea de {rel_es}; la familia entra directo"}]
-    for role in built["ops"]:
-        if role != _role_of(spec, recipient):
-            changes.append({"en": f"+ “Village answers unknown calls first” card for the {role}"})
-    if built["spec_ops"]:
-        changes.append({"en": "+ New fridge card: family word first", "es": "+ Tarjeta nueva: la palabra de la familia primero"})
+    copy_ = plain_copy(village_id, spec, evidence)
     proposal: dict[str, Any] = {
         "id": pid, "village": village_id,
         "detected_by": evidence.get("detected_by") if evidence.get("detected_by") in {"arize_eval", "memory_pattern"} else "memory_pattern",
         "title": {"en": f"Village answers unknown callers for {rel_en}", "es": f"Village contesta a desconocidos por {rel_es}"},
-        "rationale": {
-            "en": f"{count} call{'' if count == 1 else 's'} asked {rel_en} for money in {claimed}'s name. Village will answer unknown callers first and check with the real {claimed} before the call reaches {rel_en}.",
-            "es": f"{count} llamadas le pidieron dinero a {rel_es} en nombre de {claimed}. Village contestará primero a desconocidos y confirmará con {claimed} antes de pasarle la llamada.",
-        },
-        "changes": changes[:6],
-        "evidence": list(evidence.get("evidence") or [])[:12],
+        "rationale": copy_["rationale"],
+        "changes": copy_["changes"][:6],
+        "evidence": [e for e in (evidence.get("evidence") or []) if _evidence_ok(e)][:12],
         "ops": built["ops"], "needs_served": built["needs_served"], "spec_ops": built["spec_ops"],
         "status": "proposed", "base_rev": int(spec.get("rev", 0)), "created_at": _now(),
     }
@@ -258,18 +248,16 @@ async def propose(village_id: str, evidence: dict[str, Any], options: dict[str, 
     })
     rec = {"proposal": proposal, "options": options, "voice_ops": built["voice_ops"], "highlight": built["highlight"],
            "key": f"{evidence.get('pattern', 'manual')}:{evidence.get('subject')}:{evidence.get('claimed_member_id')}",
-           "evidence_meta": {k: evidence.get(k) for k in ("pattern", "count", "event_ids", "text")}}
+           "evidence_meta": {k: evidence.get(k) for k in ("pattern", "count", "event_ids", "text")},
+           "evidence_labels": copy_["evidence_labels"], "what_happened": copy_["rationale"],
+           "stays_the_same": copy_["stays_the_same"], "checked": copy_["checked"]}
     STORE.setdefault(village_id, {})[pid] = rec
-    chosen = next((c for c in (options or {}).get("candidates", []) if c.get("chosen")), None)
-    losers = [c for c in (options or {}).get("candidates", []) if not c.get("chosen")]
-    why_not = " ".join(f"Not {c['name']}: {c['reason'].split(': ', 1)[-1]}" for c in losers)
-    text = (f"Village proposes a change · needs your yes. {proposal['title']['en']}. {proposal['rationale']['en']} "
-            + (f"{why_not} " if why_not else "") + "Nothing changes until you say yes.")
+    text = copy_["chat"]["en"]
     msg = await services.post_message(
         village_id, author="village", kind="proposal", text=text[:2000],
         refs=[{"kind": "proposal", "id": pid, "label": "proposal"}] + [{"kind": "event", "id": e} for e in (evidence.get("event_ids") or [])[:3]],
         source={"kind": "system", "ref": "evolve"},
-        text_i18n={"en": text[:600], "es": f"Village propone un cambio · necesita su sí. {proposal['title']['es']}. {proposal['rationale']['es']}"[:600]},
+        text_i18n={"en": copy_["chat"]["en"][:600], "es": copy_["chat"]["es"][:600]},
     )
     proposal["message_id"] = msg["id"]
     await _announce(village_id, rec)
@@ -282,6 +270,149 @@ async def propose(village_id: str, evidence: dict[str, Any], options: dict[str, 
     except Exception:  # noqa: BLE001
         log.exception("proposal persist failed")
     return copy.deepcopy(proposal)
+
+
+# ---- plain words (Ana's card, the chat post) -----------------------------------------------------------
+_NUM_EN = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five"}
+_NUM_ES = {1: "Una", 2: "Dos", 3: "Tres", 4: "Cuatro", 5: "Cinco"}
+_METHOD_EN = {"gift_card": " in gift cards", "crypto": " in crypto", "wire_to_stranger": " by wire", "cash_courier": " in cash by courier"}
+_METHOD_ES = {"gift_card": " en tarjetas de regalo", "crypto": " en cripto", "wire_to_stranger": " por giro", "cash_courier": " en efectivo"}
+_MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def _local(at: str, village_id: str):  # type: ignore[no-untyped-def]
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
+    try:
+        return dt.astimezone(ZoneInfo(villages.timezone(village_id)))
+    except Exception:  # noqa: BLE001
+        return dt
+
+
+def _amount(p: dict[str, Any], lang: str) -> str:
+    amt = p.get("amount")
+    money = f"${amt:,.0f}" if isinstance(amt, (int, float)) and amt else ("money" if lang == "en" else "dinero")
+    return money + (_METHOD_EN if lang == "en" else _METHOD_ES).get(p.get("method") or "", "")
+
+
+def _join(names: list[str], word: str) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" {word} " + names[-1]
+
+
+def latest_scam_eval() -> dict[str, Any] | None:
+    """Most recent base-set scam experiment on disk (evals/out), model runs preferred; None if absent."""
+    import glob
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2] / "evals" / "out"
+    rows = []
+    for f in sorted(glob.glob(str(root / "scam_experiment_*.json"))):
+        try:
+            d = json.loads(Path(f).read_text())
+        except Exception:  # noqa: BLE001
+            continue
+        sm = d.get("summary") or {}
+        if sm.get("n_village") == 0 and sm.get("scams") and sm.get("benign") is not None:
+            rows.append((str(d.get("mode", "")).startswith("model"), f, sm))
+    if not rows:
+        return None
+    return max(rows)[2]
+
+
+def plain_copy(village_id: str, spec: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
+    """What happened / what changes per person / what stays the same / what was checked, in plain words (no ids)."""
+    recipient = evidence.get("subject") or villages.care_recipient_id(village_id)
+    claimed_id = evidence.get("claimed_member_id")
+    claimed = villages.first_name(village_id, claimed_id, "a family member")
+    rel_en = villages.relationship_word(village_id, recipient, "en") or "them"
+    rel_es = villages.relationship_word(village_id, recipient, "es") or rel_en
+    pr = villages.pronoun(villages.person(village_id, recipient))
+    her = {"she": "her", "he": "his"}.get(pr, "their")
+    her_obj = {"she": "her", "he": "him"}.get(pr, "them")
+    cpr = villages.pronoun(villages.person(village_id, claimed_id))
+    him, he = {"she": "her", "he": "him"}.get(cpr, "them"), cpr if cpr in {"he", "she"} else "they"
+    he_gets = f"{he} {'gets' if he != 'they' else 'get'}"
+    ids = set(evidence.get("event_ids") or [])
+    evs = sorted((e for e in db.events if e.get("id") in ids and e.get("kind") == "money_request"), key=lambda e: e["at"])
+    today = clock.now().date()
+    n = len(evs) or int(evidence.get("count") or 0) or 2
+    days = int(evidence.get("window_days") or 7)
+    when_en, when_es, labels = [], [], []
+    for e in evs:
+        loc = _local(e["at"], village_id)
+        is_today = loc.date() == today
+        day_en = "today" if is_today else f"{loc:%b} {loc.day}"
+        day_es = "hoy" if is_today else f"{loc.day} {_MONTHS_ES[loc.month - 1]}"
+        when_en.append(f"{day_en} ({_amount(e['payload'], 'en')})")
+        when_es.append(f"{day_es} ({_amount(e['payload'], 'es')})")
+        clock_s = f"{loc:%I:%M %p}".lstrip("0")
+        said = f"caller said {'she' if cpr == 'she' else 'he' if cpr == 'he' else 'they'} was {claimed}"
+        labels.append(f"{'Today' if is_today else day_en}, {clock_s} · {said} · asked for {_amount(e['payload'], 'en')}"[:160])
+    calls_en = f"{_NUM_EN.get(n, str(n))} call{'s' if n != 1 else ''}"
+    calls_es = f"{_NUM_ES.get(n, str(n))} llamada{'s' if n != 1 else ''}"
+    stopped_en = "It was stopped." if n == 1 else ("Both were stopped." if n == 2 else f"All {n} were stopped.")
+    stopped_es = "La detuvimos." if n == 1 else ("Las dos se detuvieron." if n == 2 else f"Las {n} se detuvieron.")
+    if when_en:
+        when_en[0] = when_en[0][:1].upper() + when_en[0][1:]
+        when_es[0] = when_es[0][:1].upper() + when_es[0][1:]
+    what_en = (f"{calls_en} in {days} days asked {rel_en} for money in {claimed}'s name"
+               + (f": {_join(when_en, 'and')}" if when_en else "") + f". {stopped_en} The next one could reach {her_obj} first.")
+    what_es = (f"{calls_es} en {days} días le pidieron dinero a {rel_es} en nombre de {claimed}"
+               + (f": {_join(when_es, 'y')}" if when_es else "") + f". {stopped_es} La próxima podría llegarle a {'ella' if pr == 'she' else 'él'} primero.")
+    changes: list[dict[str, str]] = [
+        {"en": f"{rel_en}: unknown callers reach Village first; family still rings straight through; {her} number does not change.",
+         "es": f"{rel_es}: los desconocidos hablan primero con Village; la familia sigue entrando directo; su número no cambia."},
+    ]
+    if claimed_id and claimed_id != recipient:
+        changes.append({"en": f"{claimed}: when a caller claims to be {him}, {he_gets} one question on {'her' if cpr == 'she' else 'his' if cpr == 'he' else 'their'} phone.",
+                        "es": f"{claimed}: cuando alguien dice ser {claimed}, le llega una pregunta a su teléfono."})
+    others = [villages.first_name(village_id, p["id"]) for p in spec.get("blueprint", {}).get("people", [])
+              if p.get("view") and p["id"] not in {recipient, claimed_id} and p.get("view") in spec.get("views", {})]
+    if others:
+        changes.append({"en": f"{_join(others, 'and')}: a card shows every screened call.",
+                        "es": f"{_join(others, 'y')}: una tarjeta muestra cada llamada revisada."})
+    stays = {"en": f"Nothing moves money. {rel_en} can turn this off by saying so. {her[:1].upper() + her[1:]} rules still apply.",
+             "es": f"Nada mueve dinero. {rel_es} puede apagarlo con solo decirlo. Sus reglas siguen igual."}
+    changes.append(stays)
+    checked = None
+    ev = latest_scam_eval()
+    if ev:
+        checked = {"en": f"Tested against {ev['scams']} scam and {ev['benign']} real family calls: {ev['caught']} caught, "
+                         f"{ev['false_alarms']} false alarm{'s' if ev['false_alarms'] != 1 else ''}.",
+                   "es": f"Probado con {ev['scams']} llamadas de estafa y {ev['benign']} llamadas reales de la familia: "
+                         f"{ev['caught']} detectadas, {ev['false_alarms']} falsas alarmas."}
+        changes.append(checked)
+    chat_en = (f"After {calls_en.lower()} asked {rel_en} for money in {claimed}'s name, Village proposes answering unknown callers "
+               f"for {her_obj} first; nothing changes until you approve.")
+    chat_es = (f"Después de {calls_es.lower()} pidiendo dinero a {rel_es} en nombre de {claimed}, Village propone contestar "
+               f"primero a los desconocidos; nada cambia hasta que usted lo apruebe.")
+    return {"rationale": {"en": what_en[:600], "es": what_es[:600]}, "changes": changes, "stays_the_same": stays,
+            "checked": checked, "evidence_labels": labels, "chat": {"en": chat_en, "es": chat_es}}
+
+
+def bv_row(village_id: str, p: dict[str, Any]) -> dict[str, Any]:
+    """proposals:pending row (bv_proposal) in plain words: what happened first, then per person, stays, checked."""
+    rec = STORE.get(village_id, {}).get(p["id"], {})
+    what = rec.get("what_happened") or p.get("rationale")
+    changes = ([what] if what else []) + [c for c in p.get("changes", []) if isinstance(c, dict) and c]
+    labels = rec.get("evidence_labels") or [str(e.get("label") or e.get("kind")) for e in p.get("evidence", [])
+                                            if isinstance(e, dict) and e.get("kind") == "call_moment"]
+    row: dict[str, Any] = {"proposal_id": p["id"], "title": p.get("title") or {"en": "A change for the village"},
+                           "changes": changes, "evidence_labels": labels, "status": p["status"]}
+    if p.get("release_id"):
+        row["release_id"] = p["release_id"]
+    return row
+
+
+_CALL_MOMENT = __import__("re").compile(r"^[A-Za-z0-9_-]{3,128}@[0-9]+(\.[0-9]+)?$")
+
+
+def _evidence_ok(e: dict[str, Any]) -> bool:
+    """Drop rows the contract would reject (e.g. a too-short conversation id) instead of failing the proposal."""
+    return isinstance(e, dict) and (e.get("kind") != "call_moment" or bool(_CALL_MOMENT.match(str(e.get("ref", "")))))
 
 
 def _chosen_name(options: dict[str, Any] | None) -> str:

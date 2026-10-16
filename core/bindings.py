@@ -224,20 +224,59 @@ def prescriptions_current(subject: str | None = None, village_id: str | None = N
     }
 
 
+def scams_stopped_today(village_id: str | None = None) -> int:
+    """Denied money verifications resolved today (ledger rows, so it survives reconnects and replays)."""
+    vid = _v(village_id)
+    today = clock.now().date().isoformat()
+    ids = {ev.get("payload", {}).get("verification_id") or ev["id"] for ev in db.events
+           if ev["kind"] == "verification_denied" and ev.get("village", vid) == vid and str(ev.get("at", "")).startswith(today)}
+    ids |= {row["id"] for row in db.verifications.values()
+            if row.get("village", vid) == vid and row.get("state") in {"denied", "late_denied"}
+            and str(row.get("resolved_at") or row.get("created_at") or "").startswith(today)}
+    return len(ids)
+
+
+_DAY_EN = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday", "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
+_DAY_ES = {"Mon": "el lunes", "Tue": "el martes", "Wed": "el miércoles", "Thu": "el jueves", "Fri": "el viernes", "Sat": "el sábado", "Sun": "el domingo"}
+_SLOT_ES = {"morning": "mañana", "evening": "noche"}
+_AREA_WORD = {"health": "Pills", "money": "Money", "people": "People"}
+
+
 def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
-    spec = db.specs.get(_v(village_id), {})
+    """Plain words per life area for family phones ("Pills: morning taken · refill Friday · Marco")."""
+    vid = _v(village_id)
+    spec = db.specs.get(vid, {})
     on_duty = _on_duty(village_id)
     name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
-    stopped = sum(1 for row in db.verifications.values() if row.get("state") in {"denied", "late_denied"})
-    doses = sum(1 for ev in db.events if ev["kind"] == "dose" and str(ev.get("at", "")).startswith(clock.now().date().isoformat()))
+    stopped = scams_stopped_today(vid)
+    today = clock.now().date().isoformat()
+    taken = [slot for slot in ("morning", "evening")
+             if any(ev["kind"] == "dose" and ev.get("village", vid) == vid and str(ev.get("at", "")).startswith(today)
+                    and ev.get("payload", {}).get("slot") == slot for ev in db.events)]
+    pills_en = (" and ".join(taken) + " taken") if taken else "nothing taken yet"
+    pills_es = ("tomó la de la " + " y la de la ".join(_SLOT_ES[t] for t in taken)) if taken else "todavía nada"
+    refill = "Fri"
+    is_today = clock.now().strftime("%a") == refill
+    verifier = villages.default_verifier(vid)
+    vname = villages.first_name(vid, verifier) if verifier else name
+    if stopped:
+        money_en = f"{stopped} scam{'s' if stopped != 1 else ''} stopped today · {vname} checks money calls"
+        money_es = f"{stopped} estafa{'s' if stopped != 1 else ''} detenida{'s' if stopped != 1 else ''} hoy · {vname} confirma llamadas de dinero"
+    else:
+        money_en = f"no scam calls today · {vname} checks money calls"
+        money_es = f"ninguna estafa hoy · {vname} confirma llamadas de dinero"
     status = {
-        "health": {"en": f"{doses}/2 lids today · refill {name}", "es": f"{doses}/2 tapas hoy · reponer {name}"},
-        "money": {"en": f"{stopped} scam{'s' if stopped != 1 else ''} stopped", "es": f"{stopped} estafa{'s' if stopped != 1 else ''} detenida{'s' if stopped != 1 else ''}"},
-        "people": {"en": f"{name} on duty", "es": f"{name} de turno"},
+        "health": {"en": f"{pills_en} · refill {'today' if is_today else _DAY_EN[refill]} · {name}",
+                   "es": f"{pills_es} · reponer {'hoy' if is_today else _DAY_ES[refill]} · {name}"},
+        "money": {"en": money_en, "es": money_es},
+        "people": {"en": f"{name} on duty tonight", "es": f"{name} de turno esta noche"},
     }
     out = []
     for area in spec.get("blueprint", {}).get("life_areas", []):
-        item: dict[str, Any] = {"id": area["id"], "label": area.get("label", area["id"]), "status": status.get(area["id"], {"en": "ok", "es": "bien"})}
+        label = area.get("label", area["id"])
+        if area["id"] in _AREA_WORD:
+            label = f"{_AREA_WORD[area['id']]}: {label.split(':', 1)[-1].strip()}"
+        item: dict[str, Any] = {"id": area["id"], "label": label, "status": status.get(area["id"], {"en": "ok", "es": "bien"})}
         if area.get("rules"):
             item["rules"] = area["rules"]
         if area.get("trusted_contacts"):
@@ -349,23 +388,10 @@ PENDING_PROPOSAL_STATUSES = {"proposed", "ready", "verifying"}
 
 def proposals_pending(village_id: str | None = None) -> list[dict[str, Any]]:
     """proposals:pending -> [bv_proposal]: open Evolve proposals (proposed | ready | verifying) for the Proposal card."""
-    from core.evolve.proposals import list_proposals
+    from core.evolve.proposals import bv_row, list_proposals
 
-    out: list[dict[str, Any]] = []
-    for p in list_proposals(_v(village_id)):
-        if p.get("status") not in PENDING_PROPOSAL_STATUSES:
-            continue
-        row: dict[str, Any] = {
-            "proposal_id": p["id"],
-            "title": p.get("title") or {"en": p["id"]},
-            "changes": [c for c in p.get("changes", []) if isinstance(c, dict) and c],
-            "evidence_labels": [str(e.get("label") or e.get("ref") or e.get("kind")) for e in p.get("evidence", []) if isinstance(e, dict)],
-            "status": p["status"],
-        }
-        if p.get("release_id"):
-            row["release_id"] = p["release_id"]
-        out.append(row)
-    return out
+    vid = _v(village_id)
+    return [bv_row(vid, p) for p in list_proposals(vid) if p.get("status") in PENDING_PROPOSAL_STATUSES]
 
 
 def changed(event: dict[str, Any], role: str, member_id: str | None = None, village_id: str | None = None) -> dict[str, Any]:
