@@ -149,7 +149,7 @@ async def post(village_id: str, *, kind: str, text: str, refs: list[dict[str, An
     from core.db import db
 
     message = {"id": services._message_id(), "village": village_id, "author": author, "kind": kind, "text": text[:2000], "mention": None,
-               "reply_to": reply_to, "refs": refs[:12], "source": source or {"kind": "system", "ref": "builder"}, "at": real_now()}
+               "reply_to": reply_to, "refs": [r for r in refs if not (r.get("kind") == "source" and not r.get("label"))][:12], "source": source or {"kind": "system", "ref": "builder"}, "at": real_now()}
     services._MESSAGE_LOG.append(message)
     await db.create_message(message)
     return message
@@ -201,6 +201,11 @@ async def answer(ask_id: str, member: str, value: str) -> dict[str, Any]:
 
 
 async def _resolve(ask: dict[str, Any], *, final: bool) -> None:
+    if ask.get("type") == "plan":
+        from .plan_need import resolve_plan
+
+        await resolve_plan(ask, final=final)
+        return
     on = ask["on_duty"]
     a = {m: v["answer"] for m, v in ask["answers"].items()}
     covers = [m for m in ask["asked"] if m != on]

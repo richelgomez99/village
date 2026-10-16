@@ -64,11 +64,32 @@ def is_call_out(village_id: str, text: str, author: str | None) -> bool:
     return bool(data.get("institutions")) and author in (None, "control", village_reg.coordinator_id(village_id))
 
 
-async def classify(text: str, llm: Any | None = None) -> str:
+def group_words(village_id: str | None) -> str:
+    """The village's own words for its group (spec), never a hardcoded 'family'."""
+    if not village_id:
+        return "a group's chat"
+    try:
+        from core import village as villages
+
+        sp = villages.spec(village_id) or {}
+        v = sp.get("village") or {}
+        kind = str(v.get("kind") or v.get("type") or ("family" if villages.care_recipient_id(village_id) else "group")).replace("_", " ")
+        name = villages.village_name(village_id)
+        return f"the {kind} chat of {name}" if name and name != village_id else f"a {kind}'s chat"
+    except Exception:
+        return "a group's chat"
+
+
+CHANGE_STRONG_RE = re.compile(r"\b(we'?re moving|we are moving|moving everyone|closed early|is closed|has moved|moved to|relocat\w*|instead we'?re|new location)\b", re.I)
+
+
+async def classify(text: str, llm: Any | None = None, village_id: str | None = None) -> str:
     """Every member message: why | change | need | chit_chat (Haiku when on; rules off)."""
     if llm is not None:
         try:
-            out = await llm.tool_call(system="Classify one message in a family's group chat (Village is a participant). why = asks Village to explain something; change = asks to add/change the family's plan or apps; need = someone is needed (cover, visit, pickup, swap); chit_chat = anything else (no reply).",
+            out = await llm.tool_call(system=f"Classify one message in {group_words(village_id)} (Village is a participant). why = asks Village to explain something; "
+                                             "change = announces or asks to add/change the group's plan, place, time or apps (e.g. 'X closed, we're moving everyone to Y at 3' is a change, not a need); "
+                                             "need = the author asks for a person to do something (cover a night, a visit, a ride, take someone to an appointment, a call, a swap); chit_chat = anything else (no reply).",
                                       messages=[{"role": "user", "content": text}], tool=INTENT_TOOL, max_tokens=120)
             if out.get("intent") in INTENTS:
                 return out["intent"]
@@ -76,6 +97,8 @@ async def classify(text: str, llm: Any | None = None) -> str:
             pass
     if WHY_RE.search(text):
         return "why"
+    if CHANGE_STRONG_RE.search(text):
+        return "change"
     if NEED_RE.search(text):
         return "need"
     return "change" if CHANGE_RE.search(text) else "chit_chat"
@@ -478,9 +501,9 @@ async def route_chat(village_id: str, text: str, author: str | None = None, *, l
 
         asyncio.ensure_future(run_calls(village_id))
         return {"text": intro_text(village_id), "refs": [{"kind": "rule", "id": str(i.get("id")), "label": str(i.get("name"))[:80]} for i in institutions(village_id)], "intent": "call_out"}
-    intent = intent or await classify(text, llm)
+    intent = intent or await classify(text, llm, village_id)
     if intent == "need":
-        res = await answer_need(village_id, text, author, post_answer=False)
+        res = await answer_need(village_id, text, author, post_answer=False, llm=llm)
         if res["kind"] == "ask":
             return {"text": f"I asked {' and '.join(res['ask']['names'].values())}; I'll post what they say.", "refs": [{"kind": "member", "id": m} for m in res["ask"]["names"]], "intent": "need"}
         return {"text": res["message"]["text"], "refs": [], "intent": "need"}
@@ -526,11 +549,17 @@ def need_context(village_id: str, text: str, author: str | None) -> dict[str, An
             "center_word": villages.relationship_word(village_id, center, "en") or "them"}
 
 
-async def answer_need(village_id: str, text: str, author: str | None, *, post_answer: bool = True, message: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Village answers as a participant: who's on (from the rota) and, if a swap would help, a proposal with Approve · Not now."""
+async def answer_need(village_id: str, text: str, author: str | None, *, post_answer: bool = True, message: dict[str, Any] | None = None, llm: Any | None = None) -> dict[str, Any]:
+    """Village answers as a participant. Night cover / swap → who's on (rota) + the cover ask; anything else (CORE-GLUE-7) →
+    an open plan item + an ask to the people who can do it, about the need as said (what, when)."""
     from core import services
     from core import village as villages
+    from .plan_need import extract, start_plan_need
 
+    need = await extract(text, llm)
+    if not need.get("is_night_cover") and need.get("what"):
+        ask = await start_plan_need(village_id, message or {"id": None, "author": author, "text": text}, need)
+        return {"kind": "ask", "ask": ask, "context": {"need": need}}
     ctx = need_context(village_id, text, author)
     info = f"{ctx['when']} is {ctx['day']} · {ctx['on_duty_name']}'s night."
     asks_cover = bool(re.search(r"need someone|can anyone|can someone|who can|cover|swap|take care", text, re.I))
@@ -608,11 +637,11 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     reply = await _answer_open_ask(message)
     if reply:
         return reply
-    intent = "call_out" if is_call_out(village_id, text, author) else await classify(text, llm)
+    intent = "call_out" if is_call_out(village_id, text, author) else await classify(text, llm, village_id)
     if intent == "chit_chat":
         return None
     if intent == "need":
-        return await answer_need(village_id, text, author, message=message)
+        return await answer_need(village_id, text, author, message=message, llm=llm)
     from core import services
 
     out = await route_chat(village_id, text, author, llm=llm, intent=intent)
