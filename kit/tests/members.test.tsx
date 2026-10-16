@@ -143,7 +143,7 @@ describe("Marco and Lucía", () => {
     vi.useFakeTimers();
     const { container } = mount("marco");
     await act(async () => { vi.advanceTimersByTime(10); });
-    expect(container.querySelector("[data-test='helper-headline']")?.textContent).toMatch(/^Yes · tonight/);
+    expect(container.querySelector("[data-test='helper-headline']")?.textContent).toBe("Yes · tonight until 9:30");
     expect(container.querySelectorAll("[data-test='since-row']").length).toBe(3);
     act(() => (container.querySelector("[data-test='swap-my-night']") as HTMLButtonElement).click());
     expect(container.querySelector("[data-test='tab-chat']")?.hasAttribute("hidden")).toBe(false);
@@ -174,5 +174,13 @@ describe("home brief pieces", () => {
     const ctx: RenderCtx = { ...defaultCtx, view: viewSchema.parse(R.views.helper), data: { "rounds:latest": ROUNDS }, lang: "en", disabled: true };
     const { container } = render(<TabbedApp ctx={ctx} />);
     expect(container.querySelector("[data-test='view-only']")?.textContent).toBe("View only");
+  });
+});
+
+describe("rounds:latest absent or empty", () => {
+  it("{} (no round yet) hides What Village did", () => {
+    const ctx: RenderCtx = { ...defaultCtx, view: viewSchema.parse(R.views.coordinator), data: { "rounds:latest": {} }, lang: "en" };
+    const { container } = render(<TabbedApp ctx={ctx} />);
+    expect(container.querySelector("[data-test='what-village-did']")).toBeNull();
   });
 });

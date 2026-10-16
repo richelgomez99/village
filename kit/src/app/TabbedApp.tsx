@@ -6,8 +6,9 @@ import { Node, collectInvalid, collectUnknown } from "../renderer/Renderer";
 import { text } from "../renderer/view";
 import { Bi, Card, ReadAloud, memberName } from "../components/shared";
 import { ChatPreview } from "../components/generic";
-import { fmtTime } from "../util/time";
 import { planTabs } from "./tabs";
+import { SinceLastTurn, WhatVillageDid, rightNowLines } from "../components/brief";
+export { rightNowLines } from "../components/brief";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) && v.length === 0);
@@ -16,91 +17,6 @@ function boundEmpty(ctx: RenderCtx, id: string): boolean {
   if (ctx.results[id]) return false; // keep a just-answered prompt on screen for its thanks line
   const bind = ctx.view.elements[id]?.props.bind;
   return typeof bind === "string" && isEmpty(ctx.data[bind]);
-}
-
-function todayIso(nowMs: number): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(nowMs));
-}
-
-interface Person { member_id?: string; name?: string }
-
-/** "Right now": who's on tonight · pills today · the last thing that happened. Each line only when its bind is in the snapshot. */
-export function rightNowLines(data: Record<string, unknown>, nowMs: number, lang: string): { key: string; text: string }[] {
-  const out: { key: string; text: string }[] = [];
-  const today = todayIso(nowMs);
-  let onDuty: string | undefined;
-  const p = data["rota:current.on_duty"] as Person | null | undefined;
-  if (p?.name) onDuty = p.name;
-  const me = data["rota:current?member=me"] as { on_duty?: Person } | null | undefined;
-  if (!onDuty && me?.on_duty?.name) onDuty = me.on_duty.name;
-  for (const key of ["rota:current", "rota:week"]) {
-    if (onDuty) break;
-    const d = arr<{ date: string; on_duty: string }>(data[key]).find((r) => r.date === today);
-    if (d?.on_duty) onDuty = memberName(d.on_duty, data);
-  }
-  if (onDuty) out.push({ key: "tonight", text: `Tonight: ${onDuty}` });
-
-  const doseKey = Object.keys(data).find((k) => k.startsWith("facts:dose_event") && k.includes("valid_at=today"));
-  const dose = doseKey ? (data[doseKey] as { slots?: { slot: string; status: string }[] } | null) : null;
-  if (dose?.slots?.length) {
-    const taken = dose.slots.filter((s) => s.status === "taken").length;
-    const open = dose.slots.find((s) => s.status !== "taken");
-    out.push({ key: "pills", text: `Pills today: ${taken} of ${dose.slots.length} taken${open ? ` · ${open.slot} ${open.status === "upcoming" ? "still to come" : open.status}` : ""}` });
-  }
-
-  const tlKey = Object.keys(data).find((k) => k.startsWith("timeline:"));
-  const last = arr<{ at: string; text: unknown; superseded?: boolean }>(tlKey ? data[tlKey] : null)
-    .filter((r) => !r.superseded)
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
-  if (last) out.push({ key: "last", text: `Last: ${text(last.text, lang)} · ${fmtTime(last.at, lang)}` });
-  return out;
-}
-
-interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string; mode?: string }[] }
-const MODE_WORDS: Record<string, string> = { acted_alone: "did alone", asked_human: "asked a person", refused: "refused itself" };
-
-/** rounds:latest (core-glue): three counts + rows in words. Absent = hidden. */
-export function WhatVillageDid({ data }: { data: Record<string, unknown> }) {
-  const r = data["rounds:latest"] as Rounds | null | undefined;
-  if (!r || typeof r !== "object") return null;
-  const c = r.counts ?? {};
-  const alone = c.acted_alone ?? c.did_alone ?? c.alone ?? r.did_alone ?? r.alone ?? 0;
-  const asked = c.asked_human ?? c.asked ?? c.asked_person ?? r.asked ?? r.asked_person ?? 0;
-  const refused = c.refused ?? r.refused ?? 0;
-  const rows = arr<NonNullable<Rounds["rows"]>[number]>(r.rows);
-  return (
-    <Card test="what-village-did" title="What Village did">
-      <p className="wvd-counts" data-test="wvd-counts">
-        Did {alone} {alone === 1 ? "thing" : "things"} on its own · asked a person {asked} · refused itself {refused}
-      </p>
-      {rows.length ? (
-        <ul className="wvd-rows">
-          {rows.slice(0, 6).map((row, i) => (
-            <li key={i} data-test="wvd-row">
-              {row.mode || row.role || row.actor ? <span className="chip chip-gray" data-mode={row.mode}>{(row.mode && MODE_WORDS[row.mode]) ?? row.role ?? row.actor}</span> : null} {text(row.text ?? row.line ?? row.summary ?? "", "en")}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </Card>
-  );
-}
-
-interface SinceRow { event_id?: string; id?: string; at?: string; text?: unknown }
-
-/** "Since your last turn": core-glue's events:since_last_turn?member=me (3 lines in words). Absent = hidden. */
-export function SinceLastTurn({ data, lang }: { data: Record<string, unknown>; lang: string }) {
-  const rows = arr<SinceRow>(data["events:since_last_turn?member=me"]).slice(0, 3);
-  if (!rows.length) return null;
-  return (
-    <Card test="since-last-turn" title="Since your last turn">
-      <ul className="right-now">
-        {rows.map((r, i) => (
-          <li key={r.event_id ?? r.id ?? i} data-test="since-row">{text(r.text, lang)}{r.at ? <span className="small muted"> · {fmtTime(r.at, lang)}</span> : null}</li>
-        ))}
-      </ul>
-    </Card>
-  );
 }
 
 export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { life_areas?: any[] } | null }) {
@@ -121,7 +37,9 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
   const yesItems = plan.attention.filter((id) => ctx.view.elements[id].type !== "Alert");
   const needsYes = yesItems.filter((id) => !boundEmpty(ctx, id));
   const alerts = plan.attention.filter((id) => ctx.view.elements[id].type === "Alert");
-  const lines = rightNowLines(ctx.data, ctx.nowMs(), ctx.lang);
+  const has = (t: string) => Object.values(ctx.view.elements).some((e) => e.type === t);
+  // the shell composes a block only when the view doesn't already carry its 1.3.0 element
+  const lines = has("RightNow") ? [] : rightNowLines(ctx.data, ctx.nowMs(), ctx.lang);
   const tabs: { id: string; label: string }[] = [
     { id: "home", label: es ? "Inicio" : "Home" },
     ...plan.areas.map((a) => ({ id: a.id, label: a.label })),
@@ -161,8 +79,8 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
                 </div>
               ) : null}
               {plan.headline ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
-              <SinceLastTurn data={ctx.data} lang={ctx.lang} />
-              <WhatVillageDid data={ctx.data} />
+              {has("SinceYourTurn") ? null : <SinceLastTurn data={ctx.data} lang={ctx.lang} />}
+              {has("WhatVillageDid") ? null : <WhatVillageDid data={ctx.data} />}
               {plan.homeRest.map((id) => <Node key={id} id={id} />)}
               {plan.chat ? <ChatPreview chatId={plan.chat} onOpen={() => setTab("chat")} /> : null}
             </>

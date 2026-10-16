@@ -134,7 +134,11 @@ export function todayShort(nowMs: number): string {
 
 /** "Yes · tonight until 9:30" / "No · Ana tonight · you're on Thursday", composed from bv_rota_me; Core's answer stays under it. */
 export function turnHeadline(v: RotaMe, lang: string): string {
-  if (v.is_my_turn) return `Yes · tonight${v.until ? ` until ${fmtTime(v.until, lang)}` : ""}`;
+  if (v.is_my_turn) {
+    const said = text(v.answer, "en").match(/until (\d{1,2}(:\d{2})?\s?([AaPp]\.?[Mm]\.?)?)/);
+    const until = v.until ? fmtTime(v.until, lang) : said ? said[1].trim() : "";
+    return `Yes · tonight${until ? ` until ${until}` : ""}`;
+  }
   const who = v.on_duty?.name ? `${v.on_duty.name} tonight` : "not tonight";
   const next = v.next_shift ? ` · you're on ${weekdayName(v.next_shift, lang) || WD_EN[0]}` : "";
   return `No · ${who}${next}`;

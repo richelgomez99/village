@@ -22,7 +22,7 @@ export const actionName = z.enum([
   "approve_proposal", "reject_proposal"
 ]);
 const BIND_RE =
-  /^(facts:[a-z_]+(\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\.(on_duty|backup))?(\?member=me)?|alerts:active(\?count)?|needs:(open|matched)(\?count)?|resources:available(\?count)?|claims:(topic=[a-z_]+)(\?count)?|checkins:(village|overdue)(\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\?count)?|verifications:(mine|pending\?member=me)|proposals:pending(\?count)?|blueprint:life_areas|chat:village(\?count)?|prescriptions:current)$/;
+  /^(facts:[a-z_]+(\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\.(on_duty|backup))?(\?member=me)?|alerts:active(\?count)?|needs:(open|matched)(\?count)?|resources:available(\?count)?|claims:(topic=[a-z_]+)(\?count)?|checkins:(village|overdue)(\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\?count)?|verifications:(mine|pending\?member=me)|proposals:pending(\?count)?|blueprint:life_areas|chat:village(\?count)?|prescriptions:current|rounds:latest|events:since_last_turn\?member=me|plan:[a-z0-9_]+|calls:screened|facts:history\?subject=[a-z]_[a-z0-9_]+&key=[a-z0-9_]+)$/;
 const bind = z.string().regex(BIND_RE);
 const eventKind = z.string().regex(/^[a-z_]+$/);
 const s = z.strictObject;
@@ -121,7 +121,14 @@ export const propsByType = {
     bind: z.literal("prescriptions:current"), title: label.optional(), owner: label.optional(), day: label.optional(),
     show_superseded: z.boolean().optional(), show_schedule: z.boolean().optional(), show_source: z.boolean().optional()
   }),
-  TonightCard: s({ bind: z.string().regex(/^rota:current\.(on_duty|backup)$/), title: label.optional(), template: z.string().max(60).optional() })
+  TonightCard: s({ bind: z.string().regex(/^rota:current\.(on_duty|backup)$/), title: label.optional(), template: z.string().max(60).optional() }),
+  // 1.3.0 (UX-UPGRADE)
+  RightNow: s({ bind, title: label.optional(), show_asks: z.boolean().optional() }),
+  WhatVillageDid: s({ bind, title: label.optional(), max_rows: z.number().int().min(1).max(12).optional() }),
+  SinceYourTurn: s({ bind, title: label.optional(), max_rows: z.number().int().min(1).max(6).optional() }),
+  PlanBoard: s({ bind, title: label.optional(), date: z.string().max(40).optional(), allow_claim: z.boolean().optional() }),
+  ScreenedCalls: s({ bind, title: label.optional(), max_rows: z.number().int().min(1).max(12).optional() }),
+  FactCard: s({ bind, title: label.optional(), show_as_of: z.boolean().optional() })
 } as const;
 
 export type CatalogType = keyof typeof propsByType;
