@@ -30,9 +30,11 @@ describe("Control Room", () => {
     vi.useFakeTimers();
     const { container } = mount("?start=off");
     await tick(10);
-    for (const t of ["cr-header", "tagline", "new-village", "phones-counter", "demo-clock", "blueprint", "ledger", "live-moment", "phones", "gate-feed", "decisions-log", "ask-why", "qr-tile"]) {
+    for (const t of ["cr-header", "tagline", "new-village", "phones-counter", "demo-clock", "blueprint", "ledger", "phones", "gate-feed", "decisions-log", "ask-why", "qr-tile"]) {
       expect(q(container, `[data-test='${t}']`), t).not.toBeNull();
     }
+    // no call → the Live panel is collapsed
+    expect(q(container, "[data-test='live-moment']")).toBeNull();
     const tabs = Array.from(container.querySelectorAll("[data-test='village-tab']")).map((t) => t.textContent);
     expect(tabs).toEqual([reyes.village.name, block.village.name]);
     expect(q(container, "[data-test='tagline']")?.textContent).toBe("Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.");
@@ -96,19 +98,82 @@ describe("Control Room", () => {
     expect(say.querySelector("[data-test='caption']")?.textContent).toContain("Don't send any money");
   });
 
-  it("founding replay fills the ledger with Founder rows and the counter ticks up", async () => {
+  it("founding is paced by the answers: nothing appears before its cause", async () => {
     vi.useFakeTimers();
     const { container } = mount("?seq=founding");
     await tick(10);
     expect(q(container, "[data-test='founding-empty']")?.textContent).toBe("No village yet. Describe your people.");
+    expect(q(container, "[data-test='control']")?.dataset.mode).toBe("founding");
+    const answers = () => container.querySelectorAll("[data-test='transcript-line'][data-who='ana']").length;
+    const blocks = () => container.querySelectorAll("[data-test='work-block']").length;
+    const rowIds = () => Array.from(container.querySelectorAll<HTMLElement>("[data-test='work-block'] [data-test='ledger-row']")).map((r) => r.dataset.id);
+    const coverage = () => Number(q(container, "[data-test='coverage']")?.dataset.value ?? 0);
+    const cards = (role: string) => container.querySelectorAll(`[data-test='phone'][data-role='${role}'] [data-id]:not([data-id='s'])`).length;
+    // before the first answer: no block, no row, meter at 0, phones are labelled skeletons
+    await tick(1000);
+    expect(answers()).toBe(0);
+    expect(blocks()).toBe(0);
+    expect(coverage()).toBe(0);
+    // answer 1 lands at 1.5 s; its "will build" note at +2 s; the elder phone gains the Alert card ~1 s later
+    await tick(600);
+    expect(answers()).toBe(1);
+    expect(blocks()).toBe(1);
+    expect(coverage()).toBe(0);
+    await tick(1300); // 2.9 s
+    expect(coverage()).toBe(1);
+    expect(container.querySelectorAll("[data-test='phone-skeleton']").length).toBe(3);
+    expect(q(container, "[data-test='phone'][data-role='elder'] [data-test='phone-label']")?.textContent).toBe("Carmen's phone · right now");
+    await tick(800); // 3.7 s
+    expect(container.querySelectorAll("[data-test='will-build']")).toHaveLength(1);
+    expect(cards("elder")).toBe(0);
+    await tick(1100); // 4.8 s
+    expect(cards("elder")).toBe(1);
+    expect(q(container, "[data-test='phone'][data-role='elder'] [data-id='al']")?.getAttribute("data-new")).toBe("true");
+    // just before answer 4 (16.5 s): only answer 3's consent call exists, still running; no rota check, no DailyMed
+    await tick(11400); // 16.2 s
+    expect(answers()).toBe(3);
+    expect(rowIds()).toEqual(["consent_marco"]);
+    expect(q(container, "[data-test='ledger-row'][data-id='consent_marco']")?.dataset.status).toBe("running");
+    expect(coverage()).toBe(2);
+    // answer 5 (21.5 s, the medications): DailyMed rows start running, then land done with their real elapsed time
+    await tick(6300); // 22.5 s
+    expect(rowIds()).toContain("dm_apixaban");
+    expect(rowIds()).not.toContain("dm_atorvastatin"); // starts 600 ms later
+    expect(q(container, "[data-test='ledger-row'][data-id='dm_apixaban']")?.dataset.status).toBe("running");
+    expect(cards("helper")).toBe(1); // "Is it my turn?" from answer 3
+    expect(q(container, "[data-test='phone'][data-role='helper'] [data-id='refill']")).toBeNull();
+    await tick(1500); // 24.0 s
+    const done = q(container, "[data-test='ledger-row'][data-id='dm_apixaban']")!;
+    expect(done.dataset.status).toBe("done");
+    expect(done.textContent).toMatch(/1\.1 s/);
+    await tick(600); // 24.6 s: the refill checklist slid in on Marco's phone ~1 s after its note
+    expect(cards("helper")).toBe(2);
+    expect(q(container, "[data-test='phone'][data-role='helper'] [data-id='refill']")?.getAttribute("data-new")).toBe("true");
+    // the consent call's result lands in answer 6 (two turns later), in place in answer 3's block
+    await tick(3400); // 28.0 s
+    expect(q(container, "[data-test='ledger-row'][data-id='consent_marco']")?.dataset.status).toBe("done");
+    expect(container.querySelectorAll("[data-test='ledger-row'][data-id='consent_marco']")).toHaveLength(1);
+    // the end: the spec arrives and the room switches to the live layout
     await tick(40000);
-    const rows = Array.from(container.querySelectorAll<HTMLElement>("[data-test='ledger-row']"));
-    expect(rows.length).toBeGreaterThanOrEqual(8);
-    expect(rows.every((r) => ["queued", "running", "done", "retrying", "fallback", "refused"].includes(r.dataset.status!))).toBe(true);
-    expect(rows.some((r) => r.textContent?.includes("DailyMed: apixaban"))).toBe(true);
-    expect(q(container, "[data-test='phones-counter']")?.dataset.count).toBe("4");
-    // the founding finished: the spec arrived and the room switched to the live layout
     expect(q(container, "[data-test='control']")?.dataset.mode).toBe("live");
+    expect(q(container, "[data-test='phones-counter']")?.dataset.count).toBe("4");
+  });
+
+  it("block founding (v_w147) without the recorded call falls back to timed text", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("not found", { status: 404 })));
+    const socket = makeSocket({ ...cfg, village: "v_w147" }, "?seq=founding&audio=1");
+    const { container } = render(<ControlRoom socket={socket} cfg={{ ...cfg, village: "v_w147" }} api={api} villages={["v_w147"]} />);
+    act(() => socket.connect());
+    await tick(10);
+    expect(q(container, "[data-test='control']")?.dataset.village).toBe("v_w147");
+    await tick(8000);
+    const lines = Array.from(container.querySelectorAll("[data-test='transcript-line'][data-who='ana']"));
+    expect(lines.length).toBe(2);
+    expect(lines[0].textContent).toContain("Power's out on our whole block");
+    expect(container.textContent).not.toMatch(/Carmen|Marco|lisinopril/);
+    expect(q(container, "[data-test='phone'][data-role='coordinator'] [data-test='phone-label']")?.textContent).toBe("Tanya Brooks's phone");
+    vi.unstubAllGlobals();
   });
 
   it("ask why: empty question ignored, disabled in flight, answer + citation chips", async () => {
@@ -165,7 +230,7 @@ describe("Control Room", () => {
     act(() => q(container, "[data-test='village-tab'][data-village='v_w147']")!.click());
     await tick(10);
     expect(q(container, "[data-test='control']")?.dataset.village).toBe("v_w147");
-    expect(q(container, "[data-test='live-moment']")!.dataset.state).toBe("idle");
+    expect(q(container, "[data-test='live-moment']")).toBeNull();
     expect(container.querySelectorAll("[data-test='ledger-row']")).toHaveLength(0);
     expect(container.querySelectorAll("[data-test='gate-row']")).toHaveLength(0);
     expect(container.querySelectorAll("[data-test='decision-row']")).toHaveLength(0);

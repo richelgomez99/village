@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { CatalogProps } from "../renderer/catalog";
+import { FactHistoryCard, MEMORY_CAPTION } from "./fact";
 import { useCtx } from "../renderer/context";
 import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
@@ -305,11 +307,32 @@ export function RefillCard({ props }: CatalogProps) {
               ) : null}
               {showSched && it.schedule?.length ? <span className="refill-sched small muted"> · {it.schedule.map((sl) => slotLabel(sl, ctx.lang)).join(", ")}</span> : null}
               {showSrc && it.source_label ? <span className="refill-src small muted" data-test="refill-source"> · {k("source", ctx.lang)}: {text(it.source_label, ctx.lang)}</span> : null}
+              {changed && ctx.api ? <FactToggle entity={v.subject ?? "village"} med={it.name} /> : null}
             </li>
           );
         })}
       </ul>
     </Card>
+  );
+}
+
+/** Ana's compact fact card (D32): tap a changed dose to see its Agent Memory history, source and as-of. */
+function FactToggle({ entity, med }: { entity: string; med: string }) {
+  const ctx = useCtx();
+  const [open, setOpen] = useState(false);
+  const key = `${med.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")}_dose`;
+  return (
+    <div className="fact-toggle">
+      <button type="button" className="btn btn-link" data-test="fact-open" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? k("hide_history", ctx.lang) : k("how_village_knows", ctx.lang)}
+      </button>
+      {open ? (
+        <div className="fact-card" data-test="fact-card">
+          <FactHistoryCard api={ctx.api} village={ctx.village} entity={entity} factKey={key} />
+          <p className="small muted">{MEMORY_CAPTION}</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

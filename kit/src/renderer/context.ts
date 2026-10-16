@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { View } from "./view";
+import type { ApiConfig } from "../control/api";
 
 export interface ActionRequest {
   name: string;
@@ -34,6 +35,8 @@ export interface RenderCtx {
   captions: boolean;
   /** tel: number for a call target (member id, "village", or a literal number); null = no number known. */
   phoneFor?: (target: string) => string | null;
+  /** REST access for read-only lookups inside components (fact history); absent = those affordances hide. */
+  api?: ApiConfig;
 }
 
 const LITERAL_PHONE = /^(\+[1-9][0-9]{6,14}|911|988|18002221222)$/;

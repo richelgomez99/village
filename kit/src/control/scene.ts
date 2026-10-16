@@ -3,17 +3,31 @@
 // and `mode` on reasoning/ledger rows. One scene per village: frames that name another village are ignored.
 // Unknown kinds are ignored.
 import type { ServerFrame } from "../live/messages";
+import { applyViewPatch } from "../renderer/view";
+
+/** A founding is in progress: no spec yet, or a blueprint stream that hasn't reached `done`. */
+export function foundingNow(s: { spec: any; blueprint: { stages: object; done: boolean } }): boolean {
+  return !s.spec || (Object.keys(s.blueprint.stages).length > 0 && !s.blueprint.done);
+}
+
+/** Starting point for a role's draft phone before its first patch. */
+export function emptyDraft(role: string): any {
+  return { lang: "en", theme: role === "elder" ? "elder" : "family", root: "s", elements: { s: { type: "Screen", props: { title: " " }, children: [] } } };
+}
 
 export type Mode = "acted_alone" | "asked_human" | "refused";
 export type AgentRole = "Founder" | "Watcher" | "Verifier" | "Builder" | "Explainer";
 export type LedgerStatus = "queued" | "running" | "done" | "retrying" | "fallback" | "refused";
 export type BlueprintStage = "people" | "needs" | "life_areas" | "rules" | "kind" | "questions" | "done";
 
-export interface LedgerRow { id: string; at: string; status: LedgerStatus; what: string; result?: string; role: AgentRole; attempt?: number; rule_id?: string; mode?: Mode; elapsed_ms?: number }
+export interface LedgerRow { id: string; at: string; status: LedgerStatus; what: string; result?: string; role: AgentRole; attempt?: number; rule_id?: string; mode?: Mode; elapsed_ms?: number; ended?: string }
 export interface GateRow { id: string; at: string; rule_id: string; decision: string; say: { es?: string; en?: string } | null; mode: Mode; input_kind: string; verification_state?: string }
 export interface DecisionRow { id: string; at: string; text: string; role: AgentRole; mode: Mode; source: string }
 export interface CaptionLine { id: string; at: string; es: string; en: string; speaker?: string }
 export interface TranscriptLine { id: string; at: string; who: "ana" | "village" | string; text: string }
+export interface WillBuild { person: string; component: string; reason: string; role?: string }
+/** D33: one block per founder answer — Heard → Knows → Doing (ledger ids) → Will build. */
+export interface AnswerBlock { id: string; at: string; heard: string; knows: string | null; doing: string[]; willBuild: WillBuild[] }
 export interface LiveMoment {
   verification_id: string | null;
   quote: string | null;
@@ -50,6 +64,10 @@ export interface SceneState {
   villageName: string | null;
   /** founding intake (docs/FOUNDING-INTAKE.md): transcript, coverage meter, gap list */
   transcript: TranscriptLine[];
+  blocks: AnswerBlock[];
+  /** founding: per-role draft views built from control `patch` frames (phones gain cards as capabilities are decided) */
+  drafts: Record<string, any>;
+  draftNew: Record<string, string[]>;
   coverage: { value: number; of: number } | null;
   gaps: string[];
   frames: number;
@@ -59,7 +77,7 @@ export function initialScene(village = ""): SceneState {
   return {
     village, spec: null, data: {}, rev: 0, blueprint: { stages: {}, done: false }, ledger: [], gate: [], decisions: [],
     autonomy: { acted_alone: 0, asked_human: 0, refused: 0 }, live: null, counters: {}, phones: null, clock: null, captions: [],
-    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], coverage: null, gaps: [], frames: 0
+    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], blocks: [], drafts: {}, draftNew: {}, coverage: null, gaps: [], frames: 0
   };
 }
 
@@ -119,7 +137,8 @@ function upsertLedger(rows: LedgerRow[], row: LedgerRow): LedgerRow[] {
   if (i < 0) return [...rows, row];
   const next = rows.slice();
   // rows never vanish; running becomes result in place
-  next[i] = { ...rows[i], ...row, at: rows[i].at };
+  const finished = row.status !== "running" && row.status !== "queued" && (rows[i].status === "running" || rows[i].status === "queued");
+  next[i] = { ...rows[i], ...row, at: rows[i].at, ended: finished ? row.at : rows[i].ended };
   return next;
 }
 
@@ -186,8 +205,19 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
       const villageName = (f.spec as any)?.village?.name ?? (f as any).identity?.village_name ?? s.villageName;
       return { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev, villageName };
     }
-    case "patch":
-      return { ...s, frames, rev: f.rev };
+    case "patch": {
+      // control socket during founding: a role's draft view gains cards as each capability is decided
+      if (!foundingNow(s)) return { ...s, frames, rev: f.rev };
+      const role = (f as any).role as string | undefined;
+      if (!role) return { ...s, frames };
+      try {
+        const base = s.drafts[role] ?? emptyDraft(role);
+        const next = applyViewPatch(base, f.ops as any);
+        return { ...s, frames, drafts: { ...s.drafts, [role]: next }, draftNew: { ...s.draftNew, [role]: (f as any).highlight ?? [] } };
+      } catch {
+        return { ...s, frames };
+      }
+    }
     case "event":
       return eventStep({ ...s, frames, data: { ...s.data, ...(f.data ?? {}) } }, f.event as any);
     case "control":
@@ -299,8 +329,16 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
         return { ...s, decisions: [row, ...s.decisions].slice(0, 100), autonomy: counts };
       }
       if (role === "Founder" && p.kind === "note") {
-        // the Founder's "now I know" line + its next question (FOUNDING-INTAKE §4)
-        return { ...s, transcript: [...s.transcript, { id: `tr_${s.frames}`, at, who: "village", text }].slice(-40) };
+        // the Founder's "now I know" line + its next question (FOUNDING-INTAKE §4); "Now I know" also fills the answer's block
+        const transcript = [...s.transcript, { id: `tr_${s.frames}`, at, who: "village", text }].slice(-60);
+        const m = text.match(/^now i know:?\s*(.+)$/i);
+        if (m && s.blocks.length) {
+          const blocks = s.blocks.slice();
+          const last = blocks[blocks.length - 1];
+          blocks[blocks.length - 1] = { ...last, knows: m[1] };
+          return { ...s, transcript, blocks };
+        }
+        return { ...s, transcript };
       }
       return { ...s, ledger: upsertLedger(s.ledger, { id: `rs_${s.frames}`, at, status: "done", what: text, role }) };
     }
@@ -311,7 +349,17 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const stages = { ...s.blueprint.stages, [stage]: items };
       const gaps = stage === "questions" ? items.map((q: any) => String(q.gap ?? q.topic ?? q.question ?? "")).filter(Boolean) : s.gaps;
       const done = stage === "done" || s.blueprint.done;
-      const ledger = upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, nameCtx(s)), role: "Founder" });
+      if ((stage as string) === "will_build") {
+        // builder: blueprint{stage:"will_build", items:[{person, component, reason}]} → the current answer's block
+        if (!s.blocks.length) return s;
+        const wb: WillBuild[] = items.map((it: any) => ({ person: String(it.person ?? ""), component: String(it.component ?? ""), reason: String(it.reason ?? ""), role: it.role }));
+        const blocks = s.blocks.slice();
+        const last = blocks[blocks.length - 1];
+        blocks[blocks.length - 1] = { ...last, willBuild: [...last.willBuild, ...wb] };
+        return { ...s, blocks };
+      }
+      // during a paced founding the right column shows these; the middle shows the answer blocks
+      const ledger = s.blocks.length ? s.ledger : upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, nameCtx(s)), role: "Founder" });
       if (stage === "questions") return { ...s, blueprint: { stages, done }, gaps };
       return { ...s, blueprint: { stages, done }, ledger, gaps: done ? [] : s.gaps };
     }
@@ -329,8 +377,10 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const speaker = p.speaker ? String(p.speaker).charAt(0).toUpperCase() + String(p.speaker).slice(1) : undefined;
       const line: CaptionLine = { id: `cap_${s.frames}`, at, es: String(p.es ?? ""), en: String(p.en ?? ""), speaker };
       // during founding, the coordinator's words (speaker "ana" in the contract enum) are the transcript (English; es may repeat it)
-      if (String(p.speaker) === "ana" && (!s.spec || !s.blueprint.done)) {
-        return { ...s, transcript: [...s.transcript, { id: `tr_${s.frames}`, at, who: "ana", text: line.en || line.es }].slice(-40) };
+      if (foundingNow(s) && p.speaker && String(p.speaker) !== "village" && String(p.speaker) !== "caller") {
+        const words = line.en || line.es;
+        const block: AnswerBlock = { id: `blk_${s.frames}`, at, heard: words, knows: null, doing: [], willBuild: [] };
+        return { ...s, transcript: [...s.transcript, { id: `tr_${s.frames}`, at, who: "ana", text: words }].slice(-60), blocks: [...s.blocks, block] };
       }
       return { ...s, captions: [...s.captions, line].slice(-6) };
     }
@@ -339,7 +389,15 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const status: LedgerStatus = ["queued", "running", "done", "retrying", "fallback", "refused"].includes(p.status) ? p.status : "done";
       const r = String(p.role ?? "founder").toLowerCase();
       const role = (["founder", "watcher", "verifier", "builder", "explainer"].includes(r) ? r.charAt(0).toUpperCase() + r.slice(1) : "Founder") as AgentRole;
-      return { ...s, ledger: upsertLedger(s.ledger, { id: String(p.id), at: p.at ?? at, status, what: String(p.what), result: p.result, role, attempt: p.attempt, mode: p.mode, elapsed_ms: p.elapsed_ms }) };
+      const ledger = upsertLedger(s.ledger, { id: String(p.id), at: p.at ?? at, status, what: String(p.what), result: p.result, role, attempt: p.attempt, mode: p.mode, elapsed_ms: p.elapsed_ms });
+      let blocks = s.blocks;
+      const known = s.blocks.some((b) => b.doing.includes(String(p.id)));
+      if (!known && s.blocks.length && foundingNow(s)) {
+        blocks = s.blocks.slice();
+        const last = blocks[blocks.length - 1];
+        blocks[blocks.length - 1] = { ...last, doing: [...last.doing, String(p.id)] };
+      }
+      return { ...s, ledger, blocks };
     }
     case "release": {
       const r = p?.receipt;

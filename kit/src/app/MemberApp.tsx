@@ -4,6 +4,7 @@ import { memberName } from "../components/shared";
 import { k } from "../i18n/strings";
 import type { LiveState, VillageSocket } from "../live/ws";
 import { makePhoneFor, type RenderCtx } from "../renderer/context";
+import type { ApiConfig } from "../control/api";
 import { Renderer } from "../renderer/Renderer";
 
 /** View-as options from the coordinator's own data: member:<id> records, then everyone on the rota. */
@@ -23,7 +24,7 @@ export function useSocketState(socket: VillageSocket): LiveState {
   return state;
 }
 
-export function MemberApp({ socket, captions = false }: { socket: VillageSocket; captions?: boolean }) {
+export function MemberApp({ socket, captions = false, api }: { socket: VillageSocket; captions?: boolean; api?: ApiConfig }) {
   const state = useSocketState(socket);
   const lang = state.view?.lang ?? "en";
   const dir = state.view?.dir ?? "ltr";
@@ -42,7 +43,7 @@ export function MemberApp({ socket, captions = false }: { socket: VillageSocket;
   const phoneFor = useMemo(() => makePhoneFor(data, state.identity?.village_number), [data, state.identity]);
 
   const ctx: RenderCtx | null = view
-    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions, phoneFor }
+    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions, phoneFor, api }
     : null;
 
   // options come from my own snapshot; keep them while viewing as someone else
