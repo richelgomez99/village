@@ -1,0 +1,55 @@
+capabilities:
+  phone_line:
+    applies_when: center prefers phone or needs voice support
+    fits: voice questions, check-ins, scam reporting
+    cost_to_person: answers or places a phone call
+    risk_class: medium
+    implements: [mom-line, block-line]
+  receptionist_line:
+    applies_when: repeated unknown callers or claimed-family money requests
+    fits: screens unknown callers before reaching the center
+    cost_to_person: known callers may hear one extra question
+    risk_class: high
+    implements: [report_money_request, await_verification]
+  refill_day:
+    applies_when: medication changes or refill owner exists
+    fits: coordinator/helper refill checklist with superseded dose history
+    cost_to_person: helper reviews a list before filling organizer
+    risk_class: medium
+    implements: [PillOrganizer, Timeline]
+  check_in_call:
+    applies_when: center consents to periodic calls
+    fits: asks about organizer state and symptoms without giving medical advice
+    cost_to_person: short scheduled call
+    risk_class: medium
+    implements: [CallLog, Timeline]
+  is_it_my_turn:
+    applies_when: rota or missed visits are mentioned
+    fits: caregiver sees current duty and swap options
+    cost_to_person: app check or nudge
+    risk_class: low
+    implements: [CareRota, HelperAnswer]
+  dashboard:
+    applies_when: one coordinator needs cross-area view
+    fits: life areas, incidents, refill state, rota, history
+    cost_to_person: denser app view
+    risk_class: low
+    implements: [LifeAreas, IncidentCard, Timeline, StatusGrid]
+  village_chat:
+    applies_when: non-elder members coordinate
+    fits: incident posts, receipts, cited answers, approvals
+    cost_to_person: app feed
+    risk_class: medium
+    implements: [VillageChat]
+  fridge_card:
+    applies_when: center needs offline safety script
+    fits: family word, Village number, 911-first reminder
+    cost_to_person: printed card in home
+    risk_class: low
+    implements: [printable_fridge_card]
+  rumor_check:
+    applies_when: block or crisis village has public claims
+    fits: verifies official updates and hides unverified claims where risky
+    cost_to_person: volunteers report sources
+    risk_class: medium
+    implements: [VerifiedInfoFeed, SourceCard]

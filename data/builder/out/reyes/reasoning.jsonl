@@ -1,0 +1,11 @@
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "plan", "text": "Found care village shape from the founding description.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Found Carmen Reyes: Mom is the vulnerable center.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Found Ana Reyes: speaker and coordinator.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Found Marco Reyes: named in money verification and rota.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Need: Mom mixes up her pills.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Need: Someone pretended to be Marco and asked for money.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "note", "text": "Need: Family members missed a visit because turns were unclear.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "decision", "text": "Rule on: double_dose_guard.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "decision", "text": "Rule on: money_verification.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "decision", "text": "Rule on: quiet_hours.", "village": "v_reyes"}}
+{"type": "control", "village": "v_reyes", "payload": {"source": "builder", "kind": "counter", "name": "people_found", "value": 3}}

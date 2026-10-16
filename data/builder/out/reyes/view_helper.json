@@ -1,0 +1,95 @@
+{
+  "lang": "en",
+  "theme": "family",
+  "root": "s",
+  "elements": {
+    "s": {
+      "type": "Screen",
+      "props": {
+        "title": "Is it my turn?",
+        "subtitle": "Reyes family"
+      },
+      "children": [
+        "al",
+        "vp",
+        "ans",
+        "b_mom",
+        "chat"
+      ]
+    },
+    "al": {
+      "type": "Alert",
+      "props": {
+        "source": "policy",
+        "bind": "alerts:active",
+        "severity_levels": [
+          "danger",
+          "warn"
+        ],
+        "dismissible": false,
+        "empty_text": "Nothing needs you right now",
+        "show_escalation_status": true
+      }
+    },
+    "vp": {
+      "type": "VerificationPrompt",
+      "props": {
+        "bind": "verifications:pending?member=me",
+        "question_template": "Did you just call {care_recipient} asking for {amount}{method}?",
+        "yes_label": "Yes, it was me",
+        "no_label": "That wasn't me",
+        "show_countdown": true
+      }
+    },
+    "ans": {
+      "type": "HelperAnswer",
+      "props": {
+        "question": "Is it my turn?",
+        "bind": "rota:current?member=me",
+        "subject": "m_carmen",
+        "show_status": true,
+        "show_next_shift": true
+      }
+    },
+    "b_mom": {
+      "type": "BigButton",
+      "props": {
+        "label": "Call Mamá",
+        "icon": "phone",
+        "tone": "info",
+        "action": "call_member",
+        "action_arg": "m_carmen",
+        "confirm": false
+      }
+    },
+    "chat": {
+      "type": "VillageChat",
+      "props": {
+        "bind": "chat:village",
+        "composer": true,
+        "title": "Village chat",
+        "mention_label": "@Village",
+        "allow_approve": false,
+        "limit": 50
+      }
+    }
+  },
+  "needs_served": {
+    "al": [
+      "n_safety"
+    ],
+    "vp": [
+      "n_scam_calls"
+    ],
+    "ans": [
+      "n_turns",
+      "n_evening_pills"
+    ],
+    "b_mom": [
+      "n_turns"
+    ],
+    "chat": [
+      "n_safety"
+    ]
+  }
+}
