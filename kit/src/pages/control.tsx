@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, apiRequest, createVillage, getQr, listDecisions, listVillages, warpClock, type ApiConfig } from "../control/api";
-import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, resolveAs, type VillageTab } from "../control/regions";
+import { ArcStrip, AutonomyHeadline, PhoneLinks, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, resolveAs, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
@@ -450,6 +450,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}${transport && !HERO ? " has-transport" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32 + (transport && !HERO ? 56 : 0)}px` }}>
       <Header owner={owner} tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} villageTime={PRESENTER ? villageTimeWords(scene.clock?.now ?? new Date(socket.nowMs()).toISOString(), scene.data) || " " : undefined} />
       <ArcStrip beat={beat} selected={shown} onJump={(b) => (b === "anyone" ? onJump?.(b) : setSection(b))} />
+      <PhoneLinks spec={spec} village={village} cfg={api} people={people} />
       {state.status !== "live" && state.status !== "idle" && (!PRESENTER || downLong) ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}

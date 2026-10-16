@@ -508,6 +508,34 @@ function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; na
   );
 }
 
+/** One chip per phone, right under the arc pills: who, their role word, and an Open link (no scrolling to the QR tiles). */
+export function PhoneLinks({ spec, village, cfg, people }: { spec: any; village: string; cfg?: ApiConfig; people?: any[] }) {
+  const entries = useQr(cfg, village);
+  const folks: any[] = (spec?.blueprint?.people ?? people ?? []).filter((p: any) => p?.id);
+  if (!folks.length) return null;
+  const byMember = new Map((entries ?? []).filter((e) => e.kind === "app").map((e) => [e.member_id, e] as const));
+  return (
+    <nav className="phone-links" data-test="phone-links" aria-label="Open a phone">
+      <span className="phone-links-label">Phones</span>
+      {folks.map((p: any) => {
+        const e = byMember.get(p.id);
+        const name = displayName(p, spec);
+        const role = String(p.role ?? "").replace(/_/g, " ");
+        const phoneOnly = !p.view;
+        return e ? (
+          <a key={p.id} className="phone-link" href={e.url} target="_blank" rel="noreferrer" data-test="phone-link" data-member={p.id} title={`Open ${name}'s app`}>
+            <b>{name}</b><span className="muted"> · {role}</span><span className="phone-link-open">Open ↗</span>
+          </a>
+        ) : (
+          <span key={p.id} className="phone-link is-static" data-test="phone-link" data-member={p.id}>
+            <b>{name}</b><span className="muted"> · {role}{phoneOnly ? " · phone line" : ""}</span>
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people, villageName, drafts, draftNew }: {
   spec: any; data: Record<string, unknown>; village: string; nowMs: () => number; viewAs: string | null; onViewAs: (m: string | null) => void;
   live: { role: string; view: View | null; data: Record<string, unknown> } | null; cfg?: ApiConfig;
