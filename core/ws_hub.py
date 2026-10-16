@@ -168,7 +168,9 @@ class Hub:
                 continue
             if client.role == "elder":
                 continue
-            await self._send(client, {"type": "chat", "village": message.get("village"), "message": message})
+            from core.bindings import with_source_labels
+
+            await self._send(client, {"type": "chat", "village": message.get("village"), "message": with_source_labels(message)})
 
     async def broadcast_verification(self, verification: dict[str, Any]) -> None:
         claimed = verification.get("claimed_member_id") or verification.get("claimed_member")

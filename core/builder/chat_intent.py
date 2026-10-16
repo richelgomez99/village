@@ -13,7 +13,7 @@ INTENT_TOOL = {
     "name": "classify_intent",
     "description": "Classify an @Village message.",
     "input_schema": {"type": "object", "additionalProperties": False, "required": ["intent", "reason"],
-                     "properties": {"intent": {"enum": ["why", "change", "other"]}, "reason": {"type": "string", "maxLength": 200}}},
+                     "properties": {"intent": {"enum": ["why", "change", "need", "chit_chat"]}, "reason": {"type": "string", "maxLength": 200}}},
 }
 CHANGE_TOOL = {
     "name": "extract_change",
@@ -42,18 +42,25 @@ def strip_mention(text: str) -> str:
     return s[len("@village"):].strip(" ,:") if s.lower().startswith("@village") else s
 
 
+NEED_RE = re.compile(r"\b(need someone|needs? (somebody|someone|help)|can anyone|can someone|anyone (can|free|around)|who can|who'?s (on|free)|take care of|cover( for)?|swap|tomorrow|tonight)\b", re.I)
+INTENTS = ("why", "change", "need", "chit_chat")
+
+
 async def classify(text: str, llm: Any | None = None) -> str:
+    """Every member message: why | change | need | chit_chat (Haiku when on; rules off)."""
     if llm is not None:
         try:
-            out = await llm.tool_call(system="Classify a family chat message addressed to Village: why = asks for an explanation; change = asks Village to add/change something in the village; other.",
-                                      messages=[{"role": "user", "content": text}], tool=INTENT_TOOL, max_tokens=200)
-            if out.get("intent") in ("why", "change", "other"):
+            out = await llm.tool_call(system="Classify one message in a family's group chat (Village is a participant). why = asks Village to explain something; change = asks to add/change the family's plan or apps; need = someone is needed (cover, visit, pickup, swap); chit_chat = anything else (no reply).",
+                                      messages=[{"role": "user", "content": text}], tool=INTENT_TOOL, max_tokens=120)
+            if out.get("intent") in INTENTS:
                 return out["intent"]
         except Exception:
             pass
     if WHY_RE.search(text):
         return "why"
-    return "change" if CHANGE_RE.search(text) else "other"
+    if NEED_RE.search(text):
+        return "need"
+    return "change" if CHANGE_RE.search(text) else "chit_chat"
 
 
 def extract_rules(text: str) -> dict[str, Any]:
@@ -310,11 +317,15 @@ def _num_word(n: int | None) -> str:
     return words.get(n or 0, str(n)).capitalize() if n else ""
 
 
-async def route_chat(village_id: str, text: str, author: str | None = None, *, llm: Any | None = None, services: Any = None) -> dict[str, Any]:
+async def route_chat(village_id: str, text: str, author: str | None = None, *, llm: Any | None = None, services: Any = None, intent: str | None = None) -> dict[str, Any]:
     """Core's @Village hook (`core.builder.ask(village_id, text)`): returns {text, refs, trace_id}."""
     from .ask import ask
 
-    intent = await classify(text, llm)
+    intent = intent or await classify(text, llm)
+    if intent == "need":
+        res = await answer_need(village_id, text, author, post_answer=False)
+        p = res.get("proposal")
+        return {"text": "Card above: Approve or Not now." if p else res["message"]["text"], "refs": [{"kind": "proposal", "id": p["id"]}] if p else [], "intent": "need"}
     if intent == "change":
         try:
             p = await propose_change(village_id, text, author, llm=llm)
@@ -328,3 +339,119 @@ async def route_chat(village_id: str, text: str, author: str | None = None, *, l
     res = await ask(village_id, strip_mention(text), services=services, llm=llm, channel="chat")
     refs = [{"kind": c["kind"], "id": c["id"], "label": (c.get("label") or c["kind"])[:80]} for c in res.citations]
     return {"text": res.answer, "refs": refs, "trace_id": res.trace_id, "intent": intent}
+
+
+DAY_WORDS = {"tomorrow": 1, "tonight": 0, "today": 0, "mañana": 1, "hoy": 0}
+DAY_NAME = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday", "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
+
+
+def need_context(village_id: str, text: str, author: str | None) -> dict[str, Any]:
+    """Who is on for the day the message means, from the rota (core.bindings) and the spec — never hardcoded."""
+    from datetime import timedelta
+
+    from core import village as villages
+    from core.bindings import rota_week
+    from core.clock import clock
+
+    m = re.search(r"\b(tomorrow|tonight|today|mañana|hoy)\b", text, re.I)
+    offset = DAY_WORDS.get(m.group(1).lower(), 1) if m else 1
+    date = (clock.now() + timedelta(days=offset)).date().isoformat()
+    row = next((d for d in rota_week(village_id) if d.get("date") == date), None)
+    on_duty = (row or {}).get("on_duty") or villages.default_on_duty(village_id)
+    backup = (row or {}).get("backup") or villages.default_backup(village_id)
+    day = DAY_NAME.get((row or {}).get("day", ""), (clock.now() + timedelta(days=offset)).strftime("%A"))
+    helpers = [p for p in villages.helpers(village_id)] + [villages.coordinator_id(village_id)]
+    cover = next((h for h in [backup] + helpers if h and h not in (on_duty, author)), None)
+    center = villages.care_recipient_id(village_id)
+    return {"date": date, "day": day, "when": "Tomorrow" if offset == 1 else "Tonight", "on_duty": on_duty, "on_duty_name": villages.first_name(village_id, on_duty),
+            "cover": cover, "cover_name": villages.first_name(village_id, cover) if cover else None, "author_on_duty": author == on_duty,
+            "center_word": villages.relationship_word(village_id, center, "en") or "them"}
+
+
+async def answer_need(village_id: str, text: str, author: str | None, *, post_answer: bool = True) -> dict[str, Any]:
+    """Village answers as a participant: who's on (from the rota) and, if a swap would help, a proposal with Approve · Not now."""
+    from core import services
+    from core import village as villages
+
+    ctx = need_context(village_id, text, author)
+    info = f"{ctx['when']} is {ctx['day']} · {ctx['on_duty_name']}'s night."
+    asks_cover = bool(re.search(r"need someone|can anyone|can someone|who can|cover|swap|take care", text, re.I))
+    if not (asks_cover and ctx["cover"]):
+        if not post_answer:
+            return {"kind": "answer", "message": {"text": info}, "context": ctx}
+        msg = await services.post_message(village_id, author="village", kind="answer", text=info, refs=[{"kind": "member", "id": ctx["on_duty"], "label": ctx["on_duty_name"]}], source={"kind": "system", "ref": "builder"})
+        return {"kind": "answer", "message": msg, "context": ctx}
+    question = f"{info} Want me to ask {ctx['cover_name']} to swap?"
+    p = await propose_swap(village_id, ctx, author, question)
+    return {"kind": "proposal", "proposal": p, "context": ctx}
+
+
+async def propose_swap(village_id: str, ctx: dict[str, Any], author: str | None, question: str) -> dict[str, Any]:
+    """A swap is a rota change → the same proposal path (Approve · Not now on the card, release gate on approve)."""
+    from core import services
+    from core import village as villages
+    from core.db import db
+    from core.evolve import proposals as ev
+
+    spec = copy.deepcopy(villages.spec(village_id))
+    cover, on = ctx["cover_name"], ctx["on_duty_name"]
+    line = f"{ctx['day']}: {cover} covers for {on}"
+    ops, served, highlight = {}, {}, {}
+    from .patch import apply_to_copy
+
+    cand = copy.deepcopy(spec)
+    for role, view in spec["views"].items():
+        els = view["elements"]
+        kids = els["s"].get("children", [])
+        anchor = next((i + 1 for i, e in enumerate(kids) if els.get(e, {}).get("type") in ("HelperAnswer", "CareRota", "PlanBoard")), None)
+        if anchor is None or view.get("theme") == "elder" or len(kids) >= 12 or "swap_note" in els:
+            continue
+        role_ops = [{"op": "add", "path": "/elements/swap_note", "value": {"type": "Text", "props": {"text": line, "size": "m", "tone": "info"}}},
+                    {"op": "add", "path": f"/elements/s/children/{anchor}", "value": "swap_note"}]
+        nxt, errs = apply_to_copy(cand, role, {"ops": role_ops, "needs_served": {}})
+        if nxt is not None:
+            cand, ops[role], served[role], highlight[role] = nxt, role_ops, {}, ["swap_note"]
+    if not ops:
+        raise ValueError("no view to note the swap")
+    asker = villages.first_name(village_id, author, "Someone") if author else "Someone"
+    ev._SEQ[village_id] = ev._SEQ.get(village_id, 0) + 1
+    pid = f"prop_{ev._slug(village_id)}_swap_{ev._SEQ[village_id]}"
+    proposal = {
+        "id": pid, "village": village_id, "detected_by": "memory_pattern",
+        "title": {"en": f"Ask {cover} to cover {ctx['day']} for {on}", "es": f"Pedirle a {cover} que cubra el {ctx['day']}"},
+        "rationale": {"en": f"{asker} wrote in the chat that someone is needed {ctx['when'].lower()}; it's {on}'s night on the rota.", "es": f"{asker} lo pidió en el chat."},
+        "changes": [{"en": f"{cover}: asked to cover {ctx['day']}; if yes, the rota and the helper app say so", "es": f"{cover}: se le pide cubrir el {ctx['day']}"}],
+        "evidence": [{"kind": "fact", "ref": f"chat:{author or 'member'}", "label": f"{asker}'s message in the chat"}],
+        "ops": ops, "needs_served": served, "spec_ops": [], "status": "proposed", "base_rev": int(spec.get("rev", 0)), "created_at": ev._now(),
+    }
+    errs = ev.validate(proposal)
+    if errs:
+        raise ValueError(f"proposal invalid: {errs[:2]}")
+    rec = {"proposal": proposal, "options": None, "voice_ops": [], "highlight": highlight, "key": f"swap:{ctx['date']}", "detected_by": "chat_request",
+           "evidence_meta": {"text": question}, "evidence_labels": [f"{asker}'s message"], "what_happened": proposal["rationale"],
+           "stays_the_same": {"en": "Nothing changes unless you say yes; Village only asks.", "es": "Nada cambia si no dices que sí."}, "checked": [],
+           "swap": {"date": ctx["date"], "from": ctx["on_duty"], "to": ctx["cover"]}}
+    ev.STORE.setdefault(village_id, {})[pid] = rec
+    await db.create_decision({**builder_decision(village_id, f"{asker} needs someone {ctx['when'].lower()} ({ctx['day']}, {on}'s night) → proposed asking {cover} to swap.", mode="asked_human"),
+                              "id": f"dc_{pid}_proposed", "at": ev._now(), "actor": "evolve", "rule_id": "R-SPEC", "rev": proposal["base_rev"]})
+    msg = await services.post_message(village_id, author="village", kind="proposal", text=question, refs=[{"kind": "proposal", "id": pid, "label": "proposal"}, {"kind": "member", "id": ctx["on_duty"], "label": on}], source={"kind": "system", "ref": "builder"})
+    proposal["message_id"] = msg["id"]
+    await ev._announce(village_id, rec)
+    return copy.deepcopy(proposal)
+
+
+async def participant(village_id: str, message: dict[str, Any], *, llm: Any | None = None) -> dict[str, Any] | None:
+    """Every member message (not only @Village): decide whether Village speaks."""
+    text, author = message.get("text", ""), message.get("author")
+    if author in (None, "village", "system"):
+        return None
+    intent = await classify(text, llm)
+    if intent == "chit_chat":
+        return None
+    if intent == "need":
+        return await answer_need(village_id, text, author)
+    from core import services
+
+    out = await route_chat(village_id, text, author, llm=llm, intent=intent)
+    msg = await services.post_message(village_id, author="village", kind="answer", text=out["text"], refs=out.get("refs") or [{"kind": "member", "id": author}], source={"kind": "system", "ref": "builder"}, reply_to=message.get("id"))
+    return {"kind": "answer", "message": msg, "intent": intent}
