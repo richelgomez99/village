@@ -337,9 +337,35 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
         data["prescriptions:current"] = prescriptions_current(subject, vid)
     for target in call_targets(role, vid):
         data[f"member:{target}"] = member_record(target, vid)
+    if "*" in binds or "proposals:pending" in binds:
+        data["proposals:pending"] = proposals_pending(vid)
     if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
         data["chat:village"] = [m for m in db.messages if m.get("village", vid) == vid][-50:]
     return data
+
+
+PENDING_PROPOSAL_STATUSES = {"proposed", "ready", "verifying"}
+
+
+def proposals_pending(village_id: str | None = None) -> list[dict[str, Any]]:
+    """proposals:pending -> [bv_proposal]: open Evolve proposals (proposed | ready | verifying) for the Proposal card."""
+    from core.evolve.proposals import list_proposals
+
+    out: list[dict[str, Any]] = []
+    for p in list_proposals(_v(village_id)):
+        if p.get("status") not in PENDING_PROPOSAL_STATUSES:
+            continue
+        row: dict[str, Any] = {
+            "proposal_id": p["id"],
+            "title": p.get("title") or {"en": p["id"]},
+            "changes": [c for c in p.get("changes", []) if isinstance(c, dict) and c],
+            "evidence_labels": [str(e.get("label") or e.get("ref") or e.get("kind")) for e in p.get("evidence", []) if isinstance(e, dict)],
+            "status": p["status"],
+        }
+        if p.get("release_id"):
+            row["release_id"] = p["release_id"]
+        out.append(row)
+    return out
 
 
 def changed(event: dict[str, Any], role: str, member_id: str | None = None, village_id: str | None = None) -> dict[str, Any]:

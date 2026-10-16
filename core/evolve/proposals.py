@@ -116,6 +116,9 @@ def _need_id(spec: dict[str, Any]) -> str:
     return next((n["id"] for n in spec.get("blueprint", {}).get("needs", []) if n.get("domain") == "money"), "n_safety")
 
 
+MAX_CHILDREN = 12  # village_spec.schema.json Screen children maxItems
+
+
 def _insert_at(view: dict[str, Any]) -> int:
     kids = view["elements"].get(view.get("root", "s"), {}).get("children", [])
     return 1 if kids else 0
@@ -155,11 +158,14 @@ async def build_ops(village_id: str, spec: dict[str, Any], evidence: dict[str, A
             role_ops[0] = {"op": "add", "path": "/elements/receptionist", "value": {"type": "Text", "props": {
                 "text": f"Village answers unknown calls for {rel_en} first and checks with the real person before putting them through.",
                 "size": "m", "tone": "info"}}}
-            role_ops.append({"op": "add", "path": "/elements/screened", "value": {"type": "Timeline", "props": {
-                "title": "Calls Village screened", "bind": f"timeline:subject={recipient}", "subject": recipient,
-                "event_kinds": ["money_request", "verification", "incident"], "show_provenance": True, "limit": 5}}})
-            role_ops.append({"op": "add", "path": f"/elements/s/children/{at + 1}", "value": "screened"})
-            served = {"receptionist": [need], "screened": [need]}
+            served = {"receptionist": [need]}
+            kids = view["elements"].get(view.get("root", "s"), {}).get("children", [])
+            if len(kids) + 2 <= MAX_CHILDREN:  # a full screen (e.g. Ana's, with Proposal + chat) keeps only the card
+                role_ops.append({"op": "add", "path": "/elements/screened", "value": {"type": "Timeline", "props": {
+                    "title": "Calls Village screened", "bind": f"timeline:subject={recipient}", "subject": recipient,
+                    "event_kinds": ["money_request", "verification", "incident"], "show_provenance": True, "limit": 5}}})
+                role_ops.append({"op": "add", "path": f"/elements/s/children/{at + 1}", "value": "screened"})
+                served["screened"] = [need]
         nxt, errs = apply_to_copy(cand, role, {"ops": role_ops, "needs_served": served})
         if nxt is None:
             log.warning("evolve ops for %s invalid: %s", role, errs[:3])
@@ -286,6 +292,10 @@ async def _announce(village_id: str, rec: dict[str, Any]) -> None:
     from core import services
 
     await services.control(village_id, "proposal", {"proposal": copy.deepcopy(rec["proposal"])})
+    try:  # Ana's Proposal card (proposals:pending) appears / updates live
+        await services.hub.push_proposals(village_id, copy.deepcopy(rec["proposal"]))
+    except Exception:  # noqa: BLE001 - a card refresh must never break the proposal pipeline
+        log.exception("push proposals:pending failed")
 
 
 async def _decision(village_id: str, pid: str, step: str, text: str, mode: str, rev: int | None = None,
