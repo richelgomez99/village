@@ -60,6 +60,7 @@ Each slide lists: what's on screen, the stage lines (word for word), and the fal
 - "Found the pattern: 2 calls in 7 days claiming to be Marco"
 - Options considered: a check button (she has to remember under pressure) · a daily check-in call (doesn't stop the call) · **answer unknown callers first (chosen)**
 - Daytona: "[MEASURE: n] of [MEASURE: n] floor tests passed" (Reyes count not in RESULTS yet)
+- Timer on screen: Ana's yes → every phone patched (measured 7.7 s with the real pipeline; RESULTS.md evolve)
 - Anchor: live view of a phone-sized browser tapping Carmen's screen
 - Arize: "evals passed" (score per release from the receipt: [MEASURE: score])
 - "Ana approved" → every phone changes
@@ -86,7 +87,7 @@ Each slide lists: what's on screen, the stage lines (word for word), and the fal
 > "Built through the same pipeline. Released in thirteen seconds, thirty-three tests passed."
 > "Same code, no Reyes anywhere in it. Describe your group and it builds yours."
 
-Until the orchestrator confirms the platform sweep (D30), "no Reyes anywhere in it" is [PENDING: sweep confirmed]; if not confirmed, say "Same code. Describe your group and it builds yours."
+"No Reyes anywhere in it" is verified (RESULTS.md, platform sweep 12:30: 0 hits in `core/` outside test fixtures).
 
 **Fallback:** a static screenshot of the West 147th village.
 

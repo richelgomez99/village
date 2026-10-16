@@ -63,3 +63,6 @@
 | release inside that | 36 ms | 7632 ms (build 2065, floor tests 1180, Anchor 4106) |
 | consider_options, model on | n/a | 5221 ms |
 - Options weighed: "¿Es de verdad?" button (rejected: relies on her remembering under pressure), daily check-in call (helps; doesn't stop the call), **receptionist on her line** (chosen). Proposal validates against the contract with 5 evidence rows (Oct 9 + today). Receipt tests stage: "Scored on 52 calls (last night's included)" (50 base + 2 village). New voice tool `screen_caller` (hold → verify with the real member → refuse).
+
+## First live call on the mom line (12:23; operator as Carmen, in English)
+- Core log: `POST /hooks/elevenlabs/init` 200 (from 34.59.11.47) → `POST /tools/report_money_request` 200 → Marco's socket connected (operator's phone) → `POST /tools/await_verification` 200. Transcript: 1 s greeting; 18 s report → "Voy a confirmar con Marco ahora mismo. No mande dinero todavía."; 31 s await returned (Marco tapped "That wasn't me") → "Ese no era Marco. No mande dinero. Ana ya lo sabe."; 99 s `ask_family` → 404 (handler missing; fixed 12:55). Verification `ver_0001` state `denied`. Watcher auto-triggered at 12:23:58: weighed 3 options, proposed the receptionist (`asked_human`). Three prompt-guardrail events fired on Village's own refusal lines (passed; guardrail narrowed, D31). Call duration 109 s.

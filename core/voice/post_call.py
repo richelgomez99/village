@@ -109,7 +109,123 @@ async def apply_verification_answer(payload: dict[str, Any]) -> None:
         return
 
 
+def normalize(payload: dict[str, Any]) -> dict[str, Any]:
+    """ElevenLabs wraps events as {type, event_timestamp, data:{...}}; flatten to the shape the handlers read."""
+    data = payload.get("data")
+    kind = str(payload.get("type", ""))
+    if not isinstance(data, dict) or kind not in {"post_call_transcription", "call_initiation_failure", "post_call_audio"}:
+        return payload
+    init = data.get("conversation_initiation_client_data") or {}
+    analysis = data.get("analysis") or {}
+    flat = {
+        **data,
+        "type": "post_call" if kind == "post_call_transcription" else kind,
+        "event_timestamp": payload.get("event_timestamp"),
+        "dynamic_variables": {**(data.get("dynamic_variables") or {}), **(init.get("dynamic_variables") or {})},
+        "data_collection_results": analysis.get("data_collection_results") or data.get("data_collection_results") or {},
+    }
+    dv = flat["dynamic_variables"]
+    for key in ("village_id", "member_id", "verification_id"):
+        if dv.get(key) and not flat.get(key):
+            flat[key] = dv[key]
+    if kind == "call_initiation_failure":
+        flat.setdefault("reason", data.get("failure_reason") or "unknown")
+    return flat
+
+
+def _dc_value(results: dict[str, Any], key: str) -> str:
+    value = results.get(key)
+    if isinstance(value, dict):
+        value = value.get("value")
+    return "" if value is None else str(value).strip()
+
+
+WELCOME_RESULTS: list[dict[str, Any]] = []
+
+
+def _call_iso(payload: dict[str, Any]) -> str:
+    from datetime import datetime, timezone
+
+    stamp = (payload.get("metadata") or {}).get("start_time_unix_secs") or payload.get("event_timestamp")
+    try:
+        return datetime.fromtimestamp(float(stamp), tz=timezone.utc).isoformat()
+    except (TypeError, ValueError):
+        return clock.now().isoformat()
+
+
+def _words_secs(payload: dict[str, Any], words: str) -> float:
+    """Second in the call where she said it: the user turn that best matches her words, else the call length."""
+    probe = words.lower()[:24]
+    for turn in payload.get("transcript") or []:
+        message = str(turn.get("message") or "").lower()
+        if turn.get("role") == "user" and probe and (probe in message or message in probe):
+            return float(turn.get("time_in_call_secs") or 0)
+    return float((payload.get("metadata") or {}).get("call_duration_secs") or 0)
+
+
+async def apply_welcome(payload: dict[str, Any], services: Any | None = None) -> dict[str, Any] | None:
+    """Welcome call (D24 #5): her quiet hours, in her words, become P-QH-01 with call provenance."""
+    dv = payload.get("dynamic_variables") or {}
+    if dv.get("call_purpose") != "welcome":
+        return None
+    results = payload.get("data_collection_results") or {}
+    quiet = _dc_value(results, "quiet_hours")
+    words = _dc_value(results, "quiet_hours_words") or quiet
+    vid = payload.get("village_id") or dv.get("village_id") or village.default_village_id()
+    member_id = dv.get("member_id") or village.care_recipient_id(vid)
+    row: dict[str, Any] = {
+        "conversation_id": payload.get("conversation_id"),
+        "village_id": vid,
+        "member_id": member_id,
+        "consent": _dc_value(results, "welcome_consent"),
+        "preferred_name": _dc_value(results, "preferred_name"),
+        "evening_checkin": _dc_value(results, "evening_checkin"),
+        "quiet_hours": quiet,
+        "words": words,
+        "call_at": _call_iso(payload),
+        "policy": None,
+    }
+    WELCOME_RESULTS.append(row)
+    if not quiet:
+        return row
+    try:
+        from core.builder.founding import confirm_quiet_hours
+
+        if services is None:
+            from core.builder.routes import services as builder_services
+
+            services = builder_services()
+        spec = await services.get_spec(vid)
+        if spec and any(p.get("rule_id") == "P-QH-01" for p in spec.get("policies") or []):
+            ref = f"welcome_call:{payload.get('conversation_id', '')}@{row['call_at']}"
+            row["policy"] = confirm_quiet_hours(spec, member_id, quiet, words, _words_secs(payload, words), ref=ref)
+            await services.store_spec(vid, spec, spec.get("status") or "draft")
+    except Exception as exc:  # never fail the webhook over provenance
+        row["error"] = type(exc).__name__
+    return row
+
+
+async def _flush_captions(payload: dict[str, Any]) -> None:
+    try:
+        from core.voice import captions
+
+        if not captions.enabled():
+            return
+        dv = payload.get("dynamic_variables") or {}
+        names = {"user": dv.get("member_short_name") or dv.get("recipient_name") or "Caller", "agent": "Village"}
+        await captions.emit_transcript(
+            payload.get("village_id") or dv.get("village_id") or village.default_village_id(),
+            str(payload.get("conversation_id") or ""),
+            payload.get("transcript") or [],
+            names=names,
+            final=True,
+        )
+    except Exception:
+        return
+
+
 async def handle_payload(payload: dict[str, Any]) -> None:
+    payload = normalize(payload)
     event_type = payload.get("type", payload.get("event", "post_call"))
     clean = clean_payload(payload)
     POST_CALLS.append(clean)
@@ -120,6 +236,11 @@ async def handle_payload(payload: dict[str, Any]) -> None:
 
     if event_type in {"post_call", "conversation_ended", "data_collection"}:
         await apply_verification_answer(clean)
+        await apply_welcome(payload)  # her words, unredacted digits: "9" in "9 de la noche" is an hour, not an account
+        if os.getenv("VILLAGE_CAPTIONS", "on").lower() != "off" and clean.get("transcript"):
+            import asyncio
+
+            asyncio.get_running_loop().create_task(_flush_captions(clean))
         conversation_id = clean.get("conversation_id", "unknown_conversation")
         write_memory_outbox(conversation_id, clean)
 
