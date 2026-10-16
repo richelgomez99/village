@@ -7,7 +7,7 @@ import { fmtTime, mmss } from "../util/time";
 import { Countdown } from "./care";
 import { ProposalBlocks, ReleaseStepper, useAppliedBanner, type ProposalLike } from "./proposal";
 import { undoProposal } from "../control/api";
-import { Bi, Card, Icon, memberName } from "./shared";
+import { Bi, Card, Icon, RAW_REF, memberName, sourceWords } from "./shared";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -65,7 +65,9 @@ const FLAG_WORDS: Record<string, string> = { urgency: "Urgency", emotional_press
 
 export function IncidentCard({ id, props }: CatalogProps) {
   const ctx = useCtx();
-  const items = arr<Incident>(ctx.data[props.bind]).slice(0, props.limit ?? 5);
+  const all = arr<Incident>(ctx.data[props.bind]);
+  // Home shows what still needs someone; the area tab keeps the history (acknowledged ones too)
+  const items = (ctx.openOnly ? all.filter((i) => i.status === "open") : all).slice(0, props.limit ?? 5);
   return (
     <Card test="incident-cards" title={props.title ? <Bi value={props.title} /> : undefined}>
       {items.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
@@ -82,7 +84,7 @@ export function IncidentCard({ id, props }: CatalogProps) {
             {props.show_provenance && inc.provenance.length ? (
               <ul className="provenance" data-test="provenance">
                 {inc.provenance.map((p) => (
-                  <li key={p.label}>{p.label} <span className="mono small">{p.source.kind}:{p.source.ref}{p.source.secs != null ? ` @${mmss(Math.round(p.source.secs))}` : ""}</span></li>
+                  <li key={p.label}>{RAW_REF.test(p.label) ? null : <>{p.label} · </>}<span className="small">{sourceWords(p.source, inc.at, ctx.data, props.subject, ctx.lang)}</span></li>
                 ))}
               </ul>
             ) : null}

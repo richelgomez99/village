@@ -30,15 +30,15 @@ afterEach(() => vi.useRealTimers());
 describe("tabs from life areas (generic)", () => {
   it("Reyes coordinator: Home + the areas its elements serve, in spec order, + Chat", () => {
     const p = planTabs(view(R, "coordinator"), areasData(R), "en");
-    expect(p.areas.map((a) => a.id)).toEqual(["health", "people"]);
-    expect(p.areas.map((a) => a.label)).toEqual(["Health", "People"]);
+    expect(p.areas.map((a) => a.id)).toEqual(["health", "money", "people"]);
+    expect(p.areas.map((a) => a.label)).toEqual(["Health", "Money", "People"]);
     expect(p.headline).toBe("rn");
     expect(p.chat).toBe("chat");
     expect(p.attention).toEqual(["al", "prop", "inc", "vp"]);
   });
   it("localized labels from the spec's label_i18n when given", () => {
     const p = planTabs(view(R, "coordinator"), {}, "es", R.blueprint);
-    expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Familia"]);
+    expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Dinero", "Familia"]);
   });
   it("Reyes helper serves fewer than two areas on its own tabs: Home + Chat only", () => {
     const p = planTabs(view(R, "helper"), areasData(R), "en");
@@ -67,7 +67,7 @@ describe("tabs from life areas (generic)", () => {
     const { container } = mount("ana");
     await act(async () => { vi.advanceTimersByTime(10); });
     const tabs = [...container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent);
-    expect(tabs).toEqual(["Home", "Pills", "People", "Chat"]); // labels are whatever blueprint:life_areas says
+    expect(tabs).toEqual(["Home", "Pills", "Money", "People", "Chat"]); // labels are whatever blueprint:life_areas says
     expect(container.querySelectorAll("[data-test='right-now-line']").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelector("[data-test='wvd-counts']")?.textContent).toContain("Did 3 things on its own · asked a person 1 · refused itself 1");
     expect(container.querySelector("[data-test='chat-preview']")).not.toBeNull();

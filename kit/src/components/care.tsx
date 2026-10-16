@@ -5,7 +5,7 @@ import { useCtx } from "../renderer/context";
 import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
 import { fmtDay, fmtTime, mmss, secondsLeft, useNow } from "../util/time";
-import { Bi, Card, Icon, memberName } from "./shared";
+import { Bi, Card, Icon, memberName, sourceWords } from "./shared";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -196,7 +196,7 @@ export function Timeline({ props }: CatalogProps) {
             </span>
             {props.show_provenance ? (
               <span className="tl-source" data-test="provenance">
-                {k("source", ctx.lang)}: {i.source_label ? text(i.source_label, ctx.lang) : `${i.source.kind} ${i.source.ref}${i.source.secs != null ? ` @${mmss(Math.round(i.source.secs))}` : ""}`}
+                {k("source", ctx.lang)}: {i.source_label ? text(i.source_label, ctx.lang) : sourceWords(i.source, i.at, ctx.data, props.subject, ctx.lang)}
               </span>
             ) : null}
           </li>

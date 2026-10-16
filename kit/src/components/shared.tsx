@@ -114,3 +114,28 @@ export function memberName(id: string | null | undefined, data?: Record<string, 
   const base = id.replace(/^[a-z]_/, "").split("_")[0];
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
+
+/** A ref like "call:conv_seed_1009" or "st_reyes_morning" never reaches a phone raw. */
+export const RAW_REF = /[A-Za-z][:_][A-Za-z0-9]/;
+
+/** "her call" → "Mamá's call" when the member record carries a relationship word / short name. */
+export function relationWord(id: string | null | undefined, data: Record<string, unknown>): string {
+  if (!id) return "her";
+  const r = data[`member:${id}`] as { short_name?: string; relationship_word?: string; name?: string } | undefined;
+  return r?.short_name ?? r?.relationship_word ?? r?.name ?? memberName(id, data);
+}
+
+/** Provenance in words: "Mamá's call · Oct 9, 7:21 PM · 21 s in" from source{kind, ref, secs} + the event time. */
+export function sourceWords(src: { kind: string; ref?: string; secs?: number } | undefined, at: string | undefined, data: Record<string, unknown>, subject?: string | null, lang = "en"): string {
+  if (!src) return "";
+  const who = relationWord(subject, data);
+  const KIND: Record<string, string> = { call: `${who}'s call`, phone_line: `${who}'s call`, voice: `${who}'s call`, scan: "pill check", app: "the app", system: "on file", seed: "on file", gate: "Village's check", sms: "a text" };
+  const head = KIND[src.kind] ?? (RAW_REF.test(src.kind) ? "a record" : src.kind);
+  const parts = [head];
+  if (at) {
+    const d = new Date(at);
+    if (!Number.isNaN(d.getTime())) parts.push(new Intl.DateTimeFormat(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(d));
+  }
+  if (src.secs != null) parts.push(`${Math.round(src.secs)} s in`);
+  return parts.join(" · ");
+}

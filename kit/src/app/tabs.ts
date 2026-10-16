@@ -33,6 +33,12 @@ export function needAreaMap(data: Record<string, unknown>, blueprint?: { life_ar
   return out;
 }
 
+/** The part of the data the tab set depends on: life-area ids, labels and need ids. Tabs are derived once per value of this key. */
+export function tabKey(data: Record<string, unknown>): string {
+  const rows = Array.isArray(data["blueprint:life_areas"]) ? (data["blueprint:life_areas"] as AreaRow[]) : [];
+  return JSON.stringify(rows.map((a) => [a.id, a.label, a.label_i18n, a.need_ids]));
+}
+
 /** Area order + labels: blueprint first, then the live rows. Label = label_i18n[lang], else the word before ":" ("Health: pills" → "Health"). */
 export function areaLabels(data: Record<string, unknown>, lang: string, blueprint?: { life_areas?: AreaRow[] } | null): Map<string, string> {
   const out = new Map<string, string>();
@@ -67,7 +73,15 @@ export function planTabs(view: View, data: Record<string, unknown>, lang: string
     if (area) byArea.set(area, [...(byArea.get(area) ?? []), id]);
     else unassigned.push(id);
   }
-  const areas: Tab[] = order.filter((a) => byArea.has(a)).map((a) => ({ id: a, label: labels.get(a) ?? a, elements: byArea.get(a)! }));
+  // incident history also lives on its area's tab (Home lists only the open ones)
+  const history = new Map<string, string[]>();
+  for (const id of attention.filter((x) => view.elements[x].type === "IncidentCard")) {
+    const area = (view.needs_served?.[id] ?? []).map((n) => needArea.get(n)).find(Boolean);
+    if (area) history.set(area, [...(history.get(area) ?? []), id]);
+  }
+  const areas: Tab[] = order
+    .filter((a) => byArea.has(a) || history.has(a))
+    .map((a) => ({ id: a, label: labels.get(a) ?? a, elements: [...(history.get(a) ?? []), ...(byArea.get(a) ?? [])] }));
   // one area is not a choice: keep it on Home (a helper or a supporter: Home · Chat)
   if (areas.length < 2 || movable.length < MIN_FOR_TABS) return { attention, headline, homeRest: others, areas: [], chat };
   return { attention, headline, homeRest: others.filter((id) => pinned.includes(id) || unassigned.includes(id)), areas, chat };

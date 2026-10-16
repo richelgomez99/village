@@ -43,6 +43,8 @@ export interface RenderCtx {
   chatDraft?: string;
   /** VillageChat is the full-height Chat tab panel */
   chatFull?: boolean;
+  /** Home's attention group: list only what is still open (acknowledged incidents live on their area tab) */
+  openOnly?: boolean;
 }
 
 const LITERAL_PHONE = /^(\+[1-9][0-9]{6,14}|911|988|18002221222)$/;
