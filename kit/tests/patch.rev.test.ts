@@ -1,21 +1,26 @@
 import { describe, expect, it } from "vitest";
 import reyes from "../../contracts/fixtures/reyes_spec.json";
+import proposal from "../../contracts/schemas/proposal.schema.json";
 import { applyViewPatch, viewSchema } from "../src/renderer/view";
 
+const elder = () => viewSchema.parse((reyes as any).views.elder);
+
 describe("applyViewPatch", () => {
-  it("applies valid RFC6902 patches to a clone", () => {
-    const view = viewSchema.parse((reyes as any).views.elder);
-    const next = applyViewPatch(view, [
-      { op: "add", path: "/elements/scam", value: { type: "ScamCheck", props: { label: "¿Es de verdad?", choices_member_ids: ["m_marco"], bind: "verifications:mine" } } },
-      { op: "add", path: "/elements/s/children/6", value: "scam" }
-    ]);
-    expect(Object.keys(next.elements)).toHaveLength(8);
-    expect(view.elements.scam).toBeUndefined();
+  it("applies the fixture proposal ops to the elder view (ScamCheck added, 8 elements)", () => {
+    const before = elder();
+    const ops = (proposal as any).examples[0].ops.elder;
+    const after = applyViewPatch(before, ops);
+    expect(Object.keys(after.elements)).toHaveLength(Object.keys(before.elements).length + 1);
+    expect(after.elements.scam.type).toBe("ScamCheck");
+    expect(after.elements.s.children?.[3]).toBe("scam");
+    expect(before.elements.scam).toBeUndefined();
   });
 
-  it("throws on bad paths and leaves the source unchanged", () => {
-    const view = viewSchema.parse((reyes as any).views.elder);
-    expect(() => applyViewPatch(view, [{ op: "replace", path: "/elements/nope/type", value: "Text" }])).toThrow();
-    expect(view.elements.s.type).toBe("Screen");
+  it("throws on a bad op and leaves the view unchanged", () => {
+    const before = elder();
+    const snapshot = JSON.stringify(before);
+    expect(() => applyViewPatch(before, [{ op: "replace", path: "/elements/nope/props/x", value: 1 }])).toThrow();
+    expect(() => applyViewPatch(before, [{ op: "add", path: "/elements/s/children/-", value: "ghost" }])).toThrow();
+    expect(JSON.stringify(before)).toBe(snapshot);
   });
 });

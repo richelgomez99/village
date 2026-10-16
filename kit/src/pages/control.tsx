@@ -1,27 +1,93 @@
-import React from "react";
+import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
-import { useLive } from "../live/useLive";
+import { ViewAs } from "../components/chrome";
+import { REYES_MEMBERS, useSocketState } from "../app/MemberApp";
+import { liveConfig, makeSocket } from "../live/useLive";
+import type { VillageSocket } from "../live/ws";
+import { Renderer } from "../renderer/Renderer";
+import { text } from "../renderer/view";
+import { fmtTime } from "../util/time";
 import "../theme/fonts.css";
 import "../theme/floor.css";
 import "../theme/a.css";
 
-function ControlPage() {
-  const live = useLive("control");
+/** D18: Spanish on the projector always carries the English line under it. */
+function Captioned({ value }: { value: unknown }) {
+  const es = text(value, "es");
+  const en = text(value, "en");
+  if (value && typeof value === "object" && (value as any).es && en && en !== es) {
+    return (
+      <>
+        <span lang="es">{es}</span>
+        <span className="caption" lang="en" data-test="caption">{en}</span>
+      </>
+    );
+  }
+  return <span>{en || es}</span>;
+}
+
+export function ControlRoom({ socket }: { socket: VillageSocket }) {
+  const state = useSocketState(socket);
+  const gate = state.control.filter((c) => c.kind === "gate").reverse();
+  const reasoning = state.control.filter((c) => c.kind === "reasoning").reverse();
+  const counters = useMemo(() => {
+    const m = new Map<string, any>();
+    state.control.filter((c) => c.kind === "counter").forEach((c) => m.set(String(c.payload.name), c.payload));
+    return [...m.values()];
+  }, [state.control]);
+  const lastGate = gate[0]?.payload as any;
+  const ctx = state.view
+    ? { view: state.view, data: state.data, lang: state.view.lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled: true, highlight: new Set<string>(), results: {}, send: () => "", ack: () => {}, captions: true }
+    : null;
   return (
-    <main data-test="control" className="control">
+    <main data-test="control" className="control" data-status={state.status}>
       <header>
-        <button data-test="village-tab" data-village="v_reyes">Reyes</button>
-        <span data-test="phones-counter" data-value="3">3 phones</span>
-        <time data-test="demo-clock" data-now={live.now} data-offset="0">{live.now}</time>
-        <button data-test="clock-warp">+30 min</button>
+        <strong>Village · Control Room</strong>
+        <span data-test="phones-counter">{counters.map((c) => `${c.value} ${c.label}`).join(" · ") || "live"}</span>
+        <time data-test="demo-clock">{fmtTime(new Date(socket.nowMs()).toISOString(), "en")}</time>
+        <ViewAs options={REYES_MEMBERS.slice(0, 3)} current={state.viewAs} self={null} onPick={(m) => socket.viewAs(m)} lang="en" />
       </header>
-      <section data-test="blueprint"><h2>What the agent heard</h2><div data-test="blueprint-person" data-member="m_carmen">Carmen · pills, money calls, whose turn</div><div data-test="blueprint-area" data-area="money">Money: verify Marco first</div><div data-test="blueprint-rule">R-MONEY-VERIFY</div></section>
-      <section data-test="live-moment"><h2>No mande dinero todavía</h2><p className="caption">Do not send money yet.</p><span data-test="countdown" role="timer">0:35</span></section>
-      <section data-test="gate-feed"><div data-test="gate-row" data-rule="R-MONEY-VERIFY" data-decision="verify_with_member">Check with Marco</div></section>
-      <section data-test="decisions-log"><div data-test="decision-row">Money request in Marco's name → check with the real Marco.</div></section>
-      <section data-test="ask-why"><input data-test="ask-why-input" /><button data-test="ask-why-send">Ask</button><p data-test="ask-why-answer"></p></section>
+      <section data-test="live-moment">
+        <h2>Safety gate</h2>
+        {lastGate ? (
+          <div data-test="gate-now" data-rule={lastGate.decision?.rule_id} data-decision={lastGate.decision?.decision}>
+            <p className="mono">{lastGate.decision?.rule_id} · {lastGate.decision?.decision}</p>
+            {lastGate.decision?.say ? <p className="big"><Captioned value={lastGate.decision.say} /></p> : null}
+          </div>
+        ) : (
+          <p className="caption">Waiting for the first call.</p>
+        )}
+      </section>
+      <section data-test="phone-mirror">
+        <h2>{state.viewAs ? "Same URL · this person's app" : "Pick a person to see their app"}</h2>
+        <p className="caption">village.app/v/reyes · one site · three people</p>
+        {ctx ? (
+          <div className="phone app" data-theme={ctx.view.theme} data-test="app" data-role={state.role}>
+            <Renderer ctx={ctx} />
+          </div>
+        ) : null}
+      </section>
+      <section data-test="gate-feed">
+        <h2>Gate decisions</h2>
+        {gate.map((g, i) => (
+          <div key={i} data-test="gate-row" data-rule={(g.payload as any).decision?.rule_id}>
+            <span className="mono">{fmtTime(g.at, "en")} · {(g.payload as any).decision?.rule_id}</span>
+            {(g.payload as any).decision?.say ? <p><Captioned value={(g.payload as any).decision.say} /></p> : null}
+          </div>
+        ))}
+      </section>
+      <section data-test="decisions-log">
+        <h2>Decisions</h2>
+        {reasoning.map((r, i) => (
+          <div key={i} data-test="decision-row"><span className="mono">{fmtTime(r.at, "en")}</span> {String((r.payload as any).text ?? "")}</div>
+        ))}
+      </section>
     </main>
   );
 }
 
-createRoot(document.getElementById("root")!).render(<ControlPage />);
+if (typeof document !== "undefined" && document.getElementById("root")) {
+  const socket = makeSocket(liveConfig("control"));
+  socket.connect();
+  createRoot(document.getElementById("root")!).render(<ControlRoom socket={socket} />);
+}

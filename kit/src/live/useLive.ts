@@ -1,29 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
-import { installFakeWs } from "../dev/fakeWs";
-import { VillageSocket, type LiveSnapshot } from "./ws";
+import { createFakeWebSocket, isFakeClient, parseFakeOptions } from "../dev/fakeWs";
+import type { ClientName } from "./messages";
+import { VillageSocket, type LiveState } from "./ws";
 
-export function useLive(client: "kit" | "control" = "kit") {
-  const params = new URLSearchParams(window.location.search);
-  const fake = params.get("fake");
-  if (fake) installFakeWs(fake);
-  const token = params.get("m") ?? localStorage.getItem("member_token") ?? `mt_${fake ?? "carmen"}`;
-  const core = import.meta.env.VITE_CORE_WS ?? `${import.meta.env.VITE_CORE_URL ?? "ws://localhost:8787"}`.replace(/^http/, "ws") + "/ws";
-  const url = fake ? "ws://fake/ws" : `${core}?village=v_reyes&m=${encodeURIComponent(token)}`;
-  const socket = useMemo(() => new VillageSocket({ url, village: "v_reyes", token, client, fakeRole: fake ?? undefined }), [url, token, client, fake]);
-  const [state, setState] = useState<LiveSnapshot>(() => ({
-    status: "idle",
-    attempt: 0,
-    role: String(fake ?? "elder"),
-    member_id: null,
-    rev: 0,
-    view: null,
-    data: {},
-    now: new Date().toISOString(),
-    prompt: null,
-    lastError: null,
-    sent: []
-  }));
+export interface LiveConfig {
+  url: string;
+  village: string;
+  token: string;
+  client: ClientName;
+  fake: string | null;
+}
 
+/** Resolve socket config from the page URL: ?fake=<client> (offline), ?m=<token> or stored token, CORE_WS / same-origin /ws. */
+export function liveConfig(client: ClientName, loc: Location = window.location): LiveConfig {
+  const p = new URLSearchParams(loc.search);
+  const fake = p.get("fake");
+  const village = p.get("village") ?? "v_reyes";
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem("village_member_token");
+  } catch {
+    stored = null;
+  }
+  const token = p.get("m") ?? stored ?? `mt_${fake ?? "anonymous"}_offline_demo`;
+  const env = (import.meta as any).env ?? {};
+  const core: string =
+    env.VITE_CORE_WS ??
+    (env.DEV ? "ws://localhost:8787/ws" : `${loc.protocol === "https:" ? "wss:" : "ws:"}//${loc.host}/ws`);
+  const url = fake ? `ws://fake/${fake}` : `${core}?village=${encodeURIComponent(village)}&m=${encodeURIComponent(token)}`;
+  return { url, village, token, client, fake };
+}
+
+export function makeSocket(cfg: LiveConfig, search = typeof window !== "undefined" ? window.location.search : ""): VillageSocket {
+  const WebSocketImpl = isFakeClient(cfg.fake) ? createFakeWebSocket(cfg.fake, parseFakeOptions(search)) : undefined;
+  return new VillageSocket({ url: cfg.url, village: cfg.village, token: cfg.token, client: cfg.client, WebSocketImpl });
+}
+
+export function useLive(client: ClientName = "kit") {
+  const socket = useMemo(() => makeSocket(liveConfig(client)), [client]);
+  const [state, setState] = useState<LiveState>(socket.state);
   useEffect(() => {
     const unsub = socket.subscribe(setState);
     socket.connect();
@@ -32,6 +47,5 @@ export function useLive(client: "kit" | "control" = "kit") {
       socket.close();
     };
   }, [socket]);
-
-  return { ...state, send: socket.action.bind(socket) };
+  return { state, socket };
 }

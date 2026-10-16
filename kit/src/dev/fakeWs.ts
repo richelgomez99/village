@@ -1,104 +1,217 @@
-import reyesSpec from "../../../contracts/fixtures/reyes_spec.json";
-import wsScam from "../../../contracts/fixtures/ws_sequence_scam.json";
+// In-browser fake Core: ?fake=carmen|ana|marco|lucia|control. Sends the role's snapshot (reyes_spec.json + fixture data,
+// D22 overlay), then replays ws_sequence_scam.json: `start` after ?start=<s> (default 2; "off" = wait for window.__fake.play),
+// then the tail: ?tail=denied|timeout_tail|confirmed_tail, or — without ?tail — whatever Marco answers (any tab, via
+// BroadcastChannel), else timeout_tail at the fixture's own times. ?speed=<x> scales time. Every sent frame is on window.__frames.
+import { FAKE_CLIENTS, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
 
-let installed = false;
+type Tail = "denied" | "timeout_tail" | "confirmed_tail";
 
-export function installFakeWs(fake: string) {
-  if (installed) return;
-  installed = true;
-  const RealEventTarget = EventTarget;
-  class FakeWebSocket extends RealEventTarget {
-    static CONNECTING = 0;
-    static OPEN = 1;
-    static CLOSING = 2;
-    static CLOSED = 3;
-    readyState = 0;
-    onopen: ((event: Event) => void) | null = null;
-    onmessage: ((event: MessageEvent) => void) | null = null;
-    onclose: ((event: CloseEvent) => void) | null = null;
-
-    constructor(public url: string) {
-      super();
-      setTimeout(() => this.open(), 0);
-    }
-
-    send(raw: string) {
-      const frame = JSON.parse(raw);
-      if (frame.type === "hello") {
-        this.emit(snapshotFor(fake));
-        const params = new URLSearchParams(window.location.search);
-        const tail = params.get("tail") ?? "denied";
-        const speed = Number(params.get("speed") ?? "20");
-        replay(this, fake, "start", speed);
-        replay(this, fake, tail === "timeout" ? "timeout_tail" : tail === "confirmed" ? "confirmed_tail" : "denied", speed, 700);
-      }
-      if (frame.type === "action" && frame.name === "answer_verification") {
-        const result = frames("denied", fake).find((f: any) => f.msg.type === "result");
-        if (result) this.emit(result.msg);
-      }
-    }
-
-    close() {
-      this.readyState = 3;
-      const event = new CloseEvent("close");
-      this.dispatchEvent(event);
-      this.onclose?.(event);
-    }
-
-    private open() {
-      this.readyState = 1;
-      const event = new Event("open");
-      this.dispatchEvent(event);
-      this.onopen?.(event);
-    }
-
-    emit(msg: unknown) {
-      const event = new MessageEvent("message", { data: JSON.stringify(msg) });
-      this.dispatchEvent(event);
-      this.onmessage?.(event);
-    }
-  }
-  (window as any).WebSocket = FakeWebSocket;
+export interface FakeOptions {
+  start?: number | "off";
+  tail?: Tail | null;
+  speed?: number;
 }
 
-function snapshotFor(client: string) {
-  const role = client === "ana" ? "coordinator" : client === "marco" ? "helper" : "elder";
-  const member_id = client === "ana" ? "m_ana" : client === "marco" ? "m_marco" : "m_carmen";
-  const connectFrame = frames("connect", client).find((f: any) => f.msg.type === "snapshot");
-  if (connectFrame) return connectFrame.msg;
-  const view = (reyesSpec as any).views[role];
-  return { type: "snapshot", contract_version: "1.1.0", rev: 4, village: "v_reyes", role, member_id, spec: view, data: baseData(role), now: "2026-10-16T14:01:40-04:00" };
-}
-
-function baseData(role: string) {
+export function parseFakeOptions(search: string): FakeOptions {
+  const p = new URLSearchParams(search);
+  const startRaw = p.get("start");
+  const tailRaw = p.get("tail");
+  const tail: Tail | null =
+    tailRaw === "denied" ? "denied" : tailRaw === "timeout" || tailRaw === "timeout_tail" ? "timeout_tail" : tailRaw === "confirmed" || tailRaw === "confirmed_tail" ? "confirmed_tail" : null;
   return {
-    "alerts:active": [],
-    "verifications:pending?member=me": null,
-    "blueprint:life_areas": [
-      { id: "health", label: "Health: pills", status: { en: "Refill due Sunday", es: "Relleno el domingo" } },
-      { id: "money", label: "Money: scam calls", status: { en: "Marco verifies money calls", es: "Marco confirma llamadas de dinero" } },
-      { id: "people", label: "People: whose turn", status: { en: "Marco tonight", es: "Marco esta noche" } }
-    ],
-    "rota:current?member=me": {
-      is_my_turn: role === "helper",
-      on_duty: { member_id: "m_marco", name: "Marco" },
-      next_shift: "2026-10-17T18:00:00-04:00",
-      answer: { en: "Yes. Tonight until 9:30. Nothing to do unless Village calls you." }
-    },
-    "incidents:open": [],
-    "facts:dose_event?subject=m_carmen&valid_at=today": { slots: [] },
-    "facts:dose_event?subject=m_carmen&valid_at=week": { days: [] },
-    "rota:week": [{ date: "Fri", on_duty: { member_id: "m_marco", name: "Marco" }, backup: { member_id: "m_ana", name: "Ana" } }],
-    "timeline:subject=m_carmen": [{ event_id: "ev_med_change", kind: "med_change", text: { en: "Lisinopril changed to 10 mg", es: "Lisinopril cambió a 10 mg" }, source_label: "Dr. Lee, Oct 3", superseded: false }]
+    start: startRaw === "off" ? "off" : startRaw != null && !Number.isNaN(Number(startRaw)) ? Number(startRaw) : 2,
+    tail,
+    speed: Number(p.get("speed") ?? "1") || 1
   };
 }
 
-function frames(sequence: string, client: string) {
-  return ((wsScam as any).sequences[sequence] ?? []).filter((f: any) => f.client === client && f.dir === "s2c");
+const ms = (iso: string) => Date.parse(iso);
+
+class FakeHub {
+  sockets = new Set<FakeSocket>();
+  timers: ReturnType<typeof setTimeout>[] = [];
+  timeoutTimers: ReturnType<typeof setTimeout>[] = [];
+  played = new Set<string>();
+  ackReplay: SeqFrame[] = [];
+  channel: BroadcastChannel | null = null;
+
+  constructor(public opts: FakeOptions) {
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        this.channel = new BroadcastChannel("village-fake");
+        this.channel.onmessage = (e) => this.onBroadcast(e.data, false);
+      }
+    } catch {
+      this.channel = null;
+    }
+  }
+
+  broadcast(msg: { kind: "tail"; tail: Tail } | { kind: "ack" }) {
+    this.onBroadcast(msg, true);
+  }
+
+  private onBroadcast(msg: any, local: boolean) {
+    if (local) this.channel?.postMessage(msg);
+    if (msg?.kind === "tail") this.playTail(msg.tail);
+    if (msg?.kind === "ack") this.playFrames(this.ackReplay, 0);
+  }
+
+  play(name: "start" | Tail) {
+    if (name === "start") this.playStart();
+    else this.playTail(name);
+  }
+
+  playStart() {
+    if (this.played.has("start")) return;
+    this.played.add("start");
+    const frames = sequence("start");
+    this.playFrames(frames, 0);
+    const base = ms(frames[0].t);
+    if (this.opts.tail) {
+      const tail = sequence(this.opts.tail);
+      const delay = (ms(tail[0].t) - base) / this.speed;
+      this.timers.push(setTimeout(() => this.playTail(this.opts.tail!), delay));
+    } else {
+      // nobody answers → the safe default arrives on the fixture's own clock
+      const tail = sequence("timeout_tail");
+      const delay = (ms(tail[0].t) - base) / this.speed;
+      this.timeoutTimers.push(setTimeout(() => this.playTail("timeout_tail"), delay));
+    }
+  }
+
+  playTail(tail: Tail) {
+    if (this.played.has("tail")) return;
+    this.played.add("tail");
+    this.timeoutTimers.forEach(clearTimeout);
+    const frames = sequence(tail);
+    const ackAt = frames.findIndex((f) => f.dir === "c2s" && f.msg.type === "ack");
+    this.ackReplay = ackAt >= 0 ? frames.slice(ackAt) : [];
+    this.playFrames(ackAt >= 0 ? frames.slice(0, ackAt) : frames, 0);
+  }
+
+  get speed() {
+    return this.opts.speed ?? 1;
+  }
+
+  playFrames(frames: SeqFrame[], extraDelay: number) {
+    const s2c = frames.filter((f) => f.dir === "s2c");
+    if (!s2c.length) return;
+    const base = ms(s2c[0].t);
+    for (const f of s2c) {
+      const delay = extraDelay + (ms(f.t) - base) / this.speed;
+      const fire = () => this.sockets.forEach((s) => s.deliver(f));
+      if (delay <= 0) fire();
+      else this.timers.push(setTimeout(fire, delay));
+    }
+  }
+
+  scheduleStart() {
+    if (this.opts.start === "off" || this.played.has("start") || this.startScheduled) return;
+    this.startScheduled = true;
+    this.timers.push(setTimeout(() => this.playStart(), ((this.opts.start as number) ?? 2) * 1000 / this.speed));
+  }
+  startScheduled = false;
+
+  reset() {
+    this.timers.forEach(clearTimeout);
+    this.timeoutTimers.forEach(clearTimeout);
+    this.timers = [];
+    this.timeoutTimers = [];
+    this.played.clear();
+    this.startScheduled = false;
+    this.ackReplay = [];
+  }
 }
 
-function replay(socket: any, client: string, sequence: string, speed: number, offset = 100) {
-  frames(sequence, client).forEach((frame: any, index: number) => {
-    setTimeout(() => socket.emit(frame.msg), offset + (index * 400) / Math.max(1, speed));
-  });
+class FakeSocket extends EventTarget {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
+  readyState = 0;
+  onopen: ((e: Event) => void) | null = null;
+  onmessage: ((e: MessageEvent) => void) | null = null;
+  onclose: ((e: Event) => void) | null = null;
+  target: FakeClient;
+  private lastActionReq: Record<string, string> = {};
+
+  constructor(public url: string, private hub: FakeHub, private me: FakeClient) {
+    super();
+    this.target = me;
+    hub.sockets.add(this);
+    setTimeout(() => {
+      this.readyState = 1;
+      this.fire(new Event("open"));
+    }, 0);
+  }
+
+  send(raw: string) {
+    const f = JSON.parse(raw);
+    if (f.type === "hello") {
+      const viewAs: string | undefined = f.view_as;
+      const asClient = viewAs ? clientForMember(viewAs) : null;
+      this.target = asClient ?? this.me;
+      this.emit(fakeSnapshot(this.target));
+      this.hub.scheduleStart();
+    } else if (f.type === "ping") {
+      this.emit({ type: "pong", ts: f.ts });
+    } else if (f.type === "ack") {
+      this.hub.broadcast({ kind: "ack" });
+    } else if (f.type === "action") {
+      if (f.name === "answer_verification") {
+        this.lastActionReq.answer_verification = f.req_id;
+        if (this.hub.played.has("tail")) {
+          const r = sequence("denied").find((x) => x.client === this.target && x.msg.type === "result");
+          this.emit(r && this.hub.opts.tail === "denied" ? { ...r.msg, req_id: f.req_id } : { type: "result", req_id: f.req_id, ok: true });
+          return;
+        }
+        const answer = f.payload?.answer;
+        const tail: Tail = answer === "no" ? "denied" : answer === "yes" ? "confirmed_tail" : "timeout_tail";
+        this.hub.broadcast({ kind: "tail", tail: this.hub.opts.tail ?? tail });
+        // the denied fixture carries Marco's result; the other outcomes get a synthesized ok result
+        if ((this.hub.opts.tail ?? tail) !== "denied") this.emit({ type: "result", req_id: f.req_id, ok: true });
+      } else {
+        this.emit({ type: "result", req_id: f.req_id, ok: true });
+      }
+    }
+  }
+
+  deliver(f: SeqFrame) {
+    if (f.client !== this.target) return;
+    let msg = f.msg;
+    if (msg.type === "result" && this.lastActionReq.answer_verification) msg = { ...msg, req_id: this.lastActionReq.answer_verification };
+    this.emit(msg);
+  }
+
+  close() {
+    if (this.readyState === 3) return;
+    this.readyState = 3;
+    this.hub.sockets.delete(this);
+    this.fire(new Event("close"));
+  }
+
+  emit(msg: unknown) {
+    if (this.readyState !== 1) return;
+    this.fire(new MessageEvent("message", { data: JSON.stringify(msg) }));
+  }
+
+  private fire(e: Event) {
+    this.dispatchEvent(e);
+    const h = (this as any)[`on${e.type}`];
+    if (typeof h === "function") h.call(this, e);
+  }
+}
+
+export function isFakeClient(v: string | null): v is FakeClient {
+  return !!v && v in FAKE_CLIENTS;
+}
+
+/** Returns a WebSocket-compatible constructor bound to one fake client; also exposes window.__fake for the presenter. */
+export function createFakeWebSocket(client: FakeClient, opts: FakeOptions): typeof WebSocket {
+  const hub = new FakeHub(opts);
+  if (typeof window !== "undefined") (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), hub };
+  const Ctor = function (this: unknown, url: string) {
+    return new FakeSocket(url, hub, client);
+  } as unknown as typeof WebSocket;
+  return Ctor;
 }

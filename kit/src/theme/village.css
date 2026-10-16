@@ -1,20 +1,4 @@
-[data-test="app"] {
-  --accent: #2F6B57;
-  --accent-soft: #E3EFE8;
-}
-
-[data-theme="family"] .screen,
-[data-theme="dashboard"] .screen {
-  max-width: 980px;
-}
-
-[data-theme="family"] [data-test="screen-title"],
-[data-theme="dashboard"] [data-test="screen-title"] {
-  font-size: 30px;
-}
-
-[data-theme="family"] [data-test="bigbutton"],
-[data-theme="dashboard"] [data-test="bigbutton"] {
-  min-height: 64px;
-  font-size: 18px;
-}
+/* Village layer: only accent + lid colors, set from data attributes on .app (D8). */
+.app[data-accent="sky"] { --accent: #2F6F8F; --accent-soft: #E3ECF8; }
+.app[data-accent="plum"] { --accent: #6A3F7A; --accent-soft: #F1E7F4; }
+.app[data-accent="blue"] { --accent: #2F5FA7; --accent-soft: #E3ECF8; }

@@ -1,36 +1,108 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { VillageSocket } from "../src/live/ws";
 
 class MockSocket extends EventTarget {
   static instances: MockSocket[] = [];
   readyState = 0;
-  sent: string[] = [];
+  sent: any[] = [];
   constructor(public url: string) {
     super();
     MockSocket.instances.push(this);
   }
-  send(raw: string) { this.sent.push(raw); }
-  close() { this.dispatchEvent(new CloseEvent("close")); }
-  open() { this.dispatchEvent(new Event("open")); }
+  send(raw: string) { this.sent.push(JSON.parse(raw)); }
+  close() { this.readyState = 3; this.dispatchEvent(new Event("close")); }
+  open() { this.readyState = 1; this.dispatchEvent(new Event("open")); }
   message(frame: unknown) { this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(frame) })); }
 }
 
+const view = { lang: "en", theme: "family", root: "s", elements: { s: { type: "Screen", props: { title: "x" }, children: [] } } };
+const snapshot = (rev: number) => ({ type: "snapshot", contract_version: "1.1.0", rev, village: "v_reyes", role: "helper", member_id: "m_marco", spec: view, data: { a: 1 }, now: "2026-10-16T14:00:00-04:00" });
+
+function client() {
+  MockSocket.instances = [];
+  return new VillageSocket({ url: "ws://test", village: "v_reyes", token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test", WebSocketImpl: MockSocket as any, jitter: 0 });
+}
+
+afterEach(() => vi.useRealTimers());
+
 describe("VillageSocket", () => {
-  it("reconnects with last_rev and resyncs on patch rev gaps", () => {
+  it("sends a contract hello, reconnects with backoff and last_rev", () => {
     vi.useFakeTimers();
-    (globalThis as any).WebSocket = MockSocket;
-    const client = new VillageSocket({ url: "ws://test", village: "v_reyes", token: "mt", client: "test" });
-    client.connect();
+    const c = client();
+    c.connect();
     const first = MockSocket.instances[0];
     first.open();
-    first.message({ type: "snapshot", rev: 4, role: "helper", member_id: "m_marco", spec: { lang: "en", theme: "family", root: "s", elements: { s: { type: "Screen", props: { title: "x" } } } }, data: {}, now: "2026-10-16T14:00:00-04:00" });
-    first.message({ type: "patch", base_rev: 3, rev: 5, ops: [] });
-    expect(first.sent.some((raw) => JSON.parse(raw).last_rev === 4)).toBe(true);
+    expect(first.sent[0]).toEqual({ type: "hello", contract_version: "1.1.0", village: "v_reyes", member_token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test" });
+    first.message(snapshot(4));
+    expect(c.state.status).toBe("live");
     first.close();
-    vi.advanceTimersByTime(500);
+    expect(c.state.status).toBe("reconnecting");
+    vi.advanceTimersByTime(499);
+    expect(MockSocket.instances).toHaveLength(1);
+    vi.advanceTimersByTime(1);
     const second = MockSocket.instances[1];
     second.open();
-    expect(second.sent.some((raw) => JSON.parse(raw).last_rev === 4)).toBe(true);
-    vi.useRealTimers();
+    expect(second.sent[0].last_rev).toBe(4);
+    second.close();
+    vi.advanceTimersByTime(999);
+    expect(MockSocket.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1);
+    expect(MockSocket.instances).toHaveLength(3);
+  });
+
+  it("applies patches only on matching base_rev, else re-hellos", () => {
+    const c = client();
+    c.connect();
+    const s = MockSocket.instances[0];
+    s.open();
+    s.message(snapshot(4));
+    s.message({ type: "patch", rev: 6, base_rev: 5, role: "helper", ops: [{ op: "add", path: "/elements/t", value: { type: "Text", props: { text: "hi" } } }] });
+    expect(c.state.rev).toBe(4);
+    expect(s.sent.at(-1)).toMatchObject({ type: "hello", last_rev: 4 });
+    s.message({ type: "patch", rev: 5, base_rev: 4, role: "helper", ops: [{ op: "add", path: "/elements/t", value: { type: "Text", props: { text: "hi" } } }, { op: "add", path: "/elements/s/children/-", value: "t" }], highlight: ["t"] });
+    expect(c.state.rev).toBe(5);
+    expect(c.state.view?.elements.t.type).toBe("Text");
+    expect(c.state.highlight).toEqual(["t"]);
+  });
+
+  it("merges event data and stops on contract_mismatch", () => {
+    vi.useFakeTimers();
+    const c = client();
+    c.connect();
+    const s = MockSocket.instances[0];
+    s.open();
+    s.message(snapshot(4));
+    s.message({ type: "event", event: { id: "ev_x_123", kind: "ack", at: "2026-10-16T14:00:05-04:00" }, data: { b: 2, a: null } });
+    expect(c.state.data).toEqual({ a: null, b: 2 });
+    s.message({ type: "error", code: "contract_mismatch", message: "1.0.0 != 1.1.0" });
+    expect(c.state.status).toBe("closed");
+    vi.advanceTimersByTime(20000);
+    expect(MockSocket.instances).toHaveLength(1);
+  });
+
+  it("maps result frames to the action's element", () => {
+    const c = client();
+    c.connect();
+    const s = MockSocket.instances[0];
+    s.open();
+    s.message(snapshot(4));
+    const req = c.action({ name: "answer_verification", element_id: "vp", payload: { verification_id: "ver_1016_01", answer: "no" } });
+    expect(req).toBe("r_marco_0001");
+    expect(c.state.results.answer_verification).toBe("pending");
+    s.message({ type: "result", req_id: req, ok: true, decision: { say: { es: "a", en: "b" } } });
+    expect(c.state.results.answer_verification).toMatchObject({ ok: true, say: { en: "b" } });
+  });
+
+  it("pings and drops a dead socket", () => {
+    vi.useFakeTimers();
+    MockSocket.instances = [];
+    const c = new VillageSocket({ url: "ws://t", village: "v_reyes", token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test", WebSocketImpl: MockSocket as any, jitter: 0, pingMs: 1000, deadMs: 500 });
+    c.connect();
+    const s = MockSocket.instances[0];
+    s.open();
+    vi.advanceTimersByTime(1000);
+    expect(s.sent.at(-1).type).toBe("ping");
+    vi.advanceTimersByTime(500);
+    expect(c.state.status).toBe("reconnecting");
   });
 });

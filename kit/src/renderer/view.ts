@@ -1,74 +1,67 @@
 import { applyPatch, type Operation } from "fast-json-patch";
 import { z } from "zod";
 
-export const localizedSchema = z.record(z.string(), z.string()).or(z.string());
-export type Localized = z.infer<typeof localizedSchema>;
+const elementId = z.string().regex(/^[a-z][a-z0-9_]{0,23}$/);
 
 export const elementSchema = z.object({
-  type: z.string(),
-  props: z.record(z.string(), z.unknown()).default({}),
-  children: z.array(z.string()).optional()
+  type: z.string().min(1),
+  props: z.record(z.string(), z.unknown()),
+  children: z.array(elementId).max(12).optional()
 });
 
-export const viewSchema = z.object({
-  lang: z.string().default("en"),
-  dir: z.enum(["ltr", "rtl"]).optional(),
-  theme: z.string().default("family"),
-  root: z.string().default("s"),
-  elements: z.record(z.string(), elementSchema),
-  needs_served: z.record(z.string(), z.array(z.string())).optional()
-});
+export const viewSchema = z
+  .object({
+    lang: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/),
+    theme: z.enum(["elder", "family", "dashboard"]),
+    dir: z.enum(["ltr", "rtl"]).optional(),
+    root: z.literal("s"),
+    elements: z.record(elementId, elementSchema),
+    needs_served: z.record(z.string(), z.array(z.string()).min(1)).optional()
+  })
+  .superRefine((view, ctx) => {
+    const root = view.elements[view.root];
+    if (!root || root.type !== "Screen") ctx.addIssue({ code: "custom", message: "root s must be a Screen" });
+    for (const [id, el] of Object.entries(view.elements)) {
+      for (const child of el.children ?? []) {
+        if (!view.elements[child]) ctx.addIssue({ code: "custom", message: `${id} references missing child ${child}` });
+      }
+    }
+  });
 
 export type ElementNode = z.infer<typeof elementSchema>;
 export type View = z.infer<typeof viewSchema>;
+export type Localized = string | Record<string, string>;
 
+/** Apply RFC 6902 ops to a clone. Throws on a bad op or an invalid result; the input view is never touched. */
 export function applyViewPatch(view: View, ops: Operation[]): View {
   const clone = structuredClone(view);
-  const result = applyPatch(clone, ops, true, false).newDocument;
-  return viewSchema.parse(result);
+  const next = applyPatch(clone, ops, true, true).newDocument;
+  return viewSchema.parse(next);
 }
 
+/** Pick a localized string for lang with en / first-value fallback. */
 export function text(value: unknown, lang = "en"): string {
   if (typeof value === "string") return value;
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    const direct = obj[lang] ?? obj.en ?? Object.values(obj)[0];
+    const direct = obj[lang] ?? obj[lang.split("-")[0]] ?? obj.en ?? Object.values(obj)[0];
     return typeof direct === "string" ? direct : "";
   }
   return "";
 }
 
-export function normalizeReyesView(view: View, role: string): View {
-  const next = structuredClone(view);
-  if (role === "elder") {
-    next.elements.tonight = {
-      type: "Text",
-      props: { text: "Esta noche cuida Marco", size: "xl", tone: "ok" }
-    };
-    next.elements.b_pill = {
-      type: "BigButton",
-      props: {
-        label: "Llamar a Village",
-        icon: "phone",
-        tone: "info",
-        action: "call_village",
-        confirm: false,
-        speak: "Llamar a Village"
-      }
-    };
-    const screen = next.elements[next.root];
-    screen.children = ["al", "tonight", "b_pill", "b_call", "b_help", "e911"].filter((id) => next.elements[id]);
-  }
-  if (role === "coordinator" || role === "helper") {
-    next.elements.refill = {
-      type: "RefillCard",
-      props: { bind: "prescriptions:current", owner: "Marco" }
-    };
-    const screen = next.elements[next.root];
-    if (screen?.children && !screen.children.includes("refill")) {
-      const after = role === "helper" ? 2 : screen.children.indexOf("dose") + 1;
-      screen.children.splice(Math.max(1, after), 0, "refill");
-    }
-  }
-  return next;
+/** Element ids reachable from root (children only on Screen/Stack). */
+export function reachable(view: View): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const walk = (id: string) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const el = view.elements[id];
+    if (!el) return;
+    out.push(id);
+    if (el.type === "Screen" || el.type === "Stack") (el.children ?? []).forEach(walk);
+  };
+  walk(view.root);
+  return out;
 }

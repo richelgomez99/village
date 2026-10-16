@@ -1,25 +1,23 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Renderer } from "../src/renderer/Renderer";
-import type { View } from "../src/renderer/view";
+import { k } from "../src/i18n/strings";
+import { renderView } from "./helpers";
 import "../src/theme/floor.css";
 
-describe("RTL and long labels", () => {
-  it("renders long labels without dropping floor size", () => {
-    const view: View = {
-      lang: "ar",
-      dir: "rtl",
-      theme: "elder",
-      root: "s",
-      elements: {
-        s: { type: "Screen", props: { title: "مرحبا", read_aloud: true }, children: ["b"] },
-        b: { type: "BigButton", props: { label: "هذا نص طويل جدا جدا جدا جدا جدا داخل الزر", action: "call_member", tone: "info", confirm: false } }
-      }
-    };
-    render(<div data-theme="elder" dir="rtl"><Renderer view={view} data={{}} lang="ar" role="elder" send={() => {}} /></div>);
-    const button = screen.getByTestId("bigbutton");
-    expect(button).toHaveTextContent("هذا نص طويل");
-    expect(parseFloat(getComputedStyle(button).minHeight)).toBeGreaterThanOrEqual(88);
+describe("i18n", () => {
+  it("kit strings exist in es and en with fallback", () => {
+    expect(k("tonight", "es", { name: "Marco" })).toBe("Esta noche cuida Marco");
+    expect(k("tonight", "en", { name: "Marco" })).toBe("Tonight: Marco");
+    expect(k("tonight", "zh", { name: "Marco" })).toBe("Tonight: Marco");
+  });
+
+  it("long elder labels keep the 88px floor", () => {
+    const label = "Necesito ayuda ahora mismo por favor con algo importante hoy".slice(0, 60);
+    const { container } = renderView({
+      lang: "ar", dir: "rtl", theme: "elder", root: "s",
+      elements: { s: { type: "Screen", props: { title: "مرحبا" }, children: ["b"] }, b: { type: "BigButton", props: { label, action: "call_member", action_arg: "m_ana" } } }
+    });
+    const b = container.querySelector<HTMLElement>("[data-test='bigbutton']")!;
+    expect(b.textContent).toContain(label);
+    expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(88);
   });
 });
