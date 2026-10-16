@@ -2,6 +2,7 @@
 // Values not present in contracts/fixtures are marked FAKE and listed in LANE-REPORT (LD-6).
 import reyesSpec from "../../../contracts/fixtures/reyes_spec.json";
 import wsScam from "../../../contracts/fixtures/ws_sequence_scam.json";
+import blockSpec from "../../../contracts/fixtures/block_spec.json";
 import type { View } from "../renderer/view";
 
 export type FakeClient = "carmen" | "ana" | "marco" | "lucia" | "control";
@@ -23,18 +24,8 @@ export const SNAPSHOT_NOW = "2026-10-16T14:01:40-04:00";
 const marcoPerson = { member_id: "m_marco", name: "Marco" };
 const anaPerson = { member_id: "m_ana", name: "Ana" };
 
-/** D22 refill checklist (kit-extension bind, not in contract 1.1.0). lisinopril change is from events_reyes_seed ev_1003_1740_med_change; other doses FAKE. */
-export const PRESCRIPTIONS = {
-  day: "Sunday",
-  owner: "Marco",
-  items: [
-    { med: "lisinopril", dose: "10 mg", changed: { at: "Oct 3", by: "Dr. Lee", was: "5 mg" } },
-    { med: "metformin", dose: "500" },
-    { med: "atorvastatin", dose: "20" },
-    { med: "apixaban", dose: "5" }
-  ],
-  source_label: "Ana's call, Oct 3 (Dr. Lee's change)"
-};
+/** bv_prescriptions straight from the fixture's connect snapshot (contract 1.2.0, D22). */
+export const PRESCRIPTIONS = (connectSnapshot()?.data?.["prescriptions:current"] ?? null) as unknown;
 
 const doseToday = (withMeds: boolean) => ({
   date: "2026-10-16",
@@ -104,7 +95,6 @@ export function baseData(client: FakeClient): Record<string, unknown> {
           answer: { en: "No. Marco is on tonight; you're next on Saturday." }
         };
       }
-      data["prescriptions:current"] = PRESCRIPTIONS;
       return data;
     }
     default:
@@ -116,51 +106,39 @@ function connectSnapshot(): any {
   return (wsScam as any).sequences.connect.find((f: any) => f.dir === "s2c" && f.msg.type === "snapshot")?.msg;
 }
 
-/** D22 overlay the fake Core applies to the rev-4 fixture: elder loses the "Ya me la tomé" log_dose button and the
- *  dose tracker (the organizer is the tool), gains "Llamar a Village" + TonightCard; helper/coordinator gain RefillCard. */
-export function d22Overlay(view: View, role: string): View {
-  const v = structuredClone(view);
-  const screen = v.elements.s;
-  if (role === "elder") {
-    v.elements.b_pill = {
-      type: "BigButton",
-      props: { label: "Llamar a Village", icon: "phone", tone: "ok", action: "call_number", action_arg: "village", confirm: false, speak: "Llamando a Village" }
-    };
-    delete v.elements.hoy;
-    v.elements.tonight = { type: "TonightCard", props: { bind: "rota:current.on_duty" } };
-    screen.children = ["al", "tonight", "b_pill", "b_call", "b_help", "e911"];
-    if (v.needs_served) {
-      delete v.needs_served.hoy;
-      v.needs_served.tonight = ["n_turns"];
-      v.needs_served.b_pill = ["n_safety"];
-    }
-  }
-  if (role === "helper" || role === "coordinator") return withRefill(v, role);
-  return v;
-}
+export const VILLAGE_NAME = "Familia Reyes";
 
-export function withRefill(view: View, role: string): View {
-  const v = structuredClone(view);
-  if (v.elements.refill) return v;
-  v.elements.refill = { type: "RefillCard", props: { bind: "prescriptions:current", owner: "Marco", day: "Sunday" } };
-  const kids = v.elements.s.children ?? [];
-  const at = role === "coordinator" ? Math.max(1, kids.indexOf("dose") + 1) : Math.min(kids.length, 3);
-  kids.splice(at, 0, "refill");
-  v.elements.s.children = kids;
-  if (v.needs_served) v.needs_served.refill = ["n_dose_change"];
-  return v;
-}
-
-export function fakeSnapshot(client: FakeClient, rev = 4) {
+/** snapshot.identity (contract 1.2.0, D21). */
+export function fakeIdentity(client: FakeClient, viewAs = false) {
   const meta = FAKE_CLIENTS[client];
+  const lang = meta.role === "elder" ? "es" : "en";
+  return { member_id: meta.member_id, name: meta.name, role: meta.role, village_name: VILLAGE_NAME, lang, ...(viewAs ? { view_as: true } : {}) };
+}
+
+/** The fixture's views are sent unchanged (rev 5 already carries D22). */
+export function fakeSnapshot(client: FakeClient, opts: { viewAs?: boolean; rev?: number } = {}) {
+  const meta = FAKE_CLIENTS[client];
+  const rev = opts.rev ?? (reyesSpec as any).rev ?? 5;
+  const identity = fakeIdentity(client, opts.viewAs);
   if (client === "control") {
-    return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: {}, now: SNAPSHOT_NOW };
+    return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: controlData(), now: SNAPSHOT_NOW, identity };
   }
-  const view = d22Overlay((reyesSpec as any).views[meta.role] as View, meta.role);
-  return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW };
+  const view = (reyesSpec as any).views[meta.role] as View;
+  return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW, identity };
+}
+
+/** Control Room snapshot data: every bind any view uses, so the three-phone mirror renders the whole spec. */
+export function controlData(): Record<string, unknown> {
+  return { ...baseData("carmen"), ...baseData("marco"), ...baseData("ana") };
 }
 
 export interface SeqFrame { t: string; client: string; dir: "s2c" | "c2s"; msg: any }
 export function sequence(name: string): SeqFrame[] {
   return ((wsScam as any).sequences[name] ?? []) as SeqFrame[];
+}
+
+/** West 147th (block_spec.json) control snapshot: no live data offline, the regions show the blueprint and empty phones. */
+export function blockControlSnapshot() {
+  const identity = { member_id: null, name: "Control Room", role: "control", village_name: (blockSpec as any).village.name, lang: "en" };
+  return { type: "snapshot", contract_version: "1.2.0", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
 }

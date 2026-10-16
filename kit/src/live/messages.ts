@@ -13,8 +13,15 @@ export const snapshotFrame = z.object({
   member_id: z.string().nullable(),
   spec: z.unknown(),
   data: z.record(z.string(), z.unknown()),
-  now: z.string()
+  now: z.string(),
+  identity: z
+    .object({
+      member_id: z.string().nullable(), name: z.string(), role: z.string(), village_name: z.string(),
+      village_number: z.string().optional(), lang: z.string().optional(), view_as: z.boolean().optional()
+    })
+    .optional()
 });
+export type Identity = NonNullable<z.infer<typeof snapshotFrame>["identity"]>;
 export const patchFrame = z.object({
   type: z.literal("patch"),
   rev: z.number().int(),
@@ -68,6 +75,6 @@ export interface ClientHello {
   member_token: string;
   last_rev?: number;
   client: ClientName;
-  /** D21 View-as. NOT in contract 1.1.0 hello (additionalProperties:false) — see LANE-REPORT LD-5. */
+  /** D21 View-as (contract 1.2.0 hello.view_as). */
   view_as?: string;
 }

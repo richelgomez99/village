@@ -65,7 +65,7 @@ export function BigButton({ id, props }: CatalogProps) {
         onClick={onClick}
       >
         <Icon name={props.icon} />
-        <span className="bigbutton-label" data-say="">{props.label}</span>
+        <span className="bigbutton-label"><Bi value={props.label} /></span>
       </button>
       {confirming ? <ConfirmSheet text={props.confirm_text ?? props.label} onYes={fire} onNo={() => setConfirming(false)} /> : null}
     </>
@@ -97,7 +97,7 @@ export function ContactCard({ id, props }: CatalogProps) {
       onClick={onClick}
     >
       <Icon name={props.kind === "emergency" ? "sos" : "phone"} />
-      <span className="contact-name" data-say="">{props.label ?? name}</span>
+      <span className="contact-name"><Bi value={props.label ?? name} /></span>
       {phone && props.label !== phone && !String(props.label ?? "").includes(phone) ? <span className="contact-phone">{phone}</span> : null}
     </a>
   );

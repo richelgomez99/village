@@ -43,7 +43,7 @@ export function Alert({ props }: CatalogProps) {
     return (
       <section className="alert alert-empty" data-test="alert" data-count="0">
         <Icon name="check" />
-        <span data-say="">{props.empty_text ?? k("no_alerts", ctx.lang)}</span>
+        <span><Bi value={props.empty_text ?? k("no_alerts", ctx.lang)} /></span>
       </section>
     );
   }
@@ -259,30 +259,56 @@ export function PillOrganizer({ props }: CatalogProps) {
   );
 }
 
-interface RefillItem { med: string; dose: string; changed?: { at: string; by: string; was: string; source?: string } }
-interface RefillData { day: string; owner: string; items: RefillItem[]; source_label?: string }
+interface RefillItem {
+  med_id?: string; name: string; dose_mg?: number; dose_text?: string; schedule: string[]; valid_from: string; changed_by?: string;
+  superseded?: { dose_text: string; valid_until: string }; source_label?: unknown;
+}
+/** bv_prescriptions (contract 1.2.0, D22). */
+export interface Prescriptions { subject?: string; refill_day: string; next_refill?: string; owner_member_id: string; owner_name?: string; items: RefillItem[] }
+
+const WEEKDAY_LONG: Record<string, Record<string, string>> = {
+  en: { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" },
+  es: { Mon: "lunes", Tue: "martes", Wed: "miércoles", Thu: "jueves", Fri: "viernes", Sat: "sábado", Sun: "domingo" }
+};
+
+function shortDate(iso: string, lang: string): string {
+  const d = new Date(`${iso}T12:00:00-04:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+}
 
 /** D22: the refill checklist for whoever is on duty on refill day. Superseded doses are struck through, never deleted. */
 export function RefillCard({ props }: CatalogProps) {
   const ctx = useCtx();
-  const v = ctx.data[props.bind] as RefillData | undefined;
-  if (!v) return null;
-  const owner = props.owner ?? v.owner;
+  const v = ctx.data[props.bind] as Prescriptions | null | undefined;
+  if (!v || !Array.isArray(v.items)) return null;
+  const owner = props.owner ?? v.owner_name ?? memberName(v.owner_member_id, ctx.data);
+  const day = props.day ?? (WEEKDAY_LONG[ctx.lang] ?? WEEKDAY_LONG.en)[v.refill_day] ?? v.refill_day;
+  const showSup = props.show_superseded !== false;
+  const showSched = props.show_schedule !== false;
+  const showSrc = props.show_source !== false;
+  const sub = k("refill_title", ctx.lang, { day, owner });
   return (
-    <Card test="refill-card" title={k("refill_title", ctx.lang, { day: props.day ?? v.day, owner })} extra={{ "data-owner": owner }}>
+    <Card test="refill-card" title={props.title ? <Bi value={props.title} /> : sub} extra={{ "data-owner": owner, "data-day": v.refill_day }}>
+      {props.title ? <p className="small muted" data-test="refill-owner">{sub}</p> : null}
       <ul className="refill">
-        {v.items.map((it) => (
-          <li key={it.med} data-test="refill-item" data-med={it.med} data-changed={it.changed ? "true" : undefined} className={it.changed ? "changed" : undefined}>
-            <span className="refill-med" data-say="">{it.med} {it.dose}</span>
-            {it.changed ? (
-              <span className="refill-change" data-test="refill-change">
-                {" "}({ctx.lang === "es" ? "cambió" : "changed"} {it.changed.at}, {it.changed.by}; {k("was", ctx.lang)} <s data-test="refill-superseded">{it.changed.was}</s>)
-              </span>
-            ) : null}
-          </li>
-        ))}
+        {v.items.map((it) => {
+          const dose = it.dose_text ?? (it.dose_mg != null ? `${it.dose_mg} mg` : "");
+          const changed = showSup && it.superseded;
+          return (
+            <li key={it.med_id ?? it.name} data-test="refill-item" data-med={it.name} data-changed={changed ? "true" : undefined} className={changed ? "changed" : undefined}>
+              <span className="refill-med" data-say="">{it.name} {dose}</span>
+              {changed ? (
+                <span className="refill-change" data-test="refill-change">
+                  {" "}({k("changed_short", ctx.lang)} {shortDate(it.superseded!.valid_until, ctx.lang)}{it.changed_by ? `, ${it.changed_by}` : ""}; {k("was", ctx.lang)} <s data-test="refill-superseded">{it.superseded!.dose_text}</s>)
+                </span>
+              ) : null}
+              {showSched && it.schedule?.length ? <span className="refill-sched small muted"> · {it.schedule.map((sl) => slotLabel(sl, ctx.lang)).join(", ")}</span> : null}
+              {showSrc && it.source_label ? <span className="refill-src small muted" data-test="refill-source"> · {k("source", ctx.lang)}: {text(it.source_label, ctx.lang)}</span> : null}
+            </li>
+          );
+        })}
       </ul>
-      {v.source_label ? <p className="small muted">{k("source", ctx.lang)}: {v.source_label}</p> : null}
     </Card>
   );
 }
@@ -292,10 +318,11 @@ export function TonightCard({ props }: CatalogProps) {
   const ctx = useCtx();
   if (!(props.bind in ctx.data)) return null;
   const p = ctx.data[props.bind] as { name?: string } | null;
+  const line = p?.name ? (props.template ? String(props.template).replace("{name}", p.name) : k("tonight", ctx.lang, { name: p.name })) : k("tonight_nobody", ctx.lang);
   return (
     <section className={`tonight ${p ? "tonight-ok" : "tonight-nobody"}`} data-test="tonight-card" data-on-duty={p?.name ?? ""}>
       <Icon name={p ? "heart" : "help"} />
-      <span data-say="">{p?.name ? k("tonight", ctx.lang, { name: p.name }) : k("tonight_nobody", ctx.lang)}</span>
+      <span><Bi value={line} /></span>
     </section>
   );
 }
