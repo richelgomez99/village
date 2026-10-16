@@ -22,6 +22,35 @@ from core.release.serve import LocalPublisher
 
 _locks: dict[str, asyncio.Lock] = {}
 LAST_TIMINGS: dict[str, dict[str, int]] = {}
+# Background work that outlives a release (Anchor MP4 fetch). Scripts await these before exiting.
+BACKGROUND: set[asyncio.Task[Any]] = set()
+
+
+def _spawn(coro: Any) -> asyncio.Task[Any]:
+    t = asyncio.create_task(coro)
+    BACKGROUND.add(t)
+    t.add_done_callback(BACKGROUND.discard)
+    return t
+
+
+async def _attach_recording(run: "_Run", r: Receipt, anchor: Any, session_id: str, qa_dir: Any, url: str) -> None:
+    """Fetch the Anchor MP4 after the session ends and swap it into the anchor_qa evidence (re-emits the receipt)."""
+    try:
+        path = await anchor.fetch_recording(session_id, qa_dir / "qa.mp4")
+    except Exception:
+        path = None
+    if path is None:
+        return
+    st = stage(r, "anchor_qa")
+    ev = [e for e in st.get("evidence_urls", []) if e.get("kind") != "recording"]
+    ev.insert(0, {"kind": "recording", "url": url, "label": "Anchor recording (MP4)"})
+    st["evidence_urls"] = ev[:12]
+    st["evidence_url"] = url
+    st["details"]["video_url"] = url
+    try:
+        await run.emit(r)
+    except Exception:
+        pass
 
 
 class FrameError(ValueError):
@@ -279,8 +308,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                       for p in qa.screenshots]
                 if (qa_dir / "report.json").exists():
                     ev.append({"kind": "report", "url": f"{public_base}/releases/{rel}/qa/report.json"})
-                if qa.live_view_url:
-                    ev.append({"kind": "recording", "url": qa.live_view_url, "label": "Anchor live view"})
+                # The live view dies with the session; it stays in details.live_view_url only. The MP4 replaces it
+                # as the `recording` evidence once Anchor finalises it (background, never blocks the release).
                 n_ok = sum(1 for a in qa.assertions if a.get("ok"))
                 via = ("daytona preview" if res.preview_url and qa.url.startswith(res.preview_url)
                        else "local" if qa.degraded or qa.url.startswith(local_base) else "tunnel")
@@ -292,7 +321,9 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 await run.end(r, "anchor_qa", qa.ok, t0, summary=summary[:200], viewport=qa.viewport,
                               anchor_session_id=(qa.session_id or None) and qa.session_id[:80], live_view_url=qa.live_view_url,
                               failures=[f"{a['name']}: {a.get('detail', '')}"[:300] for a in qa.assertions if not a.get("ok")],
-                              evidence_urls=ev, evidence_url=qa.live_view_url, error=qa.error if not qa.ok else None)
+                              evidence_urls=ev, evidence_url=(ev[0]["url"] if ev else None), error=qa.error if not qa.ok else None)
+                if qa.session_id and hasattr(anchor, "fetch_recording"):
+                    _spawn(_attach_recording(run, r, anchor, qa.session_id, qa_dir, f"{public_base}/releases/{rel}/qa/qa.mp4"))
                 if not qa.ok:
                     await run.block(r)
                     obs.finish(root, False, error="anchor qa failed")

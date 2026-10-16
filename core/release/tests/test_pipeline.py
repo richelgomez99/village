@@ -128,3 +128,33 @@ async def test_real_evals_model_off(spec, publisher, store, tmp_path):
     assert ev["status"] == "passed"
     assert ev["details"]["eval_scores"]["needs_coverage"] == 1.0
     assert (tmp_path / "evals" / "rel_reyes_r4.json").exists()
+
+
+async def test_anchor_mp4_replaces_live_view_as_recording_evidence(spec, publisher, store):
+    import asyncio
+
+    from core.release import pipeline
+
+    r, _, rec = await _run(spec, 6, publisher, store, anchor=FakeAnchor(recording=True))
+    await asyncio.gather(*list(pipeline.BACKGROUND))
+    qa = r["stages"][3]
+    rec_ev = [e for e in qa["evidence_urls"] if e["kind"] == "recording"]
+    assert rec_ev == [{"kind": "recording", "url": "https://example.ts.net/releases/rel_reyes_r6/qa/qa.mp4", "label": "Anchor recording (MP4)"}]
+    assert qa["details"]["video_url"].endswith("/qa.mp4") and qa["evidence_url"].endswith("/qa.mp4")
+    assert qa["details"]["live_view_url"].startswith("https://live.anchorbrowser.io")
+    assert validate_receipt(r) == []
+    last = rec.receipts()[-1]
+    assert last["stages"][3]["details"]["video_url"].endswith("/qa.mp4")  # re-emitted to the Control Room
+    _check_frames(rec)
+
+
+async def test_no_recording_keeps_screenshot_evidence(spec, publisher, store):
+    import asyncio
+
+    from core.release import pipeline
+
+    r, _, _ = await _run(spec, 6, publisher, store, anchor=FakeAnchor(recording=False))
+    await asyncio.gather(*list(pipeline.BACKGROUND))
+    qa = r["stages"][3]
+    assert not [e for e in qa["evidence_urls"] if e["kind"] == "recording"]
+    assert qa["evidence_url"].endswith("elder.png") and "video_url" not in qa["details"]

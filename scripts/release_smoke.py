@@ -75,7 +75,7 @@ async def main() -> int:
     from core.release.anchor_qa import AnchorQA
     from core.release.daytona_svc import DaytonaBuilder
     from core.release.evals import ReleaseEvals
-    from core.release.pipeline import LAST_TIMINGS
+    from core.release.pipeline import BACKGROUND, LAST_TIMINGS
 
     if args.cold:
         os.environ.pop("RELEASE_SANDBOX_ID", None)
@@ -108,8 +108,23 @@ async def main() -> int:
             evals=ReleaseEvals(llm=llm if model_on else None), local_base=local,
             inject="contrast" if args.break_contrast else None, history=history,
         )
-    finally:
         total = time.perf_counter() - t0
+        # Anchor MP4: fetched in the background after the session ends; wait for it and serve it once.
+        t_rec = time.perf_counter()
+        if BACKGROUND:
+            await asyncio.wait(list(BACKGROUND), timeout=120)
+        qa_det = receipt["stages"][3]["details"]
+        rec_url = qa_det.get("video_url")
+        print(f"\nAnchor MP4: {'none' if not rec_url else rec_url} (+{time.perf_counter() - t_rec:.1f}s after release, "
+              f"fetch {anchor.last_timings.get('recording_fetch')} ms, {anchor.last_timings.get('recording_bytes')} bytes)")
+        if rec_url:
+            import httpx
+
+            async with httpx.AsyncClient() as c:
+                resp = await c.get(local + rec_url.split(".net", 1)[-1] if ".net/" in rec_url else rec_url)
+                print(f"  served by GET /releases/{{rel}}/qa/qa.mp4: {resp.status_code} {resp.headers.get('content-type')} {len(resp.content)} bytes")
+    finally:
+        total = locals().get("total") or (time.perf_counter() - t0)
         server.should_exit = True
         await asyncio.wait_for(server_task, 5)
     timings = dict(LAST_TIMINGS.get(vid, {}))
