@@ -10,6 +10,7 @@ from core.routes.clock import router as clock_router
 from core.routes.decisions import router as decisions_router
 from core.routes.health import router as health_router
 from core.routes.tools import router as tools_router
+from core.routes.verifications import router as verifications_router
 from core.routes.ws import router as ws_router
 from core.settings import CONTRACT_VERSION, get_settings
 from core.scheduler import tick
@@ -35,6 +36,7 @@ app.include_router(clock_router)
 app.include_router(ws_router)
 app.include_router(actions_router)
 app.include_router(decisions_router)
+app.include_router(verifications_router)
 
 # Serve the built kit (kit/dist) at / after all API routes. Vite base is './' so assets resolve relative to each entry.
 from pathlib import Path as _Path

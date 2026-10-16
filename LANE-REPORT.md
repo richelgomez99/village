@@ -46,6 +46,7 @@ T013 · done · `uv run pytest core/tests/test_verifications.py -q` · tool idem
 T014 · done · `uv run pytest core/tests/test_verifications.py -q` · scheduler tick runs on boot/clock warp and closes pending verifications past deadline with a timeout event
 T015 · done · `uv run pytest core -q` · WS prompt frames go only to the claimed member, terminal rows close the prompt, and live bindings resolve alerts, pending/mine verifications, and open incidents
 LD-4: Core uses the merged `step_verification` state machine for app answers; a later different answer is persisted as `conflict` per the verification contract instead of being dropped as a terminal no-op.
+T016 · done · `uv run pytest core/tests/test_verifications.py core/voice/tests/test_post_call.py -q` · real start/answer/await verification services, HTTP answer endpoint, app actions, and voice post-call path use the shared verification state machine; `uv run pytest core -q` still has pre-existing contract 1.2 fixture/binding expectation failures for rev 5 and elder dose binding
 
 ## pitch
 READY FOR MERGE V0

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import asyncio
 import json
 from datetime import datetime
 from datetime import timedelta
@@ -45,6 +46,137 @@ async def now() -> datetime:
 
 def _next_id(prefix: str, rows: list[dict[str, Any]]) -> str:
     return f"{prefix}_{len(rows) + 1:04d}"
+
+
+def _decision_for_verification(row: dict[str, Any]) -> dict[str, Any]:
+    state = row.get("state")
+    claimed_name = str(row.get("claimed_identity") or row.get("claimed_member_id") or "Marco").split()[0]
+    if state in {"confirmed", "late_confirmed"}:
+        return {
+            "id": f"dc_{row['id']}_confirmed",
+            "rule_id": "R-MONEY-DEFAULT",
+            "decision": "advise_talk_to_coordinator",
+            "say": {
+                "es": f"{claimed_name} dice que si fue el. Village nunca envia dinero; hable con Ana antes de hacer algo.",
+                "en": f"{claimed_name} confirmed it was him. Village never sends money; talk with Ana first.",
+            },
+            "say_key": "money_confirmed",
+            "say_vars": {"claimed_name": claimed_name},
+            "verification": _decision_verification(row),
+            "writes": [],
+            "rules_fired": ["R-MONEY-DEFAULT", "R-MONEY-NEVER"],
+        }
+    if state in {"denied", "late_denied"}:
+        say_es = f"Ese no era {claimed_name}. No mande dinero. Ana ya lo sabe."
+        say_en = f"That was not {claimed_name}. Do not send any money. Ana already knows."
+        say_key = "money_denied"
+        decision = "advise_do_not_send"
+    else:
+        say_es = f"No pude confirmar con {claimed_name}. No mande dinero. Le aviso a Ana."
+        say_en = f"I could not confirm with {claimed_name}. Do not send any money. I am letting Ana know."
+        say_key = "money_timeout"
+        decision = "advise_do_not_send"
+    return {
+        "id": f"dc_{row['id']}_{row.get('state', 'verification')}",
+        "rule_id": "R-MONEY-DEFAULT",
+        "decision": decision,
+        "say": {"es": say_es, "en": say_en},
+        "say_key": say_key,
+        "say_vars": {"claimed_name": claimed_name},
+        "verification": _decision_verification(row),
+        "writes": [],
+        "rules_fired": ["R-MONEY-DEFAULT"],
+    }
+
+
+def _decision_verification(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "claimed_member": row.get("claimed_member_id"),
+        "deadline": row.get("deadline"),
+        "channels": [
+            channel.get("via", channel)
+            for channel in row.get("channels", [])
+        ],
+        "state": row.get("state"),
+    }
+
+
+def _applied_answer(row: dict[str, Any]) -> dict[str, Any] | None:
+    for answer in row.get("answers", []):
+        if answer.get("outcome") == "applied":
+            return answer
+    return None
+
+
+def _verification_status_for_voice(row: dict[str, Any]) -> str:
+    state = row.get("state")
+    if state in {"confirmed", "late_confirmed"}:
+        return "confirmed"
+    if state in {"denied", "late_denied"}:
+        return "denied"
+    if state == "unsure":
+        return "unsure"
+    if state == "unreachable":
+        return "unreachable"
+    return "timeout"
+
+
+def _normalize_verification(row: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(row)
+    created_at = normalized.get("created_at") or clock.now().isoformat()
+    normalized.setdefault("village", "v_reyes")
+    normalized.setdefault("subject", "m_carmen")
+    normalized.setdefault("claimed_member_id", "m_marco")
+    normalized.setdefault("claimed_identity", normalized["claimed_member_id"])
+    normalized.setdefault("origin", "report_money_request")
+    normalized.setdefault("conversation_id", None)
+    normalized.setdefault("request", {"amount": None, "currency": "USD", "method": "unknown", "urgency": "now", "red_flags": []})
+    normalized.setdefault("state", "pending")
+    normalized.setdefault("status", "pending")
+    normalized.setdefault("channels", [])
+    normalized.setdefault("answers", [])
+    normalized.setdefault("created_at", created_at)
+    normalized.setdefault("deadline", (datetime.fromisoformat(created_at) + timedelta(seconds=45)).isoformat())
+    normalized.setdefault("call_placed_at", None)
+    normalized.setdefault("await_returned_at", None)
+    normalized.setdefault("resolved_at", None)
+    normalized.setdefault("spoken_say_key", None)
+    normalized.setdefault("incident_id", None)
+    normalized.setdefault("version", 0)
+    normalized.setdefault("transitions", [])
+    return normalized
+
+
+def _with_channel_status(row: dict[str, Any], via: str, member_id: str, status: str) -> dict[str, Any]:
+    channels = []
+    found = False
+    for channel in row.get("channels", []):
+        if isinstance(channel, str):
+            channel = {"via": channel, "member_id": member_id, "status": "sent", "at": row.get("created_at", clock.now().isoformat())}
+        channel = dict(channel)
+        if channel.get("via") == via and channel.get("member_id", member_id) == member_id:
+            channel["status"] = status
+            channel["at"] = clock.now().isoformat()
+            found = True
+        channels.append(channel)
+    if not found:
+        channels.append({"via": via, "member_id": member_id, "status": status, "at": clock.now().isoformat()})
+    return {**row, "channels": channels}
+
+
+def _last_event_id(verification_id: str, kinds: set[str]) -> str | None:
+    for event in reversed(db.events):
+        if event["kind"] in kinds and event.get("payload", {}).get("verification_id") == verification_id:
+            return event["id"]
+    return None
+
+
+def _incident_event_id(incident_id: str | None) -> str | None:
+    for event in reversed(db.events):
+        if event["kind"] == "incident" and event.get("payload", {}).get("incident_id") == incident_id:
+            return event["id"]
+    return None
 
 
 def _gate_decide(inp: dict[str, Any]) -> dict[str, Any]:
@@ -144,17 +276,25 @@ async def decide(
             "subject": candidate.get("payload", {}).get("subject", "m_carmen"),
             "claimed_member_id": verification["claimed_member"],
             "claimed_identity": candidate.get("payload", {}).get("claimed_identity", verification["claimed_member"]),
-            "origin": "report_money_request",
+            "origin": candidate.get("payload", {}).get("origin", "report_money_request"),
             "conversation_id": candidate.get("source", {}).get("ref"),
             "request": candidate.get("payload", {}),
             "state": verification["state"],
             "status": "pending",
-            "channels": verification["channels"],
+            "channels": [
+                {"via": channel, "member_id": verification["claimed_member"], "status": "sent", "at": candidate["at"]}
+                for channel in verification["channels"]
+            ],
             "answers": [],
             "created_at": candidate["at"],
             "deadline": verification["deadline"],
+            "call_placed_at": None,
+            "await_returned_at": None,
+            "resolved_at": None,
+            "spoken_say_key": None,
+            "incident_id": None,
             "version": 0,
-            "transitions": [],
+            "transitions": [{"from": "created", "to": verification["state"], "at": candidate["at"], "cause": "created"}],
         })
     written_events = []
     for draft in decision.get("writes", []):
@@ -337,11 +477,19 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
 
 
 async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
+    member_id = request.get("member_id", "m_carmen")
+    req_id = request.get("req_id")
+    idem_key = f"{member_id}:{req_id}" if req_id else None
+    if idem_key:
+        cached = await db.get_idem(idem_key)
+        if cached and cached.get("response"):
+            return copy.deepcopy(cached["response"])
+
     if name == "log_dose":
         body = {
             "village_id": village_id,
             "conversation_id": request.get("req_id", f"app_{village_id}_log_dose"),
-            "caller_id": request.get("member_id", "m_carmen"),
+            "caller_id": member_id,
             "call_secs": request.get("call_secs", 0),
             "utterance": request.get("utterance", "app action"),
             "slot": request.get("slot", "evening"),
@@ -349,9 +497,83 @@ async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> 
             "tool_call_id": request.get("req_id", "app_action"),
         }
         response = await handle_tool("log_dose", body)
-        return {"type": "result", "req_id": request.get("req_id"), "decision": response}
+        result = {"type": "result", "req_id": req_id, "ok": True, "decision": response}
+        if idem_key:
+            await db.put_idem(idem_key, {"response": copy.deepcopy(result), "at": clock.now().isoformat()})
+        return result
+    if name == "answer_verification":
+        payload = request.get("payload") or request
+        row = await answer_verification(
+            payload["verification_id"],
+            payload["answer"],
+            via=payload.get("via", "app_prompt"),
+            member_id=member_id,
+            quote=payload.get("quote") or payload.get("listener_quote"),
+            call_sid=payload.get("call_sid"),
+        )
+        decision = _decision_for_verification(row)
+        result = {
+            "type": "result",
+            "req_id": req_id,
+            "ok": row.get("outcome") != "conflict",
+            "decision": decision,
+            "event_id": _last_event_id(row["id"], {"verification_confirmed", "verification_denied", "verification_timeout"}),
+        }
+        if idem_key:
+            await db.put_idem(idem_key, {"response": copy.deepcopy(result), "at": clock.now().isoformat()})
+        return result
+    if name == "start_verification":
+        payload = request.get("payload") or request
+        claimed = request.get("arg") or payload.get("claimed_member_id") or payload.get("claimed_member") or "m_marco"
+        claimed_member_id = claimed if str(claimed).startswith("m_") else "m_marco"
+        candidate = {
+            "village": village_id,
+            "kind": "money_request",
+            "payload": {
+                "origin": "start_verification",
+                "subject": payload.get("subject", "m_carmen"),
+                "claimed_member_id": claimed_member_id,
+                "claimed_identity": payload.get("claimed_identity", claimed_member_id),
+                "amount": payload.get("amount"),
+                "currency": payload.get("currency", "USD"),
+                "method": payload.get("method", "unknown"),
+                "urgency": payload.get("urgency", "now"),
+                "red_flags": payload.get("red_flags", []),
+                "utterance": payload.get("utterance", "app verification request"),
+                "deadline": (clock.now() + timedelta(seconds=45)).isoformat(),
+            },
+            "actor": member_id,
+            "source": {"kind": "app", "ref": member_id},
+            "at": clock.now().isoformat(),
+        }
+        started = await start_verification(village_id, candidate, idempotency_key=idem_key or f"{member_id}:start_verification")
+        result = {"type": "result", "req_id": req_id, "ok": True, "decision": started["decision"]}
+        if idem_key:
+            await db.put_idem(idem_key, {"response": copy.deepcopy(result), "at": clock.now().isoformat()})
+        return result
+    if name == "ack_incident":
+        incident_id = request.get("arg") or request.get("incident_id")
+        event = await record_event(
+            village_id,
+            {
+                "kind": "ack",
+                "payload": {
+                    "of_event_id": _incident_event_id(incident_id),
+                    "status": request.get("status", "got_it"),
+                    "channel": "app",
+                    "incident_id": incident_id,
+                },
+            },
+            actor=member_id,
+            source={"kind": "app", "ref": member_id},
+            decision_id=None,
+        )
+        result = {"type": "result", "req_id": req_id, "ok": True, "event_id": event["id"], "decision": {"decision": "allow", "data": {"incident_id": incident_id}}}
+        if idem_key:
+            await db.put_idem(idem_key, {"response": copy.deepcopy(result), "at": clock.now().isoformat()})
+        return result
     if name in {"check_in_ok", "need_help"}:
-        return {"type": "result", "req_id": request.get("req_id"), "decision": {"decision": "allow", "data": {"action": name}}}
+        return {"type": "result", "req_id": req_id, "ok": True, "decision": {"decision": "allow", "data": {"action": name}}}
     raise KeyError(name)
 
 
@@ -387,11 +609,15 @@ async def answer_verification(
     current = db.verifications.get(verification_id)
     if current is None:
         raise KeyError(verification_id)
+    current = _normalize_verification(current)
     next_row, emits = step_verification(
         current,
         {"type": "answer", "answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid},
         clock.now(),
     )
+    next_row = _with_channel_status(next_row, via, member_id, "answered")
+    if call_sid and next_row.get("answers"):
+        next_row["answers"][-1]["call_sid"] = call_sid
     updated = await db.cas_update("verification", verification_id, current.get("version", 0), next_row)
     if not updated:
         latest = db.verifications[verification_id]
@@ -400,7 +626,7 @@ async def answer_verification(
         await record_event(
             current["village"],
             draft,
-            actor="gate",
+            actor=member_id if draft["kind"].startswith("verification_") else "gate",
             source={"kind": "app" if via == "app_prompt" else "call", "ref": member_id},
             decision_id=None,
         )
@@ -409,14 +635,53 @@ async def answer_verification(
 
 
 async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> dict[str, Any]:
-    del max_wait_s
+    max_wait_s = min(max_wait_s, 30)
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + max_wait_s
+    row = db.verifications.get(verification_id)
+    if row is None:
+        raise KeyError(verification_id)
+    row = _normalize_verification(row)
+    if row != db.verifications.get(verification_id):
+        await db.upsert_verification(row)
+
+    while row.get("state") == "pending" and loop.time() < deadline:
+        await asyncio.sleep(min(0.25, max(deadline - loop.time(), 0)))
+        row = db.verifications.get(verification_id)
+        if row is None:
+            raise KeyError(verification_id)
+        row = _normalize_verification(row)
+
+    if row.get("state") == "pending":
+        next_row, emits = step_verification(row, {"type": "await_returned"}, clock.now())
+        if next_row.get("state") == "default_spoken":
+            updated = await db.cas_update("verification", verification_id, row.get("version", 0), next_row)
+            if updated:
+                row = updated[0]
+                for draft in emits:
+                    await record_event(
+                        row["village"],
+                        draft,
+                        actor="gate",
+                        source={"kind": "system", "ref": "await_verification"},
+                        decision_id=None,
+                    )
+        else:
+            row = next_row
+
+    applied = _applied_answer(row)
+    status = _verification_status_for_voice(row)
+    decision = _decision_for_verification(row)
     return {
         "verification_id": verification_id,
-        "decision": "advise_do_not_send",
-        "say_key": "money_timeout",
-        "status": "timeout",
-        "state": "default_spoken",
-        "incident_id": f"inc_{verification_id}",
+        "decision": decision["decision"],
+        "say": decision["say"],
+        "say_key": decision["say_key"],
+        "status": status,
+        "state": row.get("state"),
+        "answered_via": applied.get("via") if applied else None,
+        "answered_at_secs": applied.get("secs_since_created") if applied else None,
+        "incident_id": row.get("incident_id"),
     }
 
 
