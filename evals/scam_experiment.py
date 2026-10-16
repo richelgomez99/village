@@ -195,6 +195,9 @@ def run(mode: str = "auto", village_id: str | None = None, out_dir: Path = OUT, 
     rows = [run_case(c, mode_used, client, model, village_id or "v_reyes") for c in cases]
     wall = time.perf_counter() - t0
     summary = summarize(rows, n_base, n_village)
+    summary["model_extractions"] = sum(r["extractor"].startswith("model:") for r in rows)
+    if mode_used == "model" and summary["model_extractions"] < len(rows):
+        mode_used = f"model(rules fallback on {len(rows) - summary['model_extractions']})"
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "name": "village-scam-eval", "ts": ts, "mode": mode_used,
@@ -260,12 +263,9 @@ def main() -> None:
 
 
 def _load_env() -> None:
-    try:
-        from dotenv import load_dotenv
+    from evals.env import load_env
 
-        load_dotenv(ROOT / ".env", override=False)
-    except Exception:
-        pass
+    load_env()
 
 
 if __name__ == "__main__":

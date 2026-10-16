@@ -101,7 +101,6 @@ def extract_with_model(utterance: str, client: Any, model: str, timeout_s: float
     msg = client.messages.create(
         model=model,
         max_tokens=400,
-        temperature=0,
         system=SYSTEM,
         tools=_tool_defs(),
         tool_choice={"type": "any"},
