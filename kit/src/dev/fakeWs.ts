@@ -6,9 +6,15 @@
 // (dev/fakeControl.ts); hello{village:"v_w147"} gets the block_spec control snapshot; window.__fake.warp(min) ticks the clock.
 import { FAKE_CLIENTS, SNAPSHOT_NOW, blockControlSnapshot, chatAfter, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
 import { addCaption } from "../i18n/captions";
+import { Transport, type TFrame } from "./transport";
 import { blockFounding, controlHelloSnapshot, controlSequence, isControlSeq, type ControlSeq, type TimelineLine } from "./fakeControl";
 
 const BLOCK_VILLAGE = "v_w147";
+
+/** A fixture sequence's frames for the control client, as {ms from base, msg}. */
+function controlFrames(frames: SeqFrame[], base: number): TFrame[] {
+  return frames.filter((f) => f.dir === "s2c" && f.client === "control").map((f) => ({ ms: ms(f.t) - base, msg: f.msg }));
+}
 
 type Tail = "denied" | "timeout_tail" | "confirmed_tail";
 
@@ -49,6 +55,7 @@ class FakeHub {
   channel: BroadcastChannel | null = null;
 
   constructor(public opts: FakeOptions) {
+    if (opts.seq && !opts.quiet) this.transport = new Transport((msg) => this.sockets.forEach((s) => s.deliverControl(msg)), opts.speed ?? 1);
     try {
       if (typeof BroadcastChannel !== "undefined") {
         this.channel = new BroadcastChannel("village-fake");
@@ -105,8 +112,17 @@ class FakeHub {
     const frames = sequence(tail);
     const ackAt = frames.findIndex((f) => f.dir === "c2s" && f.msg.type === "ack");
     this.ackReplay = ackAt >= 0 ? frames.slice(ackAt) : [];
+    if (this.transport?.seq === "scam") {
+      // a live answer from another tab: the transport replaces its default tail with this one, from now
+      const head = ackAt >= 0 ? frames.slice(0, ackAt) : frames;
+      this.transport.append(controlFrames(head, ms(head[0].t)), true);
+      return;
+    }
     this.playFrames(ackAt >= 0 ? frames.slice(0, ackAt) : frames, 0);
   }
+
+  /** Presenter transport (Control Room replays): created with the hub when ?seq= is set. */
+  transport: Transport | null = null;
 
   get speed() {
     return this.opts.speed ?? 1;
@@ -129,7 +145,15 @@ class FakeHub {
     if (this.played.has(`seq:${seq}`)) return;
     this.played.add(`seq:${seq}`);
     if (seq === "founding" && village === BLOCK_VILLAGE) {
+      if (this.transport) {
+        this.transport.village = village;
+        this.transport.seq = seq;
+      }
       void this.playBlockFounding(village);
+      return;
+    }
+    if (this.transport) {
+      this.transport.load(seq === "scam" ? this.scamTimeline() : controlSequence(seq, village), { village: village ?? null, seq });
       return;
     }
     this.schedule(controlSequence(seq, village));
@@ -137,7 +161,24 @@ class FakeHub {
     if (seq === "scam") this.playStart();
   }
 
+  /** The whole scam scene as one timeline for the transport: room extras + the fixture's control frames + chat + the tail. */
+  scamTimeline(): TFrame[] {
+    const start = sequence("start");
+    const base = ms(start[0].t);
+    const out: TFrame[] = [...controlSequence("scam"), ...controlFrames(start, base)];
+    for (const m of chatAfter(SNAPSHOT_NOW)) out.push({ ms: Math.max(0, ms((m as any).at) - base), msg: { type: "chat", village: (m as any).village, message: m } });
+    const tailName: Tail = this.opts.tail ?? "timeout_tail";
+    const tail = sequence(tailName);
+    const ackAt = tail.findIndex((f) => f.dir === "c2s" && f.msg.type === "ack");
+    out.push(...controlFrames(ackAt >= 0 ? tail.slice(0, ackAt) : tail, base).map((f) => ({ ...f, tail: !this.opts.tail })));
+    return out;
+  }
+
   schedule(frames: { ms: number; msg: any }[]) {
+    if (this.transport) {
+      this.transport.load(frames, {});
+      return;
+    }
     for (const t of frames) {
       const fire = () => this.sockets.forEach((s) => s.deliverControl(t.msg));
       const delay = t.ms / this.speed;
@@ -166,6 +207,7 @@ class FakeHub {
       return;
     }
     const audio = new Audio(new URL("audio/w147_founding.mp3", base).href);
+    if (this.transport) this.transport.media = audio;
     const fake = (window as any).__fake ?? {};
     const go = () => {
       fake.audioState = "playing";
@@ -250,7 +292,9 @@ class FakeSocket extends EventTarget {
       }
       const empty = this.target === "control" ? controlHelloSnapshot(this.hub.opts.seq, f.village) : null;
       this.village = f.village;
-      this.emit(empty ?? fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me }));
+      const snap = empty ?? fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me });
+      if (this.target === "control" && this.hub.transport) this.hub.transport.initial = snap;
+      this.emit(snap);
       if (this.target === "control") this.emit({ type: "control", kind: "counter", payload: { name: "phones_live", value: Math.max(1, this.hub.sockets.size), label: "phones live" }, at: "2026-10-16T14:01:40-04:00" });
       if (this.target === "control" && this.hub.opts.seq) this.hub.playControl(this.hub.opts.seq, f.village);
       else this.hub.scheduleStart();
@@ -321,7 +365,7 @@ export function createFakeWebSocket(client: FakeClient, opts: FakeOptions): type
   // the fixture's Spanish lines that live Core would caption with control{kind:"caption"}
   addCaption("Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", "Marco called me crying, he says he's in trouble and needs two thousand dollars.");
   const hub = new FakeHub(opts);
-  if (typeof window !== "undefined" && !opts.quiet) (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub };
+  if (typeof window !== "undefined" && !opts.quiet) (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub, transport: hub.transport };
   const Ctor = function (this: unknown, url: string) {
     return new FakeSocket(url, hub, client);
   } as unknown as typeof WebSocket;
