@@ -262,7 +262,7 @@
   <div style="text-align:center; max-width:1200px; margin-inline:auto;">
     <p class="eyebrow">Live</p>
     <h1 style="font-size:clamp(36px,4.6vw,78px); line-height:1.08;">It takes a village. Village builds it, runs it, and rebuilds it when life changes.</h1>
-    <a class="pill-link" href="/control.html?t=control&presenter=1&as=m_ana">Open the Control Room</a>
+    <a class="pill-link" id="room" href="https://richel-macbook.tail8feae0.ts.net/control.html?t=control&presenter=1&as=m_ana">Open the Control Room</a>
   </div>
 </section>
 
@@ -288,6 +288,7 @@
   function stop(){ auto=false; document.body.classList.remove('auto'); cancelAnimationFrame(raf); prog.style.width='0%'; }
   const _show=show; show=function(n){ _show(n); vo.textContent=slides[n].dataset.vo||''; if(auto) arm(); };
   addEventListener('keydown',e=>{ if(e.key==='a'||e.key==='A'){ auto?stop():start(); } else if(e.key===' ' && auto){ e.preventDefault(); e.stopImmediatePropagation(); stop(); } }, true);
+  if (/^https?:$/.test(location.protocol)) document.getElementById('room').href = location.origin + '/control.html?t=control&presenter=1&as=m_ana';
   show(i); if (new URLSearchParams(location.search).get('auto')==='1') start();
 </script>
 </body>
