@@ -12,6 +12,11 @@ ALL_SCOPES = ("events_today", "verifications", "proposals", "tokens", "counters"
 
 async def _lane_reset(village_id: str) -> dict:
     try:
+        try:
+            from core.evolve import proposals as _evolve_proposals
+            _evolve_proposals.reset(village_id)  # D34: proposals are in-memory; the demo reset forgets them
+        except Exception:
+            pass
         from core.watcher.routes import on_reset
     except ImportError:
         return {}
