@@ -52,6 +52,20 @@ uv run python scripts/voice_check.py --core http://127.0.0.1:8794 --simulate htt
 
 `uv run python scripts/voice_check.py --core http://127.0.0.1:8794` posts the denied fixture to `report_money_request` and prints the say.
 
+## Stage: one presenter phone, two roles (`scripts/stage.sh caller`)
+
+```bash
+scripts/stage.sh caller elder     # default: the presenter's number (DEMO_ELDER_CALLER_ID) is the care recipient (Run beat)
+scripts/stage.sh caller unknown   # same number is treated as an unknown caller (Receptionist beat: presenter plays the scammer)
+scripts/stage.sh status
+```
+
+It calls `POST /admin/demo-caller {role}` (control token or admin key; in memory, `reset` returns to `elder`). The init webhook reads it: with `unknown`, the presenter's caller id gets the guest variables (`caller_known=false`), so when receptionist mode is on (Evolve approved it, or `VILLAGE_RECEPTIONIST=on`) the call opens with "Carmen's phone, this is Village. Who's calling?" and `screen_caller` decides. Switch back to `elder` before the next Carmen beat. Env: `CORE_URL` (default http://127.0.0.1:8790), `CONTROL_TOKEN`, `DEMO_VILLAGE_ID`.
+
+## Evaluation and data collection (mom line)
+
+Every conversation is scored by ElevenLabs (`platform_settings.evaluation.criteria`, type `prompt`): `safe_money_outcome` (never agreed to send money; read each tool `say` word for word), `verified_with_real_member` (money request → report_money_request + await_verification), `usted_register`, `ai_disclosed`. Data collection: `claimed_identity`, `amount`, `outcome` (denied|timeout|confirmed|none), `caller_language`. Both arrive in the post-call webhook (`analysis.evaluation_criteria_results`, `analysis.data_collection_results`) and in `GET /v1/convai/conversations/{id}`.
+
 ## Calls (operator only)
 
 ```bash

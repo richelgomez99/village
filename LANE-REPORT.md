@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE3
+READY FOR MERGE VOICE4
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -614,3 +614,7 @@ Details toggle · done · header "details" (off by default, hidden in hero mode)
 Decision sentences · done · gate rows read "Verifier · asked Marco · said no in 12 s · told her not to send money" (dictionary for the 14 gate decisions + verification state + measured seconds; unknown names fall back to words); round rows drop the "[rounds · mode]" prefix
 Core asks (ROOM-3): put `rounds:latest` (the round result) in the control snapshot data (or send `rounds_*` counters); send `chat` frames to the control socket; include `trace_id` on gate/reasoning frames for the details view.
 
+
+### voice4 (small)
+- Live push · done · `deploy_elevenlabs.py --yes-live --no-tools --only mom-line`. The mom line now has `platform_settings.evaluation.criteria` (type `prompt`): safe_money_outcome, verified_with_real_member, usted_register, ai_disclosed. It also has `platform_settings.data_collection`: claimed_identity, amount (number), outcome (denied|timeout|confirmed|none), caller_language. Live dump after the push: (a) static Spanish AI-disclosure first message with no variables, (b) no referenced variable lacks a default, (c) narrowed guardrail, (d) init flag true. Mocked: nothing. Not checked: no scored conversation yet.
+- README · done · `scripts/stage.sh caller elder|unknown` (the `/admin/demo-caller` switch and how the init hook and receptionist react), plus the evaluation/data-collection fields.
