@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     app.state.contract_version = CONTRACT_VERSION
     app.state.clock_offset_minutes = 0
     await reset_demo("v_reyes")
+    memory = await _memory_start()
     await start_live()
     app.state.recovery = await recover()
     ticker = asyncio.create_task(_ticker())
@@ -50,7 +51,24 @@ async def lifespan(app: FastAPI):
     yield
     ticker.cancel()
     warm.cancel()
+    if memory:
+        await memory.stop()
     await stop_live()
+
+
+async def _memory_start():
+    """Agent Memory outbox (memory lane): mirrors ledger rows into facts. Optional."""
+    try:
+        from core.memory import runtime
+        from core.db import db
+    except ImportError:
+        return None
+    try:
+        await runtime.start(db)
+        return runtime
+    except Exception:
+        log.exception("memory runtime failed to start")
+        return None
 
 
 async def _warm_release() -> None:
@@ -109,11 +127,12 @@ for _module in LANE_ROUTER_MODULES:
         if not _module.startswith(str(getattr(_exc, "name", "") or "~")):
             log.warning("lane router %s failed to import: %s", _module, _exc)
         continue
-    _lane_router = getattr(_mod, "router", None)
-    if _lane_router is None:
+    _found = [getattr(_mod, _name) for _name in ("router", "admin_router") if getattr(_mod, _name, None) is not None]
+    if not _found:
         LANE_ROUTERS[_module] = "no_router"
         continue
-    app.include_router(_lane_router)
+    for _lane_router in _found:
+        app.include_router(_lane_router)
     LANE_ROUTERS[_module] = "included"
 
 # Serve the built kit (kit/dist) at / after all API routes. Vite base is './' so assets resolve relative to each entry.
