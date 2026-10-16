@@ -45,6 +45,11 @@ class Hub:
         self.clients.append(client)
         await ws.send_json(snapshot(village, role, member_id, view_as=view_as))
         await self.phones_live(village)
+        if role == "control":  # a (re)connecting Control Room sees today's count, not 0
+            from core.bindings import scams_stopped_today
+
+            await self._send(client, {"type": "control", "kind": "counter", "at": clock.now().isoformat(),
+                                      "payload": {"name": "scams_stopped", "value": scams_stopped_today(village), "label": "scams stopped today"}})
         return client
 
     def disconnect(self, ws: WebSocket) -> None:
