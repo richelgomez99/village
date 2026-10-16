@@ -28,10 +28,9 @@ def finish(
     out = decision_base(inp, rule_id, gate_decision)
     values = say_vars or {}
     out["say"] = say(say_key, **values)
+    out["say_vars"] = {k: str(v) for k, v in values.items()}
     if say_key != "silent":
         out["say_key"] = say_key
-    if values:
-        out["say_vars"] = {k: str(v) for k, v in values.items()}
     for rule in rules or []:
         append_rule(out, rule)
     return out
