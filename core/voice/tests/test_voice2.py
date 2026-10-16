@@ -330,3 +330,31 @@ def test_known_numbers_greeted_by_name_and_recipient_vars(client: TestClient, mo
     dv = body["dynamic_variables"]
     assert dv["caller_known"] == "true" and dv["recipient_name"] == "Carmen" and dv["recipient_obj"] == "her"
     assert body["conversation_config_override"]["agent"]["first_message"].startswith("Hi Marco, this is Luz")
+
+
+def test_refused_and_held_screened_calls_tell_the_family(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from core.voice import screened
+
+    screened.reset()
+    monkeypatch.setenv("VOICE_MEMORY_OUTBOX", str(tmp_path))
+    db.idem["conv_refused:screen"] = {"response": {"say": "I can't confirm who you are, so I won't put you through. Goodbye.", "data": {"status": "refused"}}, "at": "2026-10-16T14:00:00-04:00"}
+    db.idem["conv_held:screen"] = {"response": {"say": "Please hold.", "data": {"status": "held", "verification_id": "ver_9999"}}, "at": "2026-10-16T14:05:00-04:00"}
+
+    def payload(conv: str, claimed: str, amount: float, ts: int) -> dict:
+        return {"type": "post_call_transcription", "data": {
+            "conversation_id": conv, "status": "done", "transcript": [], "metadata": {"start_time_unix_secs": ts},
+            "analysis": {"data_collection_results": {"claimed_identity": {"value": claimed}, "amount": {"value": amount}}},
+            "conversation_initiation_client_data": {"dynamic_variables": {"receptionist": "on", "caller_known": "false", "village_id": "v_reyes"}}}}
+
+    before = len(db.messages)
+    client.post("/hooks/elevenlabs/post-call", json=payload("conv_refused", "", 500, 1792173600))  # 14:00 EDT
+    client.post("/hooks/elevenlabs/post-call", json=payload("conv_held", "Marco", 2000, 1792173900))
+    client.post("/hooks/elevenlabs/post-call", json=payload("conv_refused", "", 500, 1792173600))  # duplicate webhook: no second message
+    new = db.messages[before:]
+    assert len(new) == 2, [m["text"] for m in new]
+    assert new[0]["text"] == "A caller who wouldn't say who they were asked for money for Mamá. Village didn't put them through · 2:00 PM"
+    assert new[0]["kind"] == "chat" and new[0]["refs"][0]["label"] == "screened call"
+    assert new[1]["text"].startswith("A caller who said they were Marco asked for money for Mamá. Village held the call")
+    assert new[1]["refs"][0] == {"kind": "verification", "id": "ver_9999", "label": "family check"}
+    for key in ("conv_refused:screen", "conv_held:screen"):
+        db.idem.pop(key, None)

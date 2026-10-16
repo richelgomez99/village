@@ -269,6 +269,17 @@ def events_since_last_turn(village_id: str, member_id: str | None) -> list[dict[
             lines.append({"at": ev["at"], "text": {"en": f"{word_en} answered the check-in", "es": f"{word_es} contestó la llamada de control"}})
         elif kind in {"verification_denied", "verification_timeout"}:
             lines.append({"at": ev["at"], "text": {"en": "Village stopped a scam call", "es": "Village detuvo una llamada de estafa"}})
+        elif kind == "shift" and p.get("date"):
+            from core.bindings import _weekday, shift_who
+
+            cover, was = shift_who(p)
+            day = _weekday(p["date"])
+            if member_id == was and cover and cover != member_id:
+                c = _first(village_id, cover)
+                lines.append({"at": ev["at"], "text": {"en": f"{c} covers your {day}", "es": f"{c} cubre tu {day}"}})
+            elif member_id == cover and was and was != member_id:
+                w = _first(village_id, was)
+                lines.append({"at": ev["at"], "text": {"en": f"You cover {day} for {w}", "es": f"Cubres el {day} por {w}"}})
         elif kind == "dose" and p.get("subject") == recipient and p.get("slot"):
             lines.append({"at": ev["at"], "text": {"en": f"{word_en}'s {p['slot']} pills taken", "es": f"{word_es} tomó las pastillas ({p['slot']})"}})
     for d in db.decisions:

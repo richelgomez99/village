@@ -1,5 +1,5 @@
 // Control Room scene reducer (T020). Pure: (scene, server frame) → scene. Every region reads from this.
-// Inputs are contract 1.3.3 frames (ws_messages.schema.json control{kind}, event, snapshot), incl. caption + ledger
+// Inputs are contract 1.3.4 frames (ws_messages.schema.json control{kind}, event, snapshot), incl. caption + ledger
 // and `mode` on reasoning/ledger rows. One scene per village: frames that name another village are ignored.
 // Unknown kinds are ignored.
 import type { ServerFrame } from "../live/messages";

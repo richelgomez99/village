@@ -23,7 +23,7 @@ from core.db import db
 log = logging.getLogger("village.evolve")
 
 UNDO_WINDOW_S = 10.0
-DETECTED_BY = {"arize_eval", "memory_pattern", "chat_request"}  # contract 1.3.3: chat_request (builder's chat path)
+DETECTED_BY = {"arize_eval", "memory_pattern", "chat_request"}  # contract 1.3.4: chat_request (builder's chat path)
 RECEPTIONIST_RULE = "R-MONEY-UNKNOWN"
 
 # village_id -> proposal_id -> record {proposal, options, voice_ops, spec_before, ...}

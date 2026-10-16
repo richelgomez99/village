@@ -15,14 +15,30 @@ def _recipient(village_id: str | None) -> str | None:
     return villages.care_recipient_id(_v(village_id))
 
 
-def _shift(village_id: str | None = None) -> dict[str, Any] | None:
+def _shift_rows(village_id: str | None = None) -> list[dict[str, Any]]:
     vid = _v(village_id)
-    return next((ev for ev in reversed(db.events) if ev["kind"] == "shift" and ev.get("village", vid) == vid), None)
+    return [ev for ev in db.events if ev["kind"] == "shift" and ev.get("village", vid) == vid]
 
 
-def _on_duty(village_id: str | None = None) -> str | None:
-    shift = _shift(village_id)
-    return (shift["payload"].get("on_duty") if shift else None) or villages.default_on_duty(_v(village_id))
+def shift_who(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+    """(on_duty, backup) from a shift row: {date, on_duty, backup, change} (builder swap: on_duty = the cover,
+    backup = who was on) or the {date, from, to, reason} form (to = the cover, from = who was on)."""
+    return payload.get("on_duty") or payload.get("to"), payload.get("backup") or payload.get("from")
+
+
+def _shift(village_id: str | None = None, date: str | None = None) -> dict[str, Any] | None:
+    """The latest shift row for `date` (default today); a swap for another day never changes tonight."""
+    day = date or clock.now().date().isoformat()
+    return next((ev for ev in reversed(_shift_rows(village_id)) if (ev.get("payload") or {}).get("date", day) == day), None)
+
+
+def _on_duty(village_id: str | None = None, date: str | None = None) -> str | None:
+    day = date or clock.now().date().isoformat()
+    row = next((d for d in rota_week(village_id) if d["date"] == day), None)
+    if row and row.get("on_duty"):
+        return row["on_duty"]
+    shift = _shift(village_id, day)
+    return (shift_who(shift["payload"])[0] if shift else None) or villages.default_on_duty(_v(village_id))
 
 
 def all_view_binds(village_id: str | None = None) -> set[str]:
@@ -147,27 +163,46 @@ def _person(member_id: str | None) -> dict[str, Any] | None:
 
 
 def _next_shift(member_id: str, after: str, village_id: str | None = None) -> str | None:
-    week = _family(village_id).get("care_rota", {}).get("week_of_2026-10-12", [])
-    later = [day["date"] for day in week if day.get("on_duty") == member_id and day["date"] > after]
+    later = [day["date"] for day in rota_week(village_id) if day.get("on_duty") == member_id and day["date"] > after]
     return later[0] if later else None
 
 
-def rota_me(member_id: str, village_id: str | None = None) -> dict[str, Any]:
-    shift = _shift(village_id)
-    on_duty = (shift["payload"].get("on_duty") if shift else None) or villages.default_on_duty(_v(village_id))
-    backup = (shift["payload"].get("backup") if shift else None) or villages.default_backup(_v(village_id))
-    date = shift["payload"].get("date") if shift else clock.now().date().isoformat()
+def rota_me(member_id: str, village_id: str | None = None, date: str | None = None) -> dict[str, Any]:
+    vid = _v(village_id)
+    day = date or clock.now().date().isoformat()
+    row = next((d for d in rota_week(vid) if d["date"] == day), None)
+    shift = _shift(vid, day)
+    on_duty = (row or {}).get("on_duty") or (shift_who(shift["payload"])[0] if shift else None) or villages.default_on_duty(vid)
+    backup = (row or {}).get("backup") or (shift_who(shift["payload"])[1] if shift else None) or villages.default_backup(vid)
     mine = member_id == on_duty
     name = _person(on_duty)["name"]
-    return {
+    out = {
         "is_my_turn": mine,
-        "date": date,
+        "date": day,
         "on_duty": _person(on_duty),
         "backup": _person(backup),
         "until": None,
-        "next_shift": _next_shift(member_id, date, village_id),
+        "next_shift": _next_shift(member_id, day, vid),
         "answer": {"en": "Yes. Tonight until 9:30. Nothing to do unless Village calls you." if mine else f"No. {name} is on tonight."},
     }
+    swaps = [ev for ev in _shift_rows(vid) if ev.get("payload", {}).get("change") == "swapped" or ev.get("payload", {}).get("to")]
+    for ev in swaps:  # tell the helper about a swap that touches them
+        d = ev["payload"].get("date")
+        cover, was = shift_who(ev["payload"])
+        if d and d >= day and member_id in (cover, was):
+            dayname = _weekday(d)
+            out["answer"]["en"] += (f" You cover {dayname} for {_person(was)['name']}." if member_id == cover
+                                    else f" {_person(cover)['name']} covers your {dayname}.")
+    return out
+
+
+def _weekday(date: str) -> str:
+    from datetime import date as _date
+
+    try:
+        return _date.fromisoformat(date).strftime("%A")
+    except ValueError:
+        return date
 
 
 def _family(village_id: str | None = None) -> dict[str, Any]:
@@ -271,7 +306,7 @@ def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
             item["rules"] = area["rules"]
         if area.get("trusted_contacts"):
             item["trusted_contacts"] = area["trusted_contacts"]
-        # 1.3.3: the needs this area serves, so the kit derives each person's tabs (spec order, no duplicates)
+        # 1.3.4: the needs this area serves, so the kit derives each person's tabs (spec order, no duplicates)
         need_ids = list(area.get("need_ids") or area.get("needs") or [])
         for need in spec.get("blueprint", {}).get("needs", []):
             if (need.get("life_area") or need.get("area")) == area["id"] and need.get("id") and need["id"] not in need_ids:
@@ -287,12 +322,28 @@ def on_duty_person(village_id: str | None = None) -> dict[str, Any]:
 
 
 def rota_week(village_id: str | None = None) -> list[dict[str, Any]]:
-    week = _family(village_id).get("care_rota", {}).get("week_of_2026-10-12", [])
+    """The spec/data base rota with the ledger's shift rows on top (latest row per date wins)."""
+    from datetime import date as _date
+
+    vid = _v(village_id)
+    rota = _family(vid).get("care_rota", {}) or {}
+    weeks = sorted(k for k, v in rota.items() if isinstance(v, list))
+    week = rota.get(weeks[-1], []) if weeks else []
     days = {day["date"]: dict(day) for day in week}
-    for ev in db.events:  # ledger shift rows override the planned rota
-        if ev["kind"] == "shift" and ev["payload"].get("date") in days:
-            days[ev["payload"]["date"]].update({k: ev["payload"][k] for k in ("on_duty", "backup") if ev["payload"].get(k)})
-    return [{"date": d["date"], "day": d["day"], "on_duty": d["on_duty"], "backup": d["backup"]} for d in days.values()]
+    for ev in _shift_rows(vid):
+        p = ev.get("payload") or {}
+        d = p.get("date")
+        if not d:
+            continue
+        on, back = shift_who(p)
+        if d not in days:
+            try:
+                dayname = _date.fromisoformat(d).strftime("%a")
+            except ValueError:
+                continue
+            days[d] = {"date": d, "day": dayname, "on_duty": on, "backup": back}
+        days[d].update({k: v for k, v in (("on_duty", on), ("backup", back)) if v})
+    return [{"date": d["date"], "day": d["day"], "on_duty": d.get("on_duty"), "backup": d.get("backup")} for d in sorted(days.values(), key=lambda r: r["date"])]
 
 
 _TIMELINE_TEXT = {
@@ -395,6 +446,8 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
         data["blueprint:life_areas"] = life_areas(vid)
     if "*" in binds or "rota:week" in binds:
         data["rota:week"] = rota_week(vid)
+    if "rota:current" in binds:
+        data["rota:current"] = rota_week(vid)
     if subject and ("*" in binds or f"timeline:subject={subject}" in binds):
         data[f"timeline:subject={subject}"] = timeline(subject, village_id=vid)
     if "*" in binds or "rota:current.on_duty" in binds:
@@ -449,6 +502,16 @@ def proposal_details(village_id: str | None = None) -> dict[str, dict[str, Any]]
 
 def changed(event: dict[str, Any], role: str, member_id: str | None = None, village_id: str | None = None) -> dict[str, Any]:
     vid = village_id or event.get("village") or _v(None)
+    if event["kind"] == "shift":  # a swap: every phone's rota + the helper headline + life areas
+        out: dict[str, Any] = {"rota:week": rota_week(vid), "rota:current": rota_week(vid), "rota:current.on_duty": on_duty_person(vid),
+                               "blueprint:life_areas": life_areas(vid)}
+        if member_id:
+            out["rota:current?member=me"] = rota_me(member_id, vid)
+            if role == "helper":
+                from core.bindings_live import events_since_last_turn
+
+                out["events:since_last_turn?member=me"] = events_since_last_turn(vid, member_id)
+        return out
     if event["kind"] in {"verification_pending", "verification_confirmed", "verification_denied", "verification_timeout"}:
         data: dict[str, Any] = {"alerts:active": active_alerts(role, vid)}
         verification_id = event.get("payload", {}).get("verification_id")

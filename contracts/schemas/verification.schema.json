@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/verification.schema.json",
   "title": "Verification record",
   "description": "One money verification (D13, R-MONEY-VERIFY). Stored in SurrealDB table `verification`, CAS on version. `state` is the fine state machine from data/datasets/policy_cases.md; `status` is the coarse 4-value view every UI and the event kinds use (pending → confirmed | denied | timeout). Transitions are listed in x-state-machine and implemented by the gate lane as pure step(verification, event, now).",
-  "x-contract-version": "1.3.3",
+  "x-contract-version": "1.3.4",
   "x-state-machine": {
     "initial": ["pending", "unreachable"],
     "terminal": ["confirmed", "late_confirmed", "denied", "late_denied", "unsure", "unreachable", "timed_out"],
