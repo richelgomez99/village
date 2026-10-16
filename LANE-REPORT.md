@@ -162,6 +162,32 @@ LD-7: Spine is "about 130 ms" (RESULTS); the brief's "100–130 ms" has no sourc
 LD-8: "Sonnet 5.5 + Haiku 5.5 via the Anthropic API" has no measured run in RESULTS/LANE-REPORT (release LD-3: key 400 without workspace id). Pages say Core uses them with Bedrock Haiku 4.5 fallback, and that every measured run used Haiku 4.5.
 
 ## builder
+READY FOR MERGE THANKSGIVING
+D36 · done · `uv run pytest core/builder/tests/test_thanksgiving_e2e.py -q` (extractor, ops placement, e2e on core.app) + real Core on :8797 (model off, `VILLAGE_EVOLVE_RELEASE=fake`, in-memory store) · `core/builder/chat_intent.py`: classify why|change|other (model via core.llm role "builder" when on; rules off), deterministic extractor for `data/builder/thanksgiving_change.jsonl`, per-role ops in the right place (D35): coordinator Checklist "Thanksgiving plan · Nov 27" right after LifeAreas (12 people, Marco brings the turkey, Lucía brings the pie, Lucía 11:40 train, pick up Lucía at Penn Station 1 PM (Marco), Grandpa: low-salt plate, Rule: no politics at the table); helper (shared by Marco + Lucía → third person) Text after HelperAnswer "Thanksgiving: Marco brings the turkey · Lucía brings the pie, 11:40 train"; elder Text after TonightCard "El jueves 27 vienen todos. Marco trae el pavo."; new life area daily_living "Thanksgiving · Nov 27" + need via the record's blueprint ops. The proposal is stored in core.evolve's STORE and posted/announced the same way as propose(), so Ana's card, approve → release gate → apply → patch all run unchanged. Core's @Village hook (`core.builder.ask(village_id, text)`) now returns `{text, refs, trace_id}`: change → the proposal (answer cites it), why → cited answer from core's decision log.
+LD-11: proposal `detected_by` enum has no `chat_request` → the stored proposal says `memory_pattern`; the record keeps `detected_by: chat_request` (contract change needed). `spec_ops` only allows /printables/ → the life-area/need ops ride in the record's `voice_ops` (applied by candidate_spec the same way).
+LD-12: "oven times" were not in Ana's message, so the plan card has none (never invented); pickup driver = the person bringing the main dish who isn't arriving (Marco).
+LD-13 (incident): before 13:10 my in-process `TestClient(core.app)` checks (resume-8 founding of v_reyes, and the first run of the Thanksgiving e2e test) ran with `.env`'s SURREAL_DB_URL, so core's db wrote builder decision rows, chat messages, a proposal and evolve's `spec_rev`/`view` rows for v_reyes (Thanksgiving rev 6) to the shared SurrealDB Cloud instance. The test now forces the in-memory store. Core should run its reset (`POST /admin/reset` / reseed) before the demo if Core reloads views or specs from the cloud.
+Frames on :8797 (control, Ana, Marco, Carmen sockets; duplicates across sockets folded):
+```
+ana     chat chat: @Village we're doing Thanksgiving at Mom's on the 27th. Twelve of us. Marco brings the turkey, Lucía brings the pie and comes in on the 11:40 train, s
+ana     event spec_patch_proposed data=['proposals:pending']
+control event spec_patch_proposed data=['proposals:pending']
+ana     chat proposal: Add Thanksgiving to the village? Ana asked in the chat: Twelve people at Mamá's on Nov 27. Mamá: one line in Spanish under tonight: "El jueves 27 vien
+control control proposal prop_reyes_thanksgiving_1 status=proposed
+control chat answer: I drafted 'Add Thanksgiving to the village'. Nothing changes until it's approved: tap Approve on the card.
+ana     event spec_patch_proposed data=['proposals:pending']
+control event spec_patch_proposed data=['proposals:pending']
+control control proposal prop_reyes_thanksgiving_1 status=verifying
+ana     patch role=coordinator 5→6 highlight=['plan_event'] ops=[('add', '/elements/plan_event', 'Checklist'), ('add', '/elements/s/children/3', 'plan_event')]
+marco   patch role=helper 5→6 highlight=['plan_event'] ops=[('add', '/elements/plan_event', 'Text'), ('add', '/elements/s/children/3', 'plan_event')]
+carmen  patch role=elder 5→6 highlight=['plan_event'] ops=[('add', '/elements/plan_event', 'Text'), ('add', '/elements/s/children/2', 'plan_event')]
+ana     event spec_patch_proposed data=['proposals:pending']
+control event spec_patch_proposed data=['proposals:pending']
+control control release in_progress rev=6
+control control release released rev=6
+control control proposal prop_reyes_thanksgiving_1 status=applied
+ana     chat receipt: Done. Add Thanksgiving to the village (rev 6). Built in a sandbox, tested, clicked through on a phone; Scored on 51 calls (last night's included). Eve
+```
 READY FOR MERGE V2-FX
 D33 · done · `uv run pytest core/builder/tests/test_founding.py -q` (frame order per answer: answer → "Now I know · meter · next" → will_build → patch; nothing before its cause; block same) · after each answer: `control{blueprint, stage: will_build, items:[{person, display_name, role, component, element, reason}]}` from `builds` in data/intake/plan*.json, then `patch{base_rev, rev, role, ops, highlight}` on that role's progressive DRAFT view (stored as the village spec, so a joining phone/mirror snapshot shows the cards so far); review edit → will_build + patch (RefillCard for Lucía); "Draft ready · rev N" ledger row + `blueprint done` only after the review; `--pace 5` default for `--replay` (`pace` in POST /villages body), `--pace 0` in tests
 LD-9: `stage: "will_build"` is NOT in contract 1.2.1 (`blueprint.stage` enum) → orchestrator must add it; my frame-schema tests skip that one stage.
