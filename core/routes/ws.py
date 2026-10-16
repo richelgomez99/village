@@ -67,7 +67,9 @@ async def websocket_endpoint(ws: WebSocket, village: str = "v_reyes", m: str = "
 
 
 async def _hello(ws: WebSocket, msg: dict, village: str, fallback_member: str | None):
-    if msg.get("contract_version") != CONTRACT_VERSION:
+    # Same major.minor is compatible (patch bumps are additive); a phone with a cached bundle must not be locked out mid-demo.
+    _client_v = str(msg.get("contract_version") or "")
+    if _client_v.rsplit(".", 1)[0] != CONTRACT_VERSION.rsplit(".", 1)[0]:
         await ws.send_json({**_error("contract_mismatch", f"server speaks {CONTRACT_VERSION}"), "contract_version": CONTRACT_VERSION})
         await ws.close()
         return False
