@@ -105,7 +105,7 @@ def test_resume_at_8_takes_live_answers() -> None:
 
     async def go():
         task = asyncio.create_task(found(inp, village_id="v_resume", services=svc, options=demo_options(llm="off", replay=answers, resume=8, clarify_wait_s=3)))
-        live = answers[9:]  # A10, A11, A12
+        live = [r["text"] for r in answers[9:]]  # A10, A11, A12
         while live:
             await asyncio.sleep(0.02)
             s = SESSIONS.get("v_resume")

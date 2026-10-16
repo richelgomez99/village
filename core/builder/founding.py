@@ -61,7 +61,7 @@ class FoundingOptions:
     demo_record: bool = True
     signals: dict[str, Any] = field(default_factory=dict)
     llm_client: Any | None = None
-    replay: list[str] | None = None  # recorded answers in order (A1…A12)
+    replay: list[Any] | None = None  # recorded answers: rows {text, topic, asked} (A1…A12) or plain strings in order
     replay_delay_s: float = 0.0
     resume: int | None = None  # replay answers until the meter reaches N, then live answers
     review: bool = True
@@ -415,13 +415,25 @@ async def found(
     pending = list(input.answers)
     replay = list(opts.replay or [])
 
+    def pick(q: Any) -> str:
+        """Replay rows are matched to the question actually asked (same text → same topic → next)."""
+        rows = [r if isinstance(r, dict) else {"text": r} for r in replay]
+        text = getattr(q, "text", None)
+        topic = "review" if isinstance(q, Review) else getattr(q, "topic", None)
+        idx = next((i for i, r in enumerate(rows) if text and r.get("asked") == text), None)
+        if idx is None and topic:
+            idx = next((i for i, r in enumerate(rows) if r.get("topic") == topic and not (topic == "money" and r.get("asked") and "word" in r["asked"] and getattr(q, "field", "") != "family_word")), None)
+        if idx is None:
+            idx = 0
+        return rows[idx]["text"] if replay.pop(idx) is not None else ""
+
     async def get_answer(live_ok: bool) -> str | None:
         if pending:
             return pending.pop(0)
         if replay and (opts.resume is None or len(intake.covered()) < opts.resume):
             if opts.replay_delay_s:
                 await asyncio.sleep(opts.replay_delay_s)
-            return replay.pop(0)
+            return pick(session.question)
         if replay and opts.resume is not None:
             replay.clear()  # resume point reached: the rest is live
         if live_ok and opts.clarify_wait_s > 0:
@@ -614,9 +626,9 @@ def demo_options(kind: str = "care", **kw: Any) -> FoundingOptions:
     return FoundingOptions(**kw)
 
 
-def replay_input(path: Any = None, kind: str = "care") -> tuple[FoundingInput, list[str]]:
+def replay_input(path: Any = None, kind: str = "care") -> tuple[FoundingInput, list[dict[str, Any]]]:
     rows = load_intake(path, kind)
-    return FoundingInput(description=rows[0]["text"], kind=kind), [r["text"] for r in rows[1:]]
+    return FoundingInput(description=rows[0]["text"], kind=kind), rows[1:]
 
 
 def answer(village_id: str, text: str) -> bool:
