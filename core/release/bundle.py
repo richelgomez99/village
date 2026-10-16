@@ -25,7 +25,10 @@ BROKEN_INFO_FG = "#4C80B4"
 
 def bundle_source() -> Path:
     """Bundle source directory. RELEASE_BUNDLE_SOURCE=kit switches to the kit lane's app."""
-    if os.environ.get("RELEASE_BUNDLE_SOURCE", "sandbox") == "kit" and (KIT_DIR / "package.json").exists():
+    # kit/ is used only once it exposes the floor-test seam (src/catalog.ts styleFor); until then the
+    # generated floor tests could not import it, so the template stays the bundle (LANE-REPORT LD-1).
+    if (os.environ.get("RELEASE_BUNDLE_SOURCE", "sandbox") == "kit" and (KIT_DIR / "package.json").exists()
+            and (KIT_DIR / "src" / "catalog.ts").exists()):
         return KIT_DIR
     return TEMPLATE_DIR
 
