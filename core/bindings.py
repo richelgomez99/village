@@ -247,15 +247,15 @@ _AREA_WORD = {"health": "Pills", "money": "Money", "people": "People"}
 def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
     """Plain words per life area, computed from events in the village's own vocabulary (core.bindings_live);
     the label carries the area word ("Pills: …"), the status is the line ("morning taken · refill Friday · Marco")."""
-    from core.bindings_live import life_area_status
+    from core.bindings_live import area_word, life_area_status
 
     vid = _v(village_id)
     spec = db.specs.get(vid) or villages.spec(vid)
     out = []
     for area in spec.get("blueprint", {}).get("life_areas", []):
-        label = area.get("label", area["id"])
-        if area["id"] in _AREA_WORD:
-            label = f"{_AREA_WORD[area['id']]}: {label.split(':', 1)[-1].strip()}"
+        label = str(area.get("label", area["id"]))
+        if ":" in label:  # the village's own area word leads ("Health: pills" -> "Pills: pills"; a phrase keeps its head)
+            label = f"{area_word(area)}: {label.split(':', 1)[1].strip()}"
         item: dict[str, Any] = {"id": area["id"], "label": label, "status": life_area_status(vid, area, spec)}
         if area.get("rules"):
             item["rules"] = area["rules"]
