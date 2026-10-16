@@ -65,19 +65,44 @@ describe("VillageSocket", () => {
     expect(c.state.highlight).toEqual(["t"]);
   });
 
-  it("merges event data and stops on contract_mismatch", () => {
+  it("merges event data; contract_mismatch → 'Updating…', SW update, one re-hello; a second mismatch stops", async () => {
     vi.useFakeTimers();
-    const c = client();
+    MockSocket.instances = [];
+    let updates = 0;
+    const c = new VillageSocket({ url: "ws://test", village: "v_reyes", token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test", WebSocketImpl: MockSocket as any, jitter: 0, onUpdate: async () => { updates++; } });
     c.connect();
     const s = MockSocket.instances[0];
     s.open();
     s.message(snapshot(4));
     s.message({ type: "event", event: { id: "ev_x_123", kind: "ack", at: "2026-10-16T14:00:05-04:00" }, data: { b: 2, a: null } });
     expect(c.state.data).toEqual({ a: null, b: 2 });
+    const hellos = () => s.sent.filter((f) => f.type === "hello").length;
+    expect(hellos()).toBe(1);
+    s.message({ type: "error", code: "contract_mismatch", message: "1.0.0 != 1.1.0" });
+    expect(c.state.status).toBe("updating");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(updates).toBe(1);
+    expect(hellos()).toBe(2);
     s.message({ type: "error", code: "contract_mismatch", message: "1.0.0 != 1.1.0" });
     expect(c.state.status).toBe("closed");
     vi.advanceTimersByTime(20000);
     expect(MockSocket.instances).toHaveLength(1);
+  });
+
+  it("re-hellos within 2 s even if the service worker update hangs", async () => {
+    vi.useFakeTimers();
+    MockSocket.instances = [];
+    const c = new VillageSocket({ url: "ws://test", village: "v_reyes", token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test", WebSocketImpl: MockSocket as any, onUpdate: () => new Promise(() => {}) });
+    c.connect();
+    const s = MockSocket.instances[0];
+    s.open();
+    s.message({ type: "error", code: "contract_mismatch", message: "x" });
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(s.sent.filter((f) => f.type === "hello")).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(2);
+    expect(s.sent.filter((f) => f.type === "hello")).toHaveLength(2);
+    s.message(snapshot(4));
+    expect(c.state.status).toBe("live");
   });
 
   it("maps result frames to the action's element", () => {

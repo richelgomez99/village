@@ -3,7 +3,7 @@ import { IdentityChip, PromptOverlay, StatusStrip, ViewAs, ViewingAsBanner, type
 import { memberName } from "../components/shared";
 import { k } from "../i18n/strings";
 import type { LiveState, VillageSocket } from "../live/ws";
-import type { RenderCtx } from "../renderer/context";
+import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { Renderer } from "../renderer/Renderer";
 
 /** View-as options from the coordinator's own data: member:<id> records, then everyone on the rota. */
@@ -39,9 +39,10 @@ export function MemberApp({ socket, captions = false }: { socket: VillageSocket;
   const ack = useCallback((id: string) => socket.ack(id), [socket]);
   const disabled = state.viewAs !== null;
   const highlight = useMemo(() => new Set(state.highlight), [state.highlight]);
+  const phoneFor = useMemo(() => makePhoneFor(data, state.identity?.village_number), [data, state.identity]);
 
   const ctx: RenderCtx | null = view
-    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions }
+    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions, phoneFor }
     : null;
 
   // options come from my own snapshot; keep them while viewing as someone else

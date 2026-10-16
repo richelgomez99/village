@@ -3,7 +3,7 @@ import { forwardRef, useEffect, useMemo, useState, type ReactNode } from "react"
 import { QRCodeSVG } from "qrcode.react";
 import { captionFor } from "../i18n/captions";
 import { Renderer } from "../renderer/Renderer";
-import type { RenderCtx } from "../renderer/context";
+import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
@@ -383,7 +383,7 @@ export function phoneSlots(spec: any): { role: string; label: string; name: stri
 function PhoneScreen({ view, data, nowMs, role, village }: { view: View; data: Record<string, unknown>; nowMs: () => number; role: string; village: string }) {
   const ctx: RenderCtx = {
     view, data, lang: view.lang, role, memberId: null, village, nowMs, disabled: true, highlight: new Set(), results: {},
-    send: () => "", ack: () => {}, captions: true
+    send: () => "", ack: () => {}, captions: true, phoneFor: makePhoneFor(data)
   };
   return (
     <div className="phone app" data-theme={view.theme} data-lang={view.lang} data-test="app" data-role={role} lang={view.lang}>
