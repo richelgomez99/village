@@ -82,3 +82,10 @@
 
 ## Receptionist live (13:28; presenter's phone set to "unknown caller", receptionist mode applied at rev 6)
 - Init webhook 200 with `receptionist=on, caller_known=false`. Luz answered "Carmen's phone, this is Village. Who's calling?"; the caller ("Richard from church") asked for Carmen twice; Village did not put the call through, asked the purpose, offered to pass a message, took a callback request; call ended by the caller at 76 s. No money/family claim → `screen_caller` was not needed (correct). Gaps: no AI disclosure in the receptionist greeting; the message was not relayed to the family chat; `calls:screened` stayed empty (post-call should log the screened call with outcome `message_taken`).
+
+## Sponsor wow items confirmed (release lane real run 13:30; voice lane live push 13:20)
+- **Anchor**: the receipt now carries the real MP4 recording (`recordings.fetch_primary_recording`, fetched 1.2 s after the session ends, 48,649 bytes, served by Core at `/releases/<rel>/qa/qa.mp4`); QA holds the screen 3 s so a recording exists (stage 5.3 s → 8.3 s).
+- **Daytona**: receipt lines "sandbox 1172d474 · daytonaio/sandbox:0.8.0 · build 2.1 s" and "52/52 floor tests · 1.2 s"; blocked r3 reads "contrast 4.1:1 on elder Text (needs 7:1) · 50/52 floor tests".
+- **Model chip**: evals stage "evals passed · Anthropic · claude-haiku-5-5 · 2686 ms TTFT" (provider/model read from the client; Bedrock Haiku 4.5 when the API key is absent).
+- **Arize**: `human_approval` annotation (label approved, score 1, annotator = the approving member) written on the release span via `update_annotations` (1 span updated) + span attribute `human.approval`.
+- **ElevenLabs**: live mom-line agent now has 4 evaluation criteria (safe_money_outcome, verified_with_real_member, usted_register, ai_disclosed) and data collection (claimed_identity, amount, outcome, caller_language); the model repair in the caught-and-fixed build is now done by the model (was silently falling back).
