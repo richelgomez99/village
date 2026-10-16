@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from core import village as villages
 from core.bindings import changed, snapshot_data, verification_prompt_frame
 from core.clock import clock
 from core.db import db
@@ -72,7 +73,12 @@ class Hub:
             if client.village != event.get("village"):
                 continue
             frame: dict[str, Any] = {"type": "event", "event": event}
-            data = changed(event, client.role, client.member_id or ("m_marco" if client.role == "control" else None))
+            data = changed(
+                event,
+                client.role,
+                client.member_id or (villages.default_verifier(client.village) if client.role == "control" else None),
+                client.village,
+            )
             if data:
                 frame["data"] = data
             await self._send(client, frame)
@@ -147,7 +153,7 @@ def snapshot(village: str, role: str, member_id: str | None, *, view_as: bool = 
         "member_id": member_id,
         "rev": spec.get("rev", 0),
         "spec": view_spec,
-        "data": snapshot_data(role, member_id),
+        "data": snapshot_data(role, member_id, village),
         "now": clock.now().isoformat(),
         "identity": identity(village, role, member_id, view_as=view_as),
     }

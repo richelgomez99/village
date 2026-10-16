@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from core import village as villages
 from core.db import db
 from core.settings import ROOT
 
@@ -19,71 +20,71 @@ def load_json(path: Path) -> Any:
         return json.load(fh)
 
 
-async def reset_demo(village_id: str = "v_reyes") -> dict[str, Any]:
-    await db.reset()
-    await db.clear_cloud()
-    spec = load_json(FIXTURES / "reyes_spec.json")
-    events = load_json(FIXTURES / "events_reyes_seed.json")["events"]
-    family = load_json(DATA / "reyes_family.json")
+def _slug(village_id: str) -> str:
+    return village_id.removeprefix("v_")
 
-    await db.upsert_record("village", village_id, {"id": village_id, **spec["village"]})
+
+async def seed_village(village_id: str, *, with_seed_rows: bool = True) -> dict[str, Any]:
+    """Load one registered village (data/villages/index.json -> contract spec + seed rows) without
+    touching any other village already in memory."""
+    spec = villages.fixture_spec(village_id)
+    if not spec:
+        raise KeyError(f"unknown village {village_id!r}; registered: {villages.village_ids()}")
+    slug = _slug(village_id)
+    await db.upsert_record("village", village_id, {**spec["village"], "id": village_id})
     await db.upsert_record(
         "spec_rev",
-        f"reyes_{spec['rev']}",
-        {"id": f"sr_reyes_{spec['rev']}", "village": village_id, "rev": spec["rev"], "spec": spec, "published": True},
+        f"{slug}_{spec['rev']}",
+        {"id": f"sr_{slug}_{spec['rev']}", "village": village_id, "rev": spec["rev"], "spec": spec, "published": True},
     )
     for person in spec["blueprint"]["people"]:
         await db.upsert_record("member", person["id"], {"village": village_id, **person})
     for role, view in spec["views"].items():
-        await db.upsert_record("view", f"reyes_{role}", {"id": f"view_reyes_{role}", "village": village_id, "role": role, "rev": spec["rev"], "spec": view})
-    for event in events:
-        await db.create_event(event)
+        await db.upsert_record("view", f"{slug}_{role}", {"id": f"view_{slug}_{role}", "village": village_id, "role": role, "rev": spec["rev"], "spec": view})
+    db.prescriptions[village_id] = villages.seed_prescriptions(village_id)
+    if with_seed_rows:
+        for event in villages.seed_events(village_id):
+            await db.create_event({**event, "village": event.get("village", village_id)})
+        # contracts: core seeds the rows before the live scam beat (14:02); the live flow writes the rest.
+        for message in [row for row in villages.seed_messages(village_id) if row["at"] < "2026-10-16T14:02:00-04:00"]:
+            await db.create_message({**message, "village": village_id})
+    return spec
 
-    meds = family.get("medications", [])
-    lisinopril = [med for med in meds if med.get("name") == "lisinopril"]
-    db.prescriptions[village_id] = [
-        {
-            "med_id": "med_lisinopril_5",
-            "name": "lisinopril",
-            "dose": "5 mg",
-            "valid_from": "2026-09-01",
-            "valid_until": "2026-10-03",
-            "source": {"kind": "system", "ref": "seed", "quote": "Prior bottle in cabinet"},
-            "prescriber": "Dr. Park",
-        },
-        {
-            "med_id": "med_lisinopril_10",
-            "name": "lisinopril",
-            "dose": "10 mg",
-            "valid_from": "2026-10-03",
-            "valid_until": None,
-            "source": {"kind": "call", "ref": "conv_setup_0003", "secs": 88},
-            "prescriber": "Dr. Park",
-        },
-    ]
-    if not lisinopril:
-        pass
-    from core import services
 
-    services.reset_chat_state()
-    seed = load_json(FIXTURES / "messages_reyes_seed.json")["messages"]
-    # contracts: core seeds the rows before the live scam beat (14:02); the live flow writes the rest.
-    for message in [row for row in seed if row["at"] < "2026-10-16T14:02:00-04:00"]:
-        await db.create_message({**message, "village": village_id})
+async def reset_demo(village_id: str | None = None, *, keep_others: bool = False) -> dict[str, Any]:
+    """Reset to the seed of `village_id` (default: DEMO_VILLAGE_ID / registry default). Every other
+    registered village is loaded alongside (spec, members, views) so one Core serves them all at once.
+    keep_others=True re-seeds only `village_id` and leaves the in-memory state of the others alone."""
+    village_id = village_id or villages.default_village_id()
+    if not keep_others:
+        await db.reset()
+        await db.clear_cloud()
+        from core import services
+
+        services.reset_chat_state()
+    spec = await seed_village(village_id)
+    if not keep_others:
+        for other in villages.village_ids():
+            if other != village_id:
+                await seed_village(other)
+    people = spec["blueprint"]["people"]
+    tokens = {str(p["name"]).split()[0].lower(): p["id"] for p in people if (spec.get("channels", {}).get(p["id"]) or [])}
+    tokens["control"] = "control"
     return {
         "village": village_id,
-        "members": len(db.members),
+        "villages": villages.village_ids(),
+        "members": len([m for m in db.members.values() if m.get("village") == village_id]),
         "views": len(spec["views"]),
         "events": len(db.events),
-        "tokens": {"carmen": "m_carmen", "ana": "m_ana", "marco": "m_marco", "control": "control"},
+        "tokens": tokens,
     }
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", default="v_reyes")
+    parser.add_argument("--reset", "--village", dest="village", default=None)
     args = parser.parse_args()
-    print(json.dumps(await reset_demo(args.reset), indent=2))
+    print(json.dumps(await reset_demo(args.village), indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

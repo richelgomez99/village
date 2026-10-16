@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException
 
+from core import village as villages
 from core.db import db
 from core.fixtures import FIXTURES, load_json, reset_demo
 from core.settings import get_settings
@@ -25,7 +26,7 @@ async def reset(body: dict | None = None, x_admin_key: str = Header(default=""))
     """Demo reset. No scopes = full reset_demo. Scopes: events_today, verifications, proposals, tokens, counters."""
     if x_admin_key != get_settings().admin_key:
         raise HTTPException(status_code=403, detail="bad admin key")
-    village_id = (body or {}).get("village", "v_reyes")
+    village_id = (body or {}).get("village") or villages.default_village_id()
     scopes = [s for s in (body or {}).get("scopes", []) if s in ALL_SCOPES]
     unknown = [s for s in (body or {}).get("scopes", []) if s not in ALL_SCOPES]
     if unknown:
@@ -38,8 +39,8 @@ async def reset(body: dict | None = None, x_admin_key: str = Header(default=""))
 
     done: dict = {}
     if "events_today" in scopes:
-        seed_ids = {ev["id"] for ev in load_json(FIXTURES / "events_reyes_seed.json")["events"]}
-        seed_msgs = {m["id"] for m in load_json(FIXTURES / "messages_reyes_seed.json")["messages"]}
+        seed_ids = {ev["id"] for vid in villages.village_ids() for ev in villages.seed_events(vid)}
+        seed_msgs = {m["id"] for vid in villages.village_ids() for m in villages.seed_messages(vid)}
         before = len(db.events)
         db.events[:] = [ev for ev in db.events if ev["id"] in seed_ids]
         db.messages[:] = [m for m in db.messages if m["id"] in seed_msgs]
@@ -50,7 +51,7 @@ async def reset(body: dict | None = None, x_admin_key: str = Header(default=""))
         done["verifications_removed"] = len(db.verifications)
         db.verifications.clear()
     if "tokens" in scopes:
-        spec = load_json(FIXTURES / "reyes_spec.json")
+        spec = villages.fixture_spec(village_id)
         for person in spec["blueprint"]["people"]:
             await db.upsert_record("member", person["id"], {"village": village_id, **person})
         done["members_restored"] = len(spec["blueprint"]["people"])

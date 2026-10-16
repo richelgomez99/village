@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.contract_version = CONTRACT_VERSION
     app.state.clock_offset_minutes = 0
-    await reset_demo("v_reyes")
+    await reset_demo()
     memory = await _memory_start()
     await start_live()
     app.state.recovery = await recover()

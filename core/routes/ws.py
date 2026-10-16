@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from core import services
+from core import village as villages
 from core.auth import resolve_token
 from core.db import db
 from core.settings import CONTRACT_VERSION
@@ -15,9 +16,13 @@ def _error(code: str, message: str) -> dict:
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, village: str = "v_reyes", m: str = "m_carmen") -> None:
+async def websocket_endpoint(ws: WebSocket, village: str | None = None, m: str | None = None) -> None:
     await ws.accept()
-    member_id = resolve_token(m) or m
+    # D30: the village comes from the socket (?village=), else the member's village, else DEMO_VILLAGE_ID;
+    # with no member the socket defaults to that village's care recipient (legacy elder default).
+    member_id = (resolve_token(m) or m) if m else None
+    village = village or villages.member_village(member_id if member_id != "control" else None)
+    member_id = member_id or villages.care_recipient_id(village) or villages.coordinator_id(village)
     client = None
     try:
         while client is None:
