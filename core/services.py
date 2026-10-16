@@ -197,6 +197,13 @@ async def record_event(
 
 
 async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
+    idem_key = None
+    if request.get("conversation_id"):
+        idem_key = f"{request.get('conversation_id')}:{request.get('tool_call_id', name)}"
+        cached = await db.get_idem(idem_key)
+        if cached and cached.get("response"):
+            return copy.deepcopy(cached["response"])
+
     if name == "log_dose":
         village_id = request.get("village_id", "v_reyes")
         taken_at = request.get("taken_at") or clock.now().isoformat()
@@ -222,12 +229,12 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
         decision = await decide(
             village_id,
             candidate,
-            idempotency_key=f"{request.get('conversation_id', 'conv_stub')}:{request.get('tool_call_id', name)}",
+            idempotency_key=idem_key,
         )
         events = decision.get("_events", [])
         first_event = events[0] if events else None
         say = decision.get("say", {}).get("es", "")
-        return {
+        response = {
             "decision": decision["decision"],
             "say": say,
             "say_key": decision.get("say_key"),
@@ -241,6 +248,56 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
                 "taken_at": candidate["payload"]["taken_at"],
             },
         }
+        if idem_key:
+            await db.put_idem(idem_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "response": copy.deepcopy(response), "at": clock.now().isoformat()})
+        return response
+
+    if name == "report_money_request":
+        village_id = request.get("village_id", "v_reyes")
+        deadline = (clock.now() + timedelta(seconds=45)).isoformat()
+        claimed = request.get("claimed_member")
+        claimed_member_id = claimed if str(claimed).startswith("m_") else "m_marco" if claimed in {"marco", None} else None
+        candidate = {
+            "village": village_id,
+            "kind": "money_request",
+            "payload": {
+                "subject": "m_carmen",
+                "claimed_member_id": claimed_member_id or "m_marco",
+                "claimed_identity": request.get("claimed_identity", "Marco"),
+                "amount": request.get("amount", 0),
+                "currency": request.get("currency", "USD"),
+                "method": request.get("method", "unknown"),
+                "urgency": request.get("urgency", "now"),
+                "red_flags": request.get("red_flags", []),
+                "utterance": request.get("utterance", ""),
+                "deadline": deadline,
+            },
+            "actor": "m_carmen",
+            "source": {"kind": "call", "ref": request.get("conversation_id", "conv_stub"), "secs": int(request.get("call_secs", 0)), "quote": request.get("utterance", "")},
+            "at": clock.now().isoformat(),
+        }
+        result = await start_verification(village_id, candidate, idempotency_key=idem_key or f"{request.get('conversation_id', 'conv_stub')}:{name}")
+        decision = result["decision"]
+        response = {
+            "decision": decision["decision"],
+            "say": decision["say"]["es"],
+            "say_key": decision.get("say_key"),
+            "rule_id": decision["rule_id"],
+            "lang": "es",
+            "decision_id": decision["id"],
+            "data": {
+                "status": result["status"],
+                "verification_id": result["verification_id"],
+                "claimed_member_id": result["claimed_member_id"],
+                "channels": result["channels"],
+                "deadline": result["deadline"],
+                "deadline_secs": 45,
+                "next": "await_verification",
+            },
+        }
+        if idem_key:
+            await db.put_idem(idem_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "response": copy.deepcopy(response), "at": clock.now().isoformat()})
+        return response
 
     for example in _voice_examples():
         if example.get("tool") == name:

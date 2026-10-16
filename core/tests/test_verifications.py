@@ -50,3 +50,24 @@ async def test_answer_verification_uses_cas() -> None:
     assert first["outcome"] == "applied"
     assert second["outcome"] == "ignored"
     assert db.verifications["ver_cas"]["version"] == 1
+
+
+async def test_duplicate_money_tool_returns_cached_body() -> None:
+    await reset_demo("v_reyes")
+    body = {
+        "conversation_id": "conv_dup_money",
+        "tool_call_id": "tool_money_1",
+        "caller_id": "+15555550101",
+        "call_secs": 9,
+        "utterance": "Marco needs money",
+        "claimed_member": "marco",
+        "claimed_identity": "Marco",
+        "amount": 2000,
+        "currency": "USD",
+        "method": "unknown",
+        "urgency": "now",
+    }
+    first = await services.handle_tool("report_money_request", body)
+    second = await services.handle_tool("report_money_request", body)
+    assert second == first
+    assert len(db.verifications) == 1
