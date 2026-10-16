@@ -11,7 +11,7 @@ import { authorName, oneLine } from "../components/generic";
 import { ProposalBlocks, ReleaseStepper } from "../components/proposal";
 import { text } from "../renderer/view";
 import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
-import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
+import { askVillage, getQr, listFacts, type ApiConfig, type AskAnswer, type FactCard, type QrEntry } from "./api";
 import { displayName, memberDisplay, nameCtx, type AnswerBlock, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
 
 const hhmm = (iso: string) => {
@@ -55,8 +55,10 @@ export const NEW_VILLAGE = "__new__";
 
 export const TAGLINE = "Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.";
 
-export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails }: {
+export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails, villageTime }: {
   details?: boolean; onDetails?: (on: boolean) => void;
+  /** presenter mode: the clock in words ("Friday · 8:50 PM · <on-duty>'s night"), no demo chrome */
+  villageTime?: string;
   tabs: VillageTab[]; tab: string; onTab: (id: string) => void; onNew: () => void; phones: number | null; clock: SceneState["clock"]; nowMs: () => number;
   onWarp: () => void; warpState: "idle" | "busy" | "failed";
 }) {
@@ -90,6 +92,9 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
           <span className="num">{n}</span>
           <span className="muted">{n === 1 ? "phone live" : "phones live"}</span>
         </span>
+        {villageTime ? (
+          <span className="pill village-time" data-test="village-time">{villageTime}</span>
+        ) : (
         <span className="pill" data-test="demo-clock" data-now={shown}>
           <span className="muted">demo clock</span>
           <span className="num small">{hhmm(shown)}</span>
@@ -99,7 +104,8 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
           </button>
           {warpState === "failed" ? <span className="coral small" data-test="warp-failed">clock not reachable</span> : null}
         </span>
-        {onDetails ? (
+        )}
+        {onDetails && !villageTime ? (
           <button type="button" className={`details-toggle${details ? " on" : ""}`} data-test="details-toggle" aria-pressed={details} onClick={() => onDetails(!details)}>details</button>
         ) : null}
       </div>
@@ -108,6 +114,13 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
 }
 
 /* ---------------- Founding transcript ---------------- */
+
+/** keep a growing list scrolled to its newest row (the projector never needs a hand on the trackpad) */
+function followRef(dep: number) {
+  return (el: HTMLElement | null) => {
+    if (el && dep >= 0) el.scrollTop = el.scrollHeight;
+  };
+}
 
 export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator", onPlayAudio }: { lines: TranscriptLine[]; onSend?: (text: string) => Promise<void>; speakerName?: string; onPlayAudio?: () => void }) {
   const [text, setText] = useState("");
@@ -133,7 +146,7 @@ export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator", o
     <Region test="transcript" title="Founding · describe your people" className="r-transcript">
       {first ? <p className="empty-hero" data-test="founding-empty">No village yet. Describe your people.</p> : null}
       {onPlayAudio ? <button type="button" className="play-call" data-test="audio-start" onClick={onPlayAudio}>▶ Play the call</button> : null}
-      <ol className="transcript">
+      <ol className="transcript" ref={followRef(lines.length)}>
         {lines.map((l) => (
           <li key={l.id} className={`tr-line tr-${l.who}`} data-test="transcript-line" data-who={l.who}>
             <span className="eyebrow">{l.who === "village" ? "Village" : l.who === "ana" ? speakerName : l.who}</span>
@@ -324,7 +337,7 @@ export function LedgerRegion({ rows, nowMs, details = false }: { rows: LedgerRow
 
 function Done({ row }: { row: LedgerRow }) {
   const ms = row.elapsed_ms ?? (row.ended ? Date.parse(row.ended) - Date.parse(row.at) : null);
-  return ms != null && ms >= 0 ? <span className="mono muted small"> · {(ms / 1000).toFixed(1)} s</span> : null;
+  return ms != null && ms >= 50 ? <span className="mono muted small"> · {(ms / 1000).toFixed(1)} s</span> : null;
 }
 
 /** One block per answer: Heard → Knows → Doing (ledger rows, running → done with real elapsed) → Will build. */
@@ -333,7 +346,7 @@ export function FoundingWorkRegion({ blocks, ledger, nowMs }: { blocks: AnswerBl
   return (
     <Region test="founding-work" title="Village thinking and doing" className="r-work">
       {blocks.length === 0 ? <p className="empty">Village starts working the moment someone answers.</p> : null}
-      <ol className="work-blocks">
+      <ol className="work-blocks" ref={followRef(blocks.length + ledger.length)}>
         {blocks.map((b, i) => (
           <li key={b.id} className="work-block" data-test="work-block" data-index={i}>
             <p className="wb-line"><span className="wb-tag">Heard</span> “{b.heard.length > 110 ? `${b.heard.slice(0, 107)}…` : b.heard}”</p>
@@ -451,7 +464,7 @@ function useQr(cfg: ApiConfig | undefined, village: string): QrEntry[] | null {
     if (!cfg) return;
     let live = true;
     setEntries(null);
-    getQr(cfg, village).then((e) => live && setEntries(e), () => live && setEntries([]));
+    getQr(cfg, village).then((e) => live && setEntries(Array.isArray(e) ? e : []), () => live && setEntries([]));
     return () => {
       live = false;
     };
@@ -555,23 +568,162 @@ function withSnapshotHistory(api: ApiConfig, data: Record<string, unknown>, enti
   return { ...api, fetchImpl };
 }
 
+const KNOWS_CAPTION = "Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents · SurrealDB Agent Memory";
+
+/** How much a fact says about the people (village-agnostic ranking): heard in a call with words > a changed value >
+ *  a person's own fact; bookkeeping (dated rota rows, consents, published rev, outcomes) last. */
+export function factScore(f: FactCard, changedKey?: string): number {
+  let n = 0;
+  if (f.source?.kind === "call") n += 3;
+  if (f.source?.quote) n += 2;
+  if (changedKey && f.key === changedKey) n += 5;
+  if (/quiet|availability|nights|channel|language|rule|coverage|word/.test(f.key)) n += 2;
+  if (/^(rota|on_duty)_\d{4}/.test(f.key)) n -= 6;
+  if (/^consent_|published_rev|verification_outcome|last_dose|_refill_due|last_incident|last_money/.test(f.key)) n -= 9;
+  if (f.superseded) n -= 10;
+  return n;
+}
+
+const cleanFactText = (t: string) => t.replace(/\s*\([a-z]_[a-z0-9_]+\)/g, "").replace(/\bv_[a-z0-9_]+\b/g, "the village").trim();
+
+const WRITER: Record<string, string> = { founder: "Founder", watcher: "Watcher", verifier: "Verifier", builder: "Builder", explainer: "Explainer", voice: "voice", seed: "seed" };
+/** "written by" from the `agent=` label; the generic memory writer falls back to the source (call → voice, seed → seed). */
+export function factWriter(f: FactCard): string {
+  const a = String(f.labels?.agent ?? "").toLowerCase();
+  if (WRITER[a]) return WRITER[a];
+  if (f.source?.ref === "seed") return "seed";
+  if (f.source?.kind === "call") return "voice";
+  if (f.source?.kind === "app") return "app";
+  return "Watcher";
+}
+
+function FactRow({ f }: { f: FactCard }) {
+  const [open, setOpen] = useState(false);
+  const src = f.source;
+  const chip = src ? (src.kind === "call" ? `call${src.secs != null ? ` · ${Math.floor(src.secs / 60)}:${String(Math.round(src.secs % 60)).padStart(2, "0")}` : ""}` : `${src.kind} · ${src.ref}`) : "";
+  return (
+    <li className="fact-row" data-test="fact-row" data-key={f.key}>
+      <span className="fact-row-text">{cleanFactText(f.text)}</span>
+      <span className="fact-row-meta">
+        <span className="role-tag" data-test="fact-writer">{factWriter(f)}</span>
+        {chip ? <button type="button" className="fact-source" data-test="fact-row-source" aria-expanded={open} onClick={() => setOpen(!open)}>{chip}</button> : null}
+      </span>
+      {open || (src?.quote && src.quote.length <= 60) ? (src?.quote ? <span className="fact-row-quote" data-test="fact-row-quote"><Cap es={src.quote} /></span> : null) : null}
+    </li>
+  );
+}
+
 export function KnowsRegion({ api: api0, village, data, spec }: { api: ApiConfig; village: string; data: Record<string, unknown>; spec: any }) {
   const t = factTarget(data);
   const api = useMemo(() => (t ? withSnapshotHistory(api0, data, t.entity, t.key) : api0), [api0, t?.entity, t?.key, data[t ? `facts:history?subject=${t.entity}&key=${t.key}` : ""]]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [facts, setFacts] = useState<FactCard[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    listFacts(api0, village).then((r) => live && setFacts(Array.isArray(r?.facts) ? r.facts : []), () => live && setFacts([]));
+    return () => {
+      live = false;
+    };
+  }, [api0, village]);
+  const top = (facts ?? [])
+    .filter((f) => !f.superseded && !(t && f.key === t.key && f.entity === t.entity))
+    .map((f) => [f, factScore(f, t?.key)] as const)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, t ? 5 : 6)
+    .map(([f]) => f);
   const who = t ? memberDisplay(t.entity, spec, data) : "";
   return (
-    <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key }}>
+    <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key, "data-facts": top.length }}>
       {t ? (
         <FactHistoryCard api={api} village={village} entity={t.entity} factKey={t.key} title={`${t.med.charAt(0).toUpperCase()}${t.med.slice(1)}${who ? ` · ${who}` : ""}`} />
-      ) : (
-        <p className="empty">Nothing has changed yet. When a fact changes (a dose, a phone number), its history shows here.</p>
-      )}
-      <p className="caption knows-caption" data-test="knows-caption">{MEMORY_CAPTION}</p>
+      ) : null}
+      {top.length ? <ul className="fact-rows" data-test="fact-rows">{top.map((f) => <FactRow key={f.id} f={f} />)}</ul> : null}
+      {!t && facts && !top.length ? <p className="empty">Nothing recorded yet. Facts appear here as Village hears them.</p> : null}
+      <p className="caption knows-caption" data-test="knows-caption">{KNOWS_CAPTION}</p>
     </Region>
   );
 }
 
 /* ---------------- Proposal (same four blocks as Ana's card) ---------------- */
+
+const TILE: Record<string, string> = { spec: "CHECK", daytona_build: "BUILD", tests: "TESTS", anchor_qa: "PHONE", arize_evals: "SCORE", live: "LIVE" };
+const sec = (ms?: number) => (typeof ms === "number" ? `${(ms / 1000).toFixed(1)} s` : "");
+const modelWords = (s: string) => {
+  const m = s.match(/claude-(haiku|sonnet|opus)-(\d+)-(\d+)/i);
+  return m ? `${m[1].charAt(0).toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]}` : "";
+};
+
+/** The tool that did each stage's work, in a muted second line (from the receipt's stage details). */
+export function stageToolLine(st: any, receipt: any): { text: string; href?: string } {
+  const d = st?.details ?? {};
+  const summary = String(d.summary ?? "");
+  switch (st?.name) {
+    case "daytona_build": {
+      const img = summary.match(/daytonaio\/[\w.:/-]+/)?.[0]?.replace(/:[\d.]+$/, "");
+      return { text: ["Daytona sandbox" + (d.sandbox_id ? ` ${String(d.sandbox_id).slice(0, 8)}` : ""), img, sec(d.duration_ms)].filter(Boolean).join(" · ") };
+    }
+    case "tests": {
+      const n = d.tests_passed != null ? `${d.tests_passed}/${(d.tests_passed ?? 0) + (d.tests_failed ?? 0)} floor tests` : summary.split(" · ")[0];
+      const caught = receipt?.repair_of || (receipt?.attempt ?? 1) > 1 ? ` · caught ${d.caught ?? "a failure"} → fixed → rebuilt` : d.failures?.length ? ` · ${d.failures[0]}` : "";
+      return { text: `${n}${caught}` };
+    }
+    case "anchor_qa": {
+      const video = d.video_url ?? (st.evidence_urls ?? []).find((e: any) => e.kind === "recording" || /\.mp4$/.test(String(e.url)))?.url;
+      return { text: `Anchor · ${d.viewport ?? "phone size"}${video ? " · recording ▶" : ""}`, href: video };
+    }
+    case "arize_evals": {
+      const model = modelWords(summary);
+      return { text: ["Arize evals", model, receipt?.trigger === "proposal" ? "human approval annotated" : ""].filter(Boolean).join(" · ") };
+    }
+    case "live":
+      return { text: `rev ${receipt?.rev ?? ""} · every phone` };
+    default:
+      return { text: summary };
+  }
+}
+
+/** Presenter L: the latest receipt large, with the phone-check recording playing and the stage lines. */
+export function ReceiptOverlay({ receipt, spec, data, onClose }: { receipt: any; spec: any; data: Record<string, unknown>; onClose: () => void }) {
+  const anchor = (receipt?.stages ?? []).find((s: any) => s.name === "anchor_qa");
+  const video = anchor?.details?.video_url ?? (anchor?.evidence_urls ?? []).find((e: any) => e.kind === "recording" || /\.mp4$/.test(String(e.url)))?.url;
+  const live = (receipt?.stages ?? []).find((s: any) => s.name === "live");
+  const approver = String(live?.details?.summary ?? "").match(/approved by ([a-z]_[a-z0-9_]+)/)?.[1];
+  return (
+    <div className="receipt-overlay" data-test="receipt-overlay" role="dialog" aria-label="Release receipt" onClick={onClose}>
+      <div className="receipt-card" onClick={(e) => e.stopPropagation()}>
+        <h2 className="receipt-title">rev {receipt?.rev} · {receipt?.result === "released" ? "every phone updated" : receipt?.result ?? ""}</h2>
+        {video ? <video className="receipt-video" data-test="receipt-video" src={video} autoPlay muted loop playsInline controls /> : null}
+        <ReleaseTiles receipt={receipt} />
+        {approver ? <p className="muted" data-test="receipt-approver">approved by {memberDisplay(approver, spec, data)}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+/** "Village checked its memory: …" when the proposal's evidence cites facts (labels only, never ids). */
+export function memoryLine(p: any): string {
+  const ev: any[] = Array.isArray(p?.evidence) ? p.evidence : [];
+  const facts = ev.filter((e) => e?.kind === "fact" || e?.kind === "call_moment");
+  if (!ev.some((e) => e?.kind === "fact")) return "";
+  const labels = facts.map((e) => String(e.label ?? "")).filter((l) => l && !/=|trace|\b[a-z]{1,4}_[a-z0-9_]+\b/.test(l)).slice(0, 2);
+  return labels.length ? `Village checked its memory: ${labels.join(" · ")}` : "";
+}
+
+export function ReleaseTiles({ receipt }: { receipt: any }) {
+  const stages: any[] = (receipt?.stages ?? []).filter((s: any) => s.name !== "spec");
+  return (
+    <ol className="release-tiles" data-test="release-tiles">
+      {stages.map((st) => {
+        const line = stageToolLine(st, receipt);
+        return (
+          <li key={st.name} className={`tile st-${st.status}`} data-test="release-tile" data-stage={st.name} data-status={st.status}>
+            <span className="tile-name">{TILE[st.name] ?? st.name} {st.status === "passed" ? "✓" : st.status === "failed" ? "✗" : st.status === "running" ? "…" : ""}</span>
+            <span className="tile-tool" data-test="tile-tool">{line.href ? <a href={line.href} target="_blank" rel="noreferrer">{line.text}</a> : line.text}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 export function ProposalRegion({ proposal, release, spec, details = false }: { proposal: any; release: any; spec: any; details?: boolean }) {
   const names = (spec?.blueprint?.people ?? []).map((p: any) => displayName(p, spec));
@@ -580,7 +732,8 @@ export function ProposalRegion({ proposal, release, spec, details = false }: { p
     <Region test="proposal-region" title="Village proposes a change · needs your yes" className="r-proposal" extra={{ "data-status": proposal.status }}>
       {proposal.title ? <p className="proposal-title">{text(proposal.title, "en")}</p> : null}
       <ProposalBlocks p={proposal} lang="en" names={names} />
-      {proposal.status === "verifying" ? <ReleaseStepper stage={running} /> : null}
+      {memoryLine(proposal) ? <p className="memory-line" data-test="memory-line">{memoryLine(proposal)}</p> : null}
+      {release?.stages?.length ? <ReleaseTiles receipt={release} /> : proposal.status === "verifying" ? <ReleaseStepper stage={running} /> : null}
       {proposal.status === "applied" ? <p className="mint" data-test="proposal-done">Done · every phone updated</p> : null}
       {proposal.status === "proposed" || proposal.status === "ready" ? <p className="muted small">Waiting for the coordinator's yes.</p> : null}
       {details ? (
@@ -710,7 +863,7 @@ export function ChatMirror({ chat, data }: { chat: SceneState["chat"]; data: Rec
           const village = !m.author || m.author === "village" || m.author === "system";
           return (
             <li key={m.id} className={`chat-bubble${village ? " village" : ""} kind-${m.kind}`} data-test="chat-mirror-row" data-kind={m.kind}>
-              <span className="chat-who">{authorName(m.author, data)}{KIND_WORD[m.kind] ? <span className="chat-kind"> · {KIND_WORD[m.kind]}</span> : null}</span>
+              <span className="chat-who">{authorName(m.author, data)}{KIND_WORD[m.kind] ? <span className="chat-kind"> · {KIND_WORD[m.kind]}</span> : null}{m.demo ? <span className="demo-chip" data-test="demo-chip">demo</span> : null}</span>
               {m.kind === "proposal" && m.title ? <strong className="chat-title">{m.title}</strong> : null}
               <span className="chat-text">{m.kind === "proposal" ? oneLine(m.text) : m.text}</span>
             </li>

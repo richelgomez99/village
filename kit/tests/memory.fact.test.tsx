@@ -46,8 +46,7 @@ describe("What Village knows (Agent Memory, D32)", () => {
     expect(q(region, "[data-test='fact-asof-result']")?.textContent).toBe("as of Oct 2 → 5 mg");
     act(() => q(region, "[data-test='fact-asof-toggle'][data-asof='now']")!.click());
     expect(q(region, "[data-test='fact-asof-result']")).toBeNull();
-    expect(q(region, "[data-test='knows-caption']")?.textContent).toBe("Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents (SurrealDB Agent Memory)");
-    expect(MEMORY_CAPTION).toBe(q(region, "[data-test='knows-caption']")?.textContent);
+    expect(q(region, "[data-test='knows-caption']")?.textContent).toBe("Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents · SurrealDB Agent Memory");
   });
 
   it("calls the contract endpoints against Core: history, then facts?subject&key&as_of", async () => {

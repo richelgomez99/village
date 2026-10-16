@@ -6,8 +6,50 @@ import type { ServerFrame } from "../live/messages";
 import { applyViewPatch } from "../renderer/view";
 
 /** A founding is in progress: no spec yet, or a blueprint stream that hasn't reached `done`. */
-export function foundingNow(s: { spec: any; blueprint: { stages: object; done: boolean } }): boolean {
-  return !s.spec || (Object.keys(s.blueprint.stages).length > 0 && !s.blueprint.done);
+export function foundingNow(s: { spec: any; blueprint: { stages: object; done: boolean }; foundingLive?: boolean }): boolean {
+  return !s.spec || ((Object.keys(s.blueprint.stages).length > 0 || !!s.foundingLive) && !s.blueprint.done);
+}
+
+/** Draft phone for a role: the existing spec's screen (title, language, theme) with no cards yet, else a blank screen. */
+export function draftFrom(view: any, role: string): any {
+  if (!view?.elements?.s) return emptyDraft(role);
+  return { lang: view.lang ?? "en", theme: view.theme ?? "family", ...(view.dir ? { dir: view.dir } : {}), root: view.root ?? "s", elements: { s: { ...view.elements.s, children: [] } } };
+}
+
+/** Catalog types in words for "Will build" notes. */
+const COMPONENT_WORDS: Record<string, string> = {
+  RefillCard: "Refill checklist", TonightCard: "Tonight card", HelperAnswer: "\"Is it my turn?\" answer", CareRota: "Rota for the week",
+  DoseTracker: "Pills today", PillOrganizer: "Pill organizer", VerificationPrompt: "Money check prompt", IncidentCard: "Incidents card",
+  Alert: "Alert card", BigButton: "Big button", ContactCard: "Call button", LifeAreas: "Life areas", Timeline: "What happened",
+  ScamCheck: "\"Is this real?\" check", VillageChat: "Village chat", Proposal: "Proposals", NeedBoard: "Needs by priority",
+  ResourceBoard: "What neighbors offered", VerifiedInfoFeed: "Rumor check", CheckIn: "Check-ins", StatusGrid: "Status", Text: "Note"
+};
+
+const NOT_A_SPEAKER = /^(village|now i know|rules on|quiet hours|no answer yet|refill list|family word|rota coverage check)$/i;
+
+/** Live Core founding notes (core/builder/founding.py): "Village: <question>", "<Speaker>: <answer>",
+ *  "<now I know> · N of 10 covered · M gaps · gaps: a, b · next: <question>". Returns null when it isn't one. */
+function liveFoundingNote(s: SceneState, text: string, at: string): SceneState | null {
+  const s1 = s.blueprint.done && !s.foundingLive ? { ...s, foundingLive: true, blueprint: { stages: {}, done: false }, blocks: [], transcript: [], drafts: {}, draftNew: {}, coverage: null, gaps: [] } : { ...s, foundingLive: true };
+  const q = text.match(/^(?:Village|Founder):\s*(.+)$/s);
+  if (q) return { ...s1, beat: "build", transcript: [...s1.transcript, { id: `tr_${s.frames}`, at, who: "village", text: q[1] }].slice(-60) };
+  const meter = text.match(/^(.*?)\s·\s(\d+) of (\d+) covered(?:\s·\s\d+ gaps?)?(?:\s·\sgaps:\s([^·]+))?(?:\s·\snext:\s(.+))?$/s);
+  if (meter) {
+    const knows = meter[1].replace(/^now i know:?\s*/i, "").trim();
+    const blocks = s1.blocks.slice();
+    if (blocks.length) blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], knows };
+    const gaps = meter[4] ? meter[4].split(",").map((g) => g.trim()).filter(Boolean) : s1.gaps;
+    return { ...s1, beat: "build", blocks, coverage: { value: Number(meter[2]), of: Number(meter[3]) }, gaps, transcript: [...s1.transcript, { id: `tr_${s.frames}`, at, who: "village", text: `Now I know: ${knows}` }].slice(-60) };
+  }
+  const sp = text.match(/^([A-ZÁÉÍÓÚÑ][\p{L}'’-]{1,30}):\s(.+)$/su);
+  if (sp && !NOT_A_SPEAKER.test(sp[1])) {
+    const block: AnswerBlock = { id: `blk_${s.frames}`, at, heard: sp[2], knows: null, doing: [], willBuild: [] };
+    return { ...s1, beat: "build", transcript: [...s1.transcript, { id: `tr_${s.frames}`, at, who: "ana", text: sp[2] }].slice(-60), blocks: [...s1.blocks, block] };
+  }
+  // anything else from the Founder during a live founding ("Found …", "Need n_…", "Life area …") echoes the blueprint
+  // frames the right column already shows: keep it out of the conversation
+  if (!/^now i know/i.test(text) && !/\?\s*$/.test(text)) return s1;
+  return null;
 }
 
 /** Starting point for a role's draft phone before its first patch. */
@@ -24,7 +66,7 @@ export interface LedgerRow { id: string; at: string; status: LedgerStatus; what:
 export interface GateRow { id: string; at: string; rule_id: string; decision: string; say: { es?: string; en?: string } | null; mode: Mode; input_kind: string; verification_state?: string; sentence: string; trace_id?: string }
 export type Beat = "build" | "run" | "rebuild";
 export interface RoundRow { id: string; at: string; text: string; mode: Mode; role: AgentRole; rule_id?: string }
-export interface ChatLine { id: string; at: string; kind: string; author: string; text: string; title?: string }
+export interface ChatLine { id: string; at: string; kind: string; author: string; text: string; title?: string; demo?: boolean }
 export interface DecisionRow { id: string; at: string; text: string; role: AgentRole; mode: Mode; source: string; trace_id?: string }
 export interface CaptionLine { id: string; at: string; es: string; en: string; speaker?: string }
 export interface TranscriptLine { id: string; at: string; who: "ana" | "village" | string; text: string }
@@ -67,6 +109,8 @@ export interface SceneState {
   villageName: string | null;
   /** founding intake (docs/FOUNDING-INTAKE.md): transcript, coverage meter, gap list */
   transcript: TranscriptLine[];
+  /** a live founding is streaming into this (existing) village: Founder notes arrived, `done` not yet */
+  foundingLive: boolean;
   /** the arc beat the last cause belongs to (Build → Run → Rebuild); "Anyone" is the village switch, decided by the room */
   beat: Beat | null;
   /** Watcher rounds (rounds:latest / control{counter rounds_*} / reasoning "[rounds · mode] …") */
@@ -87,7 +131,7 @@ export function initialScene(village = ""): SceneState {
   return {
     village, spec: null, data: {}, rev: 0, blueprint: { stages: {}, done: false }, ledger: [], gate: [], decisions: [],
     autonomy: { acted_alone: 0, asked_human: 0, refused: 0 }, live: null, counters: {}, phones: null, clock: null, captions: [],
-    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], beat: null, rounds: { counts: null, rows: [] }, chat: [], verifyStart: {}, blocks: [], drafts: {}, draftNew: {}, coverage: null, gaps: [], frames: 0
+    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], foundingLive: false, beat: null, rounds: { counts: null, rows: [] }, chat: [], verifyStart: {}, blocks: [], drafts: {}, draftNew: {}, coverage: null, gaps: [], frames: 0
   };
 }
 
@@ -237,7 +281,7 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
       const role = (f as any).role as string | undefined;
       if (!role) return { ...s, frames };
       try {
-        const base = s.drafts[role] ?? emptyDraft(role);
+        const base = s.drafts[role] ?? draftFrom(s.spec?.views?.[role], role);
         const next = applyViewPatch(base, f.ops as any);
         return { ...s, frames, drafts: { ...s.drafts, [role]: next }, draftNew: { ...s.draftNew, [role]: (f as any).highlight ?? [] } };
       } catch {
@@ -262,7 +306,7 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
 }
 
 function chatLine(m: any): ChatLine {
-  return { id: String(m.id), at: String(m.at ?? ""), kind: String(m.kind ?? "member"), author: String(m.author ?? "village"), text: String(m.text_i18n?.en ?? m.text ?? ""), title: m.title ? String(m.title?.en ?? m.title) : undefined };
+  return { id: String(m.id), at: String(m.at ?? ""), kind: String(m.kind ?? "member"), author: String(m.author ?? "village"), text: String(m.text_i18n?.en ?? m.text ?? ""), title: m.title ? String(m.title?.en ?? m.title) : undefined, demo: !!m.demo || /demo|actor|stage/i.test(String(m.source?.ref ?? "")) };
 }
 
 const ROUND_PREFIX = /^\[rounds · (acted_alone|asked_human|refused)\]\s*/;
@@ -437,6 +481,10 @@ function controlStepInner(s: SceneState, kind: string, p: any, at: string): Scen
         const counts = p.source === "gate" ? s.autonomy : { ...s.autonomy, [mode]: s.autonomy[mode] + 1 };
         return { ...s, decisions: [row, ...s.decisions].slice(0, 100), autonomy: counts };
       }
+      if ((p.source === "founder" || role === "Founder") && p.kind === "note") {
+        const live = liveFoundingNote(s, text, at);
+        if (live) return live;
+      }
       if (role === "Founder" && p.kind === "note") {
         // the Founder's "now I know" line + its next question (FOUNDING-INTAKE §4); "Now I know" also fills the answer's block
         const transcript = [...s.transcript, { id: `tr_${s.frames}`, at, who: "village", text }].slice(-60);
@@ -456,12 +504,19 @@ function controlStepInner(s: SceneState, kind: string, p: any, at: string): Scen
       if (!stage) return s;
       const items = Array.isArray(p.items) ? p.items : [];
       const stages = { ...s.blueprint.stages, [stage]: items };
-      const gaps = stage === "questions" ? items.map((q: any) => String(q.gap ?? q.topic ?? q.question ?? "")).filter(Boolean) : s.gaps;
-      const done = stage === "done" || s.blueprint.done;
+      // gap lists come as {gap|topic}; a bare {question} is just the next question (live Core) and keeps the gaps
+      const gapWord = (q: any) => (typeof q.gap === "string" ? q.gap : typeof q.topic === "string" ? q.topic : "");
+      const gapItems = items.filter((q: any) => gapWord(q));
+      const gaps = stage === "questions" && (gapItems.length || !items.length) ? gapItems.map(gapWord) : s.gaps;
+      const done = stage === "done" || (s.blueprint.done && !s.foundingLive);
       if ((stage as string) === "will_build") {
         // builder: blueprint{stage:"will_build", items:[{person, component, reason}]} → the current answer's block
         if (!s.blocks.length) return s;
-        const wb: WillBuild[] = items.map((it: any) => ({ person: String(it.person ?? ""), component: String(it.component ?? ""), reason: String(it.reason ?? ""), role: it.role }));
+        const wb: WillBuild[] = items.map((it: any) => ({
+          person: String(it.display_name ?? (String(it.person ?? "").match(/^[a-z]_/) ? name(it.person, s.spec, s.data) : it.person ?? "")),
+          component: COMPONENT_WORDS[String(it.component)] ?? String(it.component ?? ""),
+          reason: String(it.reason ?? ""), role: it.role
+        }));
         const blocks = s.blocks.slice();
         const last = blocks[blocks.length - 1];
         blocks[blocks.length - 1] = { ...last, willBuild: [...last.willBuild, ...wb] };
@@ -476,7 +531,7 @@ function controlStepInner(s: SceneState, kind: string, p: any, at: string): Scen
       if (!p?.name) return s;
       const counters = { ...s.counters, [p.name]: { value: Number(p.value) || 0, of: p.of, label: String(p.label ?? p.name) } };
       const phones = /^(phones|phones_live|sockets|phones_connected)$/.test(p.name) ? Number(p.value) || 0 : s.phones;
-      const coverage = p.name === "intake_coverage" ? { value: Number(p.value) || 0, of: Number(p.of) || 10 } : s.coverage;
+      const coverage = p.name === "intake_coverage" || p.name === "intake_covered" ? { value: Number(p.value) || 0, of: Number(p.of) || 10 } : s.coverage;
       const rm = String(p.name).match(/^rounds_(acted_alone|asked_human|refused)$/);
       const rounds = rm ? { ...s.rounds, counts: { ...(s.rounds.counts ?? { acted_alone: 0, asked_human: 0, refused: 0 }), [rm[1]]: Number(p.value) || 0 } } : s.rounds;
       return { ...s, counters, phones, coverage, rounds };

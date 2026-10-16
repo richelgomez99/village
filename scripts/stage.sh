@@ -15,5 +15,6 @@ case "${1:-status}" in
   answer)    j -X POST "$H/villages/$V/answers" -d "$(jq -cn --arg t "${2:?text}" '{text:$t}')"; echo ;;
   proposal)  j -X POST "$H/villages/$V/evolve/trigger" -d '{}' | jq -c '{id:.proposal.id,status:.proposal.status}' ;;
   status)    curl -s "$H/health" | jq -c '{ok,contract_version,llm:.deps.llm_model}'; j "$H/villages/$V/proposals" | jq -c '[.[]? // .proposals[]? | {id,status}]' 2>/dev/null; j "$H/villages/$V/releases" | jq -c '{live_rev}' ;;
-  *) echo "usage: $0 reset|founding|answer <text>|proposal|caller elder|unknown|status"; exit 1 ;;
+  *) echo "usage: $0 reset|founding|answer <text>|proposal|caller elder|unknown|status"
+     echo "Control Room presenter keys (control.html?t=control&presenter=1&admin=<key>): R reset · F founding at 8/10 · 1/2/3 answers A10–A12 · P rebuild · A approve · U elder↔unknown caller · M money call · S cover ask · T Thanksgiving · W warm · L receipt · B block founding replay · X panic replay · V next village · D details · Esc back/hide map"; exit 1 ;;
 esac
