@@ -74,7 +74,7 @@ async def test_life_area_status_computed_per_village() -> None:
     vid = REG()
     before = {a["id"]: a["status"]["en"] for a in life_areas(vid)}
     if "money" in before:
-        assert "0 scams stopped today" in before["money"]
+        assert "stopped today" not in before["money"]  # after a reset: this week's count (seeded), never "0 today"
         _stopped_verification(vid)
         assert "1 scam stopped today" in {a["id"]: a["status"]["en"] for a in life_areas(vid)}["money"]
 

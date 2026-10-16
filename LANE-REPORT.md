@@ -441,7 +441,14 @@ Core asks (V2b): send `member:<id>` (bv_person with `phone`) for every call targ
 
 
 ## core-glue
-READY FOR MERGE CORE-GLUE-4
+READY FOR MERGE CORE-GLUE-5
+Round 5 (contract 1.3.2 merged): `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off uv run pytest -q` → 388 passed. Test: `core/tests/test_core_glue3.py -k block_village`.
+G5-1 block data · done · `core/block_data.py`: any village whose data file has members/resources serves the block views' existing binds: `checkins:village` (urgent + unchecked first, "Mr. James · checked 1:06"), `needs:open` (spec needs by priority, "Urgent · Oxygen concentrator…· Mrs. Alvarez", insulin, stairs), `resources:available` (Darnell's generator, Priya's car, the deli's ice, cooling-center finder, the deli phone), `calls:line=block-line` (demo call, English gloss), `claims:topic=all` (rumor + official source). `reset_demo` seeds door-knock check-ins (ack events) for residents without an urgent need → life areas read "1 of 2 residents checked" etc. · the block data has 4 residents (not 6) and no volunteer rota, so no CareRota rows; `test_fixtures` now counts the Reyes village's 12 seed events (group villages add their own)
+G5-2 incidents:open · done · acknowledged (`acked`) incidents are excluded (they stay in incidents:all / timeline); stopped verifications that already have any incident row aren't re-synthesized → Ana's "Needs your yes" no longer shows the Oct 9 incident · none
+G5-3 Money line · done · today's count when > 0 ("1 scam stopped today · …", evolve test unchanged), else this week's seeded + live ("1 scam stopped this week · Marco checks money calls"), else "no scam calls this week" · none
+G5-4 rounds:latest rows · done · every row has `at` (row time, else round_at/ran_at); row text unchanged for the kit to show with its time · none
+G5-5 chat source labels · done · Village posts in `chat:village` and live `chat` frames: a ref to an event whose source is a call gets `label` "from her check-in call" (pronoun from the spec); a "from her phone" label on a pill-organizer scan becomes "from her pill organizer". `message.source` is additionalProperties:false, so the label lives on the ref chips only · none
+Round 4:
 Round 4 (contract 1.3.1, main a56ca1b merged): `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off uv run pytest -q` → 381 passed, 0 failed.
 G4-1 life_areas need_ids · done · `-k need_ids` · every `blueprint:life_areas` row carries `need_ids` = the area's `need_ids`/`needs` from the spec plus any need whose `life_area`/`area` matches, spec order, deduped (Reyes: health 3, money 1, people 1) · none
 G4-2 Ana's live snapshot · confirmed · `-k coordinator_snapshot` · has `rounds:latest` (non-empty after reset) and `facts:history?subject=m_carmen&key=lisinopril_dose`; the ledger fallback now matches a `<med>_dose` key to that med's prescription history (versions "lisinopril 10 mg", "lisinopril 5 mg") until Agent Memory answers · fallback is degraded:true

@@ -58,7 +58,7 @@ def rounds_latest(village_id: str) -> dict[str, Any]:
     return {
         "night": str(result.get("round_at") or result.get("ran_at") or "")[:10],
         "counts": {k: int(counts.get(k, 0)) for k in ("acted_alone", "asked_human", "refused")},
-        "rows": [{"at": r.get("at"), "role": _ROLE_FOR_ACTOR.get(str(r.get("actor")), "watcher"), "text": r.get("text", ""),
+        "rows": [{"at": r.get("at") or result.get("round_at") or result.get("ran_at"), "role": _ROLE_FOR_ACTOR.get(str(r.get("actor")), "watcher"), "text": r.get("text", ""),
                   "mode": r.get("mode"), "decision_id": r.get("id")} for r in result.get("rows", [])],
     }
 
@@ -76,6 +76,18 @@ def scams_stopped_today(village_id: str) -> int:
     from core.bindings import scams_stopped_today as count
 
     return count(village_id)
+
+def scams_stopped_week(village_id: str, days: int = 7) -> int:
+    """Stopped money requests in the last `days` (seeded ledger rows + live ones), deduped by verification."""
+    since = (clock.now() - timedelta(days=days)).isoformat()
+    ids = {ev.get("payload", {}).get("verification_id") or ev["id"] for ev in db.events
+           if ev.get("village", village_id) == village_id and ev["kind"] in {"verification_denied", "verification_timeout"}
+           and str(ev.get("at", "")) >= since[:10]}
+    ids |= {row["id"] for row in db.verifications.values()
+            if row.get("village", village_id) == village_id and row.get("state") in STOPPED_STATES
+            and str(row.get("resolved_at") or row.get("created_at") or "") >= since[:10]}
+    return len(ids)
+
 
 def synthesized_incidents(village_id: str, have: set[str]) -> list[dict[str, Any]]:
     """Today's denied/timed-out verifications with no open incident row yet -> bv_incident."""
@@ -133,7 +145,7 @@ def _on_duty(village_id: str) -> str | None:
 
 def _checked_today(village_id: str, members: list[str]) -> int:
     today = _today()
-    seen = {ev.get("actor") or ev.get("payload", {}).get("member_id") for ev in db.events
+    seen = {ev.get("payload", {}).get("member_id") or ev.get("actor") for ev in db.events
             if ev.get("village", village_id) == village_id and str(ev.get("at", ""))[:10] == today
             and ev["kind"] in {"ack", "help_request", "symptom", "dose"}}
     return len([m for m in members if m in seen])
@@ -181,8 +193,13 @@ def life_area_status(village_id: str, area: dict[str, Any], spec: dict[str, Any]
             parts_es.append(_first(village_id, who))
     elif aid == "money":
         n = scams_stopped_today(village_id)
-        parts_en.append(f"{n} {_plural(n, 'scam')} stopped today")
-        parts_es.append(f"{n} {_plural(n, 'estafa')} detenida{'s' if n != 1 else ''} hoy")
+        if n:
+            parts_en.append(f"{n} {_plural(n, 'scam')} stopped today")
+            parts_es.append(f"{n} {_plural(n, 'estafa')} detenida{'s' if n != 1 else ''} hoy")
+        else:
+            w = scams_stopped_week(village_id)
+            parts_en.append(f"{w} {_plural(w, 'scam')} stopped this week" if w else "no scam calls this week")
+            parts_es.append(f"{w} {_plural(w, 'estafa')} detenida{'s' if w != 1 else ''} esta semana" if w else "ninguna estafa esta semana")
         checker = villages.default_verifier(village_id)
         if checker:
             parts_en.append(f"{_first(village_id, checker)} checks money calls")

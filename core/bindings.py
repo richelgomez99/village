@@ -335,6 +335,37 @@ def timeline(subject: str | None = None, limit: int = 30, village_id: str | None
     return items[-limit:]
 
 
+def with_source_labels(message: dict[str, Any]) -> dict[str, Any]:
+    """Village posts: a ref (or the post's source) that comes from a call is labelled as that call, e.g.
+    "from her check-in call" (the center person has no app, so never "from her phone")."""
+    if message.get("author") not in {"village", "system"}:
+        return message
+    vid = message.get("village")
+    recipient = villages.care_recipient_id(vid)
+    poss = {"she": "her", "he": "his"}.get(villages.pronoun(villages.person(vid, recipient)), "their")
+    events = {ev["id"]: ev for ev in db.events if ev.get("village", vid) == vid}
+
+    def call_label(src: dict[str, Any] | None, actor: str | None = None) -> str | None:
+        if not isinstance(src, dict) or src.get("kind") != "call":
+            return None
+        whose = poss if actor in (None, recipient) else "the"
+        return f"from {whose} check-in call"
+
+    out = dict(message)
+    refs = []
+    for ref in message.get("refs") or []:
+        ref = dict(ref)
+        ev = events.get(ref.get("id")) if ref.get("kind") == "event" else None
+        label = call_label(ev.get("source"), ev.get("actor")) if ev else (call_label({"kind": "call"}) if ref.get("kind") == "call" else None)
+        if label:  # a call-sourced event is always "from her check-in call", whatever the post said
+            ref["label"] = label
+        elif ev and ref.get("label", "").startswith("from") and ev.get("actor") == recipient and "phone" in ref.get("label", ""):
+            ref["label"] = {"scan": f"from {poss} pill organizer"}.get((ev.get("source") or {}).get("kind"), ref["label"])
+        refs.append(ref)
+    out["refs"] = refs  # message.source is additionalProperties:false, so the label rides on the ref chips only
+    return out
+
+
 def snapshot_data(role: str, member_id: str | None, village_id: str | None = None) -> dict[str, Any]:
     vid = _v(village_id)
     binds = view_binds(role, vid)
@@ -375,7 +406,7 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
     if "*" in binds or "proposals:pending" in binds:
         data["proposals:pending"] = proposals_pending(vid)
     if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
-        data["chat:village"] = [m for m in db.messages if m.get("village", vid) == vid][-50:]
+        data["chat:village"] = [with_source_labels(m) for m in db.messages if m.get("village", vid) == vid][-50:]
         for author in {m.get("author") for m in data["chat:village"]}:
             if author and f"member:{author}" not in data and villages.person(vid, author):
                 data[f"member:{author}"] = member_record(author, vid)
@@ -540,7 +571,7 @@ def open_incidents(village_id: str | None = None) -> list[dict[str, Any]]:
     incidents = []
     for event in latest.values():
         payload = event["payload"]
-        if payload.get("status") == "closed":
+        if payload.get("status") in {"closed", "acked"}:  # acknowledged -> incidents:all / timeline only
             continue
         verification = db.verifications.get(payload.get("verification_id", ""))
         request = verification.get("request", {}) if verification else {}
@@ -565,7 +596,8 @@ def open_incidents(village_id: str | None = None) -> list[dict[str, Any]]:
     if village_id:
         from core.bindings_live import synthesized_incidents
 
-        have = {i.get("verification_id") for i in incidents if i.get("verification_id")}
+        have = {ev.get("payload", {}).get("verification_id") for ev in db.events
+                if ev["kind"] == "incident" and ev.get("village", village_id) == village_id}
         incidents += [{k: v for k, v in i.items() if v is not None} for i in synthesized_incidents(village_id, have)]
     return incidents
 

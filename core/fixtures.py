@@ -70,6 +70,10 @@ async def reset_demo(village_id: str | None = None, *, keep_others: bool = False
         for other in villages.village_ids():
             if other != village_id:
                 await seed_village(other)
+    from core.block_data import seed_checkins
+
+    for vid in ([village_id] if keep_others else villages.village_ids()):
+        await seed_checkins(vid)  # group villages: today's door-knock check-ins (no-op for villages without that data)
     people = spec["blueprint"]["people"]
     def _token_name(name: str) -> str:
         words = [w for w in name.split() if w.rstrip(".").lower() not in {"mr", "mrs", "ms", "dr", "the"}]
