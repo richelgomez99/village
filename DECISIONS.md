@@ -245,3 +245,9 @@ The Control Room founding view showed every row at once (all stamped 13:58), the
 
 # D34. Reset must clear the whole demo state (Oct 16, 12:55)
 `POST /admin/reset` (and `scripts/reset_demo.sh`) clears events today, verifications, **proposals** (in-memory on the evolve lane), tokens, counters, and re-seeds both villages; the demo arc is run twice from a reset before the freeze. Restarting Core also clears proposals: re-trigger with `POST /villages/{id}/evolve/trigger` if a restart happens mid-rehearsal.
+
+# D35. A rebuild changes the right place (Oct 16, 13:05; operator)
+After the live rebuild, the patch had added a floating paragraph under "No alerts right now". Rule: a proposal's ops change the *right place* in each person's app, in that app's own structure (a life-area status line, a card inside that area, one line under the person's headline), never a loose text block; every added card has a title, a "new today" tag and a "why"; views stay ≤ 12 elements.
+
+# D36. A third village, a different kind of group (Oct 16, 13:05; operator; only if green by 13:50)
+To prove "any group": a family Thanksgiving village (the center is an event, not a person): who brings what, dietary needs, travel and arrival times, the table plan, who picks up the grandparents; needs/offers board, a day-of schedule, chat. Born through the same intake (`thanksgiving_intake.jsonl`), rendered by the same kit, shown as a third pill in the Anyone beat ("same code: an aging parent, a block in a blackout, a holiday"). Cut line 13:50: if not validating, it is a Devpost sentence only.
