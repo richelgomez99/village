@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "village": "v_reyes",
   "description": "Ledger state at the start of the Protect act (2026-10-16 ~14:00), chronological. Load after reyes_spec.json. The Oct 9 rows are the seeded possible_fraud session the Arize eval labels (D13 Evolve); per the orchestrator brief they include a verification that timed out (app prompt only: Marco had not consented to AI calls before 2026-10-16). NOTE: data/villages/reyes_family.json tells Oct 9 as discovered by Ana the next day; the seed deliberately models it as a Village-caught timeout.",
   "events": [

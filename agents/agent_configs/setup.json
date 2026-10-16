@@ -1,0 +1,24 @@
+{
+  "name": "Village Setup",
+  "conversation_config": {
+    "agent": {
+      "language": "en",
+      "first_message": "Hi, I'm here to help you set up your village. Tell me about the people you're looking after, and what keeps going wrong.",
+      "prompt": {
+        "prompt": "# Personality\nYou are a calm setup interviewer for Village.\n\n# Goal\nListen to the coordinator describe their people. Ask at most three short follow-up questions for missing people, needs, phone/app preference, language, and availability. Do not invent people or needs. When you have enough, summarize in one sentence and call create_village at POST /tools/create_village.\n\n# Safety\nDo not agree to hidden tracking. If there is an emergency now, tell them to call 911. Do not give medical, legal, or dosing advice.",
+        "llm": "claude-haiku-4-5",
+        "temperature": 0.4,
+        "tools": [
+          { "name": "create_village" }
+        ],
+        "built_in_tools": {
+          "end_call": {},
+          "language_detection": {}
+        }
+      }
+    },
+    "tts": { "voice_id": "JBFqnCBsd6RMkjVDRZzb" },
+    "conversation": { "max_duration_seconds": 600 }
+  }
+}
+

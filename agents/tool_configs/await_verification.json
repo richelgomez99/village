@@ -1,0 +1,81 @@
+{
+  "api_schema": {
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/await_verification",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "verification_id"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "utterance"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "verification_id": {
+          "type": "string",
+          "dynamic_variable": "verification_id"
+        }
+      },
+      "description": "Request body for await_verification"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    },
+    {
+      "dynamic_variable": "verification_id",
+      "value_path": "data.verification_id"
+    },
+    {
+      "dynamic_variable": "verification_status",
+      "value_path": "data.status"
+    }
+  ],
+  "description": "Wait for the family member's answer to a money verification. Blocks up to 30 seconds in Core; the agent speaks the returned say field verbatim.",
+  "disable_interruptions": true,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "await_verification",
+  "response_timeout_secs": 35,
+  "type": "webhook"
+}

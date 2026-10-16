@@ -178,7 +178,42 @@ def test_restart_pending_with_call_placed_does_not_redial():
 
 
 def test_deadline_during_inflight_await_returns_timeout_state():
-    row, emits = step_verification(verification(), {"type": "tick"}, "2026-10-16T14:03:00-04:00")
+    row, emits = step_verification(verification(), {"type": "await_returned"}, "2026-10-16T14:03:00-04:00")
 
     assert row["state"] == "timed_out"
+    assert row["spoken_say_key"] == "money_timeout"
     assert any(emit["kind"] == "verification_timeout" for emit in emits)
+
+
+def test_T32_late_denial_after_safe_default_updates_only_records():
+    row, emits = step_verification(
+        verification("default_spoken"),
+        {"type": "answer", "answer": "no", "via": "app_prompt", "member_id": "m_marco"},
+        "2026-10-16T14:02:47-04:00",
+    )
+
+    assert row["state"] == "late_denied"
+    assert row["spoken_say_key"] == "money_timeout"
+    assert [emit["kind"] for emit in emits] == ["verification_denied", "incident"]
+
+
+def test_T33_default_spoken_deadline_times_out_without_second_say():
+    row, emits = step_verification(verification("default_spoken"), {"type": "tick"}, "2026-10-16T14:02:54-04:00")
+
+    assert row["state"] == "timed_out"
+    assert row["spoken_say_key"] == "money_timeout"
+    assert [emit["kind"] for emit in emits] == ["verification_timeout"]
+
+
+def test_answer_after_terminal_row_without_winner_is_ignored():
+    start = verification("late_denied", status="denied", resolved_at="2026-10-16T14:02:47-04:00")
+
+    row, emits = step_verification(
+        start,
+        {"type": "answer", "answer": "unsure", "via": "outbound_call", "member_id": "m_marco"},
+        "2026-10-16T14:02:50-04:00",
+    )
+
+    assert row["state"] == "late_denied"
+    assert row["answers"][-1]["outcome"] == "ignored"
+    assert emits == []

@@ -1,0 +1,36 @@
+.control {
+  --night: #100D0A;
+  --panel: #1B1612;
+  --panel2: #241D17;
+  --line: #3A3028;
+  --text: #F3EADF;
+  --muted: #B5A898;
+  --amber: #F2A541;
+  --coral: #FF7A59;
+  --mint: #62D9A0;
+}
+
+.control {
+  min-height: 100vh;
+  background: var(--night);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  padding: 18px;
+}
+.control header { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; }
+.control section, .control header { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.control [data-test="blueprint"] { grid-column: 1 / 5; }
+.control [data-test="live-moment"] { grid-column: 5 / 10; }
+.control [data-test="gate-feed"], .control [data-test="decisions-log"], .control [data-test="ask-why"] { grid-column: 10 / 13; }
+.control button { background: var(--panel2); color: var(--text); border: 1px solid var(--amber); border-radius: 8px; }
+.control .caption { color: var(--muted); }
+.control .phone { grid-column: auto; background: #FBF6EE; color: #26211C; border: 10px solid #2C2621; border-radius: 28px; padding: 12px; max-width: 420px; max-height: 760px; overflow: auto; min-height: 0; }
+.control [data-test="phone-mirror"] { grid-column: 5 / 10; }
+.control .caption { display: block; color: var(--muted); font-size: 0.8em; }
+.control .mono { font-family: var(--mono); color: var(--mint); }
+.control .big { font-size: 24px; font-family: var(--display); }
+.control .chip-btn { background: var(--panel2); color: var(--text); border-color: var(--line); }
+.control .chip-btn.active { border-color: var(--amber); background: var(--panel2); }
+.control .view-as-label { color: var(--muted); }

@@ -76,6 +76,9 @@ def decide_money(inp: GateInput) -> dict[str, Any] | None:
     if kind == "tick" and payload.get("reason") == "verification_deadline":
         return _deadline_decision(inp)
 
+    if kind == "outbound_call" and payload.get("reason") == "verification":
+        return _verification_call_decision(inp, payload)
+
     if kind == "ask_family" and "no le diga" in text and "ana" in text:
         out = finish(
             inp,
@@ -274,6 +277,13 @@ def _deadline_decision(inp: GateInput) -> dict[str, Any]:
         }
     ]
     return out
+
+
+def _verification_call_decision(inp: GateInput, payload: dict[str, Any]) -> dict[str, Any]:
+    member = member_by_id(inp.village_state, payload["member_id"])
+    if member and member.get("consent", {}).get("ai_calls"):
+        return finish(inp, "R-NOOP", "allow")
+    return finish(inp, "R-VERIFY-CONSENT", "allow")
 
 
 def _money_request_payload(payload: dict[str, Any], verification_id: str | None, red_flags: list[str]) -> dict[str, Any]:

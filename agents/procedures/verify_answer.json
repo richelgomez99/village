@@ -1,0 +1,37 @@
+{
+  "name": "verify_answer",
+  "trigger": "The outbound verification listener answers yes, no, or unsure.",
+  "steps": [
+    {
+      "type": "tool_call",
+      "tool_name": "submit_verification_answer",
+      "on_failure": {
+        "fallback": [
+          { "type": "say", "message": "I couldn't record that. Please open the Village app now." }
+        ]
+      }
+    },
+    {
+      "type": "branch",
+      "branches": [
+        {
+          "condition": { "type": "llm", "prompt": "The listener denied asking for money." },
+          "steps": [
+            { "type": "say", "message": "Thank you. I'm telling her not to send anything, and Ana will see it in the app now." }
+          ]
+        },
+        {
+          "condition": { "type": "llm", "prompt": "The listener confirmed asking for money." },
+          "steps": [
+            { "type": "say", "message": "Thanks. I'll tell her it was you. Village never sends money, and Ana will see this too." }
+          ]
+        }
+      ],
+      "fallback": [
+        { "type": "say", "message": "Okay. I'll tell her not to send anything until you or Ana talk to her." }
+      ]
+    },
+    { "type": "end_call" }
+  ]
+}
+
