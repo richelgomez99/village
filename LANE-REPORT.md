@@ -110,3 +110,4 @@ LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated
 
 ## builder
 T001 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · tool registry contains extract_blueprint/render_app/patch_app/cite_answer/classify_intent; fixed-shape schemas require `additionalProperties:false`
+T003 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · mapping covers care/block roles, builder→contract profile enums, D22 channels with no `lid_qr`, fridge-card-only printables, and idempotent non-elder `VillageChat`

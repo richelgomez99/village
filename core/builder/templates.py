@@ -4,7 +4,7 @@ import json
 from copy import deepcopy
 from typing import Any
 
-from .mapping import ensure_chat, strip_lid_qr_channels
+from .mapping import normalize_spec_mapping
 from .paths import FIXTURES
 
 
@@ -14,11 +14,11 @@ def fixture_for_kind(kind: str) -> dict[str, Any]:
 
 
 def spec(kind: str = "care", *, village_id: str | None = None, status: str = "draft") -> dict[str, Any]:
-    out = strip_lid_qr_channels(fixture_for_kind(kind))
+    out = normalize_spec_mapping(fixture_for_kind(kind))
     out["village"]["status"] = status
     if village_id:
         out["village"]["id"] = village_id
-    return ensure_chat(out)
+    return out
 
 
 def view(kind: str, role: str) -> dict[str, Any]:
