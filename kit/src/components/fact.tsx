@@ -26,6 +26,15 @@ export function sourceLabel(src: FactVersion["source"]): string {
   return `${src.kind} · ${src.ref}`;
 }
 
+const AGENT_WORDS: Record<string, string> = { founder: "Founder", builder: "Builder", watcher: "Watcher", verifier: "Verifier", explainer: "Explainer", voice: "voice", "mom-line": "voice", memory: "Agent Memory", seed: "seed", system: "seed" };
+/** "written by": the fact's agent= label in words, else its source kind (SurrealDB "shared across agents"). */
+export function writtenBy(v: { labels?: Record<string, string>; source: { kind: string } }): string {
+  const a = v.labels?.agent;
+  if (a) return AGENT_WORDS[a.toLowerCase()] ?? a;
+  const k = v.source?.kind ?? "";
+  return k === "call" || k === "phone_line" ? "voice" : k === "system" || k === "seed" ? "seed" : k || "seed";
+}
+
 /** The day before the current version became true, at noon (the "before the change" as-of). */
 function beforeChange(v: FactVersion): string {
   const t = new Date(Date.parse(v.observed_at) - 24 * 3600_000);
@@ -91,6 +100,7 @@ export function FactHistoryCard({ api, village, entity, factKey, title }: { api:
       <button type="button" className="fact-source" data-test="fact-source" aria-expanded={open === v.id} onClick={() => setOpen(open === v.id ? null : v.id)}>
         {sourceLabel(v.source)}
       </button>
+      <span className="chip chip-gray fact-by" data-test="fact-written-by"> written by {writtenBy(v as FactVersion & { labels?: Record<string, string> })}</span>
       {open === v.id ? <q className="fact-quote" data-test="fact-quote">{v.source.quote ?? "No quote recorded for this source."}</q> : null}
     </>
   );

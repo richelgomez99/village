@@ -6,7 +6,7 @@ import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
 import { fmtDay, fmtTime } from "../util/time";
 import { Bi, Card, memberName } from "./shared";
-import { FactHistoryCard } from "./fact";
+import { FactHistoryCard, writtenBy } from "./fact";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -183,15 +183,18 @@ export function FactCard({ props }: CatalogProps) {
   const ctx = useCtx();
   const m = /^facts:history\?subject=([a-z]_[a-z0-9_]+)&key=([a-z0-9_]+)$/.exec(props.bind);
   const v = ctx.data[props.bind] as { versions?: { text?: string; value?: string; superseded?: boolean; observed_at?: string }[] } | null | undefined;
-  if (ctx.api && m) return <Card test="fact-card-el" title={props.title ? <Bi value={props.title} /> : undefined}><FactHistoryCard api={ctx.api} village={ctx.village} entity={m[1]} factKey={m[2]} /></Card>;
-  const versions = arr<{ text?: string; value?: string; superseded?: boolean; observed_at?: string }>(v?.versions);
+  const caption = <p className="small muted" data-test="fact-caption">Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents</p>;
+  if (ctx.api && m) return <Card test="fact-card-el" title={props.title ? <Bi value={props.title} /> : undefined}><FactHistoryCard api={ctx.api} village={ctx.village} entity={m[1]} factKey={m[2]} />{caption}</Card>;
+  type V = { text?: string; value?: string; superseded?: boolean; observed_at?: string; labels?: Record<string, string>; source?: { kind: string } };
+  const versions = arr<V>(v?.versions);
   return (
     <Card test="fact-card-el" title={props.title ? <Bi value={props.title} /> : undefined}>
       {versions.length ? (
         <ul className="plan-rows">
-          {versions.map((f, i) => <li key={i} data-superseded={f.superseded ? "true" : undefined}>{f.superseded ? <s>{f.text ?? f.value}</s> : f.text ?? f.value}{f.observed_at ? <span className="small muted"> · {fmtDay(f.observed_at, ctx.lang)}</span> : null}</li>)}
+          {versions.map((f, i) => <li key={i} data-superseded={f.superseded ? "true" : undefined}>{f.superseded ? <s>{f.text ?? f.value}</s> : f.text ?? f.value}{f.observed_at ? <span className="small muted"> · {fmtDay(f.observed_at, ctx.lang)}</span> : null} <span className="chip chip-gray" data-test="fact-written-by">written by {writtenBy({ labels: f.labels, source: f.source ?? { kind: "seed" } })}</span></li>)}
         </ul>
       ) : <p className="muted">{k("nothing_yet", ctx.lang)}</p>}
+      {caption}
     </Card>
   );
 }

@@ -184,3 +184,25 @@ describe("rounds:latest absent or empty", () => {
     expect(container.querySelector("[data-test='what-village-did']")).toBeNull();
   });
 });
+
+describe("1.3.0 catalog types", () => {
+  const v = (elements: Record<string, unknown>, children: string[]) => ({ lang: "en", theme: "dashboard", root: "s", elements: { s: { type: "Screen", props: { title: "T" }, children }, ...elements } });
+  it("PlanBoard, ScreenedCalls, FactCard (written by + caption) render from their binds, names not ids", () => {
+    const { container } = renderView(v({
+      pb: { type: "PlanBoard", props: { bind: "plan:thanksgiving", title: "Thursday" } },
+      sc: { type: "ScreenedCalls", props: { bind: "calls:screened", title: "Calls Village answered" } },
+      fc: { type: "FactCard", props: { bind: "facts:history?subject=m_carmen&key=lisinopril_dose", title: "Lisinopril" } }
+    }, ["pb", "sc", "fc"]), {
+      "member:m_marco": { name: "Marco" },
+      "plan:thanksgiving": { items: [{ text: "Pick up Mamá", owner: "m_marco", when: "2 PM", status: "claimed", kind: "pickup" }, { text: "Pie", status: "open", kind: "need" }] },
+      "calls:screened": [{ at: "2026-10-16T14:02:00-04:00", claimed: "Marco", outcome: "refused", verified_by: "m_marco" }],
+      "facts:history?subject=m_carmen&key=lisinopril_dose": { versions: [{ value: "10 mg", text: "10 mg", superseded: false, labels: { agent: "founder" }, source: { kind: "call" } }, { value: "5 mg", superseded: true, source: { kind: "seed" } }] }
+    });
+    expect(container.querySelectorAll("[data-test='plan-item']").length).toBe(2);
+    expect(container.querySelector("[data-test='plan-board']")?.textContent).toContain("Marco");
+    expect(container.querySelector("[data-test='screened-row']")?.textContent).toContain("refused");
+    expect([...container.querySelectorAll("[data-test='fact-written-by']")].map((e) => e.textContent?.trim())).toEqual(["written by Founder", "written by seed"]);
+    expect(container.querySelector("[data-test='fact-caption']")?.textContent).toContain("shared across agents");
+    expect(container.textContent).not.toMatch(/\bm_[a-z]+/);
+  });
+});

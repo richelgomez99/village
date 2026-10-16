@@ -39,6 +39,8 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
   const alerts = plan.attention.filter((id) => ctx.view.elements[id].type === "Alert");
   const has = (t: string) => Object.values(ctx.view.elements).some((e) => e.type === t);
   // the shell composes a block only when the view doesn't already carry its 1.3.0 element
+  // a one-glance strip leads (above alerts); any other headline follows the asks
+  const heroFirst = !!plan.headline && ctx.view.elements[plan.headline]?.type === "RightNow";
   const lines = has("RightNow") ? [] : rightNowLines(ctx.data, ctx.nowMs(), ctx.lang);
   const tabs: { id: string; label: string }[] = [
     { id: "home", label: es ? "Inicio" : "Home" },
@@ -71,6 +73,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
                   </ul>
                 </Card>
               ) : null}
+              {heroFirst ? <div className="headline" data-test="headline"><Node id={plan.headline!} /></div> : null}
               {alerts.map((id) => <Node key={id} id={id} />)}
               {yesItems.length ? (
                 <div className="needs-yes" data-test="needs-your-yes" hidden={needsYes.length === 0}>
@@ -78,7 +81,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
                   {yesItems.map((id) => <div key={id} hidden={!needsYes.includes(id)}><Node id={id} /></div>)}
                 </div>
               ) : null}
-              {plan.headline ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
+              {plan.headline && !heroFirst ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
               {has("SinceYourTurn") ? null : <SinceLastTurn data={ctx.data} lang={ctx.lang} />}
               {has("WhatVillageDid") ? null : <WhatVillageDid data={ctx.data} />}
               {plan.homeRest.map((id) => <Node key={id} id={id} />)}
