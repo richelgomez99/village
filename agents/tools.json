@@ -70,7 +70,7 @@
       "name": "relay_message",
       "type": "webhook",
       "config": "tool_configs/relay_message.json",
-      "id": ""
+      "id": "tool_5701m52we03wejfvr4pz2e93kz1f"
     }
   ]
 }

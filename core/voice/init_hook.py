@@ -22,6 +22,8 @@ INIT_VAR_KEYS = (
     "caller_known",
     "greeting",
     "village_name",
+    "recipient_name",
+    "recipient_obj",
 )
 
 
@@ -85,7 +87,26 @@ def agent_defaults() -> dict[str, str]:
 def first_message(values: dict[str, str]) -> str:
     if values["receptionist"] == "on" and values["caller_known"] == "false":
         return values["greeting"]
+    if values["caller_known"] == "true" and values.get("member_short_name") not in {"", "there", "señora"}:
+        # D37: known numbers ring straight through and are greeted by name
+        if values.get("language") == "en":
+            return f"Hi {values['member_short_name']}, this is Luz, {values['village_name']}'s line. I'm a program, not a person. How are you?"
+        return f"Hola, {values['member_short_name']}. Soy Luz, la línea de {values['village_name']}. Soy un programa, no una persona. ¿Cómo está?"
     return f"Hola, soy Luz, la línea de {values['village_name']}. Soy un programa, no una persona. ¿Cómo está?"
+
+
+def _contacts(village_id: str | None = None) -> list[dict[str, Any]]:
+    """Consented outside contacts in the spec (neighbor, aide, pharmacy…) also ring straight through (D37)."""
+    try:
+        spec = village.spec(village_id) or {}
+    except Exception:
+        return []
+    found = []
+    for i, c in enumerate(list(spec.get("contacts") or []) + list((spec.get("blueprint") or {}).get("contacts") or [])):
+        consent = c.get("consent")
+        if c.get("phone") and consent is not False and (not isinstance(consent, dict) or consent.get("calls", True) is not False):
+            found.append({"id": c.get("id") or f"c_{i}", "name": c.get("name") or "there", "phone": c["phone"], "lang": c.get("lang") or c.get("language")})
+    return found
 
 
 def _people(village_id: str | None = None) -> list[dict[str, Any]]:
@@ -118,7 +139,7 @@ def _find_by_phone(caller_id: str, village_id: str | None = None) -> dict[str, A
         return None  # stage switch: the presenter's phone plays an unknown caller (receptionist beat)
     if caller_id in _demo_elder_caller_ids(village_id):
         return recipient
-    for person in _people(village_id):
+    for person in _people(village_id) + _contacts(village_id):
         if person.get("phone") == caller_id:
             return person
     return None
@@ -177,6 +198,9 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
         )
     values["greeting"] = greeting(village_id, values)
     values["village_name"] = village_name_spoken(village_id)
+    recipient = _care_recipient(village_id) or {}
+    values["recipient_name"] = village.first_name(village_id, recipient.get("id")) if recipient else "the owner of this phone"
+    values["recipient_obj"] = {"he": "him", "she": "her", "they": "them"}.get(village.pronoun(recipient) if recipient else "they", "them")
     return {key: values[key] for key in INIT_VAR_KEYS}
 
 
