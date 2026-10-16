@@ -271,3 +271,27 @@ html, body { background: #100D0A; margin: 0; }
 .control .pb h4 { color: var(--muted); }
 .control .release-stepper .done { color: var(--mint); }
 .control .release-stepper .todo { color: var(--muted); }
+
+/* ROOM-3: arc strip, autonomy headline, chat mirror, details toggle */
+.arc-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.arc-beat { font: 600 14px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 16px; cursor: pointer; }
+.arc-beat.lit { color: var(--night); background: var(--amber); border-color: var(--amber); }
+.arc-arrow { color: var(--line); font-size: 18px; }
+.r-headline, .r-chat { grid-column: 10 / 13; }
+@media (max-width: 1100px) { .r-headline, .r-chat { grid-column: 1 / -1; } }
+.headline { margin: 0; font: 600 1.15em var(--display); line-height: 1.5; }
+.headline-count { display: inline; min-height: 0; min-width: 0; line-height: inherit; font: inherit; color: var(--mint); background: transparent; border: 0; border-bottom: 2px dotted var(--mint); padding: 0; cursor: pointer; }
+.headline-count.active { color: var(--amber); border-bottom-color: var(--amber); }
+.chat-mirror { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.chat-bubble { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); max-width: 92%; }
+.chat-bubble.village { background: rgba(98, 217, 160, 0.12); border-color: var(--mint); align-self: flex-start; }
+.chat-bubble:not(.village) { align-self: flex-end; }
+.chat-bubble.kind-incident { border-color: var(--coral); }
+.chat-who { font: 600 0.75em var(--mono); color: var(--muted); }
+.chat-kind { color: var(--amber); }
+.chat-title { font-weight: 700; }
+.details-toggle { font: 600 12px var(--mono); color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.details-toggle.on { color: var(--amber); border-color: var(--amber); border-style: solid; }
+.control .sentence { font-weight: 600; }
+.control .trace { margin-left: 6px; }
+.control.hero .details-toggle { display: none !important; }

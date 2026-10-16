@@ -210,6 +210,8 @@ function scam(): Timed[] {
   void base;
   frames.push({ ms: 0, msg: ctl("counter", { name: "phones_live", value: 4, label: "phones live" }, t0) });
   frames.push({ ms: 1, msg: ctl("caption", { speaker: "carmen", village: "v_reyes", es: "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", en: "Marco called me crying, he says he's in trouble and needs two thousand dollars.", final: true }, t0) });
+  const tDeny = Date.parse(seqs.denied.find((f: any) => f.msg.type === "control")?.t ?? t0) - base;
+  frames.push({ ms: tDeny + 600, msg: { type: "chat", village: "v_reyes", message: { id: "msg_scam_1", village: "v_reyes", author: "village", kind: "incident", text: "Village stopped a money request in Marco's name. Mamá was told not to send anything; Ana knows.", refs: [{ kind: "incident", id: "inc_ver_1016_01" }], source: { kind: "system", ref: "gate" }, at: t0 } } });
   frames.push({ ms: 400, msg: ctl("caption", { speaker: "village", village: "v_reyes", es: "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.", en: "I'm checking with Marco right now. Please don't send any money yet.", final: true }, t0) });
   return frames.sort((a, b) => a.ms - b.ms);
 }
@@ -257,9 +259,11 @@ function evolve(): Timed[] {
   return [
     { ms: 0, msg: ctl("reasoning", { source: "evolve", kind: "note", text: "Pattern: 2 calls in 30 days claiming to be Marco (Oct 9, Oct 16).", village: "v_reyes" }, at("20:53:00")) },
     { ms: 500, msg: ctl("proposal", { proposal }, at("20:53:00")) },
+    { ms: 600, msg: { type: "chat", village: "v_reyes", message: { id: "msg_prop_1", village: "v_reyes", author: "village", kind: "proposal", title: proposal.title, text: "Village proposes answering unknown callers for Mamá first. Options weighed: blocking unknown numbers, the family word alone, a receptionist.", refs: [{ kind: "proposal", id: proposal.id }], source: { kind: "system", ref: "evolve" }, at: at("20:53:00") } } },
     { ms: 800, msg: ctl("reasoning", { source: "evolve", kind: "decision", text: "Asked Ana to let Village answer unknown callers for Mamá: 2nd money request in 30 days.", village: "v_reyes" }, at("20:53:01")) },
     { ms: 2500, msg: ctl("proposal", { proposal: { ...proposal, status: "verifying" } }, at("20:53:30")) },
-    { ms: 4000, msg: ctl("proposal", { proposal: { ...proposal, status: "applied", target_rev: 6 } }, at("20:54:10")) }
+    { ms: 4000, msg: ctl("proposal", { proposal: { ...proposal, status: "applied", target_rev: 6 } }, at("20:54:10")) },
+    { ms: 4200, msg: { type: "chat", village: "v_reyes", message: { id: "msg_rcpt_1", village: "v_reyes", author: "village", kind: "receipt", text: "Every phone updated · rev 6 · built, tested, tried on a phone, scored.", refs: [{ kind: "release", id: "rel_reyes_r6" }], source: { kind: "system", ref: "release" }, at: at("20:54:12") } } }
   ];
 }
 

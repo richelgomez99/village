@@ -1,5 +1,5 @@
 // Control Room regions (T021–T026, T042). Each region states one thing with names and numbers (D18, INTERACTIONS §8).
-import { forwardRef, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, forwardRef, useEffect, useMemo, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { captionFor } from "../i18n/captions";
 import { Renderer } from "../renderer/Renderer";
@@ -7,6 +7,7 @@ import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { plural } from "../i18n/plural";
+import { authorName, oneLine } from "../components/generic";
 import { ProposalBlocks, ReleaseStepper } from "../components/proposal";
 import { text } from "../renderer/view";
 import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
@@ -54,7 +55,8 @@ export const NEW_VILLAGE = "__new__";
 
 export const TAGLINE = "Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.";
 
-export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState }: {
+export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails }: {
+  details?: boolean; onDetails?: (on: boolean) => void;
   tabs: VillageTab[]; tab: string; onTab: (id: string) => void; onNew: () => void; phones: number | null; clock: SceneState["clock"]; nowMs: () => number;
   onWarp: () => void; warpState: "idle" | "busy" | "failed";
 }) {
@@ -97,6 +99,9 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
           </button>
           {warpState === "failed" ? <span className="coral small" data-test="warp-failed">clock not reachable</span> : null}
         </span>
+        {onDetails ? (
+          <button type="button" className={`details-toggle${details ? " on" : ""}`} data-test="details-toggle" aria-pressed={details} onClick={() => onDetails(!details)}>details</button>
+        ) : null}
       </div>
     </header>
   );
@@ -292,7 +297,7 @@ function Elapsed({ from, nowMs }: { from: string; nowMs: () => number }) {
   return <span className="mono muted"> · {Math.floor(s / 60)}:{String(s % 60).padStart(2, "0")}</span>;
 }
 
-export function LedgerRegion({ rows, nowMs }: { rows: LedgerRow[]; nowMs: () => number }) {
+export function LedgerRegion({ rows, nowMs, details = false }: { rows: LedgerRow[]; nowMs: () => number; details?: boolean }) {
   return (
     <Region test="ledger" title="Village's work log" className="r-ledger">
       {rows.length === 0 ? <p className="empty">No work yet. Each step Village takes shows up here as a row with its result.</p> : null}
@@ -306,7 +311,7 @@ export function LedgerRegion({ rows, nowMs }: { rows: LedgerRow[]; nowMs: () => 
               {r.status === "running" ? <Elapsed from={r.at} nowMs={nowMs} /> : null}
               {r.attempt ? <span className="muted"> · attempt {r.attempt} of 3</span> : null}
               {r.result ? <span className={`result${r.status === "fallback" ? " bold" : ""}`}> · {r.result}</span> : null}
-              {r.rule_id ? <span className="mono muted small"> · {r.rule_id}</span> : null}
+              {details && r.rule_id ? <span className="mono muted small" data-test="details-ids"> · {r.rule_id}</span> : null}
             </span>
           </li>
         ))}
@@ -554,7 +559,7 @@ export function KnowsRegion({ api, village, data, spec }: { api: ApiConfig; vill
 
 /* ---------------- Proposal (same four blocks as Ana's card) ---------------- */
 
-export function ProposalRegion({ proposal, release, spec }: { proposal: any; release: any; spec: any }) {
+export function ProposalRegion({ proposal, release, spec, details = false }: { proposal: any; release: any; spec: any; details?: boolean }) {
   const names = (spec?.blueprint?.people ?? []).map((p: any) => displayName(p, spec));
   const running = (release?.stages ?? []).find((s: any) => s.status === "running")?.name;
   return (
@@ -564,6 +569,11 @@ export function ProposalRegion({ proposal, release, spec }: { proposal: any; rel
       {proposal.status === "verifying" ? <ReleaseStepper stage={running} /> : null}
       {proposal.status === "applied" ? <p className="mint" data-test="proposal-done">Done · every phone updated</p> : null}
       {proposal.status === "proposed" || proposal.status === "ready" ? <p className="muted small">Waiting for the coordinator's yes.</p> : null}
+      {details ? (
+        <p className="details-ids small" data-test="details-ids">
+          <span className="mono muted">{proposal.id}</span>{release?.id ? <span className="mono muted"> · {release.id} · rev {release.rev}</span> : null} <TraceRef id={release?.trace_id ?? proposal.trace_id} />
+        </p>
+      ) : null}
     </Region>
   );
 }
@@ -576,7 +586,19 @@ function ModeChip({ mode }: { mode: Mode }) {
   return <span className={`mode mode-${mode}`} data-test="mode-chip" data-mode={mode}>{MODE_WORD[mode]}</span>;
 }
 
-export function GateRegion({ gate, decisions, autonomy }: { gate: GateRow[]; decisions: DecisionRow[]; autonomy: Record<Mode, number> }) {
+const ARIZE_TRACE: string | undefined = (import.meta as any).env?.VITE_ARIZE_TRACE_URL;
+
+/** Details mode (sponsor judges): a trace id becomes an Arize link when VITE_ARIZE_TRACE_URL ("…{trace_id}…") is set. */
+export function TraceRef({ id }: { id?: string }) {
+  if (!id) return null;
+  return ARIZE_TRACE ? (
+    <a className="mono small trace" data-test="trace-link" href={ARIZE_TRACE.replace("{trace_id}", id)} target="_blank" rel="noreferrer">trace {id.slice(0, 8)} ↗</a>
+  ) : (
+    <span className="mono small muted trace" data-test="trace-id">trace {id.slice(0, 8)}</span>
+  );
+}
+
+export function GateRegion({ gate, decisions, autonomy, details = false }: { gate: GateRow[]; decisions: DecisionRow[]; autonomy: Record<Mode, number>; details?: boolean }) {
   const shownGate = gate.filter((g) => g.say || g.decision !== "allow");
   return (
     <Region test="gate-feed" title="Safety gate · rules in code, not prompts" className="r-gate">
@@ -589,8 +611,11 @@ export function GateRegion({ gate, decisions, autonomy }: { gate: GateRow[]; dec
       <ol className="gate-rows">
         {shownGate.slice(0, 6).map((g) => (
           <li key={g.id} className={`gate-row m-${g.mode}`} data-test="gate-row" data-rule={g.rule_id} data-decision={g.decision}>
-            <span className="mono muted">{hhmm(g.at)}</span> <span className="mono rule">{g.rule_id}</span> <ModeChip mode={g.mode} />
-            {g.say ? <p className="say"><Say value={g.say} /></p> : <p className="muted small">{g.decision.replace(/_/g, " ")}</p>}
+            <span className="mono muted">{hhmm(g.at)}</span> <ModeChip mode={g.mode} /> <span className="sentence" data-test="gate-sentence">{g.sentence}</span>
+            {details ? (
+              <span className="details-ids" data-test="details-ids"> <span className="mono rule">{g.rule_id}</span> <span className="mono muted small">{g.id}</span> <TraceRef id={g.trace_id} /></span>
+            ) : null}
+            {g.say ? <p className="say"><Say value={g.say} /></p> : null}
           </li>
         ))}
       </ol>
@@ -601,10 +626,83 @@ export function GateRegion({ gate, decisions, autonomy }: { gate: GateRow[]; dec
             <li key={d.id} className={`decision-row m-${d.mode}`} data-test="decision-row" data-role={d.role}>
               <span className="mono muted">{hhmm(d.at)}</span> <span className="role-tag">{d.role}</span> <ModeChip mode={d.mode} />
               <span className="text"> {d.text}</span>
+              {details ? <TraceRef id={d.trace_id} /> : null}
             </li>
           ))}
         </ol>
       </div>
+    </Region>
+  );
+}
+
+/* ---------------- Arc strip (Build → Run → Rebuild → Anyone) ---------------- */
+
+export type ArcBeat = "build" | "run" | "rebuild" | "anyone";
+const ARC: [ArcBeat, string][] = [["build", "Build"], ["run", "Run"], ["rebuild", "Rebuild"], ["anyone", "Anyone"]];
+
+export function ArcStrip({ beat, onJump }: { beat: ArcBeat | null; onJump: (b: ArcBeat) => void }) {
+  return (
+    <nav className="arc-strip" data-test="arc-strip" data-beat={beat ?? ""} aria-label="Demo arc">
+      {ARC.map(([b, label], i) => (
+        <Fragment key={b}>
+          {i ? <span className="arc-arrow" aria-hidden="true">→</span> : null}
+          <button type="button" className={`arc-beat${beat === b ? " lit" : ""}`} data-test="arc-beat" data-beat={b} aria-current={beat === b ? "step" : undefined} onClick={() => onJump(b)}>{label}</button>
+        </Fragment>
+      ))}
+    </nav>
+  );
+}
+
+/* ---------------- Autonomy headline (Watcher rounds) ---------------- */
+
+export function AutonomyHeadline({ rounds }: { rounds: SceneState["rounds"] }) {
+  const [open, setOpen] = useState<Mode | null>(null);
+  const counts = rounds.counts ?? (rounds.rows.length ? rounds.rows.reduce((c, r) => ({ ...c, [r.mode]: c[r.mode] + 1 }), { acted_alone: 0, asked_human: 0, refused: 0 } as Record<Mode, number>) : null);
+  if (!counts) return null;
+  const part = (mode: Mode, words: string) => (
+    <button type="button" className={`headline-count${open === mode ? " active" : ""}`} data-test={`headline-${mode}`} data-count={counts[mode]} aria-expanded={open === mode} onClick={() => setOpen(open === mode ? null : mode)}>
+      {words}
+    </button>
+  );
+  const rows = open ? rounds.rows.filter((r) => r.mode === open) : [];
+  return (
+    <Region test="autonomy-headline" title="Village's rounds" className="r-headline">
+      <p className="headline">
+        Tonight Village did {part("acted_alone", plural(counts.acted_alone, "thing"))} on its own · asked a person {part("asked_human", String(counts.asked_human))} · refused itself {part("refused", String(counts.refused))}
+      </p>
+      {open ? (
+        <ol className="decision-rows" data-test="headline-rows">
+          {rows.length ? rows.map((r) => (
+            <li key={r.id} className={`decision-row m-${r.mode}`} data-test="headline-row">
+              <span className="role-tag">{r.role}</span> <ModeChip mode={r.mode} /> <span className="text">{r.text}</span>
+            </li>
+          )) : <li className="muted small">The rows for this count haven't arrived yet.</li>}
+        </ol>
+      ) : null}
+    </Region>
+  );
+}
+
+/* ---------------- Chat mirror ---------------- */
+
+const KIND_WORD: Record<string, string> = { proposal: "proposal", receipt: "receipt", relayed: "from a call", nudge: "nudge", answer: "answer", incident: "incident" };
+
+export function ChatMirror({ chat, data }: { chat: SceneState["chat"]; data: Record<string, unknown> }) {
+  if (!chat.length) return null;
+  return (
+    <Region test="chat-mirror" title="Village chat" className="r-chat">
+      <ol className="chat-mirror">
+        {chat.slice(-6).map((m) => {
+          const village = !m.author || m.author === "village" || m.author === "system";
+          return (
+            <li key={m.id} className={`chat-bubble${village ? " village" : ""} kind-${m.kind}`} data-test="chat-mirror-row" data-kind={m.kind}>
+              <span className="chat-who">{authorName(m.author, data)}{KIND_WORD[m.kind] ? <span className="chat-kind"> · {KIND_WORD[m.kind]}</span> : null}</span>
+              {m.kind === "proposal" && m.title ? <strong className="chat-title">{m.title}</strong> : null}
+              <span className="chat-text">{m.kind === "proposal" ? oneLine(m.text) : m.text}</span>
+            </li>
+          );
+        })}
+      </ol>
     </Region>
   );
 }

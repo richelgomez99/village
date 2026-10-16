@@ -141,8 +141,27 @@ export function fakeSnapshot(client: FakeClient, opts: { viewAs?: boolean; rev?:
 
 /** Control Room snapshot data: every bind any view uses, so the three-phone mirror renders the whole spec. */
 export function controlData(): Record<string, unknown> {
-  return { ...baseData("carmen"), ...baseData("marco"), ...baseData("ana") };
+  return { ...baseData("carmen"), ...baseData("marco"), ...baseData("ana"), "rounds:latest": ROUNDS, "chat:village": CHAT_SEED };
 }
+
+/** Last night's Watcher round (core/watcher/rounds.py result shape). */
+export const ROUNDS = {
+  village: "v_reyes", round_at: "2026-10-15T20:00:00-04:00",
+  counts: { acted_alone: 3, asked_human: 1, refused: 1 },
+  rows: [
+    { id: "dc_round_r1_01", at: "2026-10-15T20:02:00-04:00", mode: "acted_alone", text: "Evening check-in call: she looked at her organizer, evening pills taken; nobody needed a call." },
+    { id: "dc_round_r1_02", at: "2026-10-15T20:03:00-04:00", mode: "acted_alone", text: "Told Marco he's on tomorrow, Friday, at 3 PM as he asked." },
+    { id: "dc_round_r1_03", at: "2026-10-15T20:04:00-04:00", mode: "acted_alone", text: "Re-ran the scam eval set: 30/30 caught." },
+    { id: "dc_round_r1_04", at: "2026-10-15T20:05:00-04:00", mode: "asked_human", text: "Asked Ana: Lucía has had no nights in 14 days; does she want Saturdays?" },
+    { id: "dc_round_r1_05", at: "2026-10-15T20:06:00-04:00", mode: "refused", rule_id: "P-QH-01", text: "Didn't call Carmen at 9:40 PM to remind her about water: after 9:30 PM, no calls (her words)." }
+  ]
+};
+
+/** A week of family chat (D16), seeded. */
+export const CHAT_SEED = [
+  { id: "msg_seed_1", village: "v_reyes", author: "village", kind: "nudge", text: "Marco, you're on tonight until 9:30.", refs: [{ kind: "rota", id: "2026-10-16" }], source: { kind: "system", ref: "watcher" }, at: "2026-10-16T15:00:00-04:00" },
+  { id: "msg_seed_2", village: "v_reyes", author: "m_marco", kind: "chat", text: "On it. Bringing soup.", refs: [], source: { kind: "app", ref: "m_marco" }, at: "2026-10-16T15:04:00-04:00" }
+];
 
 export interface SeqFrame { t: string; client: string; dir: "s2c" | "c2s"; msg: any }
 export function sequence(name: string): SeqFrame[] {
