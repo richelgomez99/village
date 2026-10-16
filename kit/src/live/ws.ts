@@ -36,12 +36,15 @@ export interface SocketOptions {
   token: string;
   client: ClientName;
   WebSocketImpl?: typeof WebSocket;
+  /** open this socket already viewing as a member (Control Room phones, D21). */
+  viewAs?: string;
   jitter?: number;
   pingMs?: number;
   deadMs?: number;
 }
 
 type Listener = (s: LiveState) => void;
+export type FrameListener = (f: ServerFrame) => void;
 
 export function initialLiveState(village = "v_reyes"): LiveState {
   return {
@@ -53,6 +56,7 @@ export function initialLiveState(village = "v_reyes"): LiveState {
 export class VillageSocket {
   private ws: WebSocket | null = null;
   private listeners = new Set<Listener>();
+  private frameListeners = new Set<FrameListener>();
   private s: LiveState;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private pingTimer: ReturnType<typeof setInterval> | undefined;
@@ -82,6 +86,14 @@ export class VillageSocket {
     fn(this.s);
     return () => {
       this.listeners.delete(fn);
+    };
+  }
+
+  /** Every validated server frame, in order (Control Room scene reducer). */
+  onFrame(fn: FrameListener) {
+    this.frameListeners.add(fn);
+    return () => {
+      this.frameListeners.delete(fn);
     };
   }
 
@@ -131,6 +143,7 @@ export class VillageSocket {
       member_token: this.o.token,
       client: this.o.client
     };
+    if (this.o.viewAs && !this.s.viewAs && this.s.rev === 0) this.s = { ...this.s, viewAs: this.o.viewAs };
     if (this.s.rev > 0) frame.last_rev = this.s.rev;
     if (this.s.viewAs) frame.view_as = this.s.viewAs;
     this.sendRaw(frame);
@@ -181,6 +194,7 @@ export class VillageSocket {
       return;
     }
     this.handle(parsed.data);
+    this.frameListeners.forEach((l) => l(parsed.data));
   }
 
   private handle(f: ServerFrame) {

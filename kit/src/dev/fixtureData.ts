@@ -2,6 +2,7 @@
 // Values not present in contracts/fixtures are marked FAKE and listed in LANE-REPORT (LD-6).
 import reyesSpec from "../../../contracts/fixtures/reyes_spec.json";
 import wsScam from "../../../contracts/fixtures/ws_sequence_scam.json";
+import blockSpec from "../../../contracts/fixtures/block_spec.json";
 import type { View } from "../renderer/view";
 
 export type FakeClient = "carmen" | "ana" | "marco" | "lucia" | "control";
@@ -134,4 +135,10 @@ export function controlData(): Record<string, unknown> {
 export interface SeqFrame { t: string; client: string; dir: "s2c" | "c2s"; msg: any }
 export function sequence(name: string): SeqFrame[] {
   return ((wsScam as any).sequences[name] ?? []) as SeqFrame[];
+}
+
+/** West 147th (block_spec.json) control snapshot: no live data offline, the regions show the blueprint and empty phones. */
+export function blockControlSnapshot() {
+  const identity = { member_id: null, name: "Control Room", role: "control", village_name: (blockSpec as any).village.name, lang: "en" };
+  return { type: "snapshot", contract_version: "1.2.0", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
 }

@@ -43,7 +43,7 @@ export function Alert({ props }: CatalogProps) {
     return (
       <section className="alert alert-empty" data-test="alert" data-count="0">
         <Icon name="check" />
-        <span data-say="">{props.empty_text ?? k("no_alerts", ctx.lang)}</span>
+        <span><Bi value={props.empty_text ?? k("no_alerts", ctx.lang)} /></span>
       </section>
     );
   }
@@ -322,7 +322,7 @@ export function TonightCard({ props }: CatalogProps) {
   return (
     <section className={`tonight ${p ? "tonight-ok" : "tonight-nobody"}`} data-test="tonight-card" data-on-duty={p?.name ?? ""}>
       <Icon name={p ? "heart" : "help"} />
-      <span data-say="">{line}</span>
+      <span><Bi value={line} /></span>
     </section>
   );
 }

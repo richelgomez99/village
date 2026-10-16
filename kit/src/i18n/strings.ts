@@ -109,3 +109,7 @@ export function k(key: Key, lang: string, vars: Record<string, string | number> 
   return (table[key] ?? en[key]).replace(/\{(\w+)\}/g, (_, v) => String(vars[v] ?? ""));
 }
 export type StringKey = Key;
+/** Both tables (caption glossary builds its es→en reverse map from these). */
+export function tablesFor(): { en: Record<Key, string>; es: Record<Key, string> } {
+  return { en, es };
+}
