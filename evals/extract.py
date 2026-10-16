@@ -265,7 +265,7 @@ def to_tool_request(ex: Extraction, utterance: str, case_id: str, village_id: st
         return None
     body = {
         "conversation_id": f"conv_eval_{case_id}",
-        "caller_id": "m_carmen",
+        "caller_id": "+15555550101",  # Carmen (reyes_spec phone)
         "call_secs": 9,
         "utterance": utterance,
         "tool_call_id": f"toolu_eval_{case_id}",
