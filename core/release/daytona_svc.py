@@ -158,7 +158,8 @@ class DaytonaBuilder:
 
     def image_label(self) -> str:
         sb = self._sb
-        return str(self.image or self.snapshot or getattr(sb, "image", None) or getattr(sb, "snapshot", None) or "default image")[:60]
+        # Prefer what the sandbox really came from (a warm sandbox may predate the snapshot setting).
+        return str(getattr(sb, "snapshot", None) or getattr(sb, "image", None) or self.snapshot or self.image or "default image")[:60]
 
     async def build(self, files: dict[str, bytes], *, village_id: str, rev: int, log: LogFn | None = None) -> BuildResult:
         async with self._lock:

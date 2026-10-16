@@ -45,46 +45,52 @@ Village is a platform: you describe your people, and it builds and runs software
 **Core:** Python 3.13 + FastAPI. **Apps and Control Room:** React + TypeScript + Vite. Contracts (JSON Schema + OpenAPI) were written first so parallel lanes could build against the same shapes.
 
 ### Daytona: build and test every version before anyone sees it
-- Every version of a village's app is built in a Daytona sandbox: upload → `vite build` → floor tests generated for that village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → `dist` download. Snapshots are denied on our tier, so sandboxes start from an image and one warm sandbox is reused by label.
-- The Builder fixed its own failing build: rev 3 was blocked at "contrast 4.1:1 on elder Text (needs 7:1)", the model changed #4C80B4 to #2D5A8C, Daytona rebuilt, rev 4 went live.
-- Sandbox egress is blocked by design: code an AI wrote for a family can't reach the internet; Core pulls the results out.
+Every version of a village's app is a real `vite build` inside a Daytona sandbox, with floor tests generated for that village. A build that fails never reaches a phone.
+- **For what → feature → number.** Build each release in isolation → sandbox from snapshot `village-kit` (node 22), one warm sandbox reused by label → cold sandbox 1.0 s, warm reuse 149 ms, Reyes release 15.0 s warm.
+- Test what the family needs, not a generic suite → floor tests generated per village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → 62 tests for Reyes, 33 for the West 147th block.
+- Catch the Builder's mistake once, and keep the proof → the only failed build today, rev 3, stopped at "contrast 4.1:1 on elder Text (needs 7:1)"; the model changed #4C80B4 to #2D5A8C and rebuilt in the same sandbox → rev 4 went live; the receipt keeps both attempts.
+- Keep AI-written code off the internet → sandbox egress blocked, Core pulls `dist` out → blocked to every host we tested (Anchor, SurrealDB, Bedrock, DailyMed, example.com).
 
-**Measured:** Reyes release 14957 ms warm; West 147th block 13409 ms with 33 floor tests. **Code:** `core/release/pipeline.py`, `core/release/floor_tests.py`, `core/release/daytona_svc.py`, `scripts/release_smoke.py`
+**Code:** `core/release/pipeline.py`, `core/release/floor_tests.py`, `core/release/daytona_svc.py`
 
 ### SurrealDB: shared, time-aware memory, pushed live to every phone
-- SurrealDB Cloud LIVE queries fan every change out to every phone.
-- Agent Memory facts are typed, time-aware, supersede rather than overwrite, and are traced to source: lisinopril is 10 mg since Oct 3 (from a call, 88 s in: "The doctor changed her lisinopril from five to ten on October third."); the 5 mg fact is kept as history, and "as of Oct 2" returns 5 mg.
-- Shared across agents: the voice line's call transcripts, the ledger and the Watcher's rounds write and read the same facts, scoped per village and per member; the fact card shows who wrote each one.
+One database for what the village knows, with history that nobody overwrites.
+- Push every change to every phone → SurrealDB Cloud LIVE SELECT fanned out over Core's WebSocket → check-in to three family phones in about 130 ms.
+- Remember the dose as of a date → Agent Memory facts that supersede instead of overwrite → lisinopril 10 mg since Oct 3 (from a call, 88 s in); "as of Oct 2" still answers 5 mg.
+- Let every agent share one memory → the voice line, the ledger and the Watcher write and read the same facts, scoped per village and per member, each with its source → writes p50 630 ms; the Control Room shows who wrote each fact and the quote behind it.
 
-**Measured:** check-in to all three family phones in about 130 ms; Agent Memory writes p50 630 ms. **Code:** `core/db.py`, `core/live.py`, `core/memory/`
+**Code:** `core/db.py`, `core/live.py`, `core/memory/`
 
 ### Arize: the agent's senses, and what decides a release ships
-- Every agent step is a span with `session.id=village-<id>`; every gate decision is a GUARDRAIL span; every release eval is an EVALUATOR span.
-- The scam eval set runs as an Arize experiment (dataset `village-scam-eval`, experiment `scam-model-20261016T153959Z`).
-- The Watcher reads its own evals to propose: a session eval flagged the Oct 9 call as possible fraud (0.95), the evidence behind the receptionist proposal.
+Village reads its own traces to decide what to change, and no release ships without passing evals.
+- See every agent step → spans with `session.id=village-<id>`, GUARDRAIL spans for gate decisions, EVALUATOR spans for release evals → one trace per founding, per call, per release.
+- Prove the receptionist is safe before shipping it → experiment on dataset `village-scam-eval` → 30/30 scam calls caught, 0/20 false alarms.
+- Turn an eval into a proposal → the Watcher reads a session eval that flagged the Oct 9 call as possible fraud (0.95) → that score is the evidence on the receptionist proposal Ana approved.
+- Version the Builder's prompt where the team can see it → Prompt Hub prompt `village-builder`, v2 labelled `production`, fetched at runtime with a local fallback → all three founding render spans carry the Hub version id; elder, coordinator and helper apps validated first try.
 
-**Measured:** 30/30 scam calls caught, 0/20 false alarms on our 50-case eval set. **Code:** `core/obs/tracing.py`, `evals/`, `core/release/evals.py`
+**Code:** `core/obs/tracing.py`, `evals/`, `core/release/evals.py`, `core/builder/prompts.py`
 
 ### Anchor Browser: a real phone-sized browser checks every build
-- Every candidate build is opened in an Anchor browser at Carmen's screen size (390×844) and clicked through before release.
-- The release receipt carries the screenshot and the live-view link as evidence.
-- A build Anchor hasn't checked doesn't reach anyone's phone.
+A human never sees a version that an Anchor browser hasn't clicked through first.
+- Check the build the way Carmen will see it → Anchor session at 390×844, click-through of the home tab, screenshot and recording → 4.1 s warm in the smoke run, 9 s on the 14:22 release through the tunnel.
+- Put the evidence on the receipt → the screenshot, the MP4 and the live-view link attached to each release → the Control Room's PHONE tile links straight to it.
+- Refuse what wasn't checked → the release gate requires the Anchor pass before the blue/green switch → the blocked rev 3 never reached a phone.
 
-**Measured:** 5.2 s per check, warm. **Code:** `core/release/anchor_qa.py`
+**Code:** `core/release/anchor_qa.py`
 
 ### ElevenLabs: the whole product, for the person who won't use apps
-- Carmen's Village line is a real number in Spanish, formal (usted); people who call in English are answered in English.
-- Mid-call tools `report_money_request`, `await_verification` and `screen_caller` call Core; the gate's sentences are spoken word for word.
-- First live call at 12:23, end to end: init webhook → money report → Marco's tap on his own phone → the refusal spoken.
+Carmen's whole Village is a phone number that speaks formal Spanish.
+- Give the elder a line, not an app → a Conversational AI agent on a real number, formal usted, English for English callers → first real call at 12:23.
+- Let the voice act inside the rules → mid-call tools `report_money_request`, `await_verification`, `screen_caller` call Core; the gate's sentences are spoken word for word → hold line 18 s into the call, refusal 31 s after Marco's tap on his phone.
+- Screen the unknown caller → the receptionist (built by a live rebuild at 13:00) asked who was calling and why, offered to take a message, did not put the call through → verified live at 13:28; refused a live money ask at 14:00.
 
-**Measured:** hold line 18 s into the live call, refusal at 31 s after Marco's tap. **Code:** `agents/`, `core/voice/`
+**Code:** `agents/`, `core/voice/`
 
 ### AWS: the reasoning that kept the day running
-- Claude Haiku 4.5 on Bedrock (Mantle) is the fallback model; in the morning, before our Anthropic key worked, it ran every role.
-- It runs the scam extraction, the release evals and the Builder's repair; the primary path is Claude Sonnet 5.5 and Haiku 5.5 through the Anthropic API, behind one `llm()` factory.
-- The scam set's model-on run (30/30 caught, 0/20 false alarms) used Bedrock Haiku 4.5.
+- Keep the product up when a key fails → Claude Haiku 4.5 on Bedrock (Mantle) behind one `llm()` factory, with Claude Sonnet 5.5 / Haiku 5.5 through the Anthropic API as the primary path → it ran every role for the first hours, before our Anthropic key worked.
+- Run the cheap, frequent reasoning → scam extraction, release evals, the Builder's repair → the scam set's model-on run (30/30, 0/20) used Bedrock Haiku 4.5; time to first token 520–600 ms.
 
-**Measured:** time to first token about 520–600 ms. **Code:** `core/llm.py`
+**Code:** `core/llm.py`
 
 ### How the day was run
 One builder, Richel Gomez. A Claude session orchestrated: specs, briefs, merges, tests, tags. Codex sessions implemented the early core, gate, voice and contracts; after a shared rate limit, Claude sessions implemented the rest (builder, apps and Control Room, release pipeline, evals, memory, pitch), each in its own git worktree.
@@ -93,7 +99,7 @@ One builder, Richel Gomez. A Claude session orchestrated: specs, briefs, merges,
 - **Rate limits.** Five Codex sessions shared one OpenAI limit of 1M tokens per minute and kept dropping turns; one lane had zero commits after 20 minutes. We moved lanes to Claude in two steps.
 - **Model access.** On the Bedrock lab account only Claude Haiku 4.5 answered; every Sonnet and Opus id returned 404.
 - **An API key scoped to a workspace.** Our Anthropic key returned 400 until requests carried the workspace id.
-- **Daytona snapshots denied** on our tier: we keep one warm sandbox from an image instead (cold release 29.7 s, warm 15.0 s).
+- **Daytona snapshots came back "Access denied"** until 14:20: the API key lacked snapshot scope, not the plan. A new key fixed it (snapshot `village-kit` created in 4.2 s). Until then one warm sandbox from an image carried every release (cold 29.7 s, warm 15.0 s).
 - **Sandbox egress blocked**, by design; sandboxes only build and test.
 - **Twilio geographic permissions** blocked live outbound calls, so the check reaches Marco through his app.
 - **The first live call taught us four rules**: formal usted throughout, the AI says it's a program first, the voice platform's guardrail must never block Village's own "No mande dinero", and every tool the agent can call must have a handler (one returned 404 mid-call; fixed).
@@ -159,7 +165,7 @@ Label for the second link: "Be Marco (the son): open on your phone".
 - Cost per village per month (not measured).
 - Reyes floor test count (only the block's 33 is measured).
 - Phones joined during the demo; the rebuild timed at the pitch.
-- Sponsor items not confirmed yet: Daytona receipt line (sandbox id + test count), Anchor recording MP4 on the receipt, Bedrock model chip, ElevenLabs success-evaluation criteria pushed to the live agent.
+- Sponsor items not confirmed yet: Bedrock model chip, ElevenLabs success-evaluation criteria pushed to the live agent.
 - Receptionist GIF and the money-claim refusal on a live call (the 13:28 call was a non-money caller); the V1 clip URL; the caught-build receipt screenshot.
 - The Thanksgiving chat demo (ran only on a test Core).
 - The sponsor section is headings + bullets rather than a Markdown table, because Devpost's editor doesn't reliably render bullets inside table cells.
