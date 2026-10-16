@@ -56,6 +56,9 @@ async def reset_demo(village_id: str | None = None, *, keep_others: bool = False
     registered village is loaded alongside (spec, members, views) so one Core serves them all at once.
     keep_others=True re-seeds only `village_id` and leaves the in-memory state of the others alone."""
     village_id = village_id or villages.default_village_id()
+    from core import demo_caller
+
+    demo_caller.reset()
     if not keep_others:
         await db.reset()
         await db.clear_cloud()
