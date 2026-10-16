@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -12,20 +10,15 @@ from pydantic import BaseModel
 
 from core.clock import clock
 from core.db import db
+from core import village
+from core import village
 
-ROOT = Path(__file__).resolve().parents[2]
-REYES_SPEC = ROOT / "contracts" / "fixtures" / "reyes_spec.json"
-
-
-def _people() -> list[dict[str, Any]]:
-    return json.loads(REYES_SPEC.read_text())["blueprint"]["people"]
+_REL_SPOKEN = {"mother": "mom", "father": "dad"}
 
 
 def member(member_id: str) -> dict[str, Any] | None:
-    for person in _people():
-        if person["id"] == member_id:
-            return person
-    return None
+    """The member's spec entry, from whichever registered village they belong to."""
+    return village.person(village.member_village(member_id), member_id)
 
 
 def consent_allows_ai_calls(member_id: str) -> bool:
@@ -78,7 +71,10 @@ class ElevenLabsDialer:
         return False
 
 
-def build_payload(person: dict[str, Any], verification_id: str) -> dict[str, Any]:
+def build_payload(person: dict[str, Any], verification_id: str, village_id: str | None = None) -> dict[str, Any]:
+    vid = village_id or village.member_village(person["id"])
+    recipient = village.person(vid, village.care_recipient_id(vid)) or {}
+    relation = str(recipient.get("relation") or "family member")
     return {
         "agent_id": os.getenv("ELEVENLABS_AGENT_CALLER_ID", ""),
         "agent_phone_number_id": os.getenv("ELEVENLABS_PHONE_NUMBER_ID", ""),
@@ -86,14 +82,14 @@ def build_payload(person: dict[str, Any], verification_id: str) -> dict[str, Any
         "conversation_initiation_client_data": {
             "dynamic_variables": {
                 "recipient_name": person["name"].split()[0],
-                "family_label": "the Reyes family",
-                "family_word": "[PALABRA]",
-                "care_recipient_rel": "your mom",
+                "family_label": village.village_name(vid),
+                "family_word": village.family_word(vid) or "",
+                "care_recipient_rel": f"your {_REL_SPOKEN.get(relation, relation)}",
                 "amount_spoken": "$2,000",
                 "method_spoken": "",
-                "coordinator_name": "Ana",
+                "coordinator_name": village.first_name(vid, village.coordinator_id(vid)),
                 "verification_id": verification_id,
-                "village_id": "v_reyes",
+                "village_id": vid,
                 "member_id": person["id"],
             }
         },

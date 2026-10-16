@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from core.clock import clock
 from core.db import db
+from core import village
 from core.voice.tools import redact_digits
 
 POST_CALLS: list[dict[str, Any]] = []
@@ -69,7 +70,7 @@ async def record_call_failed(payload: dict[str, Any]) -> None:
         await db.upsert_verification({**row, "channels": channels})
     await db.create_event({
         "id": f"ev_call_failed_{len(db.events) + 1}",
-        "village": payload.get("village_id", "v_reyes"),
+        "village": payload.get("village_id") or village.default_village_id(),
         "kind": "call_failed",
         "payload": {
             "conversation_id": payload.get("conversation_id"),
@@ -97,7 +98,10 @@ async def apply_verification_answer(payload: dict[str, Any]) -> None:
             verification_id,
             answer,
             via="outbound_call",
-            member_id=payload.get("member_id", payload.get("dynamic_variables", {}).get("member_id", "m_marco")),
+            member_id=payload.get("member_id")
+            or payload.get("dynamic_variables", {}).get("member_id")
+            or (db.verifications.get(verification_id) or {}).get("claimed_member_id")
+            or village.default_verifier(payload.get("village_id")),
             quote=payload.get("listener_quote"),
             call_sid=payload.get("call_sid"),
         )

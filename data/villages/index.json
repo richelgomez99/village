@@ -1,0 +1,22 @@
+{
+  "_comment": "Village registry (D30). Core loads any village by id from here; no village names or ids live in core/. `default` is the demo village when DEMO_VILLAGE_ID is unset.",
+  "default": "v_reyes",
+  "villages": {
+    "v_reyes": {
+      "spec": "contracts/fixtures/reyes_spec.json",
+      "data": "data/villages/reyes_family.json",
+      "events": "contracts/fixtures/events_reyes_seed.json",
+      "messages": "contracts/fixtures/messages_reyes_seed.json",
+      "prescriptions": [
+        {"med_id": "med_lisinopril_5", "name": "lisinopril", "dose": "5 mg", "valid_from": "2026-09-01", "valid_until": "2026-10-03",
+         "source": {"kind": "system", "ref": "seed", "quote": "Prior bottle in cabinet"}, "prescriber": "Dr. Park"},
+        {"med_id": "med_lisinopril_10", "name": "lisinopril", "dose": "10 mg", "valid_from": "2026-10-03", "valid_until": null,
+         "source": {"kind": "call", "ref": "conv_setup_0003", "secs": 88}, "prescriber": "Dr. Park"}
+      ]
+    },
+    "v_w147": {
+      "spec": "contracts/fixtures/block_spec.json",
+      "data": "data/villages/block_blackout.json"
+    }
+  }
+}

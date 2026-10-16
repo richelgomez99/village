@@ -24,7 +24,6 @@ from core.release.serve import LocalPublisher
 
 log = logging.getLogger("village.release")
 ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = {"v_reyes": "reyes_spec.json", "v_w147": "block_spec.json"}
 
 
 async def _core_control(village: str, kind: str, payload: dict[str, Any]) -> None:
@@ -42,10 +41,9 @@ def _core_spec(village: str) -> dict[str, Any] | None:
             return spec
     except Exception:
         pass
-    name = FIXTURES.get(village)
-    if name and (ROOT / "contracts" / "fixtures" / name).exists():
-        return json.loads((ROOT / "contracts" / "fixtures" / name).read_text())
-    return None
+    from core import village as village_reg  # registry: data/villages/index.json
+
+    return json.loads(json.dumps(village_reg.fixture_spec(village))) or None
 
 
 def _core_llm() -> Callable[[str], Any] | None:

@@ -41,3 +41,12 @@
 - Writes p50 630 ms, p90 686 ms (n=31 Reyes facts; outbox drained in 20.8 s). History p50 248 ms; Fact view 303 ms; as-of 517 ms. Query 3.7 s (10 mg); asOf 2026-09-15 2.9 s (5 mg). Recall is never on a request path.
 - Lisinopril Fact view: current 10 mg since Oct 3 (source call:conv_setup_0003 @88 s, quote, event ev_1003_1740_med_change); superseded 5 mg since Sep 1.
 - Nightly round (seeded data, budget 3): **3 acted alone · 1 asked a person · 1 refused**. Refused: evening check-in at 9:40 PM, "Blocked by code: Carmen's rule, no calls after 9:30 PM" (P-QH-01, source welcome_call @108 s). Asked: "Ana has taken 9 of the last 12 nights. Ask Lucía to take the Sunday call?" Round through the core app: 519 ms. 37 memory/watcher tests offline.
+
+## Scam eval experiment (evals lane, 12:00; 30 scam + 20 benign, `data/datasets/scam_eval_set.jsonl`)
+| Run | Caught | False alarms | Exact decision match |
+|---|---|---|---|
+| Model on (Bedrock Haiku 4.5 extraction + pure gate) | **30/30** | **0/20** | 49/50 |
+| Model off (rule-based extractor + pure gate) | 28/30 | 0/20 | 47/50 |
+| Arize experiment `scam-model-20261016T153959Z` (dataset `village-scam-eval`) | 30/30 | 0/20 | 49/50 |
+| Model off + Reyes incident set (D24 #11) | 29/31 | 0/20 | 48/51 |
+- Caveat for the pitch: a 50-case hand-written set, say "on our 50-case eval set". Session eval labels the Oct 9 call `possible_fraud` (0.95); detector yields one pattern with 5 evidence rows.

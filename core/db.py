@@ -74,7 +74,9 @@ class MemoryDB:
         elif table == "member":
             self.members[key] = row
         elif table == "view":
-            village = row.get("village", "v_reyes")
+            from core.village import default_village_id
+
+            village = row.get("village") or default_village_id()
             role = row.get("role", key)
             self.views[(village, role)] = row.get("spec", row)
         elif table == "spec_rev":

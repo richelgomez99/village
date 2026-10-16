@@ -74,12 +74,13 @@ LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VI
 LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
+READY FOR MERGE PITCH-2
 READY FOR MERGE V0
 P001 · done · README.md (identity, arc, architecture, run, sponsors, safety rules with test names, real vs mocked, measured numbers, D25 pointer, team) · numbers only from RESULTS.md; 3 [MEASURE] rows
 P002 · done · docs/DEVPOST.md (V0 ready; V1–V4 [PENDING Vn]; numbers table; video shot list; 10 Q&A) · [MEASURE]/[PENDING] left in V1–V4 and shared tables only
 P003 · done · `CORE_URL=http://127.0.0.1:8799 scripts/reset_demo.sh` twice against a throwaway Core (SURREAL_DB_URL empty): exit 0, identical checklists; wrong ADMIN_KEY → exit 1 with manual command · warm is a stub
-LD-1 (mismatch): `POST /admin/reset` ignores `scopes` and runs the full `core.fixtures.reset_demo("v_reyes")`, so step 3 (`core.tools.seed`) repeats the same reset in a separate process. With `SURREAL_DB_URL` set, seed clears and reloads SurrealDB Cloud but cannot touch the running Core's in-process mirror; harmless today, but the scopes are cosmetic.
-LD-2 (mismatch): `core.tools.warm` is a stub (`print("warm OK (stub)")`); reset_demo.sh flags it as STUB in the checklist until the release lane replaces it.
+LD-1 (resolved after merge: admin reset now honours scopes): `POST /admin/reset` ignored `scopes` and runs the full `core.fixtures.reset_demo("v_reyes")`, so step 3 (`core.tools.seed`) repeats the same reset in a separate process. With `SURREAL_DB_URL` set, seed clears and reloads SurrealDB Cloud but cannot touch the running Core's in-process mirror; harmless today, but the scopes are cosmetic.
+LD-2 (resolved: warm now calls the release lane; reset flags absent/failed): `core.tools.warm` was a stub (`print("warm OK (stub)")`); reset_demo.sh flags it as STUB in the checklist until the release lane replaces it.
 LD-3 (mismatch): `/clock/warp` takes `{"to": iso}` (also `minutes`, `reset`); reset uses `to`, which is absolute, so repeated runs land on the same clock.
 LD-4: `kit/` is not in main yet; README's `cd kit && npm run dev` says so.
 ## voice
@@ -149,6 +150,10 @@ P004 · done · `scripts/acceptance_summary.sh --list` and full run (SURREAL_DB_
 P005 · done · docs/CHECKPOINTS.md template (11:00/12:15/13:00/13:40/14:15/14:20)
 P006 · done · docs/SLIDES.md (6 slides, stage lines, fallbacks; [MEASURE] where numbers go)
 LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated: voice code merged, live ElevenLabs pushes dry-run, outbound via FakeDialer (Twilio geo permissions).
+P007 · done · PITCH-2: merged main; README + DEVPOST "How Village builds any group" with both villages' numbers; every [MEASURE] RESULTS answers filled; challenges and team per D26/D28; SLIDES + shot list per D29/D30; CHECKPOINTS 12:15 filled; reset_demo.sh defaults to :8790 (D27)
+LD-6: "245 Python tests" measured by the pitch lane: `SURREAL_DB_URL= VILLAGE_LLM=off VILLAGE_MEMORY=off uv run pytest -q` → 245 passed at 2c8c3db. Not yet in RESULTS.md.
+LD-7: Spine is "about 130 ms" (RESULTS); the brief's "100–130 ms" has no source, so the pages say about 130 ms.
+LD-8: "Sonnet 5.5 + Haiku 5.5 via the Anthropic API" has no measured run in RESULTS/LANE-REPORT (release LD-3: key 400 without workspace id). Pages say Core uses them with Bedrock Haiku 4.5 fallback, and that every measured run used Haiku 4.5.
 ## gate
 READY FOR MERGE V1
 G008 · done · deadline-during-await closes TIMED_OUT; consent-revoked dial is no-op; T32/T33 and ignored terminal answer covered.
@@ -255,3 +260,77 @@ Core must mount / call:
 - reset_demo / `POST /admin/reset`: `await core.watcher.routes.on_reset("v_reyes")` to run tonight's round on the fresh seed
 - `/health.outbox`: `core.memory.runtime.health()`
 - evals lane: expose `evals.rounds_port` with `async rerun_scam_set(village) -> {caught, total}` and `async detect_patterns(village, events) -> [{claimed_member_id, event_ids, count, text?}]`
+
+## evals
+READY FOR MERGE EVALS
+
+Measured (Oct 16, eval clock 2026-10-16T14:02:09-04:00, Reyes fixture state with the Oct 9 seed request; numbers only from these runs):
+
+| run | extraction | caught | false alarms | exact match | extraction p50 / p95 | output |
+|---|---|---|---|---|---|---|
+| local, model on | Bedrock `anthropic.claude-haiku-4-5` (50/50 model extractions) | **30/30** | **0/20** | 49/50 | 1206 / 1407 ms | `evals/out/scam_experiment_20261016T153025Z_model.{json,md}` |
+| local, model off | deterministic rules | **28/30** | **0/20** | 47/50 | <1 ms | `evals/out/scam_experiment_20261016T154953Z_rules.{json,md}` |
+| Arize experiment, model on | Haiku 4.5, task run by Arize SDK runner | **30/30** | **0/20** | 49/50 | — | dataset `village-scam-eval` id `RGF0YXNldDozNzAyMTc6SEFDcA==`, experiment `scam-model-20261016T153959Z` id `RXhwZXJpbWVudDoxNjIyNDM6aU1KYg==`; mirror `evals/out/arize_experiment_20261016T153959Z.json` |
+| local, model off, `--village v_reyes` | rules | 29/31 | 0/20 | 48/51 | <1 ms | n_base 50 + n_village 1 (`evals/out/scam_experiment_20261016T154556Z_rules_v_reyes.*`) |
+
+Definitions: caught = scam case mapped to verify_with_member / advise_do_not_send / deny. False alarm = benign case mapped to advise_do_not_send / deny, or to verify_with_member where the dataset expects record (3 benign rows expect verify_with_member: rent cash to Ana, $50 to Marco, Medicare number to Ana). Gate→dataset mapping is written out for all 14 gate decisions in `evals/scam_experiment.py` `DECISION_MAP`; no tool call = record. Haiku's one miss on exact match: se_b07 (Ana asks for rent cash) → no tool call → record (expected verify_with_member; still not a false alarm). Rules misses: se_s03 and se_s27 (no "ask" verb matched) → record.
+
+- LD-1 scam experiment: `evals/scam_experiment.py` (+ `extract.py`, `reyes.py`): Haiku forced tool call (`report_money_request` | `not_a_money_request`) → claimed member resolved against Reyes members (unknown → None → R-MONEY-UNKNOWN; "asks Village to pay" → `money_transfer_request` → R-MONEY-NEVER) → GateInput (validated against gate.schema `gate_input` in tests) → pure `core.gate.decide` → score. JSON+MD report with per-case rows and timings. DONE.
+- LD-2 Arize experiment: `evals/arize_experiment.py`, `arize[Datasets]<8` (`ArizeDatasetsClient.create_dataset` + `run_experiment`, evaluators `caught`, `false_alarm`, `decision_match`). DONE (ids above). Two earlier experiments (`scam-rules-20261016T153717Z`, `scam-model-20261016T153825Z`) are WRONG: Arize returns `is_scam` as a string, so benign rows were scored as scams. Fixed; see `evals/out/discarded/README.txt`. Ignore those two in the UI.
+- LD-3 session eval + detector: `evals/session_eval.py` (`session_possible_fraud`, Haiku judge, rules fallback, EVALUATOR span, `update_evaluations` on the call root span, mirror `var/evals/sessions/<conv>.json`). Real run: conv_seed_1009 → possible_fraud 0.95 (Haiku), trace `a33eeac183244e9ccd30aff7e6fb7db6`; Arize shows the EVALUATOR span and `eval.session_possible_fraud` on the `call.session` root. `evals/detector.py` `detect_patterns(village_id, events)`: ≥2 money requests claiming the same member within 7 days → pattern with `evidence` (call_moment, trace, fact), schema-valid per proposal.schema `evidence`; seed Oct 9 + today → 1 pattern, 5 evidence rows. DONE.
+- LD-4 incident → test (D24 #11): `evals/incident_to_test.py` appends `{utterance, expected_decision, …}` to `evals/sets/<village>.jsonl` on verification_denied/timeout (idempotent per verification id); `scam_experiment --village v_reyes` reports n_base + n_village. `evals/sets/v_reyes.jsonl` has 1 row (the Oct 9 timeout). DONE.
+- LD-5 tracing: `core/obs/tracing.py` (`init_tracing` = arize-otel `register` + Anthropic instrumentor when ARIZE keys exist, else no-op; `span()` + `agent/tool/guardrail/chain/evaluator` decorators with session.id, graph.node.id, graph.node.parent_id, user.id). Real trace `9ea6655bab35c397925b58fcc13bf70d` in project `village`: CHAIN scam_eval.case > AGENT mom_line.extract > LLM messages.create, GUARDRAIL gate.decide (verified by span export). DONE.
+- LD-6 tests: `uv run pytest evals -q` → 33 passed offline (model off, Arize mocked); full `uv run pytest -q` → 222 passed. Includes T007 import ban (core/gate, core/voice/tools*.py import no evals/arize/core.memory/core.obs). DONE.
+- LD-7 rounds port: `evals/rounds_port.py` `async rerun_scam_set(village)` → {n_caught, n_total, n_false_alarms, n_benign, n_base, n_village, caught, total, …} (rules unless VILLAGE_LLM on; report to `var/evals/rounds/`), `async detect_patterns(village, events)` → patterns with `claimed_member_id, event_ids, count, text, evidence` (the shape rounds.py reads; evidence rows inside). DONE.
+
+Commands:
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.scam_experiment --mode model`
+- `uv run python -m evals.scam_experiment --mode rules [--village v_reyes]`
+- `VILLAGE_LLM=on uv run --with boto3 --with 'arize[Datasets]<8' python -m evals.arize_experiment`
+- `VILLAGE_LLM=on uv run --with boto3 --with arize python -m evals.session_eval conv_seed_1009`
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.trace_smoke`; `uv run python -m evals.detector`; `uv run python -m evals.incident_to_test v_reyes`
+
+Notes for core / orchestrator:
+- `core.llm` Bedrock path needs `boto3` (not in pyproject; evals uses `uv run --with boto3`). An empty `AWS_BEARER_TOKEN_BEDROCK=` in .env makes Mantle send `Bearer ` and fail with "Connection error"; `evals/env.py` drops empty AWS_/ARIZE_ vars. Core should do the same or remove the empty line.
+- `llm("haiku")` maps to the Sonnet slot (role not in {watcher, verifier, explainer}); evals pins `BEDROCK_HAIKU_MODEL`. Harmless today (both are haiku-4-5).
+- The `arize` SDK (v7 and v8) shadows `arize.otel` from arize-otel when layered on; `core/obs/tracing.py` re-exposes it.
+- Mantle rejects `temperature`; the extraction runs without it (Haiku extractions are not guaranteed deterministic across runs).
+
+Open risks:
+- The rules extractor was written with the 50 cases visible: treat 28/30 as a regression baseline, not a generalization claim. The Haiku prompt names the Reyes family; same caveat, smaller.
+- Dataset is 50 hand-written cases (30/20); a perfect score on it is not a field rate. Pitch should say "on our 50-case eval set".
+- The detector's `fact` refs are synthesized keys (`fact:money_request:<subject>:<date>`), not read back from Agent Memory.
+
+## platform
+READY FOR MERGE PLATFORM
+
+Branch `platform-sweep` (worktree `/Users/rgomez/village-platform`), D30 sweep: no village names or ids live in `core/` anymore.
+
+- **Grep** `grep -ri -E "carmen|marco|lucia|lucía|reyes|ana\b" core --exclude-dir=tests`: **231 hits in 35 files before** (185 of them outside the allowed `core/watcher/fixtures/`; the 265 figure was from 12:05), **46 hits in 1 file after**, all of them in `core/watcher/fixtures/reyes_nights.json`, which is an allowed home. Outside the fixtures it returns nothing.
+- **Tests**: `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake uv run pytest -q` → 249 passed (245 + 4 new). `acceptance/run.sh V0 --lane core` and `acceptance/run.sh V1 --lane core` (real-socket scam flow) both pass.
+- **Village registry**: `data/villages/index.json` maps each village id to its contract spec, data file, seed events, seed messages and seed prescriptions. `core/village.py` holds every lookup: default village, spec (live `db.specs` first, else the fixture), people, coordinator, care recipient, verifier, on-duty fallback, relationship word, family word, quiet hours. It also has the pure `state_from_spec()`, which builds GateInput.village_state from a spec (P-QH-01, R-MONEY-DEFAULT and R-MONEY-VERIFY params, pronoun from relation).
+- **Files changed**: `core/village.py` (new), `core/settings.py` (`DEMO_VILLAGE_ID`), `.env.example`, `data/villages/index.json` (new), `core/fixtures.py`, `core/app.py`, `core/bindings.py`, `core/ws_hub.py`, `core/services.py`, `core/gate_fallback.py`, `core/db.py`, `core/dialer.py`, `core/auth.py`, `core/routes/{ws,clock,admin,verifications,join}.py`, `core/gate/say.py`, `core/gate/rules/{common,money}.py`, `core/gate/sm_verification.py`, `core/voice/{init_hook,tools,outbound,post_call}.py`, `core/memory/{client,conventions,ledger_subscriber,views}.py`, `core/watcher/{rounds,routes}.py`, `core/release/{service,evals,floor_tests}.py`, `core/obs/tracing.py`, `core/tools/{seed,wsclient}.py`, and the new test `core/gate/tests/test_two_villages.py`.
+- **Two-village gate test** (`core/gate/tests/test_two_villages.py`, 4 passed): it builds village_state from `reyes_spec.json` and `block_spec.json` with the same `state_from_spec`, then runs the same rules on both.
+  - P-QH-01: a dose-window tick at 21:50 sends no reminder in the care village (its quiet hours are 21:30-07:00) and sends `remind` in the block (its spec has no P-QH-01).
+  - R-MONEY-DEFAULT: a verification answer of `no` or `unsure` gives `advise_do_not_send` in both villages. The notify goes to that village's own coordinator (`m_ana` vs `b_tanya`), and the `say` text names that coordinator, so the two decisions differ.
+- **Both villages served at once**: one Core process, one `reset_demo()`.
+  - `/ws?village=v_w147&m=b_tanya` → snapshot `{"village": "v_w147", "role": "coordinator", "member_id": "b_tanya"}`, identity Tanya / "West 147th Block — Heat & Blackout", 10-element coordinator view from `block_spec.json`. `m=b_tanya` with no village resolves to v_w147 as well.
+  - `/ws?village=v_reyes&m=m_ana` → `{"village": "v_reyes", "role": "coordinator", "member_id": "m_ana"}`, identity "Familia Reyes".
+  - `/ws?village=v_reyes&m=m_carmen` → `role: "elder"`.
+  - `uv run python -m core.tools.seed --village v_w147` (or `--village v_reyes`, plus `--keep`) seeds any registered village.
+
+### Lane decisions
+- LD-P1: `DEMO_VILLAGE_ID` defaults to an empty string in `core/settings.py`. When it is empty, the default comes from `data/villages/index.json` `"default"`, so `v_reyes` appears only in `.env.example` and `data/`. A settings default of `v_reyes` would itself trip the grep.
+- LD-P2: `reset_demo(village)` resets everything, seeds the chosen village, and also seeds every other registered village, so both villages are always live. `keep_others=True` re-seeds just one village.
+- LD-P3: say templates take `{coordinator_name}` and `{recipient_name}`. `finish()` fills them from village_state. If a village has no such member, neutral words are used (es "su familia", en "your family").
+- LD-P4: the live gate's quiet hours now come from the spec's P-QH-01 (`21:30-07:00`). `services._village_state` used to hardcode `22:30`. No test depended on the old value.
+- LD-P5: the default money verifier is the first consented `money_verifier` who is not the coordinator. This is read from village_state members, because the gate schema forbids extra keys such as `trusted_contacts`. The default on-duty member is the first caregiver, helper or volunteer in the spec.
+- LD-P6: the voice init hook finds the caller by phone among the village's spec people, and an unknown or empty caller resolves to the care recipient. The demo override is `DEMO_ELDER_CALLER_ID`. A spec-derived `DEMO_<RECIPIENT FIRST NAME>_CALLER_ID` is also accepted, so existing `.env` files keep working.
+- LD-P7: slot words in the Spanish timeline come from `dose_slots[slot].spoken_es` in the village data file. Any word ending in "ana", such as "mañana", trips the `ana\b` grep.
+- LD-P8: `outbound` `family_label` is now the spec's village name ("Familia Reyes"), not "the Reyes family".
+
+### Open risks
+- `db.events` and `db.verifications` are global lists. The bindings filter alerts, shifts, chat and money requests by village, but `open_incidents()`, `timeline()` and dose facts filter only by subject. They do not leak between the two villages today (the block has no incidents), but a block incident would show in any Reyes view that binds `incidents:open`.
+- The block's own binds (needs, resources, rumors) have no bindings in core yet. Tanya's snapshot carries her view but its data is only `alerts:active` and `chat:village`.
+- `step_verification`'s incident `notified` reads `current["coordinator_id"]`, and that is empty unless the caller sets it. In practice services overwrites it through `_enrich_incident`.
+- The `core/memory/routes.py` header default still uses the default village's coordinator.

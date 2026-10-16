@@ -19,6 +19,7 @@ def test_haiku_roles_get_haiku_model_on_bedrock(monkeypatch) -> None:
     settings = Settings(VILLAGE_LLM="on", BEDROCK_SONNET_MODEL="sonnet-id", BEDROCK_HAIKU_MODEL="haiku-id", ANTHROPIC_API_KEY="k", ANTHROPIC_WORKSPACE_ID="")
     monkeypatch.setattr(mod, "get_settings", lambda: settings)
     monkeypatch.delenv("ANTHROPIC_WORKSPACE_ID", raising=False)
+    monkeypatch.setenv("ANTHROPIC_DIRECT", "off")  # this test is about the Bedrock routing
 
     class FakeBedrock:
         pass
