@@ -153,6 +153,10 @@ class DaytonaBuilder:
         self.last_timings.update(timings)
         return timings
 
+    def image_label(self) -> str:
+        sb = self._sb
+        return str(self.image or getattr(sb, "image", None) or getattr(sb, "snapshot", None) or "default image")[:60]
+
     async def build(self, files: dict[str, bytes], *, village_id: str, rev: int, log: LogFn | None = None) -> BuildResult:
         async with self._lock:
             return await self._build(files, village_id=village_id, rev=rev, log=log)
@@ -177,7 +181,8 @@ class DaytonaBuilder:
             for line in out.strip().splitlines()[-5:]:
                 await _emit(log, line, "info" if code == 0 else "error")
             if code != 0:
-                return BuildResult(False, sandbox_id=sb.id, log_tail=out[-1500:], timings_ms=timings, error="vite build failed")
+                return BuildResult(False, sandbox_id=sb.id, log_tail=out[-1500:], timings_ms=timings, error="vite build failed",
+                                   image=self.image_label())
             await _emit(log, f"vite build ok in {timings['build']} ms")
 
             t0 = time.perf_counter()
@@ -189,7 +194,8 @@ class DaytonaBuilder:
             await _emit(log, f"vitest: {passed} passed, {failed} failed", "info" if failed == 0 else "error")
             for f in failures[:3]:
                 await _emit(log, f, "error")
-            result = BuildResult(True, passed, failed, failures, sandbox_id=sb.id, timings_ms=timings, log_tail=out[-500:])
+            result = BuildResult(True, passed, failed, failures, sandbox_id=sb.id, timings_ms=timings, log_tail=out[-500:],
+                                 image=self.image_label())
             if failed or not report:
                 if not report:
                     result.error = "no vitest report"

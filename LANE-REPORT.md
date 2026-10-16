@@ -248,7 +248,8 @@ LD-2: Scheduler-facing dose ticks use R-MISSED as the gate rule and policy IDs P
 LD-3: T21-T26 are tracked but deferred because rumor verification/resource matching are not in G008-G010 and require non-gate source/matching services.
 
 ## release
-READY FOR MERGE V3
+READY FOR MERGE RELEASE-WOW
+(V3 ready earlier; RELEASE-WOW lines W1–W4 below.)
 Offline: `uv run pytest core/release -q` → 27 passed (model OFF, fakes for Daytona/Anchor/evals). Real: `VILLAGE_LLM=on uv run --with daytona --with anchorbrowser --with playwright --with boto3 --with arize-otel python scripts/release_smoke.py [--break-contrast] [--cold] [--spec contracts/fixtures/block_spec.json]`, run 4× after the main merge (contract 1.2.0, Reyes rev 5), all real Daytona + real Anchor + Arize export on.
 T001 · done · `uv run pytest core/release -q` · ports.py + fakes.py (FakeDaytona/FakeAnchor/FakeEvals/FakeLLMClient)
 T003 · cut · — · snapshots denied on this account; default image + one warm sandbox (label `village-release=warm`, auto_stop 0, `npm ci` once, `.deps_key`) instead
@@ -630,6 +631,22 @@ Chat mirror · done · compact panel from `chat:village` (snapshot/event data) a
 Details toggle · done · header "details" (off by default, hidden in hero mode): rule ids, decision ids, trace ids (Arize link when `VITE_ARIZE_TRACE_URL` with `{trace_id}` is set) on the gate feed, decisions log, work log and proposal/receipt; off = plain words only
 Decision sentences · done · gate rows read "Verifier · asked Marco · said no in 12 s · told her not to send money" (dictionary for the 14 gate decisions + verification state + measured seconds; unknown names fall back to words); round rows drop the "[rounds · mode]" prefix
 Core asks (ROOM-3): put `rounds:latest` (the round result) in the control snapshot data (or send `rounds_*` counters); send `chat` frames to the control socket; include `trace_id` on gate/reasoning frames for the details view.
+W1 Anchor MP4 · done · `release_smoke.py --break-contrast --approved-by m_ana` → "Anchor MP4: …/releases/rel_reyes_r4/qa/qa.mp4 (fetch 1221 ms, 48649 bytes); served by GET /releases/{rel}/qa/qa.mp4: 200 video/mp4" · `client.recordings.fetch_primary_recording(session_id)` (verified in anchorbrowser `resources/recordings.py`) after delete_session, background task, re-emits the receipt with evidence `{kind: recording, url: …/qa.mp4}`, `details.video_url`, `evidence_url`; offline: FakeAnchor(recording=True)
+W2 Daytona lines · done · same run · daytona_build "sandbox 1172d474 · daytonaio/sandbox:0.8.0 · build 2.1 s"; tests "52/52 floor tests · 1.2 s" (r3: "contrast 4.1:1 on elder Text (needs 7:1) · 50/52 floor tests · 1.4 s")
+W3 Model chip · done · same run · arize_evals "evals passed · Anthropic · claude-haiku-5-5 · 2686 ms TTFT" (provider/model from `client.village_provider/village_model`, TTFT = first text delta of the streamed judge call; non-streaming clients say "latency")
+W4 Arize human_approval · done · same run → "Arize human_approval annotation: {'ok': True, 'span_id': 'b83534a3696f41fe', 'member': 'm_ana'}" (Arize: spans_updated=1) · `ArizeClient().spans.update_annotations(space_id, project_name, dataframe)` with `annotation.human_approval.{label=approved, score=1, updated_by=<member>}` + `annotation.notes` on the release AGENT span; span attr `human.approval=approved_by:<member>` always; live summary "… · approved by m_ana"; hook: `run_release(..., approved_by=)`, `ReleaseService.start(approved_by=)`, evolve `_verify_and_apply` passes `p["approved_by"]` (one-line edit in core/evolve/proposals.py) · needs the `arize` SDK + pandas at runtime (not in pyproject; Core must run with `--with arize` or add it), else only the span attr
+LD-5: The contract's evidence kinds have no `live_view`; the live view URL stays in `details.live_view_url` only (the session is deleted right after QA, so the link is dead by the time anyone clicks it). The MP4 is the `recording` evidence.
+LD-6: Anchor writes no recording for a ~1 s session (measured 404 "Session downloads not found" every time; a 4 s session's MP4 is fetchable 1 s after delete). QA now holds the checked screen 3 s (`RELEASE_QA_HOLD_MS`), so anchor_qa is ~8.2 s instead of ~5.3 s.
+LD-7: core.llm now routes builder → Anthropic claude-sonnet-5-5 and verifier → claude-haiku-5-5 (not Bedrock on this machine); both think first, so repair/judge max_tokens went 300/400 → 2000/1500 (300 returned only a thinking block → JSONDecodeError → deterministic fallback). LLM repair now succeeds in ~6–10 s.
+| RELEASE-WOW real run (warm, `--break-contrast --approved-by m_ana`) | ms |
+|---|---|
+| r3 build / vitest (fails contrast) | 2106 / 1391 |
+| LLM repair (Sonnet 5.5) | ≈ 10 000 (r3 tests end → r4 spec) |
+| r4 build / vitest / dist download / preview | 2066 / 1210 / 215 / 1211 |
+| Anchor QA (incl. 3 s hold) | 8270 |
+| evals (judge TTFT 2686) | 3619 |
+| total to live | 29252 |
+| MP4 fetch after release | 1221 (48 649 bytes) |
 
 
 ### voice4 (small)

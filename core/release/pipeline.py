@@ -22,10 +22,62 @@ from core.release.serve import LocalPublisher
 
 _locks: dict[str, asyncio.Lock] = {}
 LAST_TIMINGS: dict[str, dict[str, int]] = {}
+# Background work that outlives a release (Anchor MP4 fetch). Scripts await these before exiting.
+BACKGROUND: set[asyncio.Task[Any]] = set()
+
+
+def _spawn(coro: Any) -> asyncio.Task[Any]:
+    t = asyncio.create_task(coro)
+    BACKGROUND.add(t)
+    t.add_done_callback(BACKGROUND.discard)
+    return t
+
+
+async def _attach_recording(run: "_Run", r: Receipt, anchor: Any, session_id: str, qa_dir: Any, url: str) -> None:
+    """Fetch the Anchor MP4 after the session ends and swap it into the anchor_qa evidence (re-emits the receipt)."""
+    try:
+        path = await anchor.fetch_recording(session_id, qa_dir / "qa.mp4")
+    except Exception:
+        path = None
+    if path is None:
+        return
+    st = stage(r, "anchor_qa")
+    ev = [e for e in st.get("evidence_urls", []) if e.get("kind") != "recording"]
+    ev.insert(0, {"kind": "recording", "url": url, "label": "Anchor recording (MP4)"})
+    st["evidence_urls"] = ev[:12]
+    st["evidence_url"] = url
+    st["details"]["video_url"] = url
+    try:
+        await run.emit(r)
+    except Exception:
+        pass
 
 
 class FrameError(ValueError):
     pass
+
+
+def _secs(ms: int | None) -> str:
+    return f"{(ms or 0) / 1000:.1f} s"
+
+
+def _build_summary(res: Any) -> str:
+    """Daytona receipt line: "sandbox 1172d474 · daytonaio/sandbox:0.8.0 · build 2.1 s" (real numbers)."""
+    head = f"sandbox {res.sandbox_id[:8]}" if res.sandbox_id else "sandbox ?"
+    if res.image:
+        head += f" · {res.image}"
+    if res.build_ok:
+        return f"{head} · build {_secs(res.timings_ms.get('build'))}"[:200]
+    return f"{head} · build failed: {res.error or 'vite'}"[:200]
+
+
+def _tests_summary(res: Any, ok: bool) -> str:
+    total = res.tests_passed + res.tests_failed
+    counts = f"{res.tests_passed}/{total} floor tests · {_secs(res.timings_ms.get('tests'))}"
+    if ok:
+        return counts[:200]
+    lead = res.error or _summary_from_failures(res.failures)
+    return f"{lead} · {counts}"[:200]
 
 
 def release_id(village_id: str, rev: int) -> str:
@@ -131,6 +183,7 @@ async def run_release(
     max_repairs: int = 2,
     strict: bool = True,
     history: list[Receipt] | None = None,
+    approved_by: str | None = None,
 ) -> Receipt:
     """Release `spec` as `rev`. Returns the final receipt; `history` (if given) gets every attempt."""
     lock = _locks.setdefault(village_id, asyncio.Lock())
@@ -139,14 +192,14 @@ async def run_release(
                           evals=evals, publisher=publisher or LocalPublisher(), store=store or ReceiptStore(),
                           public_base=public_base, local_base=local_base, inject=inject, trigger=trigger,
                           proposal_id=proposal_id, publish=publish, max_repairs=max_repairs, strict=strict,
-                          history=history if history is not None else [])
+                          history=history if history is not None else [], approved_by=approved_by)
 
 
 async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Broadcast, llm: Any,
                daytona: DaytonaPort, anchor: AnchorPort | None, evals: EvalsPort | None,
                publisher: PublisherPort, store: ReceiptStore, public_base: str | None, local_base: str | None,
                inject: str | None, trigger: str, proposal_id: str | None, publish: bool, max_repairs: int,
-               strict: bool, history: list[Receipt]) -> Receipt:
+               strict: bool, history: list[Receipt], approved_by: str | None = None) -> Receipt:
     run = _Run(village_id, broadcast, store, strict)
     local_base = (local_base or os.environ.get("RELEASE_LOCAL_BASE") or "http://127.0.0.1:8787").rstrip("/")
     public_base = (public_base or os.environ.get("TUNNEL_URL") or local_base).rstrip("/")
@@ -199,7 +252,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 timings[f"{k}" if attempt == 1 else f"{k}_a{attempt}"] = v
             build_ms = sum(res.timings_ms.get(k, 0) for k in ("create", "upload_template", "npm_install", "upload", "build"))
             await run.end(r, "daytona_build", res.build_ok, t0, duration_ms=build_ms,
-                          summary=("vite build ok" if res.build_ok else f"build failed: {res.error or 'vite'}")[:200],
+                          summary=_build_summary(res),
                           sandbox_id=res.sandbox_id[:80] or None, preview_url=res.preview_url,
                           error=None if res.build_ok else (res.error or res.log_tail[-400:] or "build failed")[:500])
             if not res.build_ok:
@@ -212,7 +265,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             ok = res.tests_failed == 0 and res.error is None
             await run.end(r, "tests", ok, time.perf_counter(), duration_ms=res.timings_ms.get("tests", 0),
                           tests_passed=res.tests_passed, tests_failed=res.tests_failed, failures=res.failures,
-                          summary=(f"{res.tests_passed} floor tests passed" if ok else (res.error or _summary_from_failures(res.failures)))[:200])
+                          summary=_tests_summary(res, ok))
             if not ok:
                 await run.block(r)
                 if attempt > max_repairs or res.error:
@@ -256,8 +309,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                       for p in qa.screenshots]
                 if (qa_dir / "report.json").exists():
                     ev.append({"kind": "report", "url": f"{public_base}/releases/{rel}/qa/report.json"})
-                if qa.live_view_url:
-                    ev.append({"kind": "recording", "url": qa.live_view_url, "label": "Anchor live view"})
+                # The live view dies with the session; it stays in details.live_view_url only. The MP4 replaces it
+                # as the `recording` evidence once Anchor finalises it (background, never blocks the release).
                 n_ok = sum(1 for a in qa.assertions if a.get("ok"))
                 via = ("daytona preview" if res.preview_url and qa.url.startswith(res.preview_url)
                        else "local" if qa.degraded or qa.url.startswith(local_base) else "tunnel")
@@ -269,7 +322,9 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 await run.end(r, "anchor_qa", qa.ok, t0, summary=summary[:200], viewport=qa.viewport,
                               anchor_session_id=(qa.session_id or None) and qa.session_id[:80], live_view_url=qa.live_view_url,
                               failures=[f"{a['name']}: {a.get('detail', '')}"[:300] for a in qa.assertions if not a.get("ok")],
-                              evidence_urls=ev, evidence_url=qa.live_view_url, error=qa.error if not qa.ok else None)
+                              evidence_urls=ev, evidence_url=(ev[0]["url"] if ev else None), error=qa.error if not qa.ok else None)
+                if qa.session_id and hasattr(anchor, "fetch_recording"):
+                    _spawn(_attach_recording(run, r, anchor, qa.session_id, qa_dir, f"{public_base}/releases/{rel}/qa/qa.mp4"))
                 if not qa.ok:
                     await run.block(r)
                     obs.finish(root, False, error="anchor qa failed")
@@ -289,7 +344,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 timings["evals"] = int((time.perf_counter() - t0) * 1000)
                 await run.end(r, "arize_evals", er.ok, t0, eval_scores=er.scores, eval_thresholds=er.thresholds,
                               failures=er.failures[:20], trace_id=trace_id, evidence_url=er.trace_url,
-                              summary=("evals passed" if er.ok else f"eval failed: {er.failures[0] if er.failures else ''}")[:200])
+                              summary=(("evals passed" if er.ok else f"eval failed: {er.failures[0] if er.failures else ''}")
+                                       + (f" · {er.model_chip}" if er.model_chip else ""))[:200])
                 if not er.ok:
                     await run.block(r)
                     obs.finish(root, False, error="evals failed")
@@ -308,7 +364,16 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             prev = await publisher.publish(village_id, rev)
             r["live_rev"] = rev
             r["result"] = "released"
-            await run.end(r, "live", True, t0, summary=f"published_rev {prev if prev is not None else '∅'} → {rev}",
+            live_summary = f"published_rev {prev if prev is not None else '∅'} → {rev}"
+            if approved_by:
+                # Human in the loop (D15): span attribute always; Arize annotation in the background.
+                root.set_attribute("human.approval", f"approved_by:{approved_by}")
+                root.set_attribute("user.id", approved_by)
+                live_summary += f" · approved by {approved_by}"
+                from core.release.annotate import write_human_approval
+
+                _spawn(write_human_approval(obs.span_id_of(root), approved_by, release_id=rel))
+            await run.end(r, "live", True, t0, summary=live_summary,
                           roles_patched=sorted((spec.get("views") or {}).keys()))
             timings["total"] = int((time.perf_counter() - t_total) * 1000)
             LAST_TIMINGS[village_id] = timings

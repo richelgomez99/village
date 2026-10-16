@@ -133,3 +133,37 @@ def test_llm_repair_retries_with_measured_contrast():
     res = repair.repair(th, ["contrast 4.1:1 on elder Text"], llm=lambda role: Client())
     assert res.mode == "llm" and res.theme["tones"]["info"]["fg"] == "#2F5A8C"
     assert "Rejected by the floor check" in seen[1][-1]["content"]
+
+
+def test_metered_judge_chip_streaming_and_plain():
+    from types import SimpleNamespace
+
+    from core.release.evals import _Metered, _short_model
+
+    class Streamer:
+        village_model, village_provider = "us.anthropic.claude-haiku-4-5-20251001-v1:0", "bedrock"
+
+        class messages:  # noqa: N801
+            @staticmethod
+            def create(**kw):
+                assert kw.get("stream") is True
+                d = lambda t: SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(text=t))  # noqa: E731
+                return iter([SimpleNamespace(type="message_start"), d('{"score":'), d("0.9}")])
+
+    m = _Metered(Streamer())
+    out = m.create(model="x", max_tokens=5, messages=[])
+    assert out.content[0].text == '{"score":0.9}'
+    assert m.chip().startswith("Bedrock · claude-haiku-4-5-20251001 · ") and m.chip().endswith(" ms TTFT")
+    assert _short_model("anthropic.claude-haiku-4-5") == "claude-haiku-4-5"
+
+    class Plain:
+        village_model, village_provider = "claude-sonnet-5-5", "anthropic"
+
+        class messages:  # noqa: N801
+            @staticmethod
+            def create(**kw):
+                return SimpleNamespace(content=[SimpleNamespace(text="{}")])
+
+    p = _Metered(Plain())
+    p.create(model="x", max_tokens=5, messages=[])
+    assert p.chip().startswith("Anthropic · claude-sonnet-5-5 · ") and p.chip().endswith("ms latency")

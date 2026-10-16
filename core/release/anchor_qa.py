@@ -8,6 +8,7 @@ Assertions: the elder view shows exactly 3 BigButtons, each visible, ≥ 88 px t
 and the 911 ContactCard is visible. Evidence: elder.png + report.json; the Anchor live view URL."""
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import time
@@ -92,6 +93,28 @@ class AnchorQA:
             self.last_timings["anchor_create"] = _ms(t0)
         return {"session_id": self._session[0], "live_view_url": self._session[2]}
 
+    async def fetch_recording(self, session_id: str, dest: Path, *, tries: int = 10, wait_s: float = 6.0) -> Path | None:
+        """Download the session's primary MP4 (`recordings.fetch_primary_recording`). Anchor finalises it a
+        few seconds after the session ends, so poll; never raises. Returns the saved path or None."""
+        t0 = time.perf_counter()
+        for i in range(tries):
+            try:
+                ab = await self._ab()
+                resp = await ab.recordings.fetch_primary_recording(session_id, timeout=30)
+                data = await resp.read()
+                if len(data) > 1000 and data[4:8] == b"ftyp":
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_bytes(data)
+                    self.last_timings["recording_fetch"] = _ms(t0)
+                    self.last_timings["recording_bytes"] = len(data)
+                    return dest
+            except Exception:
+                pass
+            if i < tries - 1:
+                await asyncio.sleep(wait_s)
+        self.last_timings["recording_fetch"] = _ms(t0)
+        return None
+
     async def close(self) -> None:
         if self._session and self._client:
             try:
@@ -137,6 +160,9 @@ class AnchorQA:
                     t0 = time.perf_counter()
                     m, png = await self._measure(page, target, out_dir, "elder.png")
                     timings["flow"] = _ms(t0)
+                    # Anchor writes no recording for a ~1 s session (measured: 404 "Session downloads not found");
+                    # hold the screen so the MP4 exists and shows the checked view.
+                    await page.wait_for_timeout(int(os.environ.get("RELEASE_QA_HOLD_MS", "3000")))
                     res.assertions, res.screenshots = assertions_from(m), [png]
                     res.ok = all(a["ok"] for a in res.assertions)
                     await browser.close()

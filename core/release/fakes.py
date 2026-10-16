@@ -65,9 +65,10 @@ class FakeDaytona:
 
 
 class FakeAnchor:
-    def __init__(self, *, ok: bool = True, degraded: bool = False) -> None:
+    def __init__(self, *, ok: bool = True, degraded: bool = False, recording: bool = False) -> None:
         self.ok = ok
         self.degraded = degraded
+        self.recording = recording
         self.urls: list[str] = []
 
     async def qa(self, url: str, *, village_id: str, rev: int, out_dir: Path, local_url: str | None = None,
@@ -81,6 +82,12 @@ class FakeAnchor:
                         session_id=None if self.degraded else "sess_fake",
                         live_view_url=None if self.degraded else "https://live.anchorbrowser.io/fake",
                         url=local_url if self.degraded else url, error="tunnel unreachable" if self.degraded else (None if self.ok else "assertion"))
+
+    async def fetch_recording(self, session_id: str, dest: Path, **_: Any) -> Path | None:
+        if not self.recording:
+            return None
+        dest.write_bytes(b"\x00\x00\x00\x18ftypisom" + b"\x00" * 2000)
+        return dest
 
 
 class FakeEvals:

@@ -96,7 +96,7 @@ def _safety_lines() -> dict[str, dict[str, str]]:
     return out
 
 
-def _ask(client: Any, prompt: str, max_tokens: int = 400) -> str:
+def _ask(client: Any, prompt: str, max_tokens: int = 1500) -> str:
     model = getattr(client, "village_model", None) or "claude-haiku-4-5"
     msg = client.messages.create(model=model, max_tokens=max_tokens, messages=[{"role": "user", "content": prompt}])
     return "".join(getattr(b, "text", "") for b in msg.content)
@@ -114,7 +114,7 @@ def translation_backcheck(client: Any) -> dict[str, Any]:
         "of the reviewed English line (same instruction, nobody told to send money). Reply ONLY JSON "
         '{"items":[{"key":"...","back":"...","score":0.0}]}\n' + json.dumps(lines, ensure_ascii=False)
     )
-    data = _json(_ask(client, prompt, 800))
+    data = _json(_ask(client, prompt, 2500))
     items = data.get("items") or []
     score = round(min((float(i.get("score", 0)) for i in items), default=0.0), 3)
     worst = min(items, key=lambda i: float(i.get("score", 0)), default={})
@@ -127,14 +127,69 @@ def elder_judge(client: Any, spec: dict[str, Any]) -> dict[str, Any]:
     if view is None:
         return elder_heuristic(spec)
     prompt = (
-        "You judge accessibility of a phone screen for an 81-year-old Spanish speaker with low vision. Score 0..1: one clear primary "
-        "action, short plain labels, at most 3 big buttons, an emergency contact, nothing confusing. The renderer guarantees >=28px text, "
+        "You judge accessibility of a phone screen for an 81-year-old Spanish speaker with low vision. Score 0..1: short plain labels, "
+        "at most 3 big buttons (the reviewed elder design is up to 3 equal big buttons plus an emergency contact; do not penalise "
+        "that layout), an emergency contact, nothing confusing or technical. The renderer guarantees >=28px text, "
         '>=88px buttons and 7:1 contrast. Reply ONLY JSON {"score":0.0,"explanation":"..."}\n' + json.dumps(view, ensure_ascii=False)
     )
     data = _json(_ask(client, prompt))
     score = max(0.0, min(1.0, float(data.get("score", 0))))
     return {"name": "elder_accessibility", "score": round(score, 3), "label": "accessible" if score >= THRESHOLDS["elder_accessibility"] else "not_accessible",
             "explanation": str(data.get("explanation", ""))[:300], "kind": "llm"}
+
+
+def _short_model(model: str) -> str:
+    m = model.rsplit("/", 1)[-1]
+    for pre in ("us.", "eu.", "global.", "apac."):
+        m = m.removeprefix(pre)
+    m = m.removeprefix("anthropic.")
+    return re.sub(r"-v\d+(:\d+)?$", "", m)
+
+
+class _Metered:
+    """Wraps the judge client: streams each call and records time-to-first-token (TTFT)."""
+
+    def __init__(self, client: Any) -> None:
+        self.client = client
+        self.village_model = getattr(client, "village_model", None)
+        self.village_provider = getattr(client, "village_provider", None)
+        self.ttft_ms: list[int] = []
+        self.streamed = False
+
+    @property
+    def messages(self) -> "_Metered":
+        return self
+
+    def create(self, **kw: Any) -> Any:
+        from types import SimpleNamespace
+
+        t0 = time.perf_counter()
+        try:
+            resp = self.client.messages.create(stream=True, **kw)
+        except TypeError:
+            resp = self.client.messages.create(**kw)
+        if hasattr(resp, "content"):  # client ignored stream=True (test doubles): total latency, not TTFT
+            self.ttft_ms.append(int((time.perf_counter() - t0) * 1000))
+            return resp
+        parts: list[str] = []
+        first: float | None = None
+        for ev in resp:
+            delta = getattr(ev, "delta", None)
+            text = getattr(delta, "text", None) if getattr(ev, "type", "") == "content_block_delta" else None
+            if text is not None:
+                if first is None:
+                    first = time.perf_counter()
+                parts.append(text)
+        self.streamed = True
+        self.ttft_ms.append(int(((first or time.perf_counter()) - t0) * 1000))
+        return SimpleNamespace(content=[SimpleNamespace(text="".join(parts))])
+
+    def chip(self) -> str | None:
+        if not self.ttft_ms:
+            return None
+        provider = {"bedrock": "Bedrock", "anthropic": "Anthropic"}.get(str(self.village_provider), str(self.village_provider or "model"))
+        what = "TTFT" if self.streamed else "latency"
+        return f"{provider} · {_short_model(str(self.village_model or 'claude'))} · {min(self.ttft_ms)} ms {what}"
 
 
 class ReleaseEvals:
@@ -166,6 +221,8 @@ class ReleaseEvals:
         t0 = time.perf_counter()
         records = [needs_coverage(spec), no_medical_advice(spec)]
         client = self._client()
+        metered = _Metered(client) if client is not None else None
+        client = metered or None
         if client is not None:
             tb, ea = await asyncio.gather(
                 self._judged(translation_backcheck, client, fallback=None, name="translation_backcheck"),
@@ -190,6 +247,8 @@ class ReleaseEvals:
         self.mirror_dir.mkdir(parents=True, exist_ok=True)
         mirror = self.mirror_dir / f"{release_id}.json"
         mirror.write_text(json.dumps({"release_id": release_id, "village": village_id, "rev": rev,
-                                      "duration_ms": int((time.perf_counter() - t0) * 1000), "model": client is not None,
+                                      "duration_ms": int((time.perf_counter() - t0) * 1000), "model": client is not None, "model_chip": metered.chip() if metered else None,
                                       "records": records}, indent=1, ensure_ascii=False))
-        return EvalResult(ok=not failures, scores=scores, thresholds=thresholds, failures=failures, records=records, mirror_path=mirror)
+        chip = metered.chip() if metered else None
+        return EvalResult(ok=not failures, scores=scores, thresholds=thresholds, failures=failures, records=records, mirror_path=mirror,
+                          model_chip=chip)

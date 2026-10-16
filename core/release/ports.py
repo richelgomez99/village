@@ -23,6 +23,7 @@ class BuildResult:
     timings_ms: dict[str, int] = field(default_factory=dict)  # create, upload, build, tests, download
     preview_url: str | None = None
     error: str | None = None
+    image: str = ""  # e.g. "daytonaio/sandbox:0.8.0" (default image) or "node:22-bookworm-slim"
 
 
 @dataclass
@@ -48,6 +49,7 @@ class EvalResult:
     records: list[dict[str, Any]] = field(default_factory=list)
     trace_url: str | None = None
     mirror_path: Path | None = None
+    model_chip: str | None = None  # "Bedrock · claude-haiku-4-5 · 520 ms TTFT" (measured on the judge call)
 
 
 class DaytonaPort(Protocol):

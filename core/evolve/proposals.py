@@ -564,7 +564,7 @@ async def _verify_and_apply(village_id: str, pid: str, cand: dict[str, Any]) -> 
     try:
         receipt = await run_release(village_id, cand, cand["rev"], broadcast=broadcast, llm=ports["llm"], daytona=ports["daytona"],
                                     anchor=ports["anchor"], evals=ports["evals"], publisher=ports["publisher"], store=ports["store"],
-                                    trigger="proposal", proposal_id=pid, publish=True)
+                                    trigger="proposal", proposal_id=pid, publish=True, approved_by=p.get("approved_by"))
     except asyncio.CancelledError:
         raise
     except Exception as exc:  # noqa: BLE001
