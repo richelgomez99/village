@@ -365,7 +365,7 @@ function FactToggle({ entity, med }: { entity: string; med: string }) {
       </button>
       {open ? (
         <div className="fact-card" data-test="fact-card">
-          <FactHistoryCard api={ctx.api} village={ctx.village} entity={entity} factKey={key} />
+          <FactHistoryCard api={ctx.api} village={ctx.village} entity={entity} factKey={key} plain />
           <p className="small muted">{MEMORY_CAPTION}</p>
         </div>
       ) : null}

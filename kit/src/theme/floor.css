@@ -323,3 +323,11 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .app[data-theme="family"] .screen-tabbed .tab-panel { gap: 20px; }
 .app[data-theme="family"] .helper-headline { font-size: 38px; line-height: 1.1; }
 .app[data-theme="family"] .headline .card { padding: 22px; }
+/* fact card on member phones */
+.fact-current .fact-value { font-family: var(--display); font-size: 24px; font-weight: 700; }
+.fact-older { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.fact-source, .fact-asof button { font: inherit; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink2); cursor: pointer; }
+.fact-asof { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.fact-asof button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.fact-quote { display: block; margin-top: 4px; font-style: italic; color: var(--ink2); }
+.fact-by { margin-left: 6px; font-size: 12px; }

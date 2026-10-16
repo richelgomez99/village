@@ -184,7 +184,7 @@ export function FactCard({ props }: CatalogProps) {
   const m = /^facts:history\?subject=([a-z]_[a-z0-9_]+)&key=([a-z0-9_]+)$/.exec(props.bind);
   const v = ctx.data[props.bind] as { versions?: { text?: string; value?: string; superseded?: boolean; observed_at?: string }[] } | null | undefined;
   const caption = <p className="small muted" data-test="fact-caption">Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents</p>;
-  if (ctx.api && m) return <Card test="fact-card-el" title={props.title ? <Bi value={props.title} /> : undefined}><FactHistoryCard api={ctx.api} village={ctx.village} entity={m[1]} factKey={m[2]} />{caption}</Card>;
+  if (ctx.api && m) return <Card test="fact-card-el" title={props.title ? <Bi value={props.title} /> : undefined}><FactHistoryCard api={ctx.api} village={ctx.village} entity={m[1]} factKey={m[2]} plain />{caption}</Card>;
   type V = { text?: string; value?: string; superseded?: boolean; observed_at?: string; labels?: Record<string, string>; source?: { kind: string } };
   const versions = arr<V>(v?.versions);
   return (
