@@ -1,13 +1,58 @@
 {
   "tools": [
-    { "name": "log_dose", "type": "webhook", "config": "tool_configs/log_dose.json" },
-    { "name": "report_symptom", "type": "webhook", "config": "tool_configs/report_symptom.json" },
-    { "name": "whats_my_schedule", "type": "webhook", "config": "tool_configs/whats_my_schedule.json" },
-    { "name": "get_today", "type": "webhook", "config": "tool_configs/get_today.json" },
-    { "name": "ask_family", "type": "webhook", "config": "tool_configs/ask_family.json" },
-    { "name": "report_money_request", "type": "webhook", "config": "tool_configs/report_money_request.json" },
-    { "name": "await_verification", "type": "webhook", "config": "tool_configs/await_verification.json" },
-    { "name": "submit_verification_answer", "type": "webhook", "config": "tool_configs/submit_verification_answer.json" },
-    { "name": "create_village", "type": "webhook", "config": "tool_configs/create_village.json" }
+    {
+      "name": "log_dose",
+      "type": "webhook",
+      "config": "tool_configs/log_dose.json",
+      "id": "tool_2001m52k3dfsfkm9kj6avxxqgw2z"
+    },
+    {
+      "name": "report_symptom",
+      "type": "webhook",
+      "config": "tool_configs/report_symptom.json",
+      "id": "tool_9301m52k3fvceep9mmhak3b7gbcs"
+    },
+    {
+      "name": "whats_my_schedule",
+      "type": "webhook",
+      "config": "tool_configs/whats_my_schedule.json",
+      "id": "tool_9501m52k4hexf59r904y6n3ynen4"
+    },
+    {
+      "name": "get_today",
+      "type": "webhook",
+      "config": "tool_configs/get_today.json",
+      "id": "tool_7201m52k3araerjbd86k4e5w93zd"
+    },
+    {
+      "name": "ask_family",
+      "type": "webhook",
+      "config": "tool_configs/ask_family.json",
+      "id": "tool_0301m52k37vjf5m9t0y5d6mwehj9"
+    },
+    {
+      "name": "report_money_request",
+      "type": "webhook",
+      "config": "tool_configs/report_money_request.json",
+      "id": "tool_6701m52k3edseepspy6yqdkvqnna"
+    },
+    {
+      "name": "await_verification",
+      "type": "webhook",
+      "config": "tool_configs/await_verification.json",
+      "id": "tool_4301m52k38cef8sap20q008xwjxq"
+    },
+    {
+      "name": "submit_verification_answer",
+      "type": "webhook",
+      "config": "tool_configs/submit_verification_answer.json",
+      "id": "tool_9201m52k4g56edgtemwy8v5fth74"
+    },
+    {
+      "name": "create_village",
+      "type": "webhook",
+      "config": "tool_configs/create_village.json",
+      "id": "tool_4101m52k39bbem5r2137wkf7pawq"
+    }
   ]
 }

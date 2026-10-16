@@ -1,28 +1,72 @@
 {
-  "type": "webhook",
-  "name": "submit_verification_answer",
-  "description": "Record the claimed member's answer to the money verification call. First answer wins.",
-  "response_timeout_secs": 5,
-  "execution_mode": "immediate",
   "api_schema": {
-    "url": "https://{{system_env__core_host}}/verifications/{{verification_id}}/answer",
+    "url": "https://richel-macbook.tail8feae0.ts.net/verifications/{{verification_id}}/answer",
     "method": "POST",
-    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "path_params_schema": {
+      "verification_id": {
+        "type": "string",
+        "dynamic_variable": "verification_id"
+      }
+    },
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
     "request_body_schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["verification_answer"],
+      "required": [
+        "verification_answer"
+      ],
       "properties": {
-        "verification_answer": { "type": "string", "enum": ["yes", "no", "unsure"] },
-        "via": { "type": "string", "enum": ["app_prompt", "outbound_call"] },
-        "listener_quote": { "type": "string" },
-        "call_sid": { "type": "string", "dynamic_variable": "system__call_sid" },
-        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" }
-      }
+        "verification_answer": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ],
+          "description": "verification answer"
+        },
+        "via": {
+          "type": "string",
+          "enum": [
+            "app_prompt",
+            "outbound_call"
+          ],
+          "description": "via"
+        },
+        "listener_quote": {
+          "type": "string",
+          "description": "listener quote"
+        },
+        "call_sid": {
+          "type": "string",
+          "dynamic_variable": "system__call_sid"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        }
+      },
+      "description": "Request body for submit_verification_answer"
     }
   },
   "assignments": [
-    { "dynamic_variable": "verification_status", "value_path": "status" }
-  ]
+    {
+      "dynamic_variable": "verification_status",
+      "value_path": "status"
+    }
+  ],
+  "description": "Record the claimed member's answer to the money verification call. First answer wins.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "submit_verification_answer",
+  "response_timeout_secs": 5,
+  "type": "webhook"
 }
-
