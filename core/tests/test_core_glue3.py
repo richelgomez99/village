@@ -46,13 +46,14 @@ async def test_new_binds_picked_up_generically() -> None:
     assert "plan:holiday" in ctrl and "calls:screened" in ctrl
 
 
-async def test_plan_from_proposal_record_and_claim_pushes() -> None:
+async def test_plan_from_proposal_record_and_claim_pushes(monkeypatch) -> None:
     from core import services
     from core.evolve import proposals as P
 
     await reset_demo()
     vid = villages.default_village_id()
     _add_element(vid, "coordinator", "plan1", "PlanBoard", "plan:holiday")
+    monkeypatch.setattr(P, "_prune", lambda v: None)
     P.STORE.setdefault(vid, {})["prop_x_holiday_1"] = {"key": "chat:holiday", "proposal": {"id": "prop_x_holiday_1", "title": {"en": "Holiday"}, "status": "proposed"},
                                                       "plan": {"date": "Nov 26", "items": [{"text": "Pie", "owner": "someone"}, "Pick up at the train"]}}
     try:
@@ -123,3 +124,18 @@ async def test_memory_history_upgrades_and_pushes(monkeypatch) -> None:
     finally:
         bindings_v3.HISTORY_CACHE.clear()
         hub.clients = []
+
+
+async def test_plan_from_builder_plan_data() -> None:
+    from core.builder import chat_intent
+
+    await reset_demo()
+    vid = villages.default_village_id()
+    chat_intent.PLANS.setdefault(vid, {})["feast"] = {"title": {"en": "Feast plan"}, "date": "Nov 26",
+                                                      "items": [{"text": {"en": "Turkey"}, "owner": _coord(vid), "kind": "task"}]}
+    try:
+        _add_element(vid, "coordinator", "plan2", "PlanBoard", "plan:feast")
+        p = snapshot_data("coordinator", _coord(vid), vid)["plan:feast"]
+        assert p["title"] == {"en": "Feast plan"} and p["date"] == "Nov 26" and p["items"][0]["owner"] == _coord(vid)
+    finally:
+        chat_intent.PLANS.get(vid, {}).pop("feast", None)

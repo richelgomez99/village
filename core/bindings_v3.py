@@ -61,7 +61,17 @@ def plan(village_id: str, plan_id: str) -> dict[str, Any]:
     held = PLANS.get((village_id, plan_id))
     if held is not None:
         return held
-    found = _proposal_plan(village_id, plan_id)
+    found = None
+    try:  # the builder keeps chat-request plans (who brings what, pickups) next to the proposal record
+        from core.builder.chat_intent import plan_data
+
+        got = plan_data(village_id, plan_id)
+        if got:
+            found = {"items": _items_from(got), **{k: got[k] for k in ("title", "date") if isinstance(got, dict) and got.get(k)}}
+    except Exception:
+        found = None
+    if found is None:
+        found = _proposal_plan(village_id, plan_id)
     if found is None:
         return {"items": []}
     return {k: v for k, v in found.items() if v is not None}
