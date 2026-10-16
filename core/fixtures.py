@@ -21,18 +21,23 @@ def load_json(path: Path) -> Any:
 
 async def reset_demo(village_id: str = "v_reyes") -> dict[str, Any]:
     await db.reset()
+    await db.clear_cloud()
     spec = load_json(FIXTURES / "reyes_spec.json")
     events = load_json(FIXTURES / "events_reyes_seed.json")["events"]
     family = load_json(DATA / "reyes_family.json")
 
-    db.specs[village_id] = spec
-    db.villages[village_id] = spec["village"]
+    await db.upsert_record("village", village_id, {"id": village_id, **spec["village"]})
+    await db.upsert_record(
+        "spec_rev",
+        f"reyes_{spec['rev']}",
+        {"id": f"sr_reyes_{spec['rev']}", "village": village_id, "rev": spec["rev"], "spec": spec, "published": True},
+    )
     for person in spec["blueprint"]["people"]:
-        db.members[person["id"]] = person
+        await db.upsert_record("member", person["id"], {"village": village_id, **person})
     for role, view in spec["views"].items():
-        db.views[(village_id, role)] = view
+        await db.upsert_record("view", f"reyes_{role}", {"id": f"view_reyes_{role}", "village": village_id, "role": role, "rev": spec["rev"], "spec": view})
     for event in events:
-        db.events.append(event)
+        await db.create_event(event)
 
     meds = family.get("medications", [])
     lisinopril = [med for med in meds if med.get("name") == "lisinopril"]

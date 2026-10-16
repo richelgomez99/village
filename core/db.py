@@ -67,6 +67,20 @@ class MemoryDB:
     async def put_idem(self, key: str, row: dict[str, Any]) -> None:
         self.idem[key] = row
 
+    async def upsert_record(self, table: str, key: str, row: dict[str, Any]) -> dict[str, Any]:
+        if table == "village":
+            self.villages[key] = row
+        elif table == "member":
+            self.members[key] = row
+        elif table == "view":
+            village = row.get("village", "v_reyes")
+            role = row.get("role", key)
+            self.views[(village, role)] = row.get("spec", row)
+        elif table == "spec_rev":
+            self.specs[row.get("village", key)] = row.get("spec", row)
+        await self._cloud_upsert(table, key, row)
+        return row
+
     async def publish(self, table: str, row: dict[str, Any]) -> None:
         for queue in list(self.subscribers):
             await queue.put((table, row))
@@ -114,6 +128,28 @@ class MemoryDB:
         await conn.use(settings.surreal_db_ns, settings.surreal_db_db)
         self._surreal = conn
         return conn
+
+    async def clear_cloud(self) -> None:
+        conn = await self.connect_cloud()
+        if conn is None:
+            return
+        for table in (
+            "event",
+            "decision",
+            "message",
+            "verification",
+            "dose_window",
+            "idem",
+            "slot_token",
+            "view",
+            "spec_rev",
+            "member",
+            "village",
+        ):
+            try:
+                await conn.query(f"DELETE {table};")
+            except Exception:
+                continue
 
     async def _cloud_create(self, table: str, row: dict[str, Any]) -> None:
         conn = await self.connect_cloud()
