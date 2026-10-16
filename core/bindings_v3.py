@@ -132,6 +132,12 @@ def screened_calls(village_id: str, limit: int = 12) -> list[dict[str, Any]]:
         if says.get(v["id"]):
             row["say"] = says[v["id"]]
         rows.append(row)
+    try:  # voice: every receptionist call (message_taken | passed_through | held | refused | hung_up), no money claim needed
+        from core.voice import screened
+
+        rows.extend(screened.rows(village_id))
+    except ImportError:
+        pass
     rows = [{k: val for k, val in r.items() if val is not None} for r in rows if r.get("at")]
     rows.sort(key=lambda r: str(r["at"]), reverse=True)
     return rows[:limit]

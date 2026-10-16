@@ -65,6 +65,12 @@
       "type": "webhook",
       "config": "tool_configs/screen_caller.json",
       "id": "tool_5901m52r6eerf61r271f00dax36k"
+    },
+    {
+      "name": "relay_message",
+      "type": "webhook",
+      "config": "tool_configs/relay_message.json",
+      "id": ""
     }
   ]
 }

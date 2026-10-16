@@ -110,7 +110,7 @@ def test_init_hook_receptionist_override(client: TestClient, monkeypatch: pytest
     assert not missing, missing
     monkeypatch.setenv("VILLAGE_RECEPTIONIST", "on")
     body = client.post("/hooks/elevenlabs/init", json={"caller_id": "+19998887777"}).json()
-    assert body["conversation_config_override"]["agent"]["first_message"] == "Carmen's phone, this is Village. Who's calling?"
+    assert body["conversation_config_override"]["agent"]["first_message"] == "Carmen's phone, this is Village, a program that answers for her. Who's calling?"
 
 
 async def test_captions_canned_transcript_translates_and_dedupes() -> None:
@@ -283,3 +283,42 @@ def test_agent_configs_have_a_default_for_every_variable(tmp_path: Path, monkeyp
     path = tmp_path / "bad.json"
     path.write_text(json.dumps(bad))
     assert "greeting_x" in dep.missing_defaults(path)
+
+
+def test_relay_message_posts_chat_and_screened_row(client: TestClient) -> None:
+    from core.bindings_v3 import screened_calls
+    from core.voice import screened
+
+    screened.reset()
+    before = len(db.messages)
+    r = client.post("/tools/relay_message", json={**BASE, "conversation_id": "conv_richard", "caller_id": "+17185550100", "utterance": "Tell her Richard from church called, she can call me back",
+                                                  "from_name": "Richard, from church", "text": "please call me back", "lang": "en"})
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["data"]["status"] == "message_taken" and out["say"].startswith("Thank you. I'll pass your message")
+    msg = db.messages[-1]
+    assert len(db.messages) == before + 1 and msg["kind"] == "chat"
+    assert msg["text"].startswith("Richard, from church, asked Mamá to call back at the same number") and "screened call," in msg["text"]
+    rows = screened_calls("v_reyes")
+    assert any(row["outcome"] == "message_taken" and row.get("claimed") == "Richard, from church" for row in rows)
+
+
+def test_post_call_logs_every_receptionist_call(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from core.bindings_v3 import screened_calls
+    from core.voice import screened
+
+    screened.reset()
+    monkeypatch.setenv("VOICE_MEMORY_OUTBOX", str(tmp_path))
+
+    def payload(conv: str, receptionist: str, known: str) -> dict:
+        return {"type": "post_call_transcription", "event_timestamp": 1792182480, "data": {
+            "conversation_id": conv, "agent_id": "agent_mom", "status": "done", "transcript": [],
+            "metadata": {"start_time_unix_secs": 1792182480},
+            "analysis": {"data_collection_results": {"claimed_identity": {"value": "a man selling solar"}}},
+            "conversation_initiation_client_data": {"dynamic_variables": {"receptionist": receptionist, "caller_known": known, "village_id": "v_reyes"}}}}
+
+    assert client.post("/hooks/elevenlabs/post-call", json=payload("conv_hangup", "on", "false")).status_code == 200
+    assert client.post("/hooks/elevenlabs/post-call", json=payload("conv_family", "on", "true")).status_code == 200
+    assert client.post("/hooks/elevenlabs/post-call", json=payload("conv_off", "off", "false")).status_code == 200
+    rows = screened_calls("v_reyes")
+    assert [r["outcome"] for r in rows if r.get("claimed") == "a man selling solar"] == ["hung_up"]

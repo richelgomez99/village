@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE4
+READY FOR MERGE VOICE5
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -677,3 +677,10 @@ Re-keying · done · live path identical to fake: one socket + scene per village
 Layout · done · live room = main column (blueprint | work log + chat; phones row below) + right column (rounds headline, live call, proposal, What Village knows, safety gate + decisions, ask)
 Dev against a live Core: `CORE_PROXY=http://localhost:8790 VITE_CORE_WS=ws://localhost:5182/ws VITE_CORE_HTTP=http://localhost:5182 npx vite --port 5182` (vite proxies /villages /ws /clock /auth … same-origin; Core has no CORS). Core serves `kit/dist` from its own checkout, so 8790 shows this only after merge + `npm run build` there.
 
+
+### voice5 (receptionist follow-ups, 13:3x)
+- AI disclosure · done · the init hook's receptionist first_message is now "<Name>'s phone, this is Village, a program that answers for <her|him|them>. Who's calling?" Name and pronoun come from the spec. Test: `pytest -k receptionist_override`.
+- relay_message · done · new tool `relay_message{conversation_id, caller_id, utterance, from_name, text, callback_number?, callback_requested?, call_secs?, village_id?, lang?}`, additionalProperties false. It posts a Village `chat` message, e.g. "Richard, from church, asked Mamá to call back at the same number: "…" · screened call, 13:28" (es in text_i18n; "Mamá" is the recipient's spec `short_name`). It adds a `message_taken` row to `calls:screened` and says thank-you in the caller's language. Contract addition requested: `req_relay_message` in voice_tools (additive).
+- Screened log · done · the post-call webhook, for receptionist calls (receptionist=on, caller_known=false), writes one row per call. The outcome comes from Core's cached screen_caller answer (passed_through | held | refused); otherwise message_taken (from relay) or hung_up. Rows live in `core/voice/screened.py`, and `core/bindings_v3.screened_calls` merges them (a 6-line additive seam in a core file). Test: `pytest -k "relay_message or receptionist_call"`.
+- Prompt · done and pushed · in receptionist mode: ask name, relationship and purpose first; never put an unknown caller through (only screen_caller pass_through or confirmed); in Spanish always usted; take a message and call relay_message. Live push of the mom line + relay_message tool: invariants re-verified (static first message, no missing defaults, narrowed guardrail, init flag true).
+- Dependency · relay_message, the disclosure greeting and the screened log are Core-side. Live calls get them after this branch is merged and the Core restarted. Until then the live relay_message tool gets no handler (KeyError at /tools/relay_message).

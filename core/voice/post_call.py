@@ -205,6 +205,34 @@ async def apply_welcome(payload: dict[str, Any], services: Any | None = None) ->
     return row
 
 
+_SCREEN_STATUS = {"pass_through": "passed_through", "passed_through": "passed_through", "confirmed": "passed_through",
+                  "refused": "refused", "held": "held", "ask_purpose": "hung_up", "message_taken": "message_taken"}
+
+
+def log_screened_call(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Receptionist call (receptionist=on, unknown caller): one calls:screened row per call, even with no money claim."""
+    dv = payload.get("dynamic_variables") or {}
+    if dv.get("receptionist") != "on" or dv.get("caller_known") != "false":
+        return None
+    from core.voice import screened
+
+    conv = str(payload.get("conversation_id") or "")
+    vid = payload.get("village_id") or dv.get("village_id") or village.default_village_id()
+    existing = screened.get(conv)
+    if existing and existing.get("outcome") == "message_taken":
+        return existing
+    outcome = "hung_up"
+    for key in (f"{conv}:screen:await", f"{conv}:screen"):  # Core's cached screen_caller answers (core.evolve.receptionist)
+        resp = ((db.idem.get(key) or {}).get("response") or {})
+        status = (resp.get("data") or {}).get("status")
+        if status in _SCREEN_STATUS:
+            outcome = _SCREEN_STATUS[status]
+            break
+    results = payload.get("data_collection_results") or {}
+    claimed = _dc_value(results, "claimed_identity") or None
+    return screened.record(vid, conv, outcome, at=_call_iso(payload), claimed=claimed)
+
+
 async def _flush_captions(payload: dict[str, Any]) -> None:
     try:
         from core.voice import captions
@@ -236,6 +264,7 @@ async def handle_payload(payload: dict[str, Any]) -> None:
 
     if event_type in {"post_call", "conversation_ended", "data_collection"}:
         await apply_verification_answer(clean)
+        log_screened_call(payload)
         await apply_welcome(payload)  # her words, unredacted digits: "9" in "9 de la noche" is an hour, not an account
         if os.getenv("VILLAGE_CAPTIONS", "on").lower() != "off" and clean.get("transcript"):
             import asyncio
