@@ -202,3 +202,6 @@ Fourteen features raised after the screen pass (needs/offers, carer load, handof
 - SurrealDB Cloud is not provisioned yet: Core must boot against a local `surreal start memory` or an in-process store with the same interface when `SURREAL_DB_URL` is empty; the cloud is wired in when the credentials land. D5's "phones never talk to SurrealDB" stands.
 - Tailscale on this Mac is the Homebrew userspace daemon (`tailscale --socket ~/.tailscale/tailscaled.sock`), not the app; the Funnel URL is unchanged (`https://richel-macbook.tail8feae0.ts.net`).
 - spec-kit CLI on the Mac is 0.8.x (`--non-interactive` removed); `bootstrap_speckit.sh` was patched to drop the flag. `/speckit-*` commands are not used; `tasks.md` is the source of truth.
+
+# D26. Rate limit: kit lane moves to Claude (Oct 16, 10:30)
+Five Codex (gpt-5.5) lanes share one OpenAI org limit of 1M tokens/min; every lane lost turns to `stream disconnected: rate limit` and the kit lane had zero commits after 20 minutes. Decision: Codex keeps **core** and **gate** (critical path, two sessions fit the limit); **kit** is implemented by a Claude Opus subagent in the same worktree/branch; voice and builder are paused at their V0/V2 checkpoints and resume one at a time. Codex config gained `stream_max_retries`/`request_max_retries` so later turns retry instead of dropping.
