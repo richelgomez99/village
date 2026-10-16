@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "village": "v_reyes",
   "description": "Lid sticker flow (D3, policy_cases T28), Thu 2026-10-15 with Marco on duty: first scan records (every phone turns green), a prefetch/double-open 4 s later is deduped, a second scan 38 min later only reports and escalates to Marco (app banner + call), an invalid token gets an error page. The QR encodes https://<host>/s/<slot_token>; the token is the identity (no login).",
   "token": {

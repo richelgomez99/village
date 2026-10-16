@@ -1,7 +1,7 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "village": "v_reyes",
-  "description": "WebSocket frames each client sees during the headline scam flow, in order (t = server time). Clients are already connected at rev 4 ('connect' shows Marco's hello/snapshot). 'start' is common to every outcome; then exactly one of denied / timeout_tail / confirmed_tail follows. Matches scam_call_tool_requests.json.",
+  "description": "WebSocket frames each client sees during the headline scam flow, in order (t = server time). Clients are already connected at rev 5 ('connect' shows Marco's hello/snapshot, with the D22 RefillCard and the D21 identity). 'start' is common to every outcome; then exactly one of denied / timeout_tail / confirmed_tail follows. Matches scam_call_tool_requests.json.",
   "clients": {
     "carmen": {
       "member_id": "m_carmen",
@@ -30,10 +30,10 @@
         "dir": "c2s",
         "msg": {
           "type": "hello",
-          "contract_version": "1.1.0",
+          "contract_version": "1.2.0",
           "village": "v_reyes",
           "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB",
-          "last_rev": 4,
+          "last_rev": 5,
           "client": "kit"
         }
       },
@@ -43,8 +43,8 @@
         "dir": "s2c",
         "msg": {
           "type": "snapshot",
-          "contract_version": "1.1.0",
-          "rev": 4,
+          "contract_version": "1.2.0",
+          "rev": 5,
           "village": "v_reyes",
           "role": "helper",
           "member_id": "m_marco",
@@ -63,6 +63,7 @@
                   "al",
                   "vp",
                   "ans",
+                  "refill",
                   "b_mom"
                 ]
               },
@@ -100,6 +101,16 @@
                   "show_next_shift": true
                 }
               },
+              "refill": {
+                "type": "RefillCard",
+                "props": {
+                  "title": "Refill checklist",
+                  "bind": "prescriptions:current",
+                  "show_superseded": true,
+                  "show_schedule": true,
+                  "show_source": true
+                }
+              },
               "b_mom": {
                 "type": "BigButton",
                 "props": {
@@ -122,6 +133,10 @@
               "ans": [
                 "n_turns",
                 "n_evening_pills"
+              ],
+              "refill": [
+                "n_dose_change",
+                "n_refills"
               ],
               "b_mom": [
                 "n_turns"
@@ -147,9 +162,82 @@
               "answer": {
                 "en": "Yes. Tonight until 9:30. Nothing to do unless Village calls you."
               }
+            },
+            "prescriptions:current": {
+              "subject": "m_carmen",
+              "refill_day": "Fri",
+              "next_refill": "2026-10-16",
+              "owner_member_id": "m_marco",
+              "owner_name": "Marco",
+              "items": [
+                {
+                  "med_id": "med_lisinopril_10",
+                  "name": "lisinopril",
+                  "dose_mg": 10,
+                  "dose_text": "10 mg",
+                  "schedule": [
+                    "morning"
+                  ],
+                  "valid_from": "2026-10-03",
+                  "changed_by": "Dr. Lee",
+                  "superseded": {
+                    "dose_text": "5 mg",
+                    "valid_until": "2026-10-03"
+                  },
+                  "source": {
+                    "kind": "call",
+                    "ref": "conv_setup_0003",
+                    "secs": 88,
+                    "quote": "The doctor changed her lisinopril from five to ten on October third."
+                  },
+                  "source_label": {
+                    "en": "Ana's call, Oct 3",
+                    "es": "Llamada de Ana, 3 oct"
+                  }
+                },
+                {
+                  "med_id": "med_apixaban_5",
+                  "name": "apixaban",
+                  "dose_mg": 5,
+                  "dose_text": "5 mg",
+                  "schedule": [
+                    "morning",
+                    "evening"
+                  ],
+                  "valid_from": "2025-11-20"
+                },
+                {
+                  "med_id": "med_metformin_500",
+                  "name": "metformin",
+                  "dose_mg": 500,
+                  "dose_text": "500 mg",
+                  "schedule": [
+                    "morning",
+                    "evening"
+                  ],
+                  "valid_from": "2023-06-01"
+                },
+                {
+                  "med_id": "med_atorvastatin_20",
+                  "name": "atorvastatin",
+                  "dose_mg": 20,
+                  "dose_text": "20 mg",
+                  "schedule": [
+                    "evening"
+                  ],
+                  "valid_from": "2022-01-15"
+                }
+              ]
             }
           },
-          "now": "2026-10-16T14:01:40-04:00"
+          "now": "2026-10-16T14:01:40-04:00",
+          "identity": {
+            "member_id": "m_marco",
+            "name": "Marco",
+            "role": "helper",
+            "village_name": "Familia Reyes",
+            "lang": "en"
+          }
         }
       }
     ],
@@ -1128,8 +1216,8 @@
                 "id": "health",
                 "label": "Health: pills",
                 "status": {
-                  "en": "1/2 lids today",
-                  "es": "1/2 tapas hoy"
+                  "en": "Refill tonight · Marco",
+                  "es": "Reponer hoy · Marco"
                 }
               },
               {
@@ -1152,8 +1240,8 @@
                 "id": "people",
                 "label": "People: whose turn",
                 "status": {
-                  "en": "Ana on duty",
-                  "es": "Ana de turno"
+                  "en": "Marco on duty",
+                  "es": "Marco de turno"
                 }
               }
             ]

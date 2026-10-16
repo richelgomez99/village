@@ -1,6 +1,6 @@
 {
-  "contract_version": "1.1.0",
-  "rev": 4,
+  "contract_version": "1.2.0",
+  "rev": 5,
   "village": {
     "id": "v_reyes",
     "name": "Familia Reyes",
@@ -24,7 +24,7 @@
       {
         "id": "m_carmen", "name": "Carmen Reyes", "short_name": "Mamá", "relation": "mother", "role": "care_recipient", "view": "elder",
         "phone": "+15555550101",
-        "notes": "78, lives alone in Jackson Heights. Proud, independent. Weekly pill organizer: yellow lid = mañana, blue lid = noche.",
+        "notes": "78, lives alone in Jackson Heights. Proud, independent. Weekly pill organizer (mañana / noche compartments), refilled on Fridays by whoever is on duty.",
         "life_areas": ["health", "money", "people"],
         "profile": {
           "lang": "es", "secondary_langs": ["en"], "script": "Latn", "dir": "ltr",
@@ -86,7 +86,7 @@
     "edges": [
       { "from": "m_ana", "to": "m_carmen", "kind": "coordinates", "label": "coordinates her care" },
       { "from": "m_marco", "to": "m_carmen", "kind": "on_duty", "label": "on duty Tue · Thu · Fri · Sat" },
-      { "from": "m_lucia", "to": "m_carmen", "kind": "backup", "label": "backup by phone · refills" },
+      { "from": "m_lucia", "to": "m_carmen", "kind": "backup", "label": "backup by phone · pharmacy refills" },
       { "from": "m_marco", "to": "m_carmen", "kind": "trusted_contact", "label": "checks money asks in his name" },
       { "from": "m_ana", "to": "m_carmen", "kind": "trusted_contact", "label": "sees every money incident" }
     ],
@@ -94,20 +94,20 @@
       { "id": "n_evening_pills", "text": "Mixes up her pills; evening pills forgotten or uncertain ('did I take them?')", "priority": 1, "domain": "medication", "life_area": "health", "subject_member_ids": ["m_carmen"], "source_span": { "start": 41, "end": 63 }, "origin": "description" },
       { "id": "n_scam_calls", "text": "Scam calls in the kids' names; on Oct 9 'Marco' asked her for $1,500 in gift cards", "priority": 2, "domain": "money", "life_area": "money", "subject_member_ids": ["m_carmen", "m_marco", "m_ana"], "source_span": { "start": 65, "end": 131 }, "origin": "description" },
       { "id": "n_turns", "text": "Nobody is sure whose night it is; last Thursday nobody went because Ana and Marco each thought the other was going", "priority": 3, "domain": "scheduling", "life_area": "people", "subject_member_ids": ["m_ana", "m_marco", "m_lucia"], "source_span": { "start": 137, "end": 173 }, "origin": "description" },
-      { "id": "n_dose_change", "text": "Lisinopril changed on 2026-10-03; the old bottle is still in the cabinet", "priority": 4, "domain": "medication", "life_area": "health", "subject_member_ids": ["m_carmen"], "source_span": null, "origin": "follow_up" },
+      { "id": "n_dose_change", "text": "Lisinopril changed 5 → 10 mg on 2026-10-03 (Dr. Lee); the old bottle is still in the cabinet, so a refill can repeat the old dose", "priority": 4, "domain": "medication", "life_area": "health", "subject_member_ids": ["m_carmen"], "source_span": null, "origin": "follow_up" },
       { "id": "n_refills", "text": "Refills lapse (metformin ran out for 3 days in August)", "priority": 5, "domain": "logistics", "life_area": "health", "subject_member_ids": ["m_lucia"], "source_span": null, "origin": "data" }
     ],
     "rules": ["double_dose_guard", "no_dose_advice", "missed_dose_ladder", "emergency_911_first", "consent_before_calls", "ai_disclosure_family_word", "money_verify_with_member", "money_never_moves", "money_default_dont_send", "quiet_hours"],
     "life_areas": [
-      { "id": "health", "label": "Health: pills", "label_i18n": { "en": "Health", "es": "Salud" }, "need_ids": ["n_evening_pills", "n_dose_change", "n_refills"], "modules": ["elder:hoy", "elder:b_pill", "coordinator:dose", "coordinator:org", "coordinator:tl", "voice:mom-line"], "rules": ["P-DD-01", "P-MA-01", "P-ME-02", "P-911-01", "R-DOUBLE"] },
+      { "id": "health", "label": "Health: pills", "label_i18n": { "en": "Health", "es": "Salud" }, "need_ids": ["n_evening_pills", "n_dose_change", "n_refills"], "modules": ["coordinator:refill", "helper:refill", "coordinator:dose", "coordinator:org", "coordinator:tl", "voice:mom-line"], "rules": ["P-DD-01", "P-MA-01", "P-ME-02", "P-911-01", "R-DOUBLE"] },
       { "id": "money", "label": "Money: scam calls", "label_i18n": { "en": "Money", "es": "Dinero" }, "need_ids": ["n_scam_calls"], "modules": ["voice:mom-line", "coordinator:inc", "coordinator:vp", "helper:vp", "outbound:T3"], "rules": ["R-MONEY-NEVER", "R-MONEY-VERIFY", "R-MONEY-DEFAULT", "R-MONEY-UNKNOWN", "R-VERIFY-CONSENT", "R-MONEY-PATTERN"], "trusted_contacts": ["m_marco", "m_ana"] },
-      { "id": "people", "label": "People: whose turn", "label_i18n": { "en": "People", "es": "Familia" }, "need_ids": ["n_turns"], "modules": ["coordinator:rota", "helper:ans", "elder:b_call"], "rules": ["P-ME-02", "P-QH-01"] }
+      { "id": "people", "label": "People: whose turn", "label_i18n": { "en": "People", "es": "Familia" }, "need_ids": ["n_turns"], "modules": ["coordinator:rota", "helper:ans", "elder:tonight", "elder:b_village", "elder:b_call"], "rules": ["P-ME-02", "P-QH-01"] }
     ]
   },
   "channels": {
-    "m_carmen": ["lid_qr", "phone_line", "app:elder", "fridge_card"],
+    "m_carmen": ["phone_line", "app:elder", "fridge_card"],
     "m_ana": ["app:coordinator", "verification:app_prompt", "verification:call"],
-    "m_marco": ["app:helper", "outbound_calls", "verification:app_prompt", "verification:call"],
+    "m_marco": ["app:helper", "outbound_calls", "verification:app_prompt", "verification:call", "refill_day"],
     "m_lucia": ["app:helper"]
   },
   "views": {
@@ -116,18 +116,18 @@
       "theme": "elder",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Hola, Carmen", "read_aloud": true }, "children": ["al", "hoy", "b_pill", "b_call", "b_help", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "Hola, Carmen", "read_aloud": true }, "children": ["al", "tonight", "b_village", "b_call", "b_help", "e911"] },
         "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "show_countdown": true } },
-        "hoy": { "type": "DoseTracker", "props": { "title": "Pastillas de hoy", "subject": "m_carmen", "slots": ["morning", "evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=today", "show_med_names": false, "allow_log": false, "big": true } },
-        "b_pill": { "type": "BigButton", "props": { "label": "Ya me la tomé", "icon": "pill", "tone": "ok", "action": "log_dose", "action_arg": "slot:current", "confirm": false, "speak": "Ya me la tomé" } },
+        "tonight": { "type": "TonightCard", "props": { "bind": "rota:current.on_duty", "template": "Esta noche cuida {name}" } },
+        "b_village": { "type": "BigButton", "props": { "label": "Llamar a Village", "icon": "phone", "tone": "ok", "action": "call_number", "action_arg": "village", "confirm": false, "speak": "Llamando a Village" } },
         "b_call": { "type": "BigButton", "props": { "label": "Llamar a Ana", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_ana", "confirm": false, "speak": "Llamando a Ana" } },
         "b_help": { "type": "BigButton", "props": { "label": "Necesito ayuda", "icon": "sos", "tone": "danger", "action": "need_help", "confirm": true, "confirm_text": "¿Aviso a su familia ahora?", "speak": "Necesito ayuda" } },
         "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Emergencia: 911", "phone": "911", "kind": "emergency", "big": true } }
       },
       "needs_served": {
         "al": ["n_safety", "n_scam_calls"],
-        "hoy": ["n_evening_pills"],
-        "b_pill": ["n_evening_pills"],
+        "tonight": ["n_turns"],
+        "b_village": ["n_safety", "n_scam_calls"],
         "b_call": ["n_safety"],
         "b_help": ["n_safety"],
         "e911": ["n_safety"]
@@ -138,12 +138,13 @@
       "theme": "dashboard",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Mamá today", "subtitle": "Reyes family" }, "children": ["al", "areas", "inc", "vp", "dose", "org", "rota", "tl"] },
+        "s": { "type": "Screen", "props": { "title": "Mamá today", "subtitle": "Reyes family" }, "children": ["al", "areas", "inc", "vp", "dose", "refill", "org", "rota", "tl"] },
         "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No alerts right now", "show_escalation_status": true, "show_countdown": true } },
         "areas": { "type": "LifeAreas", "props": { "title": "Mamá's village", "bind": "blueprint:life_areas", "areas": ["health", "money", "people"], "show_rules": true, "show_contacts": true } },
         "inc": { "type": "IncidentCard", "props": { "title": "Needs your attention", "bind": "incidents:open", "subject": "m_carmen", "show_red_flags": true, "show_verification": true, "show_provenance": true, "allow_ack": true, "limit": 3 } },
         "vp": { "type": "VerificationPrompt", "props": { "bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true } },
         "dose": { "type": "DoseTracker", "props": { "title": "Mamá's pills today", "subject": "m_carmen", "slots": ["morning", "evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=today", "show_med_names": true, "allow_log": true, "big": false } },
+        "refill": { "type": "RefillCard", "props": { "title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true } },
         "org": { "type": "PillOrganizer", "props": { "title": "Her pill organizer", "subject": "m_carmen", "slots": ["morning", "evening"], "lid_colors": ["#E8B12F", "#2F5FA7"], "labels": ["Morning", "Evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=week", "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "show_today_only": false } },
         "rota": { "type": "CareRota", "props": { "title": "Who's on this week", "bind": "rota:week", "period": "week", "highlight_current_user": true, "allow_swap": true, "show_backup": true } },
         "tl": { "type": "Timeline", "props": { "title": "What happened", "bind": "timeline:subject=m_carmen", "subject": "m_carmen", "event_kinds": ["dose", "dose_repeat_scan", "dose_repeat", "reminder", "escalation", "ack", "symptom", "shift", "med_change", "money_request", "verification", "incident"], "show_superseded": true, "show_provenance": true, "limit": 20 } }
@@ -154,6 +155,7 @@
         "inc": ["n_scam_calls"],
         "vp": ["n_scam_calls"],
         "dose": ["n_evening_pills"],
+        "refill": ["n_dose_change", "n_refills"],
         "org": ["n_evening_pills"],
         "rota": ["n_turns"],
         "tl": ["n_dose_change", "n_evening_pills", "n_scam_calls"]
@@ -164,16 +166,18 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Is it my turn?", "subtitle": "Reyes family" }, "children": ["al", "vp", "ans", "b_mom"] },
+        "s": { "type": "Screen", "props": { "title": "Is it my turn?", "subtitle": "Reyes family" }, "children": ["al", "vp", "ans", "refill", "b_mom"] },
         "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "Nothing needs you right now", "show_escalation_status": true } },
         "vp": { "type": "VerificationPrompt", "props": { "bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true } },
         "ans": { "type": "HelperAnswer", "props": { "question": "Is it my turn?", "bind": "rota:current?member=me", "subject": "m_carmen", "show_status": true, "show_next_shift": true } },
+        "refill": { "type": "RefillCard", "props": { "title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true } },
         "b_mom": { "type": "BigButton", "props": { "label": "Call Mamá", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_carmen", "confirm": false } }
       },
       "needs_served": {
         "al": ["n_safety"],
         "vp": ["n_scam_calls"],
         "ans": ["n_turns", "n_evening_pills"],
+        "refill": ["n_dose_change", "n_refills"],
         "b_mom": ["n_turns"]
       }
     }
@@ -202,14 +206,12 @@
     { "agent": "mom-line", "member_ids": ["m_carmen"], "languages": ["es", "en"], "tools": ["log_dose", "report_symptom", "whats_my_schedule", "ask_family", "get_today", "report_money_request", "await_verification"], "escalation_targets": ["on_duty", "backup"] }
   ],
   "printables": [
-    { "id": "pr_lid_morning", "kind": "lid_sticker", "member_id": "m_carmen", "lang": "es", "slot": "morning", "color": "#E8B12F", "label": "MAÑANA", "token_ref": "st_reyes_morning", "instructions": "Al tomarse las pastillas, apunte el teléfono aquí." },
-    { "id": "pr_lid_evening", "kind": "lid_sticker", "member_id": "m_carmen", "lang": "es", "slot": "evening", "color": "#2F5FA7", "label": "NOCHE", "token_ref": "st_reyes_evening", "instructions": "Al tomarse las pastillas, apunte el teléfono aquí." },
     {
       "id": "pr_fridge", "kind": "fridge_card", "member_id": "m_carmen", "lang": "es",
       "village_number": "[NÚMERO]", "family_word": "[PALABRA]", "family_word_first": false,
       "lines": [
         "Llame a Village: [NÚMERO]",
-        "“¿Ya me tomé la pastilla?” Village le dice la hora exacta.",
+        "¿Dudas con las pastillas? Mire su pastillero o llame a Village; le avisamos a la familia.",
         "Palabra de la familia: [PALABRA]. Village siempre la dice al llamar.",
         "Village nunca pide dinero ni códigos."
       ],
@@ -219,7 +221,7 @@
   "custom_components": [
     {
       "name": "PillOrganizer",
-      "purpose": "Shows this family's real 7-day pill organizer: one colored lid per slot, taken or missing per day.",
+      "purpose": "Shows this family's real 7-day pill organizer (mañana / noche per day) with what the evening check-ins reported.",
       "props_schema": { "subject": "string", "slots": "string[]", "lid_colors": "string[]", "labels": "string[]", "bind": "string", "title": "string", "days": "string[]", "show_today_only": "boolean" },
       "config": { "lid_colors_by_slot": { "morning": "#E8B12F", "evening": "#2F5FA7" }, "lid_words_es": { "morning": "MAÑANA", "evening": "NOCHE" }, "days": 7 },
       "needs_served": ["n_evening_pills"],
