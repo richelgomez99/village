@@ -81,7 +81,7 @@ def llm_repair(theme: dict[str, Any], failures: list[str], client: Any, *, villa
     for _ in range(tries):
         with obs.span("builder.repair_theme", "LLM", village=village, node="llm_repair", parent_node="builder",
                       input=messages[-1]["content"], **{"llm.model_name": model}) as sp:
-            msg = client.messages.create(model=model, max_tokens=300, messages=messages)
+            msg = client.messages.create(model=model, max_tokens=2000, messages=messages)  # 5.5 models think first
             text = "".join(getattr(b, "text", "") for b in msg.content)
             obs.finish(sp, True, output=text)
         try:

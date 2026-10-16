@@ -96,7 +96,7 @@ def _safety_lines() -> dict[str, dict[str, str]]:
     return out
 
 
-def _ask(client: Any, prompt: str, max_tokens: int = 400) -> str:
+def _ask(client: Any, prompt: str, max_tokens: int = 1500) -> str:
     model = getattr(client, "village_model", None) or "claude-haiku-4-5"
     msg = client.messages.create(model=model, max_tokens=max_tokens, messages=[{"role": "user", "content": prompt}])
     return "".join(getattr(b, "text", "") for b in msg.content)
@@ -114,7 +114,7 @@ def translation_backcheck(client: Any) -> dict[str, Any]:
         "of the reviewed English line (same instruction, nobody told to send money). Reply ONLY JSON "
         '{"items":[{"key":"...","back":"...","score":0.0}]}\n' + json.dumps(lines, ensure_ascii=False)
     )
-    data = _json(_ask(client, prompt, 800))
+    data = _json(_ask(client, prompt, 2500))
     items = data.get("items") or []
     score = round(min((float(i.get("score", 0)) for i in items), default=0.0), 3)
     worst = min(items, key=lambda i: float(i.get("score", 0)), default={})

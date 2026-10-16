@@ -160,6 +160,9 @@ class AnchorQA:
                     t0 = time.perf_counter()
                     m, png = await self._measure(page, target, out_dir, "elder.png")
                     timings["flow"] = _ms(t0)
+                    # Anchor writes no recording for a ~1 s session (measured: 404 "Session downloads not found");
+                    # hold the screen so the MP4 exists and shows the checked view.
+                    await page.wait_for_timeout(int(os.environ.get("RELEASE_QA_HOLD_MS", "3000")))
                     res.assertions, res.screenshots = assertions_from(m), [png]
                     res.ok = all(a["ok"] for a in res.assertions)
                     await browser.close()
