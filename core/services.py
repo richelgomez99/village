@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -134,6 +135,26 @@ async def decide(
     }
     await db.create_decision(decision_row)
     await control(village_id, "gate", {"decision": decision})
+    if decision.get("verification"):
+        verification = decision["verification"]
+        await db.upsert_verification({
+            "id": verification["id"],
+            "village": village_id,
+            "subject": candidate.get("payload", {}).get("subject", "m_carmen"),
+            "claimed_member_id": verification["claimed_member"],
+            "claimed_identity": candidate.get("payload", {}).get("claimed_identity", verification["claimed_member"]),
+            "origin": "report_money_request",
+            "conversation_id": candidate.get("source", {}).get("ref"),
+            "request": candidate.get("payload", {}),
+            "state": verification["state"],
+            "status": "pending",
+            "channels": verification["channels"],
+            "answers": [],
+            "created_at": candidate["at"],
+            "deadline": verification["deadline"],
+            "version": 0,
+            "transitions": [],
+        })
     written_events = []
     for draft in decision.get("writes", []):
         event = await record_event(
@@ -282,11 +303,18 @@ async def start_verification(
     *,
     idempotency_key: str,
 ) -> dict[str, Any]:
-    del village_id, candidate, idempotency_key
-    for example in _voice_examples():
-        if example.get("tool") == "report_money_request":
-            return copy.deepcopy(example["response"]["data"])
-    return {"status": "unverifiable"}
+    decision = await decide(village_id, candidate, idempotency_key=idempotency_key)
+    verification = decision.get("verification")
+    if not verification:
+        return {"status": "unverifiable", "decision": decision}
+    return {
+        "decision": decision,
+        "status": "pending",
+        "verification_id": verification["id"],
+        "claimed_member_id": verification["claimed_member"],
+        "channels": verification["channels"],
+        "deadline": verification["deadline"],
+    }
 
 
 async def answer_verification(
@@ -298,12 +326,27 @@ async def answer_verification(
     quote: str | None = None,
     call_sid: str | None = None,
 ) -> dict[str, Any]:
-    return {
-        "id": verification_id,
-        "status": "denied" if answer == "no" else "confirmed" if answer == "yes" else "timeout",
-        "state": "denied" if answer == "no" else "confirmed" if answer == "yes" else "unsure",
-        "answers": [{"answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid}],
-    }
+    current = db.verifications.get(verification_id)
+    if current is None:
+        raise KeyError(verification_id)
+    if current["state"] != "pending":
+        return {**current, "outcome": "ignored"}
+    state = "denied" if answer == "no" else "confirmed" if answer == "yes" else "unsure"
+    status = "denied" if answer == "no" else "confirmed" if answer == "yes" else "timeout"
+    answers = [
+        *current.get("answers", []),
+        {"answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid, "outcome": "applied", "at": clock.now().isoformat()},
+    ]
+    updated = await db.cas_update(
+        "verification",
+        verification_id,
+        current.get("version", 0),
+        {"state": state, "status": status, "answers": answers, "resolved_at": clock.now().isoformat()},
+    )
+    if not updated:
+        latest = db.verifications[verification_id]
+        return {**latest, "outcome": "conflict"}
+    return {**updated[0], "outcome": "applied"}
 
 
 async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> dict[str, Any]:
