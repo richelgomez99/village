@@ -14,6 +14,7 @@ class PromptTemplate:
     text: str
     version_id: str
     source: str
+    name: str = "village-builder"
 
 
 def get_builder_prompt(prefer: str = "hub") -> PromptTemplate:
@@ -32,17 +33,38 @@ def get_builder_prompt(prefer: str = "hub") -> PromptTemplate:
     return prompt
 
 
-def _fetch_prompt_hub() -> PromptTemplate:
-    import arize as ax  # type: ignore
+HUB_NAME = "village-builder"
+HUB_LABEL = "production"
 
-    obj = ax.prompts.get(prompt="village-builder", label="production")
-    version = getattr(obj, "version_id", None) or getattr(obj, "id", None) or "production"
-    text = getattr(obj, "text", None)
-    if text is None and hasattr(obj, "version"):
-        text = getattr(obj.version, "text", None)
+
+def _env(key: str) -> str:
+    import os
+
+    if os.getenv(key):
+        return os.environ[key]
+    env = PROMPTS.parent / ".env"
+    if env.exists():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            k, _, v = line.partition("=")
+            if k.strip() == key:
+                return v.strip().strip('"').strip("'")
+    return ""
+
+
+def _fetch_prompt_hub() -> PromptTemplate:
+    """Arize Prompt Hub (`village-builder`, label `production`), arize SDK v8 (lazy import)."""
+    from arize import ArizeClient  # type: ignore
+
+    api_key, space = _env("ARIZE_API_KEY"), _env("ARIZE_SPACE_ID")
+    if not api_key or not space:
+        raise RuntimeError("ARIZE_API_KEY / ARIZE_SPACE_ID missing")
+    got = ArizeClient(api_key=api_key).prompts.get(prompt=HUB_NAME, space=space, label=HUB_LABEL)
+    version = getattr(got, "version", got)
+    msgs = getattr(version, "messages", None) or []
+    text = next((getattr(m, "content", None) for m in msgs if str(getattr(m, "role", "")).upper().endswith("SYSTEM")), None) or (getattr(msgs[0], "content", None) if msgs else None)
     if not isinstance(text, str) or not text.strip():
-        raise ValueError("Prompt Hub response did not contain string text")
-    return PromptTemplate(text=text, version_id=str(version), source="hub")
+        raise ValueError("Prompt Hub response did not contain a system message")
+    return PromptTemplate(text=text, version_id=str(getattr(version, "id", HUB_LABEL)), source="hub")
 
 
 def _local_prompt() -> PromptTemplate:
