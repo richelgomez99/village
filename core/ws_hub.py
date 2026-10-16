@@ -133,6 +133,9 @@ def identity(village: str, role: str, member_id: str | None, *, view_as: bool = 
         lang = person.get("lang")
         if lang in {"en", "es"}:
             out["lang"] = lang
+    number = villages.village_number(village)
+    if number:
+        out["village_number"] = number
     if view_as:
         out["view_as"] = True
     return out

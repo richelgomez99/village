@@ -37,6 +37,46 @@ def view_binds(role: str, village_id: str | None = None) -> set[str]:
     return binds
 
 
+def _ids_in(node: Any, ids: set[str], out: list[str]) -> None:
+    if isinstance(node, str):
+        if node in ids and node not in out:
+            out.append(node)
+    elif isinstance(node, dict):
+        for value in node.values():
+            _ids_in(value, ids, out)
+    elif isinstance(node, list):
+        for value in node:
+            _ids_in(value, ids, out)
+
+
+def call_targets(role: str, village_id: str | None = None) -> list[str]:
+    """Members a view can call: elder -> coordinator; helper/coordinator -> care recipient; control -> everyone;
+    plus any member id the view itself references (BigButton action_arg etc.)."""
+    vid = _v(village_id)
+    people = [p["id"] for p in villages.people(vid) if p.get("id")]
+    if role == "control":
+        return people
+    out: list[str] = []
+    first = villages.coordinator_id(vid) if role == "elder" else villages.care_recipient_id(vid)
+    if first:
+        out.append(first)
+    _ids_in(db.views.get((vid, role), {}), set(people), out)
+    return out
+
+
+def member_record(member_id: str, village_id: str | None = None) -> dict[str, Any]:
+    """`member:<id>` value: bv_person (member_id, name, phone) + id/display_name/role for call buttons."""
+    vid = _v(village_id)
+    person = villages.person(vid, member_id) or db.members.get(member_id) or {}
+    name = str(person.get("name") or member_id)
+    rec: dict[str, Any] = {"member_id": member_id, "id": member_id, "name": name.split()[0], "display_name": name,
+                           "role": person.get("role", "member")}
+    phone = villages.member_phone(vid, member_id)
+    if phone:
+        rec["phone"] = phone
+    return rec
+
+
 def _slot_meds(slot: str, village_id: str | None = None) -> list[str]:
     meds = []
     for med in _family(village_id).get("medications", []):
@@ -295,6 +335,8 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
         data["rota:current.on_duty"] = on_duty_person(vid)
     if subject and role != "elder" and ("*" in binds or "prescriptions:current" in binds):
         data["prescriptions:current"] = prescriptions_current(subject, vid)
+    for target in call_targets(role, vid):
+        data[f"member:{target}"] = member_record(target, vid)
     if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
         data["chat:village"] = [m for m in db.messages if m.get("village", vid) == vid][-50:]
     return data
