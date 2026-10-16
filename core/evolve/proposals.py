@@ -163,13 +163,10 @@ async def build_ops(village_id: str, spec: dict[str, Any], evidence: dict[str, A
         elif after("LifeAreas") is not None:
             # leader: one card inside the Money area (LifeAreas money status says it too, via blueprint:life_areas)
             at = after("LifeAreas")
-            eid, el = "screened", {"type": "Timeline", "props": {
-                "title": "Calls Village screened", "bind": f"timeline:subject={recipient}", "subject": recipient,
-                "event_kinds": ["money_request", "verification", "incident"], "show_provenance": True, "limit": 5}}
+            eid, el = "screened", {"type": "ScreenedCalls", "props": {"title": "Calls Village screened", "bind": "calls:screened", "max_rows": 5}}
         elif after("HelperAnswer") is not None:
             at = after("HelperAnswer")
-            eid, el = "receptionist", {"type": "Text", "props": {
-                "text": "New since today: callers who say they're you get checked with you first.", "size": "m", "tone": "info"}}
+            eid, el = "receptionist", {"type": "ScreenedCalls", "props": {"title": "Calls Village checked with you", "bind": "calls:screened", "max_rows": 3}}
         else:
             continue
         role_ops = [{"op": "add", "path": f"/elements/{eid}", "value": el},

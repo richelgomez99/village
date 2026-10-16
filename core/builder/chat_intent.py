@@ -120,6 +120,42 @@ def plan_lines(ch: dict[str, Any], *, pickup_by: str | None) -> list[str]:
     return [l[:80] for l in lines][:12]
 
 
+PLANS: dict[str, dict[str, dict[str, Any]]] = {}  # village → plan_id → {id, title, items}; core serves `plan:<id>` from here
+
+
+def plan_id_for(ch: dict[str, Any]) -> str:
+    ev = re.sub(r"[^a-z0-9]+", "_", str(ch.get("event", "plan")).lower()).strip("_")[:20] or "plan"
+    month_n = {"Jan": "01", "Nov": "11", "Dec": "12"}.get(ch.get("month", ""), "")
+    day = f"{int(ch['date_day']):02d}" if ch.get("date_day") else ""
+    return f"{ev}_{month_n}{day}" if day else ev
+
+
+def plan_items(ch: dict[str, Any], spec: dict[str, Any], *, pickup_by: str | None) -> list[dict[str, Any]]:
+    """bv items for PlanBoard: {text, kind, owner (member id), when, status, note} — only what was said."""
+    ids = {p["name"].split()[0]: p["id"] for p in spec["blueprint"]["people"]}
+    out: list[dict[str, Any]] = []
+    for b in ch.get("brings", []):
+        out.append({"text": f"{b['who']}: {b['what'].replace('the ', '')}", "kind": "brings", "owner": ids.get(b["who"], ""), "when": "", "status": "claimed", "note": ""})
+    for a in ch.get("arrivals", []):
+        if a.get("train"):
+            out.append({"text": f"{a['who']}: {a['train']} train", "kind": "travel", "owner": ids.get(a["who"], ""), "when": a["train"], "status": "planned", "note": ""})
+        if a.get("pickup_place"):
+            out.append({"text": f"Pick up {a['who']} at {a['pickup_place']}", "kind": "pickup", "owner": ids.get(pickup_by or "", ""), "when": f"{a.get('pickup_at', '')}:00 PM".replace("::", ":") if a.get("pickup_at") and ":" not in a["pickup_at"] else a.get("pickup_at", ""), "status": "claimed" if pickup_by else "open", "note": "" if pickup_by else "who?"})
+    for d in ch.get("dietary", []):
+        who = d.split()[0]
+        out.append({"text": f"{who}: {d.split('needs a ', 1)[-1]}", "kind": "constraint", "owner": "", "when": "", "status": "noted", "note": ""})
+    if ch.get("rule"):
+        out.append({"text": f"Rule: {ch['rule']}", "kind": "rule", "owner": "", "when": "", "status": "noted", "note": ""})
+    if ch.get("people_count"):
+        out.insert(0, {"text": f"{ch['people_count']} people at {ch.get('place', 'home')}", "kind": "headcount", "owner": "", "when": "", "status": "noted", "note": ""})
+    return out[:24]
+
+
+def plan_data(village_id: str, plan_id: str) -> dict[str, Any] | None:
+    """Core's `plan:<id>` binding value."""
+    return copy.deepcopy(PLANS.get(village_id, {}).get(plan_id))
+
+
 def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]:
     """Per-role ops in the right place (D35), ≤ 12 root children, existing catalog only."""
     from .patch import apply_ops, apply_to_copy
@@ -137,6 +173,8 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
     arriving = {a["who"] for a in ch.get("arrivals", [])}
     pickup_by = next((w for w in brings if w not in arriving and w in by_first), None)
     lines = plan_lines(ch, pickup_by=pickup_by)
+    plan_id = plan_id_for(ch)
+    items = plan_items(ch, spec, pickup_by=pickup_by)
     need = next((n["id"] for n in spec["blueprint"]["needs"] if n.get("domain") == "scheduling"), "n_safety")
     ops: dict[str, list[dict[str, Any]]] = {}
     served: dict[str, dict[str, list[str]]] = {}
@@ -163,7 +201,7 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
                 changes.append({"en": f"{p.get('short_name') or p['name'].split()[0]}: one line in Spanish under tonight: \"{text}\"", "es": f"{p.get('short_name') or p['name'].split()[0]}: una línea: \"{text}\""})
         elif after("LifeAreas") is not None:
             at = after("LifeAreas")
-            el = {"type": "Checklist", "props": {"title": title[:60], "items": lines, "owners": [(by_first.get(l.split()[0]) or {}).get("id", "") if l.split()[0] in by_first else "" for l in lines], "recurring": False}}
+            el = {"type": "PlanBoard", "props": {"title": (f"{event} · {when}" if when else event)[:60], "bind": f"plan:{plan_id}", "date": (f"Thu {when}" if event.lower() == "thanksgiving" and when else when)[:40], "allow_claim": True}}
             changes.append({"en": f"{_first(spec, coord)}: a '{title}' card under her life areas (who brings what, pickups, the plate, the rule)", "es": f"{_first(spec, coord)}: tarjeta '{title}'"})
         elif after("HelperAnswer") is not None:
             at = after("HelperAnswer")
@@ -184,7 +222,7 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
         else:
             continue
         role_ops = [{"op": "add", "path": "/elements/plan_event", "value": el}, {"op": "add", "path": f"/elements/s/children/{at}", "value": "plan_event"}]
-        srv = {} if el["type"] == "Text" else {"plan_event": [need]}
+        srv = {} if el["type"] == "Text" else {"plan_event": [need]}  # PlanBoard serves the scheduling need
         nxt, errs = apply_to_copy(cand, role, {"ops": role_ops, "needs_served": srv})
         if nxt is None:
             continue
@@ -206,7 +244,8 @@ def build_change_ops(spec: dict[str, Any], ch: dict[str, Any]) -> dict[str, Any]
                 bp_ops = []
         except Exception:
             bp_ops = []
-    return {"ops": ops, "needs_served": served, "highlight": highlight, "blueprint_ops": bp_ops, "changes": changes[:6], "title": title, "lines": lines}
+    return {"ops": ops, "needs_served": served, "highlight": highlight, "blueprint_ops": bp_ops, "changes": changes[:6], "title": title, "lines": lines,
+            "plan": {"id": plan_id, "title": title, "items": items}}
 
 
 async def propose_change(village_id: str, text: str, author: str | None, *, llm: Any | None = None) -> dict[str, Any]:
@@ -250,6 +289,8 @@ async def propose_change(village_id: str, text: str, author: str | None, *, llm:
            "key": f"chat:{slug}", "detected_by": "chat_request", "evidence_meta": {"text": text},
            "evidence_labels": [f"{asker}'s message"], "what_happened": proposal["rationale"],
            "stays_the_same": {"en": stays, "es": "Nada más cambia; el plan es de la familia, Village solo lo guarda en un lugar."}, "checked": []}
+    rec["plan"] = built["plan"]  # PlanBoard data (bind plan:<id>) for core's binding
+    PLANS.setdefault(village_id, {})[built["plan"]["id"]] = copy.deepcopy(built["plan"])
     ev.STORE.setdefault(village_id, {})[pid] = rec
     await db.create_decision({**builder_decision(village_id, f"Proposed: {proposal['title']['en']} ({asker}'s chat request). Waiting for {coord_name}.", mode="asked_human"),
                               "id": f"dc_{pid}_proposed", "at": ev._now(), "actor": "evolve", "rule_id": "R-SPEC", "rev": proposal["base_rev"]})

@@ -32,7 +32,11 @@ def test_ops_land_in_the_right_place() -> None:
     spec = templates.spec("care")
     b = build_change_ops(spec, extract_rules(MSG))
     els = lambda r: b["ops"][r][0]["value"]  # noqa: E731
-    assert els("coordinator")["type"] == "Checklist" and els("coordinator")["props"]["title"] == "Thanksgiving plan · Nov 27"
+    assert els("coordinator")["type"] == "PlanBoard" and els("coordinator")["props"] == {"title": "Thanksgiving · Nov 27", "bind": "plan:thanksgiving_1127", "date": "Thu Nov 27", "allow_claim": True}
+    items = b["plan"]["items"]
+    assert b["plan"]["id"] == "thanksgiving_1127"
+    assert {"text": "Pick up Lucía at Penn Station", "kind": "pickup", "owner": "m_marco", "when": "1:00 PM", "status": "claimed", "note": ""} in items
+    assert [i["text"] for i in items] == ["12 people at Mom's", "Marco: turkey", "Lucía: pie", "Lucía: 11:40 train", "Pick up Lucía at Penn Station", "Grandpa: low-salt plate", "Rule: no politics at the table"]
     assert els("helper")["props"]["text"] == "Thanksgiving: Marco brings the turkey · Lucía brings the pie, 11:40 train"
     assert els("elder")["props"]["text"] == "El jueves 27 vienen todos. Marco trae el pavo."
     kids = {r: spec["views"][r]["elements"]["s"]["children"] for r in spec["views"]}
@@ -74,9 +78,12 @@ def test_e2e_on_core_app() -> None:
         a = c.post(f"/villages/v_reyes/proposals/{prop}/approve?wait=true", headers={"Authorization": "Bearer m_ana"})
         assert a.status_code == 202, a.text
         spec = db.specs["v_reyes"]
-        for role, typ in (("coordinator", "Checklist"), ("helper", "Text"), ("elder", "Text")):
+        for role, typ in (("coordinator", "PlanBoard"), ("helper", "Text"), ("elder", "Text")):
             el = spec["views"][role]["elements"]["plan_event"]
             assert el["type"] == typ
         assert any(a_["label"].startswith("Thanksgiving") for a_ in spec["blueprint"]["life_areas"])
+        from core.builder.chat_intent import plan_data
+
+        assert plan_data("v_reyes", "thanksgiving_1127")["items"][1]["text"] == "Marco: turkey"
         answer = [m for m in db.messages if m.get("kind") == "answer" and "Thanksgiving" in m.get("text", "")]
         assert answer and answer[-1]["refs"][0]["kind"] == "proposal"

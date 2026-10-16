@@ -31,7 +31,7 @@ capabilities:
     weight: 3
     cost_to_person: "known callers may hear one extra question"
     risk_class: high
-    implements: ["voice:receptionist", "report_money_request", "await_verification"]
+    implements: [ScreenedCalls, "voice:receptionist", "report_money_request", "await_verification"]
   is_it_my_turn:
     label: "Is it my turn?"
     applies_when:
@@ -44,7 +44,7 @@ capabilities:
     weight: 4
     cost_to_person: "one glance at the app, or a 3 PM nudge"
     risk_class: low
-    implements: [HelperAnswer, CareRota]
+    implements: [HelperAnswer, SinceYourTurn, CareRota]
   dashboard:
     label: "Coordinator dashboard"
     applies_when:
@@ -56,7 +56,7 @@ capabilities:
     weight: 4
     cost_to_person: "a denser app view"
     risk_class: low
-    implements: [LifeAreas, IncidentCard, VerificationPrompt, RefillCard, CareRota, Timeline]
+    implements: [RightNow, WhatVillageDid, LifeAreas, IncidentCard, VerificationPrompt, CareRota]
   village_chat:
     label: "Village chat"
     applies_when:
@@ -96,7 +96,7 @@ capabilities:
     weight: 2
     cost_to_person: "reviews a short list before filling the organizer"
     risk_class: medium
-    implements: [RefillCard, Timeline]
+    implements: [RefillCard, FactCard]
   check_in_call:
     label: "Evening check-in call"
     applies_when:
@@ -110,3 +110,16 @@ capabilities:
     cost_to_person: "a short call; can say no"
     risk_class: medium
     implements: [TonightCard, CallLog, "outbound:check_in"]
+  event_plan:
+    label: "Event plan"
+    applies_when:
+      text: "the group plans an event together (who brings what, pickups, a rule); added by a change request (D36), not at founding"
+      roles: [coordinator]
+      requires: [event_planned]
+    fits:
+      text: "app users who keep the plan"
+      tech_comfort: [app, both]
+    weight: 4
+    cost_to_person: "one board instead of a long group thread"
+    risk_class: low
+    implements: [PlanBoard]
