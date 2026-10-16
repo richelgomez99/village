@@ -19,7 +19,7 @@ const chat = [
 
 describe("family-phone copy (DEMO-NOTES)", () => {
   it("chat shows member names, never raw ids; Village for village posts", () => {
-    const { container } = renderView((reyes as any).views.coordinator, { "chat:village": chat, "proposals:pending": [card], "member:m_marco": { member_id: "m_marco", name: "Marco" } });
+    const { container } = renderView((reyes as any).views.coordinator, { "chat:village": chat, "proposals:pending": [card], "member:m_marco": { member_id: "m_marco", name: "Marco" } }, { role: "coordinator" });
     const authors = Array.from(container.querySelectorAll("[data-test='chat-author']")).map((a) => a.textContent);
     expect(authors).toEqual(["Marco", "Village"]);
     expect(container.querySelector("[data-test='village-chat']")?.textContent).not.toContain("m_marco");
@@ -27,7 +27,7 @@ describe("family-phone copy (DEMO-NOTES)", () => {
   });
 
   it("a proposal post is title + one line + Approve · Not now; the details live on the Proposal card", () => {
-    const { container } = renderView((reyes as any).views.coordinator, { "chat:village": chat, "proposals:pending": [card] });
+    const { container } = renderView((reyes as any).views.coordinator, { "chat:village": chat, "proposals:pending": [card] }, { role: "coordinator" });
     const post = container.querySelector("[data-test='chat-proposal']")!;
     expect(post.textContent).toBe("Village answers unknown callers for MamáVillage proposes answering unknown callers for Mamá first.");
     expect(post.textContent).not.toContain("Options weighed");

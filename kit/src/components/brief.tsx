@@ -7,6 +7,7 @@ import { k } from "../i18n/strings";
 import { fmtDay, fmtTime } from "../util/time";
 import { Bi, Card, memberName } from "./shared";
 import { FactHistoryCard, writtenBy } from "./fact";
+import { resolvedIncidents, resolvedMode, type IncidentLike } from "../util/resolved";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -44,8 +45,22 @@ export function rightNowLines(data: Record<string, unknown>, nowMs: number, lang
   const last = arr<{ at: string; text: unknown; superseded?: boolean }>(tlKey ? data[tlKey] : null)
     .filter((r) => !r.superseded)
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
-  if (last) out.push({ key: "last", text: `Last: ${text(last.text, lang)} · ${fmtTime(last.at, lang)}` });
+  if (last) out.push({ key: "last", text: `Last: ${lastWords(last as { at: string; text: unknown; kind?: string }, data, lang)} · ${fmtTime(last.at, lang)}` });
   return out;
+}
+
+/** An incident event that Village already resolved reads as what happened, not as its open-time title ("needs review"). */
+function lastWords(ev: { at: string; text: unknown; kind?: string }, data: Record<string, unknown>, lang: string): string {
+  if (ev.kind === "incident") {
+    const t = Date.parse(ev.at);
+    const inc = resolvedIncidents(data).find((i) => Date.parse(i.at ?? "") === t);
+    if (inc && resolvedMode(inc) === "refused") {
+      const es = lang === "es";
+      return /money/.test(inc.type ?? "") ? (es ? "Village rechazó un pedido de dinero" : "Village refused a money ask") : `${es ? "Village rechazó" : "Village refused"}: ${text(inc.title, lang)}`;
+    }
+    if (inc) return text(inc.title, lang);
+  }
+  return text(ev.text, lang);
 }
 
 interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { at?: string; text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string; mode?: string }[] }
@@ -67,24 +82,27 @@ export function whenWords(iso: string, nowMs: number): string {
 }
 
 export function WhatVillageDid({ data, bind = "rounds:latest", title = "What Village did", maxRows = 6, nowMs = Date.now() }: { data: Record<string, unknown>; bind?: string; title?: unknown; maxRows?: number; nowMs?: number }) {
-  const r = data[bind] as Rounds | null | undefined;
-  if (!r || typeof r !== "object") return null;
-  if (!r.counts && !Array.isArray(r.rows)) return null; // {} = no round yet
+  const raw = data[bind] as Rounds | null | undefined;
+  const hasRound = !!raw && typeof raw === "object" && (!!raw.counts || Array.isArray(raw.rows)); // {} = no round yet
+  if (!hasRound && !resolvedIncidents(data).length) return null;
+  const r: Rounds = hasRound ? raw! : {};
   const c = r.counts ?? {};
   const alone = c.acted_alone ?? c.did_alone ?? c.alone ?? r.did_alone ?? r.alone ?? 0;
   const asked = c.asked_human ?? c.asked ?? c.asked_person ?? r.asked ?? r.asked_person ?? 0;
   const refused = c.refused ?? r.refused ?? 0;
-  const rows = arr<NonNullable<Rounds["rows"]>[number]>(r.rows);
+  // resolved incidents (scam stopped, a money ask refused under the elder's rule) have their one home here, with their kind chip
+  type Row = NonNullable<Rounds["rows"]>[number];
+  const incRows = resolvedIncidents(data).map((i: IncidentLike) => ({ at: i.at, text: i.summary ?? i.title, mode: resolvedMode(i) }));
+  const tally = { acted_alone: 0, asked_human: 0, refused: 0 } as Record<string, number>;
+  for (const row of incRows) tally[row.mode] += 1;
+  const rows: Row[] = [...incRows, ...arr<Row>(r.rows)].sort((a, b) => Date.parse(b.at ?? "") - Date.parse(a.at ?? ""));
   return (
     <Card test="what-village-did" title={<Bi value={title} />}>
       <div className="wvd-stats" data-test="wvd-stats">
-        <span className="wvd-stat"><b>{alone}</b> on its own</span>
-        <span className="wvd-stat"><b>{asked}</b> asked a person</span>
-        <span className="wvd-stat"><b>{refused}</b> refused itself</span>
+        <span className="wvd-stat"><b>{alone + tally.acted_alone}</b> on its own</span>
+        <span className="wvd-stat"><b>{asked + tally.asked_human}</b> asked a person</span>
+        <span className="wvd-stat"><b>{refused + tally.refused}</b> refused itself</span>
       </div>
-      <p className="wvd-counts small muted" data-test="wvd-counts">
-        Did {alone} {alone === 1 ? "thing" : "things"} on its own · asked a person {asked} · refused itself {refused}
-      </p>
       {rows.length ? (
         <ul className="wvd-rows">
           {rows.slice(0, maxRows).map((row, i) => (

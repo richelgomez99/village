@@ -38,7 +38,7 @@ const coord = (reyes as any).views.coordinator;
 describe("Proposal card (INTERACTIONS §3 Options)", () => {
   it("four labelled blocks in order, plain words, names bold, no ids; Approve · Not now · Ask Marco first", () => {
     const send = vi.fn(() => "r");
-    const { container } = renderView(coord, { ...members, "proposals:pending": [NEW] }, { send });
+    const { container } = renderView(coord, { ...members, "proposals:pending": [NEW] }, { send, role: "coordinator" });
     const card = container.querySelector("[data-test='proposals']")!;
     expect(card.querySelector(".card-title")?.textContent).toBe("Village proposes a change · needs your yes");
     const heads = Array.from(card.querySelectorAll(".pb h4")).map((h) => h.textContent);
@@ -65,7 +65,7 @@ describe("Proposal card (INTERACTIONS §3 Options)", () => {
     expect(b.changes).toEqual(["Village answers unknown callers on Mamá's line first"]);
     expect(b.stays).toEqual(["Nothing changes for known numbers"]);
     expect(b.checked).toEqual(["Oct 16 · call at 0:09 · \"Marco\" asked for $2,000"]);
-    const { container } = renderView(coord, { "proposals:pending": [OLD] });
+    const { container } = renderView(coord, { "proposals:pending": [OLD] }, { role: "coordinator" });
     expect(container.querySelector("[data-test='pb-happened']")).toBeNull();
     expect(container.querySelector("[data-test='proposal-ask-other']")).toBeNull();
   });
@@ -73,7 +73,7 @@ describe("Proposal card (INTERACTIONS §3 Options)", () => {
   it("verifying: buttons become the release stepper in words; applied/left: Done · every phone updated for 10 s with Undo", () => {
     vi.useFakeTimers();
     const view = viewSchema.parse(coord);
-    const ctx = (data: any) => ({ ...defaultCtx, view, data, lang: "en", api: { base: "", token: "", fake: true } });
+    const ctx = (data: any) => ({ ...defaultCtx, view, data, lang: "en", role: "coordinator", api: { base: "", token: "", fake: true } });
     const { container, rerender } = render(<div className="app"><Renderer ctx={ctx({ "proposals:pending": [{ ...NEW, status: "verifying", release_stage: "tests" }] })} /></div>);
     expect(container.querySelector("[data-test='proposal-approve']")).toBeNull();
     const steps = Array.from(container.querySelectorAll("[data-test='release-stepper'] li")).map((l) => l.textContent);

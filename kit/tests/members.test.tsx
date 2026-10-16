@@ -71,7 +71,9 @@ describe("tabs from life areas (generic)", () => {
     const tabs = [...container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent);
     expect(tabs).toEqual(["Home", "Pills", "Money", "People", "Chat"]); // labels are whatever blueprint:life_areas says
     expect(container.querySelectorAll("[data-test='right-now-line']").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelector("[data-test='wvd-counts']")?.textContent).toContain("Did 3 things on its own · asked a person 1 · refused itself 1");
+    // the tiles carry the numbers; no sentence repeats them (KIT-MEMBERS-4)
+    expect(container.querySelector("[data-test='wvd-stats']")?.textContent).toMatch(/on its own.*asked a person.*refused itself/);
+    expect(container.querySelector("[data-test='wvd-counts']")).toBeNull();
     expect(container.querySelector("[data-test='chat-preview']")).not.toBeNull();
     act(() => (container.querySelector("[data-tab='chat'][data-test='nav-tab']") as HTMLButtonElement).click());
     expect(container.querySelector("[data-test='tab-chat']")?.hasAttribute("hidden")).toBe(false);
@@ -90,7 +92,7 @@ describe("chat kinds (D16)", () => {
   it("renders each kind distinctly, names from member records, chips in words (no rule ids)", () => {
     const relayed = { id: "msg_relay", village: "v_reyes", author: "village", kind: "incident", text: "She said her grandson called.", text_i18n: { es: "Dijo que llamó su nieto.", en: "She said her grandson called." }, refs: [{ kind: "event", id: "ev_x", label: "her call, 0:09" }], source: { kind: "call", ref: "conv_1" }, at: "2026-10-16T14:03:00-04:00" };
     const data = { "chat:village": [...rows, relayed], "member:m_marco": { member_id: "m_marco", name: "Marco" }, "member:m_lucia": { member_id: "m_lucia", name: "Lucía" }, "member:m_ana": { member_id: "m_ana", name: "Ana" } };
-    const { container } = renderView(R.views.coordinator, data, { memberId: "m_ana" });
+    const { container } = renderView(R.views.coordinator, data, { memberId: "m_ana", role: "coordinator" });
     const chat = container.querySelector("[data-test='village-chat']")!;
     const kinds = new Set([...chat.querySelectorAll("[data-test='chat-row']")].map((r) => r.getAttribute("data-render")));
     for (const k of ["nudge", "chat", "incident", "proposal", "answer", "receipt", "relayed"]) expect(kinds.has(k), k).toBe(true);
@@ -141,15 +143,16 @@ describe("refill-day rule (D22)", () => {
 });
 
 describe("Marco and Lucía", () => {
-  it("Marco: Yes · tonight headline, Since your last turn, Swap my night prefills the chat", async () => {
+  it("Marco: Yes · tonight headline, Since your last turn, Can't, ask someone goes to the chat", async () => {
     vi.useFakeTimers();
     const { container } = mount("marco");
     await act(async () => { vi.advanceTimersByTime(10); });
     expect(container.querySelector("[data-test='helper-headline']")?.textContent).toBe("Yes · tonight until 9:30");
     expect(container.querySelectorAll("[data-test='since-row']").length).toBe(3);
-    act(() => (container.querySelector("[data-test='swap-my-night']") as HTMLButtonElement).click());
+    // on his night: Done · Can't, ask someone (KIT-MEMBERS-5); "Swap my night" stays for nights that aren't his
+    expect(container.querySelector("[data-test='swap-my-night']")).toBeNull();
+    act(() => (container.querySelector("[data-test='turn-cant']") as HTMLButtonElement).click());
     expect(container.querySelector("[data-test='tab-chat']")?.hasAttribute("hidden")).toBe(false);
-    expect(container.querySelector<HTMLInputElement>("[data-test='tab-chat'] [data-test='chat-input']")?.value).toBe("@Village can someone swap Friday?");
   });
   it("Lucía never sees a verification prompt; no ids on her screen", async () => {
     vi.useFakeTimers();

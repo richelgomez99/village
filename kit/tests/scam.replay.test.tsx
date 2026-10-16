@@ -39,11 +39,11 @@ describe("scam replay through the fake server", () => {
     expect(ana.container.querySelector("[data-test='incident-card']")?.getAttribute("data-verification-status")).toBe("denied");
     expect(marco.container.querySelector("[data-test='prompt-overlay']")).toBeNull();
     expect(carmen.container.querySelector("[data-test='alert'][data-severity='warn']")).toBeNull();
-    // Ana acks → ack frame + acked state from the fixture
-    act(() => ana.container.querySelector<HTMLButtonElement>("[data-test='incident-ack']")!.click());
-    expect((window as any).__frames.find((f: any) => f.type === "ack")).toMatchObject({ event_id: "ev_1016_1402_incident", status: "got_it" });
-    await tick(10);
-    expect(ana.container.querySelector("[data-test='incident-acked']")).not.toBeNull();
+    // resolved (the real Marco said no): no "I've got it", no urgent card; its one home is What Village did (KIT-MEMBERS-4)
+    expect(ana.container.querySelector("[data-test='incident-ack']")).toBeNull();
+    expect(ana.container.querySelector("[data-test='alert'][data-severity='danger']")).toBeNull();
+    expect(ana.container.querySelector("[data-test='tab-home'] [data-test='needs-your-yes']")?.hasAttribute("hidden") ?? true).toBe(true);
+    expect([...ana.container.querySelectorAll("[data-test='wvd-row']")].some((r) => r.querySelector("[data-mode='asked_human']"))).toBe(true);
   });
 
   it("Marco taps 'That wasn't me' → one action frame; thanks shows the gate's say.en", async () => {

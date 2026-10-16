@@ -8,6 +8,8 @@ import { Countdown } from "./care";
 import { ProposalBlocks, ReleaseStepper, useAppliedBanner, type ProposalLike } from "./proposal";
 import { undoProposal } from "../control/api";
 import { Bi, Card, Icon, RAW_REF, memberName, sourceWords } from "./shared";
+import { canDecide } from "./generic";
+import { incidentNeedsHuman, pendingVerificationIds } from "../util/resolved";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -67,9 +69,11 @@ export function IncidentCard({ id, props }: CatalogProps) {
   const ctx = useCtx();
   const all = arr<Incident>(ctx.data[props.bind]);
   // Home shows what still needs someone; the area tab keeps the history (acknowledged ones too)
-  const items = (ctx.openOnly ? all.filter((i) => i.status === "open") : all).slice(0, props.limit ?? 5);
+  // Home's group lists only what still needs a human; resolved ones (scam stopped, refused by rule) live in What Village did
+  const pending = pendingVerificationIds(ctx.data);
+  const items = (ctx.openOnly ? all.filter((i) => incidentNeedsHuman(i, pending)) : all).slice(0, props.limit ?? 5);
   return (
-    <Card test="incident-cards" title={props.title ? <Bi value={props.title} /> : undefined}>
+    <Card test="incident-cards" title={props.title && !ctx.inGroup ? <Bi value={props.title} /> : undefined}>
       {items.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
       {items.map((inc) => {
         const tone = OUTCOME_TONE[inc.verification_status ?? ""] ?? "amber";
@@ -89,11 +93,11 @@ export function IncidentCard({ id, props }: CatalogProps) {
               </ul>
             ) : null}
             {props.allow_ack ? (
-              inc.status === "open" ? (
+              incidentNeedsHuman(inc, pending) ? (
                 <button type="button" className="btn btn-primary" data-test="incident-ack" disabled={ctx.disabled} onClick={() => ctx.ack(inc.incident_id)}>{k("ack", ctx.lang)}</button>
-              ) : (
+              ) : inc.status !== "open" ? (
                 <p className="chip chip-ok" data-test="incident-acked">✓ {k("acked", ctx.lang)}</p>
-              )
+              ) : null
             ) : null}
           </article>
         );
@@ -159,6 +163,8 @@ export function Proposal({ id, props }: CatalogProps) {
   const [done, clearDone] = useAppliedBanner(items);
   const names = Object.entries(ctx.data).filter(([key]) => key.startsWith("member:")).map(([, v]) => String((v as { name?: string } | null)?.name ?? "")).filter(Boolean);
   const open = items.filter((p) => p.status !== "applied" && p.status !== "rejected" && p.status !== "failed");
+  // D39: a member who doesn't decide sees the proposal as Village's chat post with its status line, not as an approval form
+  if (!canDecide(ctx, open[0] as never)) return null;
   if (!open.length && !done) return null;
   const undo = async (pid: string) => {
     clearDone();
@@ -181,7 +187,7 @@ export function Proposal({ id, props }: CatalogProps) {
             <ProposalBlocks p={p} lang={ctx.lang} names={names} />
             {p.status === "verifying" ? (
               <ReleaseStepper stage={p.release_stage} />
-            ) : props.allow_approve ? (
+            ) : props.allow_approve && canDecide(ctx, p as never) ? (
               <div className="row proposal-actions">
                 <button type="button" className="btn btn-primary" data-test="proposal-approve" disabled={ctx.disabled} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: id })}>{k("approve", ctx.lang)}</button>
                 <button type="button" className="btn btn-soft" data-test="proposal-reject" disabled={ctx.disabled} onClick={() => ctx.send({ name: "reject_proposal", arg: pid, element_id: id })}>{k("not_now", ctx.lang)}</button>

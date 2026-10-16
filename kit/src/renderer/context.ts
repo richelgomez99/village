@@ -47,6 +47,8 @@ export interface RenderCtx {
   chatFull?: boolean;
   /** Home's attention group: list only what is still open (acknowledged incidents live on their area tab) */
   openOnly?: boolean;
+  /** inside Home's "Needs your yes" group: the group label is the one label, cards drop their inner title */
+  inGroup?: boolean;
 }
 
 const LITERAL_PHONE = /^(\+[1-9][0-9]{6,14}|911|988|18002221222)$/;
