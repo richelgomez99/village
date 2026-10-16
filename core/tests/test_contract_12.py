@@ -102,6 +102,6 @@ def test_snapshots_validate_against_contract() -> None:
 def test_stale_client_gets_contract_mismatch() -> None:
     with TestClient(app) as client:
         with client.websocket_connect("/ws?m=m_marco") as ws:
-            ws.send_json({"type": "hello", "contract_version": "1.2.0", "village": "v_reyes", "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB"})
+            ws.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB"})
             err = ws.receive_json()
             assert V != "1.2.0" and err["type"] == "error" and err["code"] == "contract_mismatch"
