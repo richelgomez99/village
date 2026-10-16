@@ -7,6 +7,7 @@ import { text } from "../renderer/view";
 import { Bi, Card, ReadAloud, memberName } from "../components/shared";
 import { ChatPreview, canDecide } from "../components/generic";
 import { planTabs, tabKey } from "./tabs";
+import { WaysToHelp } from "../components/help";
 import { incidentNeedsHuman, pendingVerificationIds, type IncidentLike } from "../util/resolved";
 import { SinceLastTurn, WhatVillageDid, rightNowLines } from "../components/brief";
 export { rightNowLines } from "../components/brief";
@@ -110,6 +111,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
                 </div>
               ) : null}
               {plan.headline && !heroFirst ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
+              {ctx.role !== "coordinator" && ctx.view.elements[plan.headline ?? ""]?.type === "HelperAnswer" ? <WaysToHelp /> : null}
               {homeHistory.map((id) => <Node key={id} id={id} />)}
               {has("SinceYourTurn") ? null : <SinceLastTurn data={ctx.data} lang={ctx.lang} />}
               {has("WhatVillageDid") ? null : <WhatVillageDid data={ctx.data} nowMs={ctx.nowMs()} />}

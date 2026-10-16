@@ -157,7 +157,12 @@ export function HelperAnswer({ props }: CatalogProps) {
           <p className="muted" data-test="helper-answer-text"><Bi value={v.answer} /></p>
           {props.show_status && v.status_line ? <p className="muted"><Bi value={v.status_line} /></p> : null}
           {props.show_next_shift && v.next_shift && v.is_my_turn ? <p className="muted" data-say="">{k("next_shift", ctx.lang, { date: fmtDay(v.next_shift, ctx.lang) })}</p> : null}
-          {ctx.openChat && swapDay ? (
+          {ctx.openChat && v.is_my_turn ? (
+            <div className="row" data-test="turn-actions">
+              <button type="button" className="btn btn-primary" data-test="turn-done" disabled={ctx.disabled} onClick={() => ctx.openChat?.(`@Village done for ${swapDay === "tonight" ? "tonight" : swapDay}`, { send: true })}>Done</button>
+              <button type="button" className="btn btn-soft" data-test="turn-cant" disabled={ctx.disabled} onClick={() => ctx.openChat?.(`@Village I can't do ${swapDay}, can someone cover?`, { send: true })}>Can't, ask someone</button>
+            </div>
+          ) : ctx.openChat && swapDay ? (
             <button type="button" className="btn btn-link" data-test="swap-my-night" disabled={ctx.disabled} onClick={() => ctx.openChat?.(`@Village can someone swap ${swapDay}?`)}>Swap my night</button>
           ) : null}
         </>

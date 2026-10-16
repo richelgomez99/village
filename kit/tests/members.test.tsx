@@ -143,15 +143,16 @@ describe("refill-day rule (D22)", () => {
 });
 
 describe("Marco and Lucía", () => {
-  it("Marco: Yes · tonight headline, Since your last turn, Swap my night prefills the chat", async () => {
+  it("Marco: Yes · tonight headline, Since your last turn, Can't, ask someone goes to the chat", async () => {
     vi.useFakeTimers();
     const { container } = mount("marco");
     await act(async () => { vi.advanceTimersByTime(10); });
     expect(container.querySelector("[data-test='helper-headline']")?.textContent).toBe("Yes · tonight until 9:30");
     expect(container.querySelectorAll("[data-test='since-row']").length).toBe(3);
-    act(() => (container.querySelector("[data-test='swap-my-night']") as HTMLButtonElement).click());
+    // on his night: Done · Can't, ask someone (KIT-MEMBERS-5); "Swap my night" stays for nights that aren't his
+    expect(container.querySelector("[data-test='swap-my-night']")).toBeNull();
+    act(() => (container.querySelector("[data-test='turn-cant']") as HTMLButtonElement).click());
     expect(container.querySelector("[data-test='tab-chat']")?.hasAttribute("hidden")).toBe(false);
-    expect(container.querySelector<HTMLInputElement>("[data-test='tab-chat'] [data-test='chat-input']")?.value).toBe("@Village can someone swap Friday?");
   });
   it("Lucía never sees a verification prompt; no ids on her screen", async () => {
     vi.useFakeTimers();
