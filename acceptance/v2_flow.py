@@ -69,7 +69,7 @@ async def main(url: str, token: str) -> int:
         for _ in range(40):
             b = (await c.get(f"/villages/{vid}")).json().get("builder", {})
             if b.get("waiting_for_answer"):
-                await c.post(f"/villages/{vid}/answers", json={"text": "Marco goes Tuesdays and Thursdays; I go weekends."})
+                await c.post(f"/villages/{vid}/answers", json={"text": "My brother goes Tuesdays and Thursdays; I go weekends."})
                 break
             await asyncio.sleep(0.25)
         # A2-3: draft with 3 views
