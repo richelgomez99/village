@@ -59,6 +59,9 @@ async def reset_demo(village_id: str | None = None, *, keep_others: bool = False
     from core import demo_caller
 
     demo_caller.reset()
+    from core.ws_hub import _SHIFTS_ANNOUNCED
+
+    _SHIFTS_ANNOUNCED.clear()
     if not keep_others:
         await db.reset()
         await db.clear_cloud()
