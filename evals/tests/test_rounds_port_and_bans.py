@@ -12,7 +12,7 @@ def test_rerun_scam_set_shape(monkeypatch, tmp_path):
     monkeypatch.setattr(se, "OUT", tmp_path)
     monkeypatch.setattr(se, "SETS", tmp_path)
     orig = se.run
-    monkeypatch.setattr(se, "run", lambda mode, village: orig(mode, village, out_dir=tmp_path))
+    monkeypatch.setattr(se, "run", lambda mode, village, out_dir=None: orig(mode, village, out_dir=tmp_path))
     res = asyncio.run(rounds_port.rerun_scam_set("v_reyes"))
     for k in ("n_caught", "n_total", "n_false_alarms", "n_benign", "n_base", "n_village", "caught", "total"):
         assert k in res

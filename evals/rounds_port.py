@@ -19,7 +19,9 @@ async def rerun_scam_set(village_id: str) -> dict[str, Any]:
     from evals.scam_experiment import run
 
     mode = "auto" if os.environ.get("VILLAGE_LLM", "off") != "off" else "rules"
-    report = await asyncio.to_thread(run, mode, village_id)
+    from evals.reyes import ROOT
+
+    report = await asyncio.to_thread(run, mode, village_id, ROOT / "var" / "evals" / "rounds")
     s = report["summary"]
     return {
         "n_caught": s["caught"], "n_total": s["scams"], "n_false_alarms": s["false_alarms"], "n_benign": s["benign"],

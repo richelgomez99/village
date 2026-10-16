@@ -226,3 +226,43 @@ Core must mount / call:
 - reset_demo / `POST /admin/reset`: `await core.watcher.routes.on_reset("v_reyes")` to run tonight's round on the fresh seed
 - `/health.outbox`: `core.memory.runtime.health()`
 - evals lane: expose `evals.rounds_port` with `async rerun_scam_set(village) -> {caught, total}` and `async detect_patterns(village, events) -> [{claimed_member_id, event_ids, count, text?}]`
+
+## evals
+READY FOR MERGE EVALS
+
+Measured (Oct 16, eval clock 2026-10-16T14:02:09-04:00, Reyes fixture state with the Oct 9 seed request; numbers only from these runs):
+
+| run | extraction | caught | false alarms | exact match | extraction p50 / p95 | output |
+|---|---|---|---|---|---|---|
+| local, model on | Bedrock `anthropic.claude-haiku-4-5` (50/50 model extractions) | **30/30** | **0/20** | 49/50 | 1206 / 1407 ms | `evals/out/scam_experiment_20261016T153025Z_model.{json,md}` |
+| local, model off | deterministic rules | **28/30** | **0/20** | 47/50 | <1 ms | `evals/out/scam_experiment_20261016T154953Z_rules.{json,md}` |
+| Arize experiment, model on | Haiku 4.5, task run by Arize SDK runner | **30/30** | **0/20** | 49/50 | — | dataset `village-scam-eval` id `RGF0YXNldDozNzAyMTc6SEFDcA==`, experiment `scam-model-20261016T153959Z` id `RXhwZXJpbWVudDoxNjIyNDM6aU1KYg==`; mirror `evals/out/arize_experiment_20261016T153959Z.json` |
+| local, model off, `--village v_reyes` | rules | 29/31 | 0/20 | 48/51 | <1 ms | n_base 50 + n_village 1 (`evals/out/scam_experiment_20261016T154556Z_rules_v_reyes.*`) |
+
+Definitions: caught = scam case mapped to verify_with_member / advise_do_not_send / deny. False alarm = benign case mapped to advise_do_not_send / deny, or to verify_with_member where the dataset expects record (3 benign rows expect verify_with_member: rent cash to Ana, $50 to Marco, Medicare number to Ana). Gate→dataset mapping is written out for all 14 gate decisions in `evals/scam_experiment.py` `DECISION_MAP`; no tool call = record. Haiku's one miss on exact match: se_b07 (Ana asks for rent cash) → no tool call → record (expected verify_with_member; still not a false alarm). Rules misses: se_s03 and se_s27 (no "ask" verb matched) → record.
+
+- LD-1 scam experiment: `evals/scam_experiment.py` (+ `extract.py`, `reyes.py`): Haiku forced tool call (`report_money_request` | `not_a_money_request`) → claimed member resolved against Reyes members (unknown → None → R-MONEY-UNKNOWN; "asks Village to pay" → `money_transfer_request` → R-MONEY-NEVER) → GateInput (validated against gate.schema `gate_input` in tests) → pure `core.gate.decide` → score. JSON+MD report with per-case rows and timings. DONE.
+- LD-2 Arize experiment: `evals/arize_experiment.py`, `arize[Datasets]<8` (`ArizeDatasetsClient.create_dataset` + `run_experiment`, evaluators `caught`, `false_alarm`, `decision_match`). DONE (ids above). Two earlier experiments (`scam-rules-20261016T153717Z`, `scam-model-20261016T153825Z`) are WRONG: Arize returns `is_scam` as a string, so benign rows were scored as scams. Fixed; see `evals/out/discarded/README.txt`. Ignore those two in the UI.
+- LD-3 session eval + detector: `evals/session_eval.py` (`session_possible_fraud`, Haiku judge, rules fallback, EVALUATOR span, `update_evaluations` on the call root span, mirror `var/evals/sessions/<conv>.json`). Real run: conv_seed_1009 → possible_fraud 0.95 (Haiku), trace `a33eeac183244e9ccd30aff7e6fb7db6`; Arize shows the EVALUATOR span and `eval.session_possible_fraud` on the `call.session` root. `evals/detector.py` `detect_patterns(village_id, events)`: ≥2 money requests claiming the same member within 7 days → pattern with `evidence` (call_moment, trace, fact), schema-valid per proposal.schema `evidence`; seed Oct 9 + today → 1 pattern, 5 evidence rows. DONE.
+- LD-4 incident → test (D24 #11): `evals/incident_to_test.py` appends `{utterance, expected_decision, …}` to `evals/sets/<village>.jsonl` on verification_denied/timeout (idempotent per verification id); `scam_experiment --village v_reyes` reports n_base + n_village. `evals/sets/v_reyes.jsonl` has 1 row (the Oct 9 timeout). DONE.
+- LD-5 tracing: `core/obs/tracing.py` (`init_tracing` = arize-otel `register` + Anthropic instrumentor when ARIZE keys exist, else no-op; `span()` + `agent/tool/guardrail/chain/evaluator` decorators with session.id, graph.node.id, graph.node.parent_id, user.id). Real trace `9ea6655bab35c397925b58fcc13bf70d` in project `village`: CHAIN scam_eval.case > AGENT mom_line.extract > LLM messages.create, GUARDRAIL gate.decide (verified by span export). DONE.
+- LD-6 tests: `uv run pytest evals -q` → 33 passed offline (model off, Arize mocked); full `uv run pytest -q` → 222 passed. Includes T007 import ban (core/gate, core/voice/tools*.py import no evals/arize/core.memory/core.obs). DONE.
+- LD-7 rounds port: `evals/rounds_port.py` `async rerun_scam_set(village)` → {n_caught, n_total, n_false_alarms, n_benign, n_base, n_village, caught, total, …} (rules unless VILLAGE_LLM on; report to `var/evals/rounds/`), `async detect_patterns(village, events)` → patterns with `claimed_member_id, event_ids, count, text, evidence` (the shape rounds.py reads; evidence rows inside). DONE.
+
+Commands:
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.scam_experiment --mode model`
+- `uv run python -m evals.scam_experiment --mode rules [--village v_reyes]`
+- `VILLAGE_LLM=on uv run --with boto3 --with 'arize[Datasets]<8' python -m evals.arize_experiment`
+- `VILLAGE_LLM=on uv run --with boto3 --with arize python -m evals.session_eval conv_seed_1009`
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.trace_smoke`; `uv run python -m evals.detector`; `uv run python -m evals.incident_to_test v_reyes`
+
+Notes for core / orchestrator:
+- `core.llm` Bedrock path needs `boto3` (not in pyproject; evals uses `uv run --with boto3`). An empty `AWS_BEARER_TOKEN_BEDROCK=` in .env makes Mantle send `Bearer ` and fail with "Connection error"; `evals/env.py` drops empty AWS_/ARIZE_ vars. Core should do the same or remove the empty line.
+- `llm("haiku")` maps to the Sonnet slot (role not in {watcher, verifier, explainer}); evals pins `BEDROCK_HAIKU_MODEL`. Harmless today (both are haiku-4-5).
+- The `arize` SDK (v7 and v8) shadows `arize.otel` from arize-otel when layered on; `core/obs/tracing.py` re-exposes it.
+- Mantle rejects `temperature`; the extraction runs without it (Haiku extractions are not guaranteed deterministic across runs).
+
+Open risks:
+- The rules extractor was written with the 50 cases visible: treat 28/30 as a regression baseline, not a generalization claim. The Haiku prompt names the Reyes family; same caveat, smaller.
+- Dataset is 50 hand-written cases (30/20); a perfect score on it is not a field rate. Pitch should say "on our 50-case eval set".
+- The detector's `fact` refs are synthesized keys (`fact:money_request:<subject>:<date>`), not read back from Agent Memory.
