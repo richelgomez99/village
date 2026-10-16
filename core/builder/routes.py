@@ -334,3 +334,54 @@ async def ask_route(village_id: str, body: dict) -> dict:
     llm = get_llm(body.get("llm"), "sonnet") if body.get("llm") != "off" else None
     res = await builder_ask(village_id, question, services=services(), llm=llm, lang=body.get("lang", "en"), channel=body.get("channel", "http"))
     return res.as_dict()
+
+
+# ---- Village as a chat participant (operator test 13:30): every member message is classified -----------
+_PARTICIPANT_TASKS: set[asyncio.Task] = set()
+
+
+def install_chat_participant() -> bool:
+    """Wraps core.services.post_member_message (no core edit): messages that don't mention @Village (core
+    already answers those through `core.builder.ask`) go to chat_intent.participant, which decides whether
+    Village speaks (need → rota-grounded answer or swap proposal; why → cited answer; change → proposal;
+    chit_chat → silence)."""
+    try:
+        from core import services as core_services
+    except Exception:
+        return False
+    original = core_services.post_member_message
+    if getattr(original, "_village_participant", False):
+        return True
+
+    async def post_member_message(village_id: str, member_id: str, text: str, **kw: Any) -> dict[str, Any]:
+        result = await original(village_id, member_id, text, **kw)
+        message = result.get("message") or {}
+        if result.get("routed") == "none" and message.get("author") not in (None, "village", "system"):
+            from .chat_intent import participant
+
+            async def run() -> None:
+                try:
+                    out = await participant(village_id, message, llm=get_llm(None, "haiku"))
+                    if out:
+                        result["participant"] = out.get("kind")
+                except Exception:
+                    import logging
+
+                    logging.getLogger("village.builder").exception("chat participant failed")
+
+            task = asyncio.get_running_loop().create_task(run())
+            _PARTICIPANT_TASKS.add(task)
+            task.add_done_callback(_PARTICIPANT_TASKS.discard)
+            try:
+                core_services._CHAT_TASKS.add(task)  # drain_chat() waits for it too
+                task.add_done_callback(core_services._CHAT_TASKS.discard)
+            except Exception:
+                pass
+        return result
+
+    post_member_message._village_participant = True  # type: ignore[attr-defined]
+    core_services.post_member_message = post_member_message
+    return True
+
+
+install_chat_participant()
