@@ -20,7 +20,7 @@ class MockSocket extends EventTarget {
 }
 
 const snap = (role: "elder" | "helper", rev = 5, village = "v_reyes") => ({
-  type: "snapshot", contract_version: "1.2.2", rev, village, role, member_id: role === "elder" ? "m_carmen" : "m_marco",
+  type: "snapshot", contract_version: "1.3.0", rev, village, role, member_id: role === "elder" ? "m_carmen" : "m_marco",
   spec: (reyes as any).views[role], data: {}, now: "2026-10-16T20:50:00-04:00"
 });
 

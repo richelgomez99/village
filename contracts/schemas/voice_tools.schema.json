@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/voice_tools.schema.json",
   "title": "Voice tool exchange",
   "description": "ElevenLabs server (webhook) tools → POST /tools/{name} on core. The request body is exactly the tool's request_body_schema (no envelope). Every request carries conversation_id, caller_id, call_secs (system__* dynamic variables) and utterance. Every response is {decision, say, say_key?, rule_id, lang, data?}; the agent speaks `say` verbatim (structured procedure branch on `decision`; ElevenLabs assignments: gate_decision←decision, say_text←say, verification_id←data.verification_id). An instance of the root schema is one request/response exchange. The outbound verification agent's submit_verification_answer goes to POST /verifications/{id}/answer ($defs/verification_answer_request).",
-  "x-contract-version": "1.2.2",
+  "x-contract-version": "1.3.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -405,7 +405,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       },
       "anyOf": [
@@ -478,7 +478,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -532,7 +532,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -577,7 +577,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -621,7 +621,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -674,7 +674,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -745,7 +745,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -787,7 +787,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -898,7 +898,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -949,7 +949,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -982,7 +982,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -1482,7 +1482,7 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       }
     },
@@ -1531,10 +1531,10 @@
             "es",
             "en"
           ],
-          "description": "1.2.2: caller's language; the response say is in this language, with both in data.say_es/say_en."
+          "description": "1.3.0: caller's language; the response say is in this language, with both in data.say_es/say_en."
         }
       },
-      "description": "1.2.2 (D19 receptionist): first call holds and starts a verification; second call with verification_id waits ≤30 s; response data.status pass_through|held|refused|ask_purpose|receptionist_off, data.next connect|screen_caller|end_call."
+      "description": "1.3.0 (D19 receptionist): first call holds and starts a verification; second call with verification_id waits ≤30 s; response data.status pass_through|held|refused|ask_purpose|receptionist_off, data.next connect|screen_caller|end_call."
     }
   },
   "examples": [
