@@ -1,3 +1,5 @@
+/* the Control Room page itself is Village's room: dark all the way down */
+html, body { background: #100D0A; margin: 0; }
 /* Direction A (D17): dark projector tokens from design/ControlRoom.dc.html. Phones inside stay light (#FBF6EE on a #2C2621 bezel). */
 .control {
   --night: #100D0A;

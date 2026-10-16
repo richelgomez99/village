@@ -73,9 +73,9 @@ export function BigButton({ id, props }: CatalogProps) {
       );
     }
     return (
-      <button type="button" className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} data-no-number={tel ? undefined : "true"} disabled>
+      <button type="button" className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} data-no-number={tel || ctx.disabled ? undefined : "true"} disabled>
         {label}
-        {!tel ? <span className="no-number small" data-test="no-number">{k("no_number", ctx.lang)}</span> : null}
+        {!tel && !ctx.disabled ? <span className="no-number small" data-test="no-number">{k("no_number", ctx.lang)}</span> : null}
       </button>
     );
   }

@@ -319,7 +319,7 @@ export function LiveMomentRegion({ live, nowMs, spec, data }: { live: LiveMoment
   if (!live) {
     return (
       <Region test="live-moment" title="Live" className="r-live" extra={{ "data-state": "idle" }}>
-        <p className="empty">No call right now. When a caller asks for money, the check with the family plays here.</p>
+        <p className="empty">No call right now. When a caller asks for money, the check with a trusted person plays here.</p>
       </Region>
     );
   }
