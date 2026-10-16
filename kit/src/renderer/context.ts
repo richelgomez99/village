@@ -38,7 +38,9 @@ export interface RenderCtx {
   /** REST access for read-only lookups inside components (fact history); absent = those affordances hide. */
   api?: ApiConfig;
   /** tabbed member app: jump to the Chat tab, optionally with a composer prefill ("@Village can someone swap Friday?"). */
-  openChat?: (prefill?: string) => void;
+  openChat?: (prefill?: string, opts?: { send?: boolean }) => void;
+  /** set with chatDraft: VillageChat sends the draft at once (Swap → "@Village can someone cover Friday for me?") */
+  chatAutoSend?: boolean;
   /** composer prefill handed to VillageChat by openChat */
   chatDraft?: string;
   /** VillageChat is the full-height Chat tab panel */

@@ -40,9 +40,10 @@ describe("tabs from life areas (generic)", () => {
     const p = planTabs(view(R, "coordinator"), {}, "es", R.blueprint);
     expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Dinero", "Familia"]);
   });
-  it("Reyes helper serves fewer than two areas on its own tabs: Home + Chat only", () => {
+  it("Reyes helper: Home (answer, since, refill, Call Mamá) · People (the rota) · Chat", () => {
     const p = planTabs(view(R, "helper"), areasData(R), "en");
-    expect(p.areas).toEqual([]);
+    expect(p.areas.map((a) => [a.id, a.elements])).toEqual([["people", ["rota"]]]);
+    expect(p.homeRest).toEqual(["since", "refill", "b_mom"]);
     expect(p.headline).toBe("ans");
     expect(p.chat).toBe("chat");
   });
@@ -52,9 +53,10 @@ describe("tabs from life areas (generic)", () => {
     expect(p.headline).toBe("st");
     expect(p.chat).toBe("chat");
   });
-  it("block volunteer: Home + Chat", () => {
+  it("block volunteer: the match board leads Home; offers on their area tab", () => {
     const p = planTabs(view(B, "volunteer"), areasData(B), "en");
-    expect(p.areas).toEqual([]);
+    expect(p.headline).toBe("nb");
+    expect(p.areas.map((a) => a.id)).toEqual(["health"]);
     expect(p.chat).toBe("chat");
   });
   it("no need → area map from Core: everything stays on Home (graceful)", () => {
@@ -280,5 +282,54 @@ describe("D39 chat: Village as a participant", () => {
     expect(chat.textContent).not.toContain("Undo within");
     expect(chat.querySelector("[data-test='chat-demo']")).not.toBeNull();
     expect(chat.textContent).not.toContain("[demo]");
+  });
+});
+
+describe("kit-members-3", () => {
+  const names = { "member:m_lucia": { name: "Lucía" }, "member:m_marco": { name: "Marco" }, "member:m_ana": { name: "Ana" } };
+  it("ask refs become status chips; the nudges they cover are not separate bubbles", () => {
+    const parent = { id: "msg_p", village: "v_reyes", author: "village", kind: "answer", reply_to: "msg_q", text: "Tomorrow's Saturday, Marco's night. I asked Marco and Lucía.", refs: [{ kind: "ask", id: "ask_1", member: "m_marco" }, { kind: "ask", id: "ask_1", member: "m_lucia" }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:05:00-04:00" };
+    const n1 = { id: "msg_n1", village: "v_reyes", author: "village", kind: "nudge", text: "Marco, are you still good for Saturday?", refs: [{ kind: "member", id: "m_marco" }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:05:01-04:00" };
+    const done = { id: "msg_d", village: "v_reyes", author: "village", kind: "answer", reply_to: "msg_q", text: "Saturday: Lucía covers for Marco.", refs: [{ kind: "event", id: "ev_1016_1406_shift", label: "rota" }, { kind: "member", id: "m_lucia" }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:06:00-04:00" };
+    const a = renderView(R.views.coordinator, { ...names, "chat:village": [parent, n1] }, { memberId: "m_ana" });
+    const chat = a.container.querySelector("[data-test='village-chat']")!;
+    expect([...chat.querySelectorAll("[data-test='ask-chip']")].map((c) => c.textContent)).toEqual(["asked Marco", "asked Lucía"]);
+    expect(chat.querySelectorAll("[data-test='chat-row']").length).toBe(1);
+    a.unmount();
+    const b = renderView(R.views.coordinator, { ...names, "chat:village": [parent, n1, done] }, { memberId: "m_ana" });
+    expect([...b.container.querySelectorAll("[data-test='village-chat'] [data-test='ask-chip']")].map((c) => c.textContent)).toEqual(["asked Marco", "Lucía: can do"]);
+  });
+  it("Swap posts to the chat and the row says asked; a changed day flashes NEW", async () => {
+    vi.useFakeTimers();
+    const { container, socket } = mount("marco");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    const swap = container.querySelector<HTMLButtonElement>("[data-test='rota-swap']")!;
+    act(() => swap.click());
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector("[data-test='tab-chat']")?.hasAttribute("hidden") ?? false).toBe(false);
+    const rows = [...container.querySelectorAll("[data-test='tab-chat'] [data-test='chat-row']")];
+    expect(rows.pop()?.textContent).toMatch(/@Village can someone cover (Thursday|Friday|Sunday) for me\?/);
+    expect(container.querySelector("[data-test='rota-asked']")).not.toBeNull();
+    // Village writes the swap: rota:week changes → NEW on that day
+    const week = (socket.state.data["rota:week"] as any[]).map((d) => (d.date === "2026-10-18" ? { ...d, on_duty: "m_lucia", backup: "m_marco" } : d));
+    act(() => (socket as any).set({ data: { ...socket.state.data, "rota:week": week } }));
+    expect(container.querySelector("[data-test='rota-row'][data-date='2026-10-18'] [data-test='rota-new']")).not.toBeNull();
+  });
+  it("evidence chips read in words from event ids, never twice", () => {
+    expect(chipLabel({ kind: "event", id: "ev_1009_1921_money" })).toBe("her call · Oct 9");
+    expect(chipLabel({ kind: "event", id: "ev_1016_1402_money" }, "1016")).toBe("today's call");
+  });
+});
+
+describe("contract 1.3.4 ask refs", () => {
+  it("answered on the ref drives the chip; a re-sent message replaces in place", async () => {
+    const msg = (answered: string | null) => ({ id: "msg_ask", village: "v_reyes", author: "village", kind: "answer", reply_to: "msg_q", text: "I asked Lucía.", refs: [{ kind: "ask", id: "ask_2", member: "m_lucia", label: "Lucía", answered }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:05:00-04:00" });
+    vi.useFakeTimers();
+    const { container, socket } = mount("ana");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    act(() => (socket as any).handle({ type: "chat", message: msg(null) }));
+    act(() => (socket as any).handle({ type: "chat", message: msg("yes") }));
+    const chips = [...container.querySelectorAll("[data-test='tab-chat'] [data-test='ask-chip']")].map((c) => c.textContent);
+    expect(chips).toEqual(["Lucía: can do"]);
   });
 });

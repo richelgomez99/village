@@ -3,6 +3,8 @@ import { applyViewPatch, viewSchema, type View } from "../renderer/view";
 import type { ActionRequest, ResultInfo } from "../renderer/context";
 import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type Identity, type PromptFrame, type ServerFrame } from "./messages";
 
+export interface AskPrompt { kind: "ask"; ask_id: string; question: unknown; options?: { id: string; label: unknown }[]; closed?: boolean }
+
 export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "updating" | "closed";
 
 export interface LiveState {
@@ -24,6 +26,8 @@ export interface LiveState {
   spec: unknown;
   data: Record<string, unknown>;
   prompt: PromptFrame | null;
+  /** D39 people-ask on this member's phone: {type: prompt, kind: ask, ask_id, question, options} (pre-contract; Core asks.py) */
+  ask: AskPrompt | null;
   results: Record<string, ResultInfo | "pending">;
   highlight: string[];
   control: ControlFrame[];
@@ -53,7 +57,7 @@ export type FrameListener = (f: ServerFrame) => void;
 export function initialLiveState(village = ""): LiveState {
   return {
     status: "idle", attempt: 0, closedReason: null, lastError: null, rev: 0, village, role: "", memberId: null,
-    self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
+    self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, ask: null, results: {}, highlight: [], control: [], events: []
   };
 }
 
@@ -177,6 +181,11 @@ export class VillageSocket {
     this.hello();
   }
 
+  /** close the ask sheet locally once answered (Core's answer arrives as chat) */
+  clearAsk() {
+    this.set({ ask: null });
+  }
+
   action(a: ActionRequest): string {
     const who = (this.s.self?.memberId ?? this.s.memberId ?? "member").replace(/^[a-z]_/, "");
     const req_id = `r_${who}_${String(++this.seq).padStart(4, "0")}`;
@@ -207,6 +216,11 @@ export class VillageSocket {
       json = typeof raw === "string" ? JSON.parse(raw) : raw;
     } catch {
       this.set({ lastError: "bad_message" });
+      return;
+    }
+    if ((json as any)?.type === "prompt" && (json as any)?.kind === "ask") {
+      const a = json as AskPrompt;
+      if (!this.s.viewAs) this.set({ ask: a.closed ? null : a });
       return;
     }
     const parsed = serverFrameSchema.safeParse(json);
@@ -292,7 +306,11 @@ export class VillageSocket {
         return;
       case "chat": {
         const rows = Array.isArray(this.s.data["chat:village"]) ? (this.s.data["chat:village"] as { id: string }[]) : [];
-        if (rows.some((r) => r.id === f.message.id)) return;
+        // the builder re-sends an ask message (same id) as answers arrive: replace it in place
+        if (rows.some((r) => r.id === f.message.id)) {
+          this.set({ data: { ...this.s.data, "chat:village": rows.map((r) => (r.id === f.message.id ? f.message : r)) } });
+          return;
+        }
         this.set({ data: { ...this.s.data, "chat:village": [...rows, f.message].slice(-50) } });
         return;
       }

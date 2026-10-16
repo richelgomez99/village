@@ -28,6 +28,7 @@ function boundEmpty(ctx: RenderCtx, id: string, openOnly = true): boolean {
 export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { life_areas?: any[] } | null }) {
   const [tab, setTab] = useState("home");
   const [draft, setDraft] = useState<string | undefined>();
+  const [autoSend, setAutoSend] = useState(false);
   const ref = useRef<HTMLElement | null>(null);
   // one tab set per snapshot: depends on the view and the life-area rows only, never on which tab is open or on live rows
   // live event frames may resend life-area rows without need_ids: keep the last rows that had them
@@ -40,11 +41,13 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
   const inHistory = new Set(plan.areas.flatMap((a) => a.elements));
   const unknown = useMemo(() => collectUnknown(ctx.view), [ctx.view]);
   const invalid = useMemo(() => collectInvalid(ctx.view), [ctx.view]);
-  const openChat = (prefill?: string) => {
+  const openChat = (prefill?: string, opts?: { send?: boolean }) => {
+    // a fresh object each time so the same text can be sent twice
     if (prefill) setDraft(prefill);
+    setAutoSend(!!opts?.send);
     setTab("chat");
   };
-  const c: RenderCtx = { ...ctx, openChat: plan.chat ? openChat : undefined, chatDraft: draft };
+  const c: RenderCtx = { ...ctx, openChat: plan.chat ? openChat : undefined, chatDraft: draft, chatAutoSend: autoSend };
   const root = ctx.view.elements[ctx.view.root];
   const es = ctx.lang === "es";
 
