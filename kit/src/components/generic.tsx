@@ -197,6 +197,34 @@ function Chips({ m }: { m: ChatRow }) {
 
 /** One chat row, rendered by kind (D16): member · Village (sage, third person, source chips) · relayed (amber, Spanish + English)
  *  · proposal (title + one sentence + Approve · Not now for leaders) · receipt · nudge · answer (citation chips in words). */
+/** D39 · KIT-MEMBERS-6: only the member whose role decides (the spec's coordinator) gets Approve / Not now. */
+export function canDecide(ctx: { role: string; memberId: string | null }, prop?: { coordinator_id?: string; approver?: string } | null): boolean {
+  const id = prop?.approver ?? prop?.coordinator_id;
+  return id ? id === ctx.memberId : ctx.role === "coordinator";
+}
+
+/** who decides, by id: the proposal's own approver / coordinator, else the member row whose role is coordinator */
+export function deciderId(data: Record<string, unknown>, prop?: { coordinator_id?: string; approver?: string; decided_by?: string } | null): string | null {
+  const own = prop?.decided_by ?? prop?.approver ?? prop?.coordinator_id;
+  if (own) return own;
+  for (const [key, v] of Object.entries(data)) {
+    const r = v as { role?: string; member_id?: string } | null;
+    if (key.startsWith("member:") && r?.role === "coordinator") return r.member_id ?? key.slice(7);
+  }
+  return null;
+}
+
+/** the status line a non-deciding member sees under a proposal post: "Ana is deciding" → "Approved by Ana · built → live" */
+export function proposalStatusLine(pid: string, rows: ChatRow[], data: Record<string, unknown>, prop?: { status?: string; coordinator_id?: string; approver?: string; decided_by?: string } | null): string {
+  const who = deciderId(data, prop);
+  const name = who ? memberName(who, data) : "";
+  const live = prop?.status === "applied" || rows.some((r) => r.kind === "receipt" && (r.refs ?? []).some((x) => x.kind === "proposal" && x.id === pid));
+  if (live) return `Approved${name ? ` by ${name}` : ""} · built → live`;
+  if (prop?.status === "rejected") return `Not now${name ? ` · ${name}` : ""}`;
+  if (prop?.status === "verifying" || prop?.status === "approved") return `Approved${name ? ` by ${name}` : ""} · building`;
+  return name ? `${name} is deciding` : "Waiting for a yes";
+}
+
 export function ChatMessage({ m, elementId, allowApprove, compact = false, rows = [] }: { m: ChatRow; elementId: string; allowApprove: boolean; compact?: boolean; rows?: ChatRow[] }) {
   const ctx = useCtx();
   const [localAnswer, setLocalAnswer] = useState<"yes" | "no" | null>(null);
@@ -270,7 +298,10 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false, rows 
           }
           return <span className="chat-ask-status small muted" data-test="ask-status">{ans ? `${ctx.memberId === ask.addressee ? "You" : name}: ${ans === "yes" ? "can do" : "can't"}` : `waiting for ${name}…`}</span>;
         })() : null}
-        {allowApprove && pid && open && !compact ? (
+        {pid && !compact && !(allowApprove && open && canDecide(ctx, prop as never)) ? (
+          <span className="chat-ask-status small muted" data-test="proposal-status">{proposalStatusLine(pid, rows, ctx.data, prop as never)}</span>
+        ) : null}
+        {allowApprove && pid && open && !compact && canDecide(ctx, prop as never) ? (
           <span className="row" data-test="chat-proposal-actions">
             <button type="button" className="btn btn-primary" data-test="chat-proposal-approve" disabled={ctx.disabled || prop?.status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: elementId })}>{k("approve", ctx.lang)}</button>
             <button type="button" className="btn btn-soft" data-test="chat-proposal-reject" disabled={ctx.disabled} onClick={() => ctx.send({ name: "reject_proposal", arg: pid, element_id: elementId })}>{k("not_now", ctx.lang)}</button>

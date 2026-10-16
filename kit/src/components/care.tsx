@@ -40,7 +40,8 @@ interface BvAlert {
 export function Alert({ props }: CatalogProps) {
   const ctx = useCtx();
   const levels: string[] = props.severity_levels ?? ["danger", "warn", "info"];
-  const alerts = arr<BvAlert>(ctx.data[props.bind]).filter((a) => levels.includes(a.severity));
+  // the urgent strip is only for what is unresolved: an alert whose verification already ended lives in the ledger
+  const alerts = arr<BvAlert>(ctx.data[props.bind]).filter((a) => levels.includes(a.severity) && !(a.verification && a.verification.status !== "pending"));
   if (!alerts.length) {
     return (
       <section className="alert alert-empty" data-test="alert" data-count="0">

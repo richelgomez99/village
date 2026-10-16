@@ -17,7 +17,7 @@ const chat = [
 describe("Ana's coordinator view: Proposal card + VillageChat inline approve", () => {
   it("renders bv_proposal and sends approve_proposal / reject_proposal with arg = proposal_id", () => {
     const send = vi.fn(() => "rq_1");
-    const { container } = renderView((reyes as any).views.coordinator, { "proposals:pending": [card], "chat:village": chat }, { send });
+    const { container } = renderView((reyes as any).views.coordinator, { "proposals:pending": [card], "chat:village": chat }, { send, role: "coordinator" });
     expect(unknownCount(container)).toBe(0);
     expect(container.querySelector("[data-test='invalid-props']")?.getAttribute("data-count")).toBe("0");
     const prop = container.querySelector("[data-test='proposal']")!;
@@ -32,7 +32,7 @@ describe("Ana's coordinator view: Proposal card + VillageChat inline approve", (
   });
 
   it("chat drops the buttons once the proposal leaves proposals:pending; helper chat never shows them", () => {
-    const { container } = renderView((reyes as any).views.coordinator, { "proposals:pending": [], "chat:village": chat });
+    const { container } = renderView((reyes as any).views.coordinator, { "proposals:pending": [], "chat:village": chat }, { role: "coordinator" });
     expect(container.querySelector("[data-test='proposal']")).toBeNull();
     expect(container.querySelector("[data-test='chat-proposal-approve']")).toBeNull();
     const helper = renderView((reyes as any).views.helper, { "chat:village": chat });
