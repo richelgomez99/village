@@ -68,9 +68,9 @@
   "platform_settings": {
     "workspace_overrides": {
       "conversation_initiation_client_data_webhook": {
-        "url": "https://{{system_env__core_host}}/hooks/elevenlabs/init",
+        "url": "https://richel-macbook.tail8feae0.ts.net/hooks/elevenlabs/init",
         "request_headers": {
-          "X-Village-Secret": { "env_var_label": "core_secret" }
+          "X-Village-Secret": { "env_var_label": "VILLAGE_TOOL_SECRET" }
         }
       }
     },
@@ -98,4 +98,3 @@
     }
   }
 }
-

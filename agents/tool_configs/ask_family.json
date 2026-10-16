@@ -1,34 +1,103 @@
 {
-  "type": "webhook",
-  "name": "ask_family",
-  "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
   "api_schema": {
-    "url": "https://{{system_env__core_host}}/tools/ask_family",
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/ask_family",
     "method": "POST",
-    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
     "request_body_schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "to", "message", "urgency"],
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "to",
+        "message",
+        "urgency"
+      ],
       "properties": {
-        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
-        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
-        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
-        "utterance": { "type": "string" },
-        "tool_call_id": { "type": "string" },
-        "village_id": { "type": "string", "dynamic_variable": "village_id" },
-        "to": { "type": "string" },
-        "message": { "type": "string" },
-        "urgency": { "type": "string", "enum": ["now", "today", "fyi"] },
-        "reason": { "type": "string", "enum": ["dose_uncertain", "possible_double_dose", "missed_dose", "symptom", "emergency", "refill", "question", "wants_to_talk", "money_request"] }
-      }
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "utterance"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "to": {
+          "type": "string",
+          "description": "to"
+        },
+        "message": {
+          "type": "string",
+          "description": "message"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "now",
+            "today",
+            "fyi"
+          ],
+          "description": "urgency"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "dose_uncertain",
+            "possible_double_dose",
+            "missed_dose",
+            "symptom",
+            "emergency",
+            "refill",
+            "question",
+            "wants_to_talk",
+            "money_request"
+          ],
+          "description": "reason"
+        }
+      },
+      "description": "Request body for ask_family"
     }
   },
   "assignments": [
-    { "dynamic_variable": "gate_decision", "value_path": "decision" },
-    { "dynamic_variable": "say_text", "value_path": "say" }
-  ]
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    }
+  ],
+  "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "ask_family",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }
-
