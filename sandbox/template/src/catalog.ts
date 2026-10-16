@@ -7,6 +7,7 @@ export const CATALOG = [
   "DoseTracker", "CareRota", "Timeline", "SymptomLog", "CallLog", "NeedBoard", "ResourceBoard",
   "VerifiedInfoFeed", "CheckIn", "Checklist", "ScamCheck", "IncidentCard", "LifeAreas",
   "VerificationPrompt", "HelperAnswer", "Proposal", "PillOrganizer", "VillageChat", "RefillCard", "TonightCard",
+  "RightNow", "WhatVillageDid", "SinceYourTurn", "PlanBoard", "ScreenedCalls", "FactCard",
 ] as const;
 
 export type ThemeName = "elder" | "family" | "dashboard";
