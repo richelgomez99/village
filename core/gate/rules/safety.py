@@ -5,6 +5,7 @@ from typing import Any
 
 from core.gate.models import GateInput, append_rule, copy_payload, member_name
 from core.gate.rules.common import coordinator_notify, finish, local_hm, on_duty_name, parse_dt
+from core.gate.rules.money import decide_money
 
 EMERGENCY_WORDS = (
     "chest hurts",
@@ -48,6 +49,10 @@ def decide_safety(inp: GateInput) -> dict[str, Any]:
         out = finish(inp, "R-KILL", "deny", rules=["P-CO-01"])
         out["flags"] = ["kill_switch"]
         return out
+
+    money_decision = decide_money(inp)
+    if money_decision is not None:
+        return money_decision
 
     if _has_emergency(kind, payload, text):
         out = finish(inp, "R-911", "advise_911", "advise_911_first", rules=["P-911-01", "P-911-02"])
