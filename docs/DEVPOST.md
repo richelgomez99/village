@@ -292,3 +292,6 @@ Climax: the receptionist refusing the scammer live (D19). Founding is the full i
 8. **Why Anchor?** Tests that read code don't see what Carmen sees. An Anchor browser opens each version at phone size (390×844) and checks it the way she'd see it, and we keep the recording as evidence.
 9. **Why Arize?** The agent reads its own traces and evals. A session eval flagged the Oct 9 call as possible fraud, which is what starts the rebuild; release evals decide whether a version ships; the scam eval set runs as an Arize experiment (30/30, 0/20). Observability the agent uses, not only a dashboard for us.
 10. **Why SurrealDB and ElevenLabs?** SurrealDB gives us records, LIVE queries to every phone (p50 22 ms) and Agent Memory where a new fact replaces an old one without erasing it: the 5 mg to 10 mg change stays visible with its source, and as-of queries return what was true then. ElevenLabs is the whole product for Carmen: a Spanish phone line where the safety sentences are spoken word for word, and the call that checks with Marco.
+
+
+**GitHub:** https://github.com/richelgomez99/village

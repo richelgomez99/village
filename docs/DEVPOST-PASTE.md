@@ -163,3 +163,6 @@ Label for the second link: "Be Marco (the son): open on your phone".
 - Receptionist GIF and the money-claim refusal on a live call (the 13:28 call was a non-money caller); the V1 clip URL; the caught-build receipt screenshot.
 - The Thanksgiving chat demo (ran only on a test Core).
 - The sponsor section is headings + bullets rather than a Markdown table, because Devpost's editor doesn't reliably render bullets inside table cells.
+
+
+**GitHub:** https://github.com/richelgomez99/village

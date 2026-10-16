@@ -8,6 +8,8 @@ Built in one day at the Daytona HackSprint NYC (Oct 16 2026). Village is a platf
 
 ---
 
+**Code:** https://github.com/richelgomez99/village (public; the commit history is the day's log; `DECISIONS.md` D25–D39 are the decisions made during the hackathon).
+
 ## The demo arc: Build, Run, Rebuild, Anyone
 
 | Beat | What happens | What it proves |
