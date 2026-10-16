@@ -39,7 +39,7 @@ def test_live_call_goes_only_to_demo_number_and_post_call_writes_live_facts(live
         assert live.calls and live.calls[-1]["to_number"] == "+15555550199"
         dv = live.calls[-1]["conversation_initiation_client_data"]["dynamic_variables"]
         assert dv["purpose"] == "institution_check" and dv["place_name"] == inst["name"] and dv["questions"]
-        conv = f"conv_out_{len(live.calls)}"
+        conv = next(k for k in db.idem if k.startswith("instconv:")).split(":", 1)[1]
         assert await ic.apply_post_call({"type": "post_call", "conversation_id": conv, "duration_secs": 41,
                                          "data_collection_results": {"has_power": {"value": "yes"}, "open_until": "8 PM", "takes_oxygen": "unknown"}})
         out = await task
