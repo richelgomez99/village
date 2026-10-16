@@ -107,8 +107,14 @@ def _demo_elder_caller_ids(village_id: str | None = None) -> set[str]:
 
 
 def _find_by_phone(caller_id: str, village_id: str | None = None) -> dict[str, Any] | None:
+    from core import demo_caller
+
+    recipient = _care_recipient(village_id)
+    presenter = caller_id in _demo_elder_caller_ids(village_id) or (recipient is not None and caller_id == recipient.get("phone"))
+    if presenter and demo_caller.role() == "unknown":
+        return None  # stage switch: the presenter's phone plays an unknown caller (receptionist beat)
     if caller_id in _demo_elder_caller_ids(village_id):
-        return _care_recipient(village_id)
+        return recipient
     for person in _people(village_id):
         if person.get("phone") == caller_id:
             return person

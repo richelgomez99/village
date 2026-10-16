@@ -712,6 +712,10 @@ async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> 
         return {"type": "result", "req_id": req_id, "ok": True, "decision": {"decision": "allow", "data": {"action": name}}}
     if name in {"approve_proposal", "reject_proposal"}:
         return await approve_proposal(village_id, name, request)
+    if name == "ask_proposal_other":
+        from core.proposal_ask import ask_other
+
+        return await ask_other(village_id, request)
     raise KeyError(name)
 
 
@@ -855,10 +859,11 @@ async def apply_verification_step(
         await control(village, "gate", gate_payload)
         await reasoning(village, _terminal_reasoning(row), mode=_mode_for(decision))
         await ledger(village, f"ver:{row['id']}", "done", f"Verify money request with {_claimed_name(row)}", result=row.get("state"), decision_id=decision["id"], role="Verifier")
-        if row.get("state") in {"denied", "late_denied"}:
+        if row.get("state") in {"denied", "late_denied", "timed_out"}:
             from core.bindings import scams_stopped_today
 
-            _COUNTERS["scams_stopped"] = max(_COUNTERS.get("scams_stopped", 0) + 1, scams_stopped_today(village))
+            # per village, today's denied/timed-out verifications (ws_hub re-sends it on every connect)
+            _COUNTERS["scams_stopped"] = scams_stopped_today(village)
             await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})
         _evolve_port(village, row)
     for ev in written:
