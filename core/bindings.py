@@ -225,13 +225,15 @@ def prescriptions_current(subject: str | None = None, village_id: str | None = N
 
 
 def scams_stopped_today(village_id: str | None = None) -> int:
-    """Denied money verifications resolved today (ledger rows, so it survives reconnects and replays)."""
+    """Money verifications stopped today in this village: denied / late_denied / timed_out, from ledger rows
+    (verification_denied / verification_timeout events, so it survives reconnects and replays) and live rows."""
     vid = _v(village_id)
     today = clock.now().date().isoformat()
     ids = {ev.get("payload", {}).get("verification_id") or ev["id"] for ev in db.events
-           if ev["kind"] == "verification_denied" and ev.get("village", vid) == vid and str(ev.get("at", "")).startswith(today)}
+           if ev["kind"] in {"verification_denied", "verification_timeout"} and ev.get("village", vid) == vid
+           and str(ev.get("at", "")).startswith(today)}
     ids |= {row["id"] for row in db.verifications.values()
-            if row.get("village", vid) == vid and row.get("state") in {"denied", "late_denied"}
+            if row.get("village", vid) == vid and row.get("state") in {"denied", "late_denied", "timed_out"}
             and str(row.get("resolved_at") or row.get("created_at") or "").startswith(today)}
     return len(ids)
 
@@ -243,43 +245,18 @@ _AREA_WORD = {"health": "Pills", "money": "Money", "people": "People"}
 
 
 def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
-    """Plain words per life area for family phones ("Pills: morning taken · refill Friday · Marco")."""
+    """Plain words per life area, computed from events in the village's own vocabulary (core.bindings_live);
+    the label carries the area word ("Pills: …"), the status is the line ("morning taken · refill Friday · Marco")."""
+    from core.bindings_live import area_word, life_area_status
+
     vid = _v(village_id)
-    spec = db.specs.get(vid, {})
-    on_duty = _on_duty(village_id)
-    name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
-    stopped = scams_stopped_today(vid)
-    today = clock.now().date().isoformat()
-    taken = [slot for slot in ("morning", "evening")
-             if any(ev["kind"] == "dose" and ev.get("village", vid) == vid and str(ev.get("at", "")).startswith(today)
-                    and ev.get("payload", {}).get("slot") == slot for ev in db.events)]
-    pills_en = (" and ".join(taken) + " taken") if taken else "nothing taken yet"
-    pills_es = ("tomó la de la " + " y la de la ".join(_SLOT_ES[t] for t in taken)) if taken else "todavía nada"
-    refill = "Fri"
-    is_today = clock.now().strftime("%a") == refill
-    verifier = villages.default_verifier(vid)
-    vname = villages.first_name(vid, verifier) if verifier else name
-    if stopped:
-        money_en = f"{stopped} scam{'s' if stopped != 1 else ''} stopped today · {vname} checks money calls"
-        money_es = f"{stopped} estafa{'s' if stopped != 1 else ''} detenida{'s' if stopped != 1 else ''} hoy · {vname} confirma llamadas de dinero"
-    else:
-        money_en = f"no scam calls today · {vname} checks money calls"
-        money_es = f"ninguna estafa hoy · {vname} confirma llamadas de dinero"
-    if villages.receptionist_mode(vid):  # Evolve D19/D35: the Money area says what changed
-        money_en = f"Village answers unknown calls first · {money_en}"
-        money_es = f"Village contesta primero a desconocidos · {money_es}"
-    status = {
-        "health": {"en": f"{pills_en} · refill {'today' if is_today else _DAY_EN[refill]} · {name}",
-                   "es": f"{pills_es} · reponer {'hoy' if is_today else _DAY_ES[refill]} · {name}"},
-        "money": {"en": money_en, "es": money_es},
-        "people": {"en": f"{name} on duty tonight", "es": f"{name} de turno esta noche"},
-    }
+    spec = db.specs.get(vid) or villages.spec(vid)
     out = []
     for area in spec.get("blueprint", {}).get("life_areas", []):
-        label = area.get("label", area["id"])
-        if area["id"] in _AREA_WORD:
-            label = f"{_AREA_WORD[area['id']]}: {label.split(':', 1)[-1].strip()}"
-        item: dict[str, Any] = {"id": area["id"], "label": label, "status": status.get(area["id"], {"en": "ok", "es": "bien"})}
+        label = str(area.get("label", area["id"]))
+        if ":" in label:  # the village's own area word leads ("Health: pills" -> "Pills: pills"; a phrase keeps its head)
+            label = f"{area_word(area)}: {label.split(':', 1)[1].strip()}"
+        item: dict[str, Any] = {"id": area["id"], "label": label, "status": life_area_status(vid, area, spec)}
         if area.get("rules"):
             item["rules"] = area["rules"]
         if area.get("trusted_contacts"):
@@ -357,7 +334,7 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
     if member_id and ("*" in binds or "verifications:mine" in binds):
         data["verifications:mine"] = my_verification(member_id)
     if "*" in binds or "incidents:open" in binds:
-        data["incidents:open"] = open_incidents()
+        data["incidents:open"] = open_incidents(vid)
     if subject:
         today_key = f"facts:dose_event?subject={subject}&valid_at=today"
         week_key = f"facts:dose_event?subject={subject}&valid_at=week"
@@ -383,6 +360,20 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
         data["proposals:pending"] = proposals_pending(vid)
     if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
         data["chat:village"] = [m for m in db.messages if m.get("village", vid) == vid][-50:]
+        for author in {m.get("author") for m in data["chat:village"]}:
+            if author and f"member:{author}" not in data and villages.person(vid, author):
+                data[f"member:{author}"] = member_record(author, vid)
+    from core import bindings_live as live
+
+    if role in {"coordinator", "control"}:
+        data["rounds:latest"] = live.rounds_latest(vid)
+    if role == "helper" and member_id:
+        data["events:since_last_turn?member=me"] = live.events_since_last_turn(vid, member_id)
+    if "*" in binds or "proposals:pending" in binds:
+        try:
+            data.update(proposal_details(vid))
+        except Exception:
+            pass
     return data
 
 
@@ -397,6 +388,15 @@ def proposals_pending(village_id: str | None = None) -> list[dict[str, Any]]:
     return [bv_row(vid, p) for p in list_proposals(vid) if p.get("status") in PENDING_PROPOSAL_STATUSES]
 
 
+def proposal_details(village_id: str | None = None) -> dict[str, dict[str, Any]]:
+    """`proposal:<id>` -> evolve fields bv_proposal can't carry (rationale, stays_the_same, checked, ...)."""
+    from core.bindings_live import proposal_extras
+    from core.evolve.proposals import list_proposals
+
+    return {f"proposal:{p['id']}": proposal_extras(p) for p in list_proposals(_v(village_id))
+            if p.get("status") in PENDING_PROPOSAL_STATUSES}
+
+
 def changed(event: dict[str, Any], role: str, member_id: str | None = None, village_id: str | None = None) -> dict[str, Any]:
     vid = village_id or event.get("village") or _v(None)
     if event["kind"] in {"verification_pending", "verification_confirmed", "verification_denied", "verification_timeout"}:
@@ -406,9 +406,15 @@ def changed(event: dict[str, Any], role: str, member_id: str | None = None, vill
         if member_id and verification and verification.get("claimed_member_id") == member_id:
             data["verifications:pending?member=me"] = pending_verification_prompt(member_id)
             data["verifications:mine"] = my_verification(member_id)
+        binds = view_binds(role, vid)
+        if event["kind"] in {"verification_denied", "verification_timeout"}:
+            if "*" in binds or "incidents:open" in binds:
+                data["incidents:open"] = open_incidents(vid)
+            if "*" in binds or "blueprint:life_areas" in binds:
+                data["blueprint:life_areas"] = life_areas(vid)
         return data
     if event["kind"] in {"incident", "ack"}:
-        data = {"incidents:open": open_incidents()}
+        data = {"incidents:open": open_incidents(vid)}
         if event["kind"] == "incident":
             data["alerts:active"] = active_alerts(role, vid)
             binds = view_binds(role, vid)
@@ -498,10 +504,12 @@ def active_alerts(role: str, village_id: str | None = None) -> list[dict[str, An
     return alerts
 
 
-def open_incidents() -> list[dict[str, Any]]:
+def open_incidents(village_id: str | None = None) -> list[dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
     for event in db.events:
         if event["kind"] != "incident":
+            continue
+        if village_id and event.get("village", village_id) != village_id:
             continue
         payload = event["payload"]
         latest[payload["incident_id"]] = event
@@ -530,6 +538,11 @@ def open_incidents() -> list[dict[str, Any]]:
             "at": event["at"],
         })
         incidents[-1] = {k: v for k, v in incidents[-1].items() if v is not None}
+    if village_id:
+        from core.bindings_live import synthesized_incidents
+
+        have = {i.get("verification_id") for i in incidents if i.get("verification_id")}
+        incidents += [{k: v for k, v in i.items() if v is not None} for i in synthesized_incidents(village_id, have)]
     return incidents
 
 
