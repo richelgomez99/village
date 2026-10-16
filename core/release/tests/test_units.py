@@ -111,3 +111,25 @@ def test_template_catalog_matches_contract():
     ts = (bundle.TEMPLATE_DIR / "src/catalog.ts").read_text()
     listed = re.findall(r'"([A-Z][A-Za-z]+)"', ts.split("export const CATALOG = [")[1].split("] as const")[0])
     assert listed == enum
+
+
+def test_llm_repair_retries_with_measured_contrast():
+    from types import SimpleNamespace
+
+    replies = iter(['{"patch":[{"path":"tones.info.fg","value":"#3A6EA5"}],"why":"darker"}',
+                    '{"patch":[{"path":"tones.info.fg","value":"#2F5A8C"}],"why":"darker still"}'])
+    seen = []
+
+    class Client:
+        village_model = "fake"
+
+        class messages:  # noqa: N801
+            @staticmethod
+            def create(**kw):
+                seen.append(kw["messages"])
+                return SimpleNamespace(content=[SimpleNamespace(text=next(replies))])
+
+    th = bundle.inject_failure(bundle.base_theme(), "contrast")
+    res = repair.repair(th, ["contrast 4.1:1 on elder Text"], llm=lambda role: Client())
+    assert res.mode == "llm" and res.theme["tones"]["info"]["fg"] == "#2F5A8C"
+    assert "Rejected by the floor check" in seen[1][-1]["content"]

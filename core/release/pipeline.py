@@ -220,7 +220,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                     return r
                 # The Builder fixes its own build (D23 #2).
                 fix = repair_theme(theme, res.failures, llm=llm, village=village_id)
-                await run.log(rel, rev, "tests", f"builder repair ({fix.mode}): {fix.summary}", "warn")
+                await run.log(rel, rev, "tests", f"builder repair ({fix.mode}): {fix.summary}" + (f" [llm: {fix.llm_error[:120]}]" if fix.llm_error else ""), "warn")
                 theme = fix.theme
                 spec_note = fix.summary[:200]
                 repair_of = rel

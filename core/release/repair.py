@@ -66,31 +66,54 @@ def _apply(theme: dict[str, Any], patch: list[dict[str, Any]]) -> tuple[dict[str
     return th, changed
 
 
-def llm_repair(theme: dict[str, Any], failures: list[str], client: Any, *, village: str | None = None) -> RepairResult:
-    prompt = _PROMPT.format(failures="\n".join(failures[:5]), ink=theme["floor"]["ink"], tones=json.dumps(theme["tones"]))
+def _tone_report(theme: dict[str, Any]) -> str:
+    return "\n".join(f"- {n}: fg {t['fg']} on bg {t['bg']} = {ratio(t['fg'], t['bg']):.1f}:1" for n, t in theme["tones"].items())
+
+
+def llm_repair(theme: dict[str, Any], failures: list[str], client: Any, *, village: str | None = None,
+               tries: int = 2) -> RepairResult:
+    """The model proposes a token patch; code recomputes contrast. One retry with the measured ratio as feedback."""
+    prompt = _PROMPT.format(failures="\n".join(failures[:5]), ink=theme["floor"]["ink"],
+                            tones=json.dumps(theme["tones"]) + "\nMeasured contrast:\n" + _tone_report(theme))
     model = getattr(client, "village_model", None) or "claude-haiku-4-5"
-    with obs.span("builder.repair_theme", "LLM", village=village, node="llm_repair", parent_node="builder",
-                  input=prompt, **{"llm.model_name": model}) as sp:
-        msg = client.messages.create(model=model, max_tokens=300, messages=[{"role": "user", "content": prompt}])
-        text = "".join(getattr(b, "text", "") for b in msg.content)
-        obs.finish(sp, True, output=text)
-    m = re.search(r"\{.*\}", text, re.S)
-    data = json.loads(m.group(0) if m else text)
-    th, changed = _apply(theme, data.get("patch") or [])
-    if failing_tones(th):
-        raise ValueError(f"LLM patch still fails contrast: {failing_tones(th)}")
-    why = str(data.get("why", ""))[:120]
-    return RepairResult(th, changed, "llm", (why or f"{', '.join(changed)} patched")[:200])
+    messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
+    last: Exception | None = None
+    for _ in range(tries):
+        with obs.span("builder.repair_theme", "LLM", village=village, node="llm_repair", parent_node="builder",
+                      input=messages[-1]["content"], **{"llm.model_name": model}) as sp:
+            msg = client.messages.create(model=model, max_tokens=300, messages=messages)
+            text = "".join(getattr(b, "text", "") for b in msg.content)
+            obs.finish(sp, True, output=text)
+        try:
+            m = re.search(r"\{.*\}", text, re.S)
+            data = json.loads(m.group(0) if m else text)
+            th, changed = _apply(theme, data.get("patch") or [])
+            still = failing_tones(th)
+            if still:
+                raise ValueError(f"LLM patch still fails contrast: {still}\n" + _tone_report(th))
+        except Exception as exc:
+            last = exc
+            messages += [{"role": "assistant", "content": text},
+                         {"role": "user", "content": f"Rejected by the floor check: {exc}. Every tone needs >= 7:1. Reply with ONLY the JSON."}]
+            continue
+        why = str(data.get("why", ""))[:120]
+        return RepairResult(th, changed, "llm", (why or f"{', '.join(changed)} patched")[:200])
+    raise last or ValueError("no patch")
 
 
 def repair(theme: dict[str, Any], failures: list[str], *, llm: Callable[[str], Any] | None = None,
            village: str | None = None) -> RepairResult:
     if llm is not None:
-        try:
-            client = llm("builder")
-            return llm_repair(theme, failures, client, village=village)
-        except Exception as exc:  # model off, Bedrock error, or a bad patch → deterministic floor fix
-            res = deterministic(theme)
-            res.llm_error = f"{type(exc).__name__}: {str(exc)[:200]}"
-            return res
+        errors = []
+        # Builder role first (Sonnet), then the Haiku route (Bedrock) if that provider is misconfigured.
+        for role in ("builder", "verifier"):
+            try:
+                return llm_repair(theme, failures, llm(role), village=village)
+            except Exception as exc:  # model off, provider error, or a bad patch → next route, then deterministic
+                errors.append(f"{role}: {type(exc).__name__}: {str(exc)[:160]}")
+                if "LLMOff" in errors[-1]:
+                    break
+        res = deterministic(theme)
+        res.llm_error = " | ".join(errors)[:400]
+        return res
     return deterministic(theme)

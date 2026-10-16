@@ -143,7 +143,7 @@ class ReleaseEvals:
         if self.llm is None:
             return None
         try:
-            c = self.llm("haiku")
+            c = self.llm("verifier")  # core.llm maps verifier→Haiku on Bedrock ("haiku" would get the Sonnet model)
         except Exception:
             return None
         return None if getattr(c, "provider", "") == "off" else c
