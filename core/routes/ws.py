@@ -2,7 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from core import services
 from core import village as villages
-from core.auth import resolve_token
+from core.auth import resolve_token, token_village
 from core.db import db
 from core.settings import CONTRACT_VERSION
 from core.ws_hub import hub, role_for_member
@@ -21,7 +21,7 @@ async def websocket_endpoint(ws: WebSocket, village: str | None = None, m: str |
     # D30: the village comes from the socket (?village=), else the member's village, else DEMO_VILLAGE_ID;
     # with no member the socket defaults to that village's care recipient (legacy elder default).
     member_id = (resolve_token(m) or m) if m else None
-    village = village or villages.member_village(member_id if member_id != "control" else None)
+    village = village or token_village(m) or villages.member_village(member_id if member_id != "control" else None)
     member_id = member_id or villages.care_recipient_id(village) or villages.coordinator_id(village)
     client = None
     try:
@@ -78,8 +78,8 @@ async def _hello(ws: WebSocket, msg: dict, village: str, fallback_member: str | 
         await ws.send_json({**_error("contract_mismatch", f"server speaks {CONTRACT_VERSION}"), "contract_version": CONTRACT_VERSION})
         await ws.close()
         return False
-    village = msg.get("village", village)
     token = msg.get("member_token") or msg.get("member_id") or msg.get("m")
+    village = msg.get("village") or token_village(token) or village
     member_id = resolve_token(token) if token else fallback_member
     if member_id is None:
         member_id = token  # legacy: unknown ids keep the elder default

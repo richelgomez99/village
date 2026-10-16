@@ -20,6 +20,7 @@ from core.routes.join import router as join_router
 from core.routes.messages import router as messages_router
 from core.routes.tools import router as tools_router
 from core.routes.verifications import router as verifications_router
+from core.routes.villages import router as villages_router
 from core.routes.ws import router as ws_router
 from core.scheduler import recover, tick
 from core.settings import CONTRACT_VERSION, get_settings
@@ -120,6 +121,7 @@ for _router in (
     messages_router,
     join_router,
     admin_router,
+    villages_router,
 ):
     app.include_router(_router)
 

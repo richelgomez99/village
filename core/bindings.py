@@ -28,7 +28,7 @@ def _on_duty(village_id: str | None = None) -> str | None:
 def view_binds(role: str, village_id: str | None = None) -> set[str]:
     if role == "control":
         return {"*"}
-    view = db.views.get((_v(village_id), role), {})
+    view = db.views.get((_v(village_id), role)) or db.specs.get(_v(village_id), {}).get("views", {}).get(role, {})
     binds: set[str] = set()
     for element in view.get("elements", {}).values():
         bind = element.get("props", {}).get("bind")
@@ -60,7 +60,7 @@ def call_targets(role: str, village_id: str | None = None) -> list[str]:
     first = villages.coordinator_id(vid) if role == "elder" else villages.care_recipient_id(vid)
     if first:
         out.append(first)
-    _ids_in(db.views.get((vid, role), {}), set(people), out)
+    _ids_in(db.views.get((vid, role)) or db.specs.get(vid, {}).get("views", {}).get(role, {}), set(people), out)
     return out
 
 

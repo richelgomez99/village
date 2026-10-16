@@ -134,3 +134,88 @@ async def test_intake_covered_counter_derives_coverage_and_gap_questions() -> No
     assert "secretword" not in str(a.frames)
     assert b.frames == []
     hub.clients = []
+
+
+# ---- T4 / T5 / T7: HTTP ------------------------------------------------------------------------
+
+def _new_village(client, vid: str = "v_glue01") -> dict:
+    """A builder-shaped village (template spec under a fresh id) as the intake would store it."""
+    from core.builder import templates
+
+    spec = templates.spec("care", village_id=vid, status="draft")
+    spec["village"]["name"] = "Glue Test Village"
+    from core.db import db as _db
+
+    _db.specs[vid] = spec
+    return spec
+
+
+def test_get_villages_lists_registry_and_created() -> None:
+    from fastapi.testclient import TestClient
+
+    from core.app import app
+
+    with TestClient(app) as c:
+        assert c.get("/villages").status_code == 401
+        rows = c.get("/villages", headers={"Authorization": "Bearer control"}).json()
+        ids = [r["id"] for r in rows]
+        assert set(villages.village_ids()) <= set(ids)
+        assert all(set(r) == {"id", "name", "status", "kind", "people_count", "rev"} for r in rows)
+        _new_village(c)
+        rows = c.get("/villages?t=control").json()
+        mine = next(r for r in rows if r["id"] == "v_glue01")
+        assert mine["status"] == "draft" and mine["people_count"] >= 2 and mine["name"] == "Glue Test Village"
+
+
+def test_redeem_falls_back_to_builder_invite_and_phone_becomes_call_target() -> None:
+    import hashlib
+
+    from fastapi.testclient import TestClient
+
+    from core.app import app
+    from core.builder import routes as broutes
+
+    broutes.set_services(broutes.CoreServices())
+    with TestClient(app) as c:
+        spec = _new_village(c, "v_glue02")
+        helper = next(p for p in spec["blueprint"]["people"] if p.get("view") == "helper")
+        recipient = spec["village"]["care_recipient_id"]
+        token = "builderinvitetoken123"
+        broutes.INVITES[hashlib.sha256(token.encode()).hexdigest()] = {"invite_id": "inv_x", "village": "v_glue02", "member_id": helper["id"], "redeemed_at": None}
+        r = c.post("/auth/redeem", json={"invite": token, "phone": "+15551234567", "consent": {"ai_calls": True}})
+        assert r.status_code == 200, r.text
+        out = r.json()
+        assert out["village"] == "v_glue02" and out["member_id"] == helper["id"]
+        assert villages.member_phone("v_glue02", helper["id"]) == "+15551234567"
+        # the member token opens that village's helper view, never the registry village of the same id
+        with c.websocket_connect(f"/ws?m={out['member_token']}") as ws:
+            ws.send_json({"type": "hello", "contract_version": __import__("core.settings", fromlist=["x"]).CONTRACT_VERSION, "member_token": out["member_token"]})
+            snap = ws.receive_json()
+        assert snap["village"] == "v_glue02" and snap["role"] == "helper" and snap["spec"].get("elements")
+        assert f"member:{recipient}" in snap["data"]
+        assert c.post("/auth/redeem", json={"invite": token}).status_code == 409
+        assert c.post("/auth/redeem", json={"invite": "nope"}).status_code == 404
+
+
+def test_fridge_card_html() -> None:
+    from fastapi.testclient import TestClient
+
+    from core.app import app
+    from core.builder.founding import RUNS, BuilderRun
+
+    with TestClient(app) as c:
+        spec = _new_village(c, "v_glue03")
+        assert c.get("/villages/v_glue03/print/fridge").status_code == 401
+        html = c.get("/villages/v_glue03/print/fridge?t=control").text
+        assert "+15550001111"[2:5] in html and "911" in html and "__________" in html
+        assert "[PALABRA]" not in html  # never from the spec
+        RUNS["v_glue03"] = BuilderRun(village_id="v_glue03", trace_id="1" * 32, mode="full")
+        RUNS["v_glue03"].family_word = "girasol"
+        try:
+            coord = spec["village"]["coordinator_id"]
+            html = c.get(f"/villages/v_glue03/print/fridge?t={coord}").text
+        finally:
+            RUNS.pop("v_glue03", None)
+        assert "girasol" in html
+        other = next(p for p in spec["blueprint"]["people"] if p["id"] not in (coord, spec["village"]["care_recipient_id"]))
+        assert str(other["name"]).split()[0] in html

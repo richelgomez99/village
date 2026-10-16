@@ -159,7 +159,7 @@ def snapshot(village: str, role: str, member_id: str | None, *, view_as: bool = 
         view_spec: dict[str, Any] = spec
         member_id = None
     else:
-        view_spec = db.views.get((village, role), {})
+        view_spec = db.views.get((village, role)) or spec.get("views", {}).get(role, {})
     return {
         "type": "snapshot",
         "contract_version": CONTRACT_VERSION,
