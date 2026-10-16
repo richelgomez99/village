@@ -52,6 +52,106 @@ def rota_me(member_id: str) -> dict[str, Any]:
     }
 
 
+_FAMILY_CACHE: dict[str, Any] = {}
+
+
+def _family() -> dict[str, Any]:
+    if not _FAMILY_CACHE:
+        import json
+
+        from core.settings import ROOT
+
+        _FAMILY_CACHE.update(json.loads((ROOT / "data" / "villages" / "reyes_family.json").read_text()))
+    return _FAMILY_CACHE
+
+
+def _dose_mg(dose: str) -> float | None:
+    try:
+        return float(dose.lower().replace("mg", "").strip())
+    except ValueError:
+        return None
+
+
+def prescriptions_current(subject: str = "m_carmen") -> dict[str, Any]:
+    """bv_prescriptions (contract 1.2.0, D22): current meds from reyes_family.json, with supersession
+    from med_change ledger rows. Never bound on the elder view."""
+    family = _family()
+    changes = {
+        ev["payload"]["to"]["med_id"]: ev
+        for ev in db.events
+        if ev["kind"] == "med_change" and ev["payload"].get("subject", subject) == subject and ev["payload"].get("to")
+    }
+    changed_items: list[dict[str, Any]] = []
+    other_items: list[dict[str, Any]] = []
+    for med in family.get("medications", []):
+        if med.get("valid_until") or med.get("status") == "superseded":
+            continue
+        dose = str(med.get("dose", ""))
+        item: dict[str, Any] = {
+            "med_id": med["id"],
+            "name": med["name"],
+            "dose_text": dose,
+            "schedule": [slot["slot"] for slot in med.get("schedule", [])] or ["morning"],
+            "valid_from": med.get("valid_from") or "2026-01-01",
+        }
+        mg = _dose_mg(dose)
+        if mg:
+            item = {"med_id": item["med_id"], "name": item["name"], "dose_mg": int(mg) if mg.is_integer() else mg, **{k: v for k, v in item.items() if k not in {"med_id", "name"}}}
+        change = changes.get(med["id"])
+        if change:
+            payload = change["payload"]
+            item["changed_by"] = "Dr. Lee"
+            item["superseded"] = {"dose_text": payload["from"]["dose"], "valid_until": payload.get("effective", item["valid_from"])}
+            item["source"] = change["source"]
+            item["source_label"] = {"en": "Ana's call, Oct 3", "es": "Llamada de Ana, 3 oct"}
+            changed_items.append(item)
+        else:
+            other_items.append(item)
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
+    owner = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+    today = clock.now().date()
+    days_to_friday = (4 - today.weekday()) % 7
+    from datetime import timedelta as _td
+
+    return {
+        "subject": subject,
+        "refill_day": "Fri",
+        "next_refill": (today + _td(days=days_to_friday)).isoformat(),
+        "owner_member_id": owner,
+        "owner_name": str(db.members.get(owner, {}).get("name", owner)).split()[0],
+        "items": changed_items + other_items,
+    }
+
+
+def life_areas() -> list[dict[str, Any]]:
+    spec = db.specs.get("v_reyes", {})
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
+    on_duty = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+    name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
+    stopped = sum(1 for row in db.verifications.values() if row.get("state") in {"denied", "late_denied"})
+    doses = sum(1 for ev in db.events if ev["kind"] == "dose" and str(ev.get("at", "")).startswith(clock.now().date().isoformat()))
+    status = {
+        "health": {"en": f"{doses}/2 lids today · refill {name}", "es": f"{doses}/2 tapas hoy · reponer {name}"},
+        "money": {"en": f"{stopped} scam{'s' if stopped != 1 else ''} stopped", "es": f"{stopped} estafa{'s' if stopped != 1 else ''} detenida{'s' if stopped != 1 else ''}"},
+        "people": {"en": f"{name} on duty", "es": f"{name} de turno"},
+    }
+    out = []
+    for area in spec.get("blueprint", {}).get("life_areas", []):
+        item: dict[str, Any] = {"id": area["id"], "label": area.get("label", area["id"]), "status": status.get(area["id"], {"en": "ok", "es": "bien"})}
+        if area.get("rules"):
+            item["rules"] = area["rules"]
+        if area.get("trusted_contacts"):
+            item["trusted_contacts"] = area["trusted_contacts"]
+        out.append(item)
+    return out
+
+
+def on_duty_person() -> dict[str, Any]:
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
+    on_duty = shift["payload"].get("on_duty", "m_marco") if shift else "m_marco"
+    return {"member_id": on_duty, "name": str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]}
+
+
 def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
     binds = view_binds(role)
     data: dict[str, Any] = {}
@@ -71,6 +171,14 @@ def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
         data["facts:dose_event?subject=m_carmen&valid_at=today?count"] = len([ev for ev in db.events if ev["kind"] == "dose"])
     if member_id and ("*" in binds or "rota:current?member=me" in binds):
         data["rota:current?member=me"] = rota_me(member_id)
+    if "*" in binds or "blueprint:life_areas" in binds:
+        data["blueprint:life_areas"] = life_areas()
+    if "*" in binds or "rota:current.on_duty" in binds:
+        data["rota:current.on_duty"] = on_duty_person()
+    if role != "elder" and ("*" in binds or "prescriptions:current" in binds):
+        data["prescriptions:current"] = prescriptions_current("m_carmen")
+    if role != "elder" and ("*" in binds or "chat:village" in binds):
+        data["chat:village"] = [m for m in db.messages][-50:]
     return data
 
 
@@ -84,7 +192,18 @@ def changed(event: dict[str, Any], role: str, member_id: str | None = None) -> d
             data["verifications:mine"] = my_verification(member_id)
         return data
     if event["kind"] in {"incident", "ack"}:
-        return {"incidents:open": open_incidents()}
+        data = {"incidents:open": open_incidents()}
+        if event["kind"] == "incident":
+            data["alerts:active"] = active_alerts(role)
+            binds = view_binds(role)
+            if "*" in binds or "blueprint:life_areas" in binds:
+                data["blueprint:life_areas"] = life_areas()
+        return data
+    if event["kind"] in {"med_change", "shift"} and role != "elder":
+        binds = view_binds(role)
+        if "*" in binds or "prescriptions:current" in binds:
+            return {"prescriptions:current": prescriptions_current("m_carmen")}
+        return {}
     if event["kind"] == "dose":
         return {
             key: value
@@ -201,7 +320,7 @@ def verification_prompt_frame(verification: dict[str, Any], *, closed: bool = Fa
         "detail": _verification_detail(verification),
         "options": [
             {"id": "no", "label": {"en": "That wasn't me", "es": "No fui yo"}},
-            {"id": "yes", "label": {"en": "Yes, it was me", "es": "Si, fui yo"}},
+            {"id": "yes", "label": {"en": "Yes, it was me", "es": "Sí, fui yo"}},
         ],
         "deadline": verification["deadline"],
     }
@@ -223,8 +342,8 @@ def _verification_question(verification: dict[str, Any]) -> dict[str, str]:
     amount = verification.get("request", {}).get("amount")
     amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
     return {
-        "en": f"Did you just call Mama asking for {amount_s}?",
-        "es": f"Acaba de llamar a Mama pidiendo {amount_s}?",
+        "en": f"Did you just call Mamá asking for {amount_s}?",
+        "es": f"¿Acaba de llamar a Mamá pidiendo {amount_s}?",
     }
 
 

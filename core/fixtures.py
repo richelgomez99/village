@@ -63,6 +63,13 @@ async def reset_demo(village_id: str = "v_reyes") -> dict[str, Any]:
     ]
     if not lisinopril:
         pass
+    from core import services
+
+    services.reset_chat_state()
+    seed = load_json(FIXTURES / "messages_reyes_seed.json")["messages"]
+    # contracts: core seeds the rows before the live scam beat (14:02); the live flow writes the rest.
+    for message in [row for row in seed if row["at"] < "2026-10-16T14:02:00-04:00"]:
+        await db.create_message({**message, "village": village_id})
     return {
         "village": village_id,
         "members": len(db.members),

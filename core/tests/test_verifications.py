@@ -98,7 +98,7 @@ async def test_scheduler_times_out_past_deadline_verification() -> None:
     result = await tick()
     assert result["verification_timeouts"] == 1
     assert db.verifications["ver_due"]["state"] == "timed_out"
-    assert db.events[-1]["kind"] == "verification_timeout"
+    assert any(ev["kind"] == "verification_timeout" and ev["payload"]["verification_id"] == "ver_due" for ev in db.events)
 
 
 async def test_await_verification_defaults_after_30_seconds_and_opens_incident() -> None:

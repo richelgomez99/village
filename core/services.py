@@ -48,45 +48,44 @@ def _next_id(prefix: str, rows: list[dict[str, Any]]) -> str:
     return f"{prefix}_{len(rows) + 1:04d}"
 
 
+def _claimed_name(row: dict[str, Any]) -> str:
+    member = db.members.get(row.get("claimed_member_id") or "", {})
+    if member.get("name"):
+        return str(member["name"]).split()[0]
+    return str(row.get("claimed_identity") or row.get("claimed_member_id") or "Marco").split()[0]
+
+
+def _say(key: str, **vars: Any) -> dict[str, str]:
+    from core.gate import say as gate_say
+
+    return gate_say(key, **vars)
+
+
 def _decision_for_verification(row: dict[str, Any]) -> dict[str, Any]:
     state = row.get("state")
-    claimed_name = str(row.get("claimed_identity") or row.get("claimed_member_id") or "Marco").split()[0]
+    claimed_name = _claimed_name(row)
     if state in {"confirmed", "late_confirmed"}:
-        return {
-            "id": f"dc_{row['id']}_confirmed",
-            "rule_id": "R-MONEY-DEFAULT",
-            "decision": "advise_talk_to_coordinator",
-            "say": {
-                "es": f"{claimed_name} dice que si fue el. Village nunca envia dinero; hable con Ana antes de hacer algo.",
-                "en": f"{claimed_name} confirmed it was him. Village never sends money; talk with Ana first.",
-            },
-            "say_key": "money_confirmed",
-            "say_vars": {"claimed_name": claimed_name},
-            "verification": _decision_verification(row),
-            "writes": [],
-            "rules_fired": ["R-MONEY-DEFAULT", "R-MONEY-NEVER"],
-        }
-    if state in {"denied", "late_denied"}:
-        say_es = f"Ese no era {claimed_name}. No mande dinero. Ana ya lo sabe."
-        say_en = f"That was not {claimed_name}. Do not send any money. Ana already knows."
-        say_key = "money_denied"
-        decision = "advise_do_not_send"
+        say_key, decision, rules = "money_confirmed", "advise_talk_to_coordinator", ["R-MONEY-DEFAULT", "R-MONEY-NEVER"]
+    elif state in {"denied", "late_denied"}:
+        say_key, decision, rules = "money_denied", "advise_do_not_send", ["R-MONEY-DEFAULT", "R-MONEY-NEVER"]
     else:
-        say_es = f"No pude confirmar con {claimed_name}. No mande dinero. Le aviso a Ana."
-        say_en = f"I could not confirm with {claimed_name}. Do not send any money. I am letting Ana know."
-        say_key = "money_timeout"
-        decision = "advise_do_not_send"
-    return {
-        "id": f"dc_{row['id']}_{row.get('state', 'verification')}",
+        say_key, decision, rules = "money_timeout", "advise_do_not_send", ["R-MONEY-DEFAULT"]
+    say_vars = {"claimed_name": claimed_name}
+    say_text = _say(say_key, claimed_name=claimed_name, pronoun="he")
+    out = {
+        "id": f"dc_{row['id']}_{state or 'verification'}",
         "rule_id": "R-MONEY-DEFAULT",
         "decision": decision,
-        "say": {"es": say_es, "en": say_en},
+        "say": say_text,
         "say_key": say_key,
-        "say_vars": {"claimed_name": claimed_name},
+        "say_vars": say_vars,
         "verification": _decision_verification(row),
         "writes": [],
-        "rules_fired": ["R-MONEY-DEFAULT"],
+        "rules_fired": rules,
     }
+    if state in {"denied", "late_denied"}:
+        out["notify"] = [{"member_id": "m_ana", "channel": "app", "severity": "high", "reason": "scam_stopped"}]
+    return out
 
 
 def _decision_verification(row: dict[str, Any]) -> dict[str, Any]:
@@ -242,7 +241,7 @@ async def decide(
     del actor_token
     alloc = {
         "decision_id": _next_id("dc", db.decisions),
-        "verification_id": _next_id("ver", []),
+        "verification_id": _next_id("ver", list(db.verifications.values())),
         "incident_id": "inc_stub",
     }
     inp = {"village_state": _village_state(village_id), "event": candidate, "alloc": alloc}
@@ -440,6 +439,50 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             await db.put_idem(idem_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "response": copy.deepcopy(response), "at": clock.now().isoformat()})
         return response
 
+    if name == "await_verification":
+        result = await await_verification(request["verification_id"], max_wait_s=int(request.get("max_wait_s", 30)))
+        row = db.verifications.get(request["verification_id"], {})
+        decision_id = f"dc_{row.get('id')}_{row.get('state')}" if row.get("state") in TERMINAL_STATES else f"dc_{row.get('id')}_await"
+        response = {
+            "decision": result["decision"],
+            "say": result["say"]["es"],
+            "say_key": result["say_key"],
+            "rule_id": "R-MONEY-DEFAULT",
+            "lang": "es",
+            "decision_id": decision_id,
+            "data": {
+                "status": result["status"],
+                "verification_id": result["verification_id"],
+                "state": result["state"],
+                "answered_via": result["answered_via"],
+                "answered_at_secs": int(result["answered_at_secs"]) if isinstance(result.get("answered_at_secs"), (int, float)) else None,
+                "incident_id": result["incident_id"],
+            },
+        }
+        if idem_key and result["state"] != "pending":
+            await db.put_idem(idem_key, {"response": copy.deepcopy(response), "at": clock.now().isoformat()})
+        return response
+
+    if name == "submit_verification_answer":
+        row = await answer_verification(
+            request["verification_id"],
+            request["verification_answer"],
+            via=request.get("via") or "outbound_call",
+            member_id=request.get("member_id") or db.verifications.get(request["verification_id"], {}).get("claimed_member_id", "m_marco"),
+            quote=request.get("listener_quote"),
+            call_sid=request.get("call_sid"),
+        )
+        response = {
+            "decision": "allow",
+            "say": "",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "en",
+            "data": {"status": row.get("status"), "state": row.get("state"), "outcome": row.get("outcome"), "verification_id": request["verification_id"]},
+        }
+        if idem_key:
+            await db.put_idem(idem_key, {"response": copy.deepcopy(response), "at": clock.now().isoformat()})
+        return response
+
     for example in _voice_examples():
         if example.get("tool") == name:
             response = copy.deepcopy(example["response"])
@@ -587,6 +630,11 @@ async def start_verification(
     verification = decision.get("verification")
     if not verification:
         return {"status": "unverifiable", "decision": decision}
+    row = db.verifications.get(verification["id"])
+    if row and row.get("state") == "pending" and not row.get("call_placed_at"):
+        from core.dialer import dial_in_background
+
+        dial_in_background(verification["id"])
     return {
         "decision": decision,
         "status": "pending",
@@ -595,6 +643,123 @@ async def start_verification(
         "channels": verification["channels"],
         "deadline": verification["deadline"],
     }
+
+
+TERMINAL_STATES = {"confirmed", "denied", "timed_out", "unsure", "unreachable", "late_confirmed", "late_denied"}
+_COUNTERS: dict[str, int] = {}
+
+
+def _incident_text(row: dict[str, Any], incident_type: str) -> tuple[dict[str, str], dict[str, str]]:
+    name = _claimed_name(row)
+    amount = row.get("request", {}).get("amount")
+    amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
+    if incident_type == "suspected_scam":
+        return (
+            {"en": "Scam stopped", "es": "Estafa detenida"},
+            {
+                "en": f"Someone claiming to be {name} asked Mamá for {amount_s}. {name} confirmed it wasn't him. She was told not to send money.",
+                "es": f"Alguien que dijo ser {name} le pidió {amount_s} a Mamá. {name} confirmó que no fue él. Le dijimos que no mande dinero.",
+            },
+        )
+    return (
+        {"en": "Money request not confirmed", "es": "Pedido de dinero sin confirmar"},
+        {
+            "en": f"Someone claiming to be {name} asked Mamá for {amount_s}. Village could not reach {name} in time. She was told not to send money.",
+            "es": f"Alguien que dijo ser {name} le pidió {amount_s} a Mamá. Village no pudo confirmar con {name} a tiempo. Le dijimos que no mande dinero.",
+        },
+    )
+
+
+def _enrich_incident(row: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]:
+    draft = copy.deepcopy(draft)
+    payload = draft.setdefault("payload", {})
+    title, summary = _incident_text(row, payload.get("type", "suspected_scam"))
+    payload["title"] = title
+    payload["summary"] = summary
+    related = [
+        ev["id"] for ev in db.events
+        if ev.get("payload", {}).get("verification_id") == row["id"] and ev["kind"] != "incident"
+    ]
+    if related:
+        payload["related_event_ids"] = related
+    request = row.get("request", {})
+    if request.get("pattern_flag"):
+        payload["pattern_flag"] = request["pattern_flag"]
+    payload["notified"] = ["m_ana", row.get("claimed_member_id", "m_marco")]
+    return draft
+
+
+async def apply_verification_step(
+    current: dict[str, Any],
+    sm_event: dict[str, Any],
+    *,
+    actor: str,
+    source: dict[str, Any],
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """Run one SM step, CAS-persist it, write its emits (incident enriched), and publish the terminal decision."""
+    current = _normalize_verification(current)
+    next_row, emits = step_verification(current, sm_event, clock.now())
+    if sm_event.get("type") == "answer":
+        next_row = _with_channel_status(next_row, sm_event.get("via", "app_prompt"), sm_event.get("member_id", actor), "answered")
+        if sm_event.get("call_sid") and next_row.get("answers"):
+            next_row["answers"][-1]["call_sid"] = sm_event["call_sid"]
+    if next_row == current:
+        return current, []
+    was_terminal = current.get("state") in TERMINAL_STATES
+    becomes_terminal = next_row.get("state") in TERMINAL_STATES
+    decision = _decision_for_verification(next_row) if becomes_terminal and not was_terminal else None
+    if decision:
+        next_row["status"] = _verification_status_for_voice(next_row)
+        next_row["resolved_at"] = next_row.get("resolved_at") or clock.now().isoformat()
+    if any(d["kind"] == "incident" for d in emits):
+        next_row["incident_id"] = next_row.get("incident_id") or f"inc_{current['id']}"
+    updated = await db.cas_update("verification", current["id"], current.get("version", 0), next_row)
+    if not updated:
+        return None, []
+    row = updated[0]
+    village = row.get("village", "v_reyes")
+    written = []
+    for draft in emits:
+        if draft["kind"] == "incident":
+            draft = _enrich_incident(row, draft)
+        if decision:
+            decision["writes"].append({"kind": draft["kind"], "payload": draft.get("payload", {})})
+        event_actor = actor if draft["kind"].startswith("verification_") else "gate"
+        event_source = source if draft["kind"].startswith("verification_") else {"kind": "system", "ref": "gate"}
+        written.append(await record_event(village, draft, actor=event_actor, source=event_source, decision_id=decision["id"] if decision else None))
+    if decision:
+        verification_event = next((ev for ev in written if ev["kind"].startswith("verification_")), written[0] if written else None)
+        await db.create_decision({
+            "id": decision["id"],
+            "village_id": village,
+            "at": clock.now().isoformat(),
+            "actor": "gate",
+            "kind": "decision",
+            "text": decision["decision"],
+            "rule_id": decision["rule_id"],
+            "refs": [{"kind": "verification", "id": row["id"]}],
+            "source": source,
+            "gate": copy.deepcopy(decision),
+            "event_ids": [ev["id"] for ev in written],
+        })
+        await control(village, "gate", {
+            "decision": decision,
+            "input_kind": "verification_answer" if sm_event.get("type") == "answer" else "tick",
+            "event_id": verification_event["id"] if verification_event else None,
+        })
+        if row.get("state") in {"denied", "late_denied"}:
+            _COUNTERS["scams_stopped"] = _COUNTERS.get("scams_stopped", 0) + 1
+            await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})
+    for ev in written:
+        if ev["kind"] == "incident":
+            await _incident_message(village, ev)
+    return row, written
+
+
+async def _incident_message(village_id: str, event: dict[str, Any]) -> None:
+    hook = globals().get("post_incident_message")
+    if hook:
+        await hook(village_id, event)
 
 
 async def answer_verification(
@@ -609,29 +774,17 @@ async def answer_verification(
     current = db.verifications.get(verification_id)
     if current is None:
         raise KeyError(verification_id)
-    current = _normalize_verification(current)
-    next_row, emits = step_verification(
+    sm_event = {"type": "answer", "answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid}
+    row, _ = await apply_verification_step(
         current,
-        {"type": "answer", "answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid},
-        clock.now(),
+        sm_event,
+        actor=member_id,
+        source={"kind": "app" if via == "app_prompt" else "call", "ref": member_id},
     )
-    next_row = _with_channel_status(next_row, via, member_id, "answered")
-    if call_sid and next_row.get("answers"):
-        next_row["answers"][-1]["call_sid"] = call_sid
-    updated = await db.cas_update("verification", verification_id, current.get("version", 0), next_row)
-    if not updated:
-        latest = db.verifications[verification_id]
-        return {**latest, "outcome": "conflict"}
-    for draft in emits:
-        await record_event(
-            current["village"],
-            draft,
-            actor=member_id if draft["kind"].startswith("verification_") else "gate",
-            source={"kind": "app" if via == "app_prompt" else "call", "ref": member_id},
-            decision_id=None,
-        )
-    outcome = next_row.get("answers", [{}])[-1].get("outcome", "applied")
-    return {**updated[0], "outcome": outcome}
+    if row is None:
+        return {**db.verifications[verification_id], "outcome": "conflict"}
+    outcome = (row.get("answers") or [{}])[-1].get("outcome", "applied")
+    return {**row, "outcome": outcome}
 
 
 async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> dict[str, Any]:
@@ -653,21 +806,10 @@ async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> d
         row = _normalize_verification(row)
 
     if row.get("state") == "pending":
-        next_row, emits = step_verification(row, {"type": "await_returned"}, clock.now())
-        if next_row.get("state") == "default_spoken":
-            updated = await db.cas_update("verification", verification_id, row.get("version", 0), next_row)
-            if updated:
-                row = updated[0]
-                for draft in emits:
-                    await record_event(
-                        row["village"],
-                        draft,
-                        actor="gate",
-                        source={"kind": "system", "ref": "await_verification"},
-                        decision_id=None,
-                    )
-        else:
-            row = next_row
+        stepped, _ = await apply_verification_step(
+            row, {"type": "await_returned"}, actor="gate", source={"kind": "system", "ref": "await_verification"}
+        )
+        row = stepped or db.verifications[verification_id]
 
     applied = _applied_answer(row)
     status = _verification_status_for_voice(row)
@@ -694,29 +836,235 @@ async def control(village_id: str, kind: str, payload: dict[str, Any]) -> None:
     await hub.control(village_id, kind, payload)
 
 
+_CHAT_TASKS: set[asyncio.Task[Any]] = set()
+_NUDGED: set[str] = set()
+_INCIDENT_POSTED: set[str] = set()
+ASK_FALLBACK_TEXT = "I can't look that up right now. Every decision Village made is in the decision log; Ana can open it from the app."
+
+
+def _message_id() -> str:
+    return f"msg_{clock.now():%m%d_%H%M}_{len(db.messages) + 1:03d}"
+
+
 async def post_message(
     village_id: str,
     *,
     author: str,
     kind: str,
     text: str,
-    refs: tuple[str, ...] | list[str] = (),
+    refs: tuple[Any, ...] | list[Any] = (),
     source: dict[str, Any],
+    text_i18n: dict[str, str] | None = None,
+    mention: str | None = None,
+    reply_to: str | None = None,
+    routed: str | None = None,
+    trace_id: str | None = None,
 ) -> dict[str, Any]:
-    message = {
-        "id": f"msg_stub_{len(_MESSAGE_LOG) + 1}",
+    """Append one chat row; the LIVE consumer fans it out as `chat{message}` (non-elder sockets + control)."""
+    message: dict[str, Any] = {
+        "id": _message_id(),
         "village": village_id,
         "author": author,
         "kind": kind,
-        "text": text,
-        "refs": list(refs),
+        "text": text[:2000],
+        "mention": mention,
+        "reply_to": reply_to,
+        "refs": [ref if isinstance(ref, dict) else _ref_for_id(str(ref)) for ref in refs][:12],
         "source": source,
         "at": (await now()).isoformat(),
     }
+    if text_i18n:
+        message["text_i18n"] = text_i18n
+    if routed:
+        message["routed"] = routed
+    if trace_id:
+        message["trace_id"] = trace_id
     _MESSAGE_LOG.append(message)
-    await broadcast(village_id, {"type": "chat", "message": message})
+    await db.create_message(message)
     return message
+
+
+def _ref_for_id(ref_id: str) -> dict[str, str]:
+    prefix = ref_id.split("_", 1)[0]
+    kind = {"ev": "event", "dc": "decision", "ver": "verification", "inc": "incident", "prop": "proposal", "rel": "release", "m": "member"}.get(prefix, "rule")
+    return {"kind": kind, "id": ref_id}
+
+
+async def post_member_message(
+    village_id: str,
+    member_id: str,
+    text: str,
+    *,
+    mention: str | None = None,
+    reply_to: str | None = None,
+    idempotency_key: str | None = None,
+) -> dict[str, Any]:
+    idem = f"chat:{member_id}:{idempotency_key}" if idempotency_key else None
+    if idem:
+        cached = await db.get_idem(idem)
+        if cached and cached.get("response"):
+            return copy.deepcopy(cached["response"])
+    addresses_village = mention == "village" or text.lstrip().lower().startswith("@village")
+    routed = "ask" if addresses_village else "none"
+    message = await post_message(
+        village_id,
+        author=member_id,
+        kind="chat",
+        text=text,
+        refs=[],
+        source={"kind": "app", "ref": member_id},
+        mention="village" if addresses_village else None,
+        reply_to=reply_to,
+        routed=routed,
+    )
+    if addresses_village:
+        task = asyncio.get_running_loop().create_task(_answer_village_question(village_id, message))
+        _CHAT_TASKS.add(task)
+        task.add_done_callback(_CHAT_TASKS.discard)
+    result = {"message": message, "routed": routed}
+    if idem:
+        await db.put_idem(idem, {"response": copy.deepcopy(result), "at": clock.now().isoformat()})
+    return result
+
+
+async def drain_chat() -> None:
+    while _CHAT_TASKS:
+        await asyncio.gather(*list(_CHAT_TASKS), return_exceptions=True)
+
+
+def _fallback_refs(village_id: str) -> list[dict[str, str]]:
+    rows = [row for row in db.decisions if row.get("village_id", village_id) == village_id]
+    refs = [{"kind": "decision", "id": row["id"], "label": f"rule {row.get('rule_id', '')}"[:80]} for row in rows[-2:]]
+    return refs or [{"kind": "rule", "id": "R-MONEY-VERIFY", "label": "rule R-MONEY-VERIFY"}]
+
+
+async def _answer_village_question(village_id: str, question: dict[str, Any]) -> dict[str, Any]:
+    text = question["text"]
+    stripped = text.lstrip()
+    question_text = stripped[len("@village"):].strip(" ,:") if stripped.lower().startswith("@village") else stripped
+    answer_text: str | None = None
+    refs: list[Any] = []
+    trace_id = None
+    try:
+        from core.builder import ask as builder_ask  # type: ignore
+
+        result = builder_ask(village_id, question_text)
+        if asyncio.iscoroutine(result):
+            result = await asyncio.wait_for(result, timeout=20)
+        if isinstance(result, str):
+            answer_text = result
+        elif isinstance(result, dict):
+            answer_text = result.get("text") or result.get("answer")
+            refs = result.get("refs") or []
+            trace_id = result.get("trace_id")
+    except Exception:
+        answer_text = None
+    if not answer_text:
+        answer_text = ASK_FALLBACK_TEXT
+    if not refs:
+        refs = _fallback_refs(village_id)
+    return await post_message(
+        village_id,
+        author="village",
+        kind="answer",
+        text=answer_text,
+        refs=refs,
+        source={"kind": "system", "ref": "builder"},
+        reply_to=question["id"],
+        trace_id=trace_id if isinstance(trace_id, str) and len(trace_id) == 32 else None,
+    )
+
+
+async def post_incident_message(village_id: str, event: dict[str, Any]) -> dict[str, Any] | None:
+    payload = event.get("payload", {})
+    incident_id = payload.get("incident_id")
+    if not incident_id or incident_id in _INCIDENT_POSTED:
+        return None
+    _INCIDENT_POSTED.add(incident_id)
+    verification_id = payload.get("verification_id")
+    row = db.verifications.get(verification_id or "", {})
+    name = _claimed_name(row) if row else "Marco"
+    amount = row.get("request", {}).get("amount") if row else None
+    amount_s = f"${amount:,.0f}" if isinstance(amount, (int, float)) and amount else "money"
+    if payload.get("type") == "suspected_scam":
+        en = f"Someone called Mamá as {name}, asking for {amount_s}. I asked {name}; he said it wasn’t him. I told her not to send money. Nothing was sent."
+        es = f"Alguien llamó a Mamá diciendo ser {name} y pidió {amount_s}. Le pregunté a {name}; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada."
+    else:
+        en = f"Someone called Mamá as {name}, asking for {amount_s}. I couldn’t reach {name} in time, so I told her not to send money."
+        es = f"Alguien llamó a Mamá diciendo ser {name} y pidió {amount_s}. No pude confirmar con {name} a tiempo; le dije a ella que no mande dinero."
+    refs: list[dict[str, str]] = [{"kind": "event", "id": event["id"], "label": "incident"}]
+    if verification_id:
+        refs.append({"kind": "verification", "id": verification_id, "label": f"{name} answered" if payload.get("type") == "suspected_scam" else "check"})
+    refs.append({"kind": "incident", "id": incident_id, "label": "why"})
+    return await post_message(
+        village_id,
+        author="village",
+        kind="incident",
+        text=en,
+        text_i18n={"en": en, "es": es},
+        refs=refs,
+        source={"kind": "system", "ref": "gate"},
+    )
+
+
+async def rota_nudge_tick(village_id: str = "v_reyes") -> int:
+    """At/after 15:00 local, post one nudge per day to the on-duty member, citing the shift row."""
+    now_dt = clock.now()
+    if now_dt.hour < 15:
+        return 0
+    key = f"{village_id}:{now_dt.date().isoformat()}"
+    if key in _NUDGED:
+        return 0
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift" and ev.get("village", village_id) == village_id), None)
+    if shift is None:
+        return 0
+    _NUDGED.add(key)
+    on_duty = shift["payload"].get("on_duty", "m_marco")
+    name = str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]
+    await post_message(
+        village_id,
+        author="village",
+        kind="nudge",
+        text=f"{name}, you're on tonight. Evening pills are at 8:00; I'll call Mamá and let you know.",
+        text_i18n={
+            "en": f"{name}, you're on tonight. Evening pills are at 8:00; I'll call Mamá and let you know.",
+            "es": f"{name}, hoy te toca. Las pastillas de la noche son a las 8:00; yo llamo a Mamá y te aviso.",
+        },
+        refs=[{"kind": "event", "id": shift["id"], "label": "tonight's rota"}],
+        source={"kind": "system", "ref": "scheduler"},
+    )
+    return 1
+
+
+def reset_chat_state() -> None:
+    _NUDGED.clear()
+    _INCIDENT_POSTED.clear()
+    _COUNTERS.clear()
+    _MESSAGE_LOG.clear()
+    _BROADCAST_LOG.clear()
 
 
 def stub_logs() -> dict[str, Any]:
     return {"broadcasts": copy.deepcopy(_BROADCAST_LOG), "messages": copy.deepcopy(_MESSAGE_LOG)}
+
+
+async def handle_ack(village_id: str, member_id: str | None, frame: dict[str, Any]) -> dict[str, Any]:
+    """WS `ack{event_id, status}`: writes an ack ledger row (closes the incident banner for everyone)."""
+    of_event = next((ev for ev in db.events if ev["id"] == frame.get("event_id")), None)
+    payload: dict[str, Any] = {"of_event_id": frame.get("event_id"), "status": frame.get("status", "got_it"), "channel": "app"}
+    if of_event and of_event.get("payload", {}).get("incident_id"):
+        payload["incident_id"] = of_event["payload"]["incident_id"]
+    event = await record_event(
+        village_id,
+        {"kind": "ack", "payload": payload},
+        actor=member_id or "control",
+        source={"kind": "app", "ref": member_id or "control"},
+        decision_id=None,
+    )
+    return {"type": "result", "req_id": frame.get("req_id") or f"ack_{event['id']}", "ok": of_event is not None, "event_id": event["id"]}
+
+
+async def handle_voice_tool(tool_name: str, body: dict[str, Any], variant: str | None = None) -> dict[str, Any]:
+    """Entry point for core.voice.tools.ToolHandler: every voice tool goes through the real services."""
+    del variant
+    return await handle_tool(tool_name, body)
