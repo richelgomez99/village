@@ -8,7 +8,7 @@ from core.clock import ET, clock
 from core.db import db
 from core.fixtures import reset_demo
 
-V = "1.2.0"
+from core.settings import CONTRACT_VERSION as V
 
 
 def _hello(ws, token):

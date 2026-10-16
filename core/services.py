@@ -271,14 +271,15 @@ async def decide(
         "kind": "decision",
         "text": decision["decision"],
         "rule_id": decision["rule_id"],
-        "refs": [{"kind": "mode", "id": "acted_alone"}],
+        "mode": _mode_for(decision),
+        "refs": [],
         "source": candidate.get("source", {"kind": "system", "ref": "gate"}),
         "gate": copy.deepcopy(decision),
         "event_ids": [],
     }
     await db.create_decision(decision_row)
     public = {k: v for k, v in decision.items() if not k.startswith("_")}
-    await control(village_id, "gate", {"decision": public, "input_kind": candidate.get("kind", "tick"), "mode": _mode_for(public)})
+    await control(village_id, "gate", {"decision": public, "input_kind": candidate.get("kind", "tick")})
     await reasoning(village_id, _reasoning_text(public, candidate), mode=_mode_for(public))
     # row exists before the ledger writes (bindings read it); its LIVE publish (-> prompt) waits until after them
     if decision.get("verification"):
@@ -380,8 +381,9 @@ def _speaker(request: dict[str, Any]) -> str:
     caller = str(request.get("caller_id") or request.get("member_id") or "")
     for member_id, person in db.members.items():
         if caller in {member_id, person.get("phone")}:
-            return str(person.get("name", member_id)).split()[0]
-    return "Carmen"
+            first = str(person.get("name", member_id)).split()[0].lower()
+            return first if first in {"carmen", "marco", "ana"} else "caller"
+    return "carmen"
 
 
 async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
@@ -785,6 +787,7 @@ async def apply_verification_step(
             "kind": "decision",
             "text": decision["decision"],
             "rule_id": decision["rule_id"],
+            "mode": _mode_for(decision),
             "refs": [{"kind": "verification", "id": row["id"]}],
             "source": source,
             "gate": copy.deepcopy(decision),
@@ -793,7 +796,6 @@ async def apply_verification_step(
         gate_payload = {
             "decision": decision,
             "input_kind": "verification_answer" if sm_event.get("type") == "answer" else ("await_returned" if sm_event.get("type") == "await_returned" else "tick"),
-            "mode": _mode_for(decision),
         }
         if verification_event:
             gate_payload["event_id"] = verification_event["id"]
@@ -916,7 +918,7 @@ async def reasoning(village_id: str, text: str, *, source: str = "gate", kind: s
 async def ledger(village_id: str, row_id: str, status: str, what: str, *, result: str | None = None,
                  decision_id: str | None = None, role: str = "Verifier") -> None:
     """Control Room work log row (kit V2; contract to follow): {id, status, what, result?, decision_id?, role, time}."""
-    payload: dict[str, Any] = {"id": row_id, "status": status, "what": what, "role": role, "time": clock.now().isoformat()}
+    payload: dict[str, Any] = {"id": row_id, "at": clock.now().isoformat(), "status": status, "what": what, "role": role.lower()}
     if result is not None:
         payload["result"] = result
     if decision_id:

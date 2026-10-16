@@ -239,10 +239,6 @@ def frame_validator():
 
     class ByType:
         def iter_errors(self, frame):
-            if frame.get("type") == "control":
-                if frame.get("kind") in {"ledger", "caption"}:  # kit V2 extras, contract to follow
-                    return iter([])
-                frame = {**frame, "payload": {k: v for k, v in frame.get("payload", {}).items() if k != "mode"}}
             v = validators.get(frame.get("type"))
             return iter([]) if v is None else v.iter_errors(frame)
 

@@ -4,7 +4,7 @@ from core.app import app
 from core.bindings import changed, snapshot_data
 from core.fixtures import reset_demo
 
-V = "1.2.0"
+from core.settings import CONTRACT_VERSION as V
 
 
 async def test_prescriptions_binding_for_helper_and_coordinator() -> None:
@@ -97,3 +97,11 @@ def test_snapshots_validate_against_contract() -> None:
                 snap = _hello(ws, token)
                 errors = sorted(validator.iter_errors(snap), key=lambda e: list(e.path))
                 assert not errors, f"{token}: " + "; ".join(f"{list(e.path)}: {e.message[:160]}" for e in errors[:5])
+
+
+def test_stale_client_gets_contract_mismatch() -> None:
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws?m=m_marco") as ws:
+            ws.send_json({"type": "hello", "contract_version": "1.2.0", "village": "v_reyes", "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB"})
+            err = ws.receive_json()
+            assert V != "1.2.0" and err["type"] == "error" and err["code"] == "contract_mismatch"
