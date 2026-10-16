@@ -8,7 +8,7 @@ while [ $# -gt 0 ]; do case "$1" in --lane) LANE="$2"; shift 2;; *) shift;; esac
 PORT="${V1_PORT:-8792}"
 
 core_v1() {
-  VILLAGE_DIALER=fake uv run uvicorn core.app:app --host 127.0.0.1 --port "$PORT" --log-level warning &
+  VILLAGE_DIALER=fake VILLAGE_MEMORY=off SURREAL_DB_URL= uv run uvicorn core.app:app --host 127.0.0.1 --port "$PORT" --log-level warning &
   PID=$!
   trap 'kill $PID 2>/dev/null || true' EXIT
   for _ in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORT/health" >/dev/null && break; sleep 0.25; done

@@ -935,7 +935,13 @@ async def caption(village_id: str, es: str, en: str = "", *, speaker: str | None
 
 async def control(village_id: str, kind: str, payload: dict[str, Any]) -> None:
     await broadcast(village_id, {"type": "control", "kind": kind, "payload": payload}, to="control")
-    await hub.control(village_id, kind, payload)
+    # through the LIVE queue (not straight to the hub) so control frames keep ledger order with event frames
+    from core.live import live_status
+
+    if live_status.status == "ok":
+        await db.publish("control", {"village": village_id, "kind": kind, "payload": payload})
+    else:
+        await hub.control(village_id, kind, payload)
 
 
 _CHAT_TASKS: set[asyncio.Task[Any]] = set()

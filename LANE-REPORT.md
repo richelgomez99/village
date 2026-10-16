@@ -26,6 +26,7 @@ G007 · done · uv run pytest core/gate -q · mocked none
 LD-1: Gate models stay contract-shaped dict wrappers so Core can pass schema JSON without translation.
 
 ## core
+READY FOR MERGE V2-CORE
 READY FOR MERGE V1
 READY FOR MERGE V0
 T001 · done · `uv run python - <<'PY' ... TestClient(app).get('/health') ... PY` · health deps use stubs; DB/live not wired yet; `uv run pytest core -q` currently collects no tests
@@ -57,6 +58,20 @@ LD-5: Member tokens: `mt_<firstname>_<anything>` (QR/fixture form), the bare mem
 LD-6: `changed_by` for the lisinopril change follows `ws_sequence_scam.json` ("Dr. Lee"); the seed ledger row says "Dr. Elena Park" and reyes_family.json says p_park; flagged for contracts.
 LD-7: Event frames are not tagged `contract_version` (schema forbids it); control sockets get events without `data`; `mode` rides on `control{gate}` payloads as an extra field (kit asked; contract to follow).
 LD-8: Voice tools reach real services via `services.handle_voice_tool` (the ToolHandler prefers it), so `core/voice/tools.py` keeps its stub branch only for import failure; I did not edit core/voice (voice lane owns it).
+T019 · done · `uv run pytest core/tests/test_messages.py -q` · `message` rows with `msg_<MMDD>_<HHMM>_<n>` ids (memory mirror + Surreal `message` table via db.create_message); reset_demo seeds the pre-14:02 rows of `messages_reyes_seed.json`
+T020 · done · same · LIVE on message → hub `chat{village, message}` to every non-elder socket + control; `services.post_message`; `chat:village` (last 50) on non-elder snapshots
+T021 · done · same · `POST /villages/{id}/messages` (Bearer member token; elder/control 403) + `GET …/messages?after=&limit=&kind=`; `@Village…` → `core.builder.ask(village, question)` when importable, else fixed fallback text with `refs` = last decisions from the log; answer posted as `kind answer, reply_to` · mocked: builder ask absent in this branch → fallback answer
+T022 · done · same · incident upsert posts one `kind incident` village message (refs: incident event, verification, incident); 15:00 rota nudge for the on-duty member citing the `shift` row (scheduler; background ticker every 1 s also closes verifications at their deadline) · proposal/receipt hooks: not wired (watcher/release lanes own those rows)
+T-hook · done · `uv run pytest -q` · `core/app.py` includes `router` and `admin_router` from `core.builder|release|memory|watcher.routes` when importable (`/health.lanes` shows which); lifespan: memory runtime start/stop (VILLAGE_MEMORY=off skips), release sandbox pre-warm in the background; `POST /admin/reset` scopes `events_today, verifications, proposals, tokens, counters` (+ `core.watcher.routes.on_reset`); `uv run python -m core.tools.warm` → release warm
+T-kit · done · `uv run pytest -q`, `acceptance/run.sh V1 --lane core` · control snapshot binds every view key (per-member keys as Marco); `control{counter phones_live}` on member connect/drop; `control{reasoning}` with `mode`, `control{ledger}` rows (tool calls, dial, verification), `control{caption}` per phone-line utterance; `GET /villages/{id}/qr?kind=app|join&format=json` (control token) + `POST /auth/redeem` (sets consent/phone on the member; the dialer uses the redeemed phone); `/clock/warp {minutes}|{to}`; release POST guarded by the control token; `core/llm.py`: haiku roles → BEDROCK_HAIKU_MODEL, direct Anthropic only with ANTHROPIC_WORKSPACE_ID
+T-live · done · own instance on :8791 (`VILLAGE_DIALER=fake VILLAGE_MEMORY=off SURREAL_DB_URL=`), `uv run python acceptance/v1_flow.py --url http://127.0.0.1:8791` → OK (3 runs). Start + denied frames as received:
+- carmen: event:money_request → event:verification_pending{alerts:active} → event:pattern → event:verification_denied{alerts:active} → event:incident{alerts:active,incidents:open} → event:ack{incidents:open}
+- ana: event:money_request → event:verification_pending{alerts:active} → event:pattern → event:verification_denied{alerts:active} → event:incident{alerts:active,blueprint:life_areas,incidents:open} → chat:incident → result → event:ack{incidents:open}
+- marco: event:money_request → event:verification_pending{alerts:active,verifications:mine,verifications:pending?member=me} → event:pattern → prompt → prompt{closed} → event:verification_denied{alerts:active,verifications:mine,verifications:pending?member=me} → event:incident{alerts:active,incidents:open} → chat:incident → event:ack{incidents:open}
+- control: control:counter → control:caption → control:gate → control:reasoning → event:money_request → event:verification_pending{alerts:active,verifications:mine,verifications:pending?member=me} → event:pattern → control:ledger → control:ledger → control:ledger → control:ledger → event:verification_denied{alerts:active,verifications:mine,verifications:pending?member=me} → event:incident{alerts:active,blueprint:life_areas,incidents:open} → control:gate → control:reasoning → control:ledger → control:counter → chat:incident → event:ack{incidents:open} → control:caption → control:ledger → control:caption → control:gate → control:reasoning
+LD-9: Control frames go through the LIVE queue like events so the Control Room sees ledger order (gate/counter after the events they explain).
+LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VILLAGE_DIALER=fake` (core/conftest.py, v1.sh): reset_demo otherwise wipes the shared Surreal Cloud DB.
+LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
 READY FOR MERGE V0

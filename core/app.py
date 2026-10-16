@@ -57,7 +57,11 @@ async def lifespan(app: FastAPI):
 
 
 async def _memory_start():
-    """Agent Memory outbox (memory lane): mirrors ledger rows into facts. Optional."""
+    """Agent Memory outbox (memory lane): mirrors ledger rows into facts. Optional; VILLAGE_MEMORY=off skips it."""
+    import os
+
+    if os.environ.get("VILLAGE_MEMORY", "on").lower() == "off":
+        return None
     try:
         from core.memory import runtime
         from core.db import db

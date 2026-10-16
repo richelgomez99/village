@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import suppress
 from typing import Any
 
 from core.db import db
 from core.ws_hub import hub
+
+
+log = logging.getLogger("village.live")
 
 
 class LiveStatus:
@@ -21,12 +25,21 @@ async def _run() -> None:
     live_status.status = "ok"
     while True:
         table, row = await queue.get()
-        if table == "event":
-            await hub.broadcast_event(row)
-        elif table == "message":
-            await hub.broadcast_chat(row)
-        elif table == "verification":
-            await hub.broadcast_verification(row)
+        try:
+            await _dispatch(table, row)
+        except Exception:  # one bad row must never stop the fan-out
+            log.exception("live dispatch failed for %s", table)
+
+
+async def _dispatch(table: str, row: dict[str, Any]) -> None:
+    if table == "event":
+        await hub.broadcast_event(row)
+    elif table == "message":
+        await hub.broadcast_chat(row)
+    elif table == "verification":
+        await hub.broadcast_verification(row)
+    elif table == "control":
+        await hub.control(row["village"], row["kind"], row["payload"])
 
 
 async def start_live() -> None:
