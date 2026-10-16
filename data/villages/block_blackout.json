@@ -190,6 +190,21 @@
           "available": true
         }
       ]
+    },
+    {
+      "id": "m_ana_w147",
+      "name": "Ana Reyes",
+      "role": "volunteer",
+      "relationship": "neighbor; coordinates the Reyes family village (same person as m_ana)",
+      "language": {
+        "primary": "en",
+        "secondary": "es"
+      },
+      "phone": "+15555550102",
+      "channel": "app",
+      "view_preference": "simple",
+      "trust": "verified_volunteer",
+      "notes": "Lives on the block; free after 6 PM. On the coordinator-approved volunteer list."
     }
   ],
   "resources": [
@@ -580,7 +595,9 @@
         "takes_oxygen": "yes",
         "note": "Demo answer; emergency department, backup power.",
         "duration_s": 2.0
-      }
+      },
+      "address": "506 Lenox Ave, New York, NY 10037",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Harlem+Hospital+Center%2C+506+Lenox+Ave%2C+New+York%2C+NY+10037"
     },
     {
       "id": "inst_hamilton_grange",
@@ -598,8 +615,16 @@
         "takes_oxygen": "no",
         "note": "Demo answer; branch without power.",
         "duration_s": 1.0
-      }
+      },
+      "address": "503 W 145th St, New York, NY 10031",
+      "maps_url": "https://www.google.com/maps/search/?api=1&query=Hamilton+Grange+Library+%28NYPL%29%2C+503+W+145th+St%2C+New+York%2C+NY+10031"
     }
+  ],
+  "volunteer_approved": [
+    "b_darnell",
+    "b_priya",
+    "b_bodega",
+    "m_ana_w147"
   ],
   "memory_seed": [
     {

@@ -308,6 +308,13 @@ async def handle_payload(payload: dict[str, Any]) -> None:
     clean = clean_payload(payload)
     POST_CALLS.append(clean)
 
+    try:  # BLOCK-VOICE: an institution check call → facts + one chat line (no-op for every other call)
+        from core.voice.institution_calls import apply_post_call
+
+        if await apply_post_call({**clean, "type": event_type}):
+            return
+    except Exception:
+        pass
     if event_type == "call_initiation_failure":
         await record_call_failed(clean)
         return

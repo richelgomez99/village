@@ -8,7 +8,8 @@
     "priya",
     "okafor",
     "james",
-    "control"
+    "control",
+    "ana"
   ],
   "messages": [
     {
@@ -326,6 +327,22 @@
         "ref": "b_james"
       },
       "at": "2026-10-16T13:55:40-04:00"
+    },
+    {
+      "id": "msg_1016_1357_ana",
+      "village": "v_w147",
+      "author": "m_ana_w147",
+      "kind": "chat",
+      "text": "I'm home on 147th after 6. I can check on Mr. James on my way up and carry water to five if Darnell's cord is still running. Tanya, put me on the evening shift if you need a body.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "m_ana_w147"
+      },
+      "at": "2026-10-16T13:57:30-04:00"
     }
   ]
 }
