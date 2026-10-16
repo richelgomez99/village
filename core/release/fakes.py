@@ -54,7 +54,7 @@ class FakeDaytona:
             return BuildResult(False, sandbox_id="sbx_fake", error="vite build failed")
         n, fails = floor_failures(files)
         if self.always_fail and not fails:
-            fails = ["floor.test.ts › floor/sizes › elder BigButton #b_pill text >= 28px :: AssertionError: font 20px on elder BigButton #b_pill"]
+            fails = ["floor.test.ts › floor/sizes › elder BigButton #b_call text >= 28px :: AssertionError: font 20px on elder BigButton #b_call"]
         if fails:
             return BuildResult(True, n + 40 - len(fails), len(fails), fails, sandbox_id="sbx_fake",
                                timings_ms={"upload": 1, "build": 2, "tests": 3})

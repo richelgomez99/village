@@ -69,10 +69,16 @@ def test_llm_off_client_falls_back():
 
 def test_evals_code_checks(spec):
     nc = needs_coverage(spec)
-    assert nc["score"] == 0.8 and "n_refills" in nc["explanation"]
+    assert nc["score"] == 1.0 and nc["label"] == "covered"  # rev 5 (1.2.0) serves n_refills via RefillCard
+    for view in spec["views"].values():
+        view["needs_served"] = {k: [n for n in v if n != "n_refills"] for k, v in (view.get("needs_served") or {}).items()}
+    for c in spec.get("custom_components") or []:
+        c["needs_served"] = [n for n in c.get("needs_served") or [] if n != "n_refills"]
+    part = needs_coverage(spec)
+    assert part["score"] < 1.0 and "n_refills" in part["explanation"]
     assert no_medical_advice(spec)["score"] == 1.0
     assert elder_heuristic(spec)["score"] == 1.0
-    spec["views"]["elder"]["elements"]["b_pill"]["props"]["label"] = "Tome dos pastillas, 20 mg"
+    spec["views"]["elder"]["elements"]["b_village"]["props"]["label"] = "Tome dos pastillas, 20 mg"
     assert no_medical_advice(spec)["score"] == 0.0
 
 
@@ -95,3 +101,13 @@ def test_anchor_assertions_elder_and_other():
     assert not all(a["ok"] for a in assertions_from({"theme": "elder", "buttons": [btn] * 2, "e911": [], "title": "x"}))
     other = assertions_from({"theme": "family", "buttons": [dict(btn, h=56)], "e911": [], "title": "Block"})
     assert all(a["ok"] for a in other)
+
+
+def test_template_catalog_matches_contract():
+    import json
+    import re
+
+    enum = json.loads((bundle.ROOT / "contracts/schemas/village_spec.schema.json").read_text())["$defs"]["catalog_type"]["enum"]
+    ts = (bundle.TEMPLATE_DIR / "src/catalog.ts").read_text()
+    listed = re.findall(r'"([A-Z][A-Za-z]+)"', ts.split("export const CATALOG = [")[1].split("] as const")[0])
+    assert listed == enum

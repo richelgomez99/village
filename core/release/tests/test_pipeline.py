@@ -124,5 +124,5 @@ async def test_real_evals_model_off(spec, publisher, store, tmp_path):
     r, _, _ = await _run(spec, 4, publisher, store, evals=ReleaseEvals(llm=None, mirror_dir=tmp_path / "evals"))
     ev = r["stages"][4]
     assert ev["status"] == "passed"
-    assert ev["details"]["eval_scores"]["needs_coverage"] == 0.8
+    assert ev["details"]["eval_scores"]["needs_coverage"] == 1.0
     assert (tmp_path / "evals" / "rel_reyes_r4.json").exists()
