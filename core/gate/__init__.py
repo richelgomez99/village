@@ -13,6 +13,7 @@ from core.gate.models import (
     VillageState,
     gate_input_from_args,
 )
+from core.gate.say import Say, say
 
 __all__ = [
     "Candidate",
@@ -22,4 +23,6 @@ __all__ = [
     "Verification",
     "VillageState",
     "gate_input_from_args",
+    "Say",
+    "say",
 ]
