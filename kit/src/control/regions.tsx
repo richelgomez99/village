@@ -511,7 +511,7 @@ function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; na
 /** One chip per phone, right under the arc pills: who, their role word, and an Open link (no scrolling to the QR tiles). */
 export function PhoneLinks({ spec, village, cfg, people }: { spec: any; village: string; cfg?: ApiConfig; people?: any[] }) {
   const entries = useQr(cfg, village);
-  const folks: any[] = (spec?.blueprint?.people ?? people ?? []).filter((p: any) => p?.id);
+  const folks: any[] = (spec?.blueprint?.people ?? people ?? []).filter((p: any) => p?.id && p?.view);  // only people with an app
   if (!folks.length) return null;
   const byMember = new Map((entries ?? []).filter((e) => e.kind === "app").map((e) => [e.member_id, e] as const));
   return (
