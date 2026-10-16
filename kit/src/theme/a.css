@@ -346,3 +346,14 @@ html, body { background: #100D0A; margin: 0; }
 .receipt-title { margin: 0; font: 650 1.6em var(--display); }
 .receipt-video { width: 100%; max-height: 58vh; background: #000; border-radius: 12px; }
 .receipt-card .release-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* ROOM-10: arc pills navigate sections (the lit pill is the live beat; the selected pill is the section shown) */
+.control .arc-beat.selected { outline: 2px solid currentColor; outline-offset: 2px; }
+.control .nav-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+.control .nav-section .nav-send { grid-column: 1 / -1; display: grid; gap: 6px; }
+.control .nav-send-row { display: flex; gap: 8px; }
+.control .nav-send-row input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.25); background: transparent; color: inherit; font: inherit; }
+.control .nav-box ul, .control .nav-box ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.control .intake-desc { margin: 0 0 8px; font-style: italic; }
+.control .intake-meter { font-weight: 600; }
+.control .qr-tile a { color: inherit; }

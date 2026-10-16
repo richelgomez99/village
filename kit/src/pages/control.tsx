@@ -15,6 +15,7 @@ import { TransportBar } from "../control/transport";
 import { PresenterLayer } from "../control/PresenterLayer";
 import { KEY_MAP_7, coordinatorTokenFromQr, coverLine, demoCast, moneyCallBody, thanksgivingLine } from "../control/presenter";
 import { ReceiptOverlay } from "../control/regions";
+import { BuildSection, RebuildSection, useProposals, type Section } from "../control/sections";
 import type { Transport } from "../dev/transport";
 import { liveConfig, makeSocket, type LiveConfig } from "../live/useLive";
 import type { VillageSocket } from "../live/ws";
@@ -278,6 +279,10 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const [scene, dispatch] = useSceneWithDispatch(socket, village);
   const founding = isFounding(scene);
   const beat: ArcBeat = anyone ? "anyone" : founding ? "build" : scene.beat ?? "run";
+  // ROOM-10: the pills navigate (Build = intake · Run = today · Rebuild = suggestions); null = follow the live beat
+  const [section, setSection] = useState<Section | null>(null);
+  const shown: Section = section ?? (founding ? "build" : "run");
+  const proposals = useProposals(api, village, `${scene.proposal?.id ?? ""}:${scene.proposal?.status ?? ""}:${JSON.stringify(scene.data["proposals:pending"] ?? null).length}:${shown}`);
   const transport = typeof window !== "undefined" ? ((window as any).__fake?.transport as Transport | null | undefined) ?? null : null;
   // presenter ROOM-7 keys: real Core calls built from the spec (names never hard-coded)
   const [receipt, setReceipt] = useState<any>(null);
@@ -288,6 +293,15 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
     const t = coordinatorTokenFromQr(qr as any, spec?.village?.coordinator_id);
     if (!t) throw new Error("no coordinator token");
     return t;
+  };
+  const openReceipt = async (releaseId?: string) => {
+    let r = releaseId && scene.release?.id === releaseId ? scene.release : null;
+    if (!r) {
+      const res = (await apiRequest(real, "GET" as any, `/villages/${encodeURIComponent(village)}/releases`).catch(() => [])) as { receipts?: any[] } | any[];
+      const all = Array.isArray(res) ? res : res?.receipts ?? [];
+      r = all.find((x: any) => x.id === releaseId) ?? null;
+    }
+    if (r) setReceipt(r);
   };
   const presenterExtras: Record<string, () => Promise<string | void> | string | void> = {
     m: async () => {
@@ -416,13 +430,30 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   return (
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}${transport && !HERO ? " has-transport" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32 + (transport && !HERO ? 56 : 0)}px` }}>
       <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} villageTime={PRESENTER ? villageTimeWords(scene.clock?.now ?? new Date(socket.nowMs()).toISOString(), scene.data) || " " : undefined} />
-      <ArcStrip beat={beat} onJump={(b) => onJump?.(b)} />
+      <ArcStrip beat={beat} selected={shown} onJump={(b) => (b === "anyone" ? onJump?.(b) : setSection(b))} />
       {state.status !== "live" && state.status !== "idle" && (!PRESENTER || downLong) ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}
       {!scene.spec && scene.frames === 0 ? (
         <p className="empty loading" data-test="room-loading">Opening {tabs.find((t) => t.id === village)?.label ?? "the village"}…</p>
-      ) : founding ? (
+      ) : shown === "rebuild" ? (
+        <RebuildSection
+          spec={spec}
+          rows={proposals.rows}
+          options={proposals.options}
+          error={proposals.error}
+          onDecide={async (pid, a) => {
+            await apiRequest(real, "POST", `/villages/${encodeURIComponent(village)}/proposals/${encodeURIComponent(pid)}/${a}`);
+            proposals.reload();
+          }}
+          onReceipt={openReceipt}
+          onSuggest={async (t) => {
+            await apiRequest({ ...real, token: await coordinatorToken() }, "POST", `/villages/${encodeURIComponent(village)}/messages`, { text: t, mention: "village" });
+          }}
+        />
+      ) : shown === "build" && !founding ? (
+        <BuildSection scene={scene} live={false} onAddDetail={(t) => answerFollowUp(api, village, lastQuestion, t)} />
+      ) : shown === "build" ? (
         <div className="cr-grid">
           <TranscriptRegion lines={scene.transcript} onSend={onAnswer} speakerName={coordinator} onPlayAudio={audioBlocked ? playAudio : undefined} />
           <FoundingWorkRegion blocks={scene.blocks} ledger={scene.ledger} nowMs={socket.nowMs} />
