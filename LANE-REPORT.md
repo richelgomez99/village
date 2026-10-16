@@ -26,6 +26,8 @@ G007 · done · uv run pytest core/gate -q · mocked none
 LD-1: Gate models stay contract-shaped dict wrappers so Core can pass schema JSON without translation.
 
 ## core
+READY FOR MERGE V2-CORE
+READY FOR MERGE V1
 READY FOR MERGE V0
 T001 · done · `uv run python - <<'PY' ... TestClient(app).get('/health') ... PY` · health deps use stubs; DB/live not wired yet; `uv run pytest core -q` currently collects no tests
 T002 · done · `uv run python - <<'PY' ... TestClient(app).post('/tools/log_dose') ... PY` · services seam replays contract examples/fixtures and log-only broadcast/post_message
@@ -43,6 +45,33 @@ LD-2: Decision `mode` is recorded under `refs` as `{"kind":"mode","id":"acted_al
 LD-3: `core.llm.llm()` keeps `VILLAGE_LLM=off` deterministic for tests; when enabled it uses Anthropic Sonnet (`claude-sonnet-5-5`) for sonnet-class roles if `ANTHROPIC_API_KEY` is set, otherwise Bedrock Mantle with env-provided model ids.
 T012 · done · `uv run pytest core/tests/test_verifications.py -q` · verification rows persist with version 0 and answers commit through CAS; duplicate terminal answers are ignored
 T013 · done · `uv run pytest core/tests/test_verifications.py -q` · tool idempotency caches exact response bodies by `(conversation_id, tool_call_id)` and duplicate money webhooks create one verification
+T014 · done · `uv run pytest core/tests/test_verifications.py -q` · scheduler tick runs on boot/clock warp and closes pending verifications past deadline with a timeout event
+T015 · done · `uv run pytest core -q` · WS prompt frames go only to the claimed member, terminal rows close the prompt, and live bindings resolve alerts, pending/mine verifications, and open incidents
+LD-4: Core uses the merged `step_verification` state machine for app answers; a later different answer is persisted as `conflict` per the verification contract instead of being dropped as a terminal no-op.
+T016 · done · `uv run pytest core/tests/test_verifications.py core/voice/tests/test_post_call.py -q` · real start/answer/await verification services, HTTP answer endpoint, app actions, and voice post-call path use the shared verification state machine; (the rev 5 / elder-dose failures were fixed by main 07680d9 on merge)
+T017 · done · `uv run pytest core/tests/test_recovery.py -q` · boot runs `scheduler.recover()`: first tick closes past-deadline rows through the gate SM (timeout + incident), rows with `call_placed_at` are never redialed; `core/dialer.py` seam: `FakeDialer` in tests/acceptance, real = `core.voice.outbound.ElevenLabsDialer` via `OutboundService` (CAS on `call_placed_at`) only when consent `ai_calls` is true and ElevenLabs key + `ELEVENLABS_AGENT_CALLER_ID` + phone number id are configured · mocked: memory DB is reset on boot, so recovery is exercised on rows injected into the store (no Surreal reload yet)
+T018 · done · `acceptance/run.sh V1 --lane core` (boots Core on :8792 with FakeDialer, real sockets via `acceptance/v1_flow.py`, then `uv run pytest -q`) · start+denied frames match `ws_sequence_scam.json` per client in order (type, event kind / control kind, prompt.closed, data keys bound by the view); every frame validates against `ws_messages.schema.json`; verbatim gate `say` for denied/timeout; duplicate webhook identical; timeout via `/clock/warp` · mocked: control `reasoning` lines not produced (skipped in the match)
+T019(1.2.0) · done · `uv run pytest core/tests/test_contract_12.py -q` · `prescriptions:current` (bv_prescriptions) for helper/coordinator/control snapshots and `changed()` on med_change/shift; lisinopril 10 mg with superseded 5 mg valid_until 2026-10-03 changed_by Dr. Lee, apixaban, metformin, atorvastatin; never elder
+T020(1.2.0) · done · same · `hello.view_as` honored for control/coordinator tokens only (others get `error{not_allowed}` and stay themselves); view_as sockets are read-only (actions/acks → `error{not_allowed}`)
+T021(1.2.0) · done · same · `snapshot.identity {member_id, name, role, village_name}` (+`view_as: true`); snapshot now carries `spec` (view for members, whole VillageSpec for control) and `now` per contract; all snapshots validate
+LD-5: Member tokens: `mt_<firstname>_<anything>` (QR/fixture form), the bare member id, or `control`/`CONTROL_TOKEN` resolve in `core/auth.py`; no token minting yet.
+LD-6: `changed_by` for the lisinopril change follows `ws_sequence_scam.json` ("Dr. Lee"); the seed ledger row says "Dr. Elena Park" and reyes_family.json says p_park; flagged for contracts.
+LD-7: Event frames are not tagged `contract_version` (schema forbids it); control sockets get events without `data`; `mode` rides on `control{gate}` payloads as an extra field (kit asked; contract to follow).
+LD-8: Voice tools reach real services via `services.handle_voice_tool` (the ToolHandler prefers it), so `core/voice/tools.py` keeps its stub branch only for import failure; I did not edit core/voice (voice lane owns it).
+T019 · done · `uv run pytest core/tests/test_messages.py -q` · `message` rows with `msg_<MMDD>_<HHMM>_<n>` ids (memory mirror + Surreal `message` table via db.create_message); reset_demo seeds the pre-14:02 rows of `messages_reyes_seed.json`
+T020 · done · same · LIVE on message → hub `chat{village, message}` to every non-elder socket + control; `services.post_message`; `chat:village` (last 50) on non-elder snapshots
+T021 · done · same · `POST /villages/{id}/messages` (Bearer member token; elder/control 403) + `GET …/messages?after=&limit=&kind=`; `@Village…` → `core.builder.ask(village, question)` when importable, else fixed fallback text with `refs` = last decisions from the log; answer posted as `kind answer, reply_to` · mocked: builder ask absent in this branch → fallback answer
+T022 · done · same · incident upsert posts one `kind incident` village message (refs: incident event, verification, incident); 15:00 rota nudge for the on-duty member citing the `shift` row (scheduler; background ticker every 1 s also closes verifications at their deadline) · proposal/receipt hooks: not wired (watcher/release lanes own those rows)
+T-hook · done · `uv run pytest -q` · `core/app.py` includes `router` and `admin_router` from `core.builder|release|memory|watcher.routes` when importable (`/health.lanes` shows which); lifespan: memory runtime start/stop (VILLAGE_MEMORY=off skips), release sandbox pre-warm in the background; `POST /admin/reset` scopes `events_today, verifications, proposals, tokens, counters` (+ `core.watcher.routes.on_reset`); `uv run python -m core.tools.warm` → release warm
+T-kit · done · `uv run pytest -q`, `acceptance/run.sh V1 --lane core` · control snapshot binds every view key (per-member keys as Marco); `control{counter phones_live}` on member connect/drop; `control{reasoning}` with `mode`, `control{ledger}` rows (tool calls, dial, verification), `control{caption}` per phone-line utterance; `GET /villages/{id}/qr?kind=app|join&format=json` (control token) + `POST /auth/redeem` (sets consent/phone on the member; the dialer uses the redeemed phone); `/clock/warp {minutes}|{to}`; release POST guarded by the control token; `core/llm.py`: haiku roles → BEDROCK_HAIKU_MODEL, direct Anthropic only with ANTHROPIC_WORKSPACE_ID
+T-live · done · own instance on :8791 (`VILLAGE_DIALER=fake VILLAGE_MEMORY=off SURREAL_DB_URL=`), `uv run python acceptance/v1_flow.py --url http://127.0.0.1:8791` → OK (3 runs). Start + denied frames as received:
+- carmen: event:money_request → event:verification_pending{alerts:active} → event:pattern → event:verification_denied{alerts:active} → event:incident{alerts:active,incidents:open} → event:ack{incidents:open}
+- ana: event:money_request → event:verification_pending{alerts:active} → event:pattern → event:verification_denied{alerts:active} → event:incident{alerts:active,blueprint:life_areas,incidents:open} → chat:incident → result → event:ack{incidents:open}
+- marco: event:money_request → event:verification_pending{alerts:active,verifications:mine,verifications:pending?member=me} → event:pattern → prompt → prompt{closed} → event:verification_denied{alerts:active,verifications:mine,verifications:pending?member=me} → event:incident{alerts:active,incidents:open} → chat:incident → event:ack{incidents:open}
+- control: control:counter → control:caption → control:gate → control:reasoning → event:money_request → event:verification_pending{alerts:active,verifications:mine,verifications:pending?member=me} → event:pattern → control:ledger → control:ledger → control:ledger → control:ledger → event:verification_denied{alerts:active,verifications:mine,verifications:pending?member=me} → event:incident{alerts:active,blueprint:life_areas,incidents:open} → control:gate → control:reasoning → control:ledger → control:counter → chat:incident → event:ack{incidents:open} → control:caption → control:ledger → control:caption → control:gate → control:reasoning
+LD-9: Control frames go through the LIVE queue like events so the Control Room sees ledger order (gate/counter after the events they explain).
+LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VILLAGE_DIALER=fake` (core/conftest.py, v1.sh): reset_demo otherwise wipes the shared Surreal Cloud DB.
+LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
 READY FOR MERGE V0
@@ -231,3 +260,43 @@ Core must mount / call:
 - reset_demo / `POST /admin/reset`: `await core.watcher.routes.on_reset("v_reyes")` to run tonight's round on the fresh seed
 - `/health.outbox`: `core.memory.runtime.health()`
 - evals lane: expose `evals.rounds_port` with `async rerun_scam_set(village) -> {caught, total}` and `async detect_patterns(village, events) -> [{claimed_member_id, event_ids, count, text?}]`
+
+## evals
+READY FOR MERGE EVALS
+
+Measured (Oct 16, eval clock 2026-10-16T14:02:09-04:00, Reyes fixture state with the Oct 9 seed request; numbers only from these runs):
+
+| run | extraction | caught | false alarms | exact match | extraction p50 / p95 | output |
+|---|---|---|---|---|---|---|
+| local, model on | Bedrock `anthropic.claude-haiku-4-5` (50/50 model extractions) | **30/30** | **0/20** | 49/50 | 1206 / 1407 ms | `evals/out/scam_experiment_20261016T153025Z_model.{json,md}` |
+| local, model off | deterministic rules | **28/30** | **0/20** | 47/50 | <1 ms | `evals/out/scam_experiment_20261016T154953Z_rules.{json,md}` |
+| Arize experiment, model on | Haiku 4.5, task run by Arize SDK runner | **30/30** | **0/20** | 49/50 | — | dataset `village-scam-eval` id `RGF0YXNldDozNzAyMTc6SEFDcA==`, experiment `scam-model-20261016T153959Z` id `RXhwZXJpbWVudDoxNjIyNDM6aU1KYg==`; mirror `evals/out/arize_experiment_20261016T153959Z.json` |
+| local, model off, `--village v_reyes` | rules | 29/31 | 0/20 | 48/51 | <1 ms | n_base 50 + n_village 1 (`evals/out/scam_experiment_20261016T154556Z_rules_v_reyes.*`) |
+
+Definitions: caught = scam case mapped to verify_with_member / advise_do_not_send / deny. False alarm = benign case mapped to advise_do_not_send / deny, or to verify_with_member where the dataset expects record (3 benign rows expect verify_with_member: rent cash to Ana, $50 to Marco, Medicare number to Ana). Gate→dataset mapping is written out for all 14 gate decisions in `evals/scam_experiment.py` `DECISION_MAP`; no tool call = record. Haiku's one miss on exact match: se_b07 (Ana asks for rent cash) → no tool call → record (expected verify_with_member; still not a false alarm). Rules misses: se_s03 and se_s27 (no "ask" verb matched) → record.
+
+- LD-1 scam experiment: `evals/scam_experiment.py` (+ `extract.py`, `reyes.py`): Haiku forced tool call (`report_money_request` | `not_a_money_request`) → claimed member resolved against Reyes members (unknown → None → R-MONEY-UNKNOWN; "asks Village to pay" → `money_transfer_request` → R-MONEY-NEVER) → GateInput (validated against gate.schema `gate_input` in tests) → pure `core.gate.decide` → score. JSON+MD report with per-case rows and timings. DONE.
+- LD-2 Arize experiment: `evals/arize_experiment.py`, `arize[Datasets]<8` (`ArizeDatasetsClient.create_dataset` + `run_experiment`, evaluators `caught`, `false_alarm`, `decision_match`). DONE (ids above). Two earlier experiments (`scam-rules-20261016T153717Z`, `scam-model-20261016T153825Z`) are WRONG: Arize returns `is_scam` as a string, so benign rows were scored as scams. Fixed; see `evals/out/discarded/README.txt`. Ignore those two in the UI.
+- LD-3 session eval + detector: `evals/session_eval.py` (`session_possible_fraud`, Haiku judge, rules fallback, EVALUATOR span, `update_evaluations` on the call root span, mirror `var/evals/sessions/<conv>.json`). Real run: conv_seed_1009 → possible_fraud 0.95 (Haiku), trace `a33eeac183244e9ccd30aff7e6fb7db6`; Arize shows the EVALUATOR span and `eval.session_possible_fraud` on the `call.session` root. `evals/detector.py` `detect_patterns(village_id, events)`: ≥2 money requests claiming the same member within 7 days → pattern with `evidence` (call_moment, trace, fact), schema-valid per proposal.schema `evidence`; seed Oct 9 + today → 1 pattern, 5 evidence rows. DONE.
+- LD-4 incident → test (D24 #11): `evals/incident_to_test.py` appends `{utterance, expected_decision, …}` to `evals/sets/<village>.jsonl` on verification_denied/timeout (idempotent per verification id); `scam_experiment --village v_reyes` reports n_base + n_village. `evals/sets/v_reyes.jsonl` has 1 row (the Oct 9 timeout). DONE.
+- LD-5 tracing: `core/obs/tracing.py` (`init_tracing` = arize-otel `register` + Anthropic instrumentor when ARIZE keys exist, else no-op; `span()` + `agent/tool/guardrail/chain/evaluator` decorators with session.id, graph.node.id, graph.node.parent_id, user.id). Real trace `9ea6655bab35c397925b58fcc13bf70d` in project `village`: CHAIN scam_eval.case > AGENT mom_line.extract > LLM messages.create, GUARDRAIL gate.decide (verified by span export). DONE.
+- LD-6 tests: `uv run pytest evals -q` → 33 passed offline (model off, Arize mocked); full `uv run pytest -q` → 222 passed. Includes T007 import ban (core/gate, core/voice/tools*.py import no evals/arize/core.memory/core.obs). DONE.
+- LD-7 rounds port: `evals/rounds_port.py` `async rerun_scam_set(village)` → {n_caught, n_total, n_false_alarms, n_benign, n_base, n_village, caught, total, …} (rules unless VILLAGE_LLM on; report to `var/evals/rounds/`), `async detect_patterns(village, events)` → patterns with `claimed_member_id, event_ids, count, text, evidence` (the shape rounds.py reads; evidence rows inside). DONE.
+
+Commands:
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.scam_experiment --mode model`
+- `uv run python -m evals.scam_experiment --mode rules [--village v_reyes]`
+- `VILLAGE_LLM=on uv run --with boto3 --with 'arize[Datasets]<8' python -m evals.arize_experiment`
+- `VILLAGE_LLM=on uv run --with boto3 --with arize python -m evals.session_eval conv_seed_1009`
+- `VILLAGE_LLM=on uv run --with boto3 python -m evals.trace_smoke`; `uv run python -m evals.detector`; `uv run python -m evals.incident_to_test v_reyes`
+
+Notes for core / orchestrator:
+- `core.llm` Bedrock path needs `boto3` (not in pyproject; evals uses `uv run --with boto3`). An empty `AWS_BEARER_TOKEN_BEDROCK=` in .env makes Mantle send `Bearer ` and fail with "Connection error"; `evals/env.py` drops empty AWS_/ARIZE_ vars. Core should do the same or remove the empty line.
+- `llm("haiku")` maps to the Sonnet slot (role not in {watcher, verifier, explainer}); evals pins `BEDROCK_HAIKU_MODEL`. Harmless today (both are haiku-4-5).
+- The `arize` SDK (v7 and v8) shadows `arize.otel` from arize-otel when layered on; `core/obs/tracing.py` re-exposes it.
+- Mantle rejects `temperature`; the extraction runs without it (Haiku extractions are not guaranteed deterministic across runs).
+
+Open risks:
+- The rules extractor was written with the 50 cases visible: treat 28/30 as a regression baseline, not a generalization claim. The Haiku prompt names the Reyes family; same caveat, smaller.
+- Dataset is 50 hand-written cases (30/20); a perfect score on it is not a field rate. Pitch should say "on our 50-case eval set".
+- The detector's `fact` refs are synthesized keys (`fact:money_request:<subject>:<date>`), not read back from Agent Memory.

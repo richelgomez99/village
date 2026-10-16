@@ -55,10 +55,11 @@ class MemoryDB:
         await self.publish("message", message)
         return message
 
-    async def upsert_verification(self, verification: dict[str, Any]) -> dict[str, Any]:
+    async def upsert_verification(self, verification: dict[str, Any], *, publish: bool = True) -> dict[str, Any]:
         self.verifications[verification["id"]] = verification
         await self._cloud_upsert("verification", verification["id"], verification)
-        await self.publish("verification", verification)
+        if publish:
+            await self.publish("verification", verification)
         return verification
 
     async def get_idem(self, key: str) -> dict[str, Any] | None:

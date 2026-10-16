@@ -15,7 +15,21 @@ router = APIRouter()
 async def health(request: Request) -> dict:
     settings = get_settings()
     llm = llm_status()
+    extra = {}
+    try:
+        from core.memory import runtime
+
+        extra["outbox"] = runtime.health()
+    except Exception:
+        pass
+    try:
+        from core.app import LANE_ROUTERS
+
+        extra["lanes"] = LANE_ROUTERS
+    except Exception:
+        pass
     return {
+        **extra,
         "ok": True,
         "contract_version": CONTRACT_VERSION,
         "now": datetime.now(ZoneInfo("America/New_York")).isoformat(),

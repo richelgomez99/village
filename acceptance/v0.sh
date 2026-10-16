@@ -11,11 +11,11 @@ with TestClient(app) as client:
     assert health.status_code == 200, health.text
     body = health.json()
     assert body["ok"] is True
-    assert body["contract_version"] == "1.1.0"
+    assert body["contract_version"] == __import__("core.settings").settings.CONTRACT_VERSION
     assert body["deps"]["llm"] == "off"
 
     with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as carmen:
-        carmen.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_id": "m_carmen"})
+        carmen.send_json({"type": "hello", "contract_version": __import__("core.settings").settings.CONTRACT_VERSION, "village": "v_reyes", "member_id": "m_carmen"})
         snap = carmen.receive_json()
         assert snap["type"] == "snapshot"
         assert snap["role"] == "elder"

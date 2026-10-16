@@ -3,6 +3,10 @@ from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+
+# Put .env into os.environ (without overriding real env) so SDKs that read AWS_*/ARIZE_* directly see them.
+load_dotenv(override=False)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +29,7 @@ class Settings(BaseSettings):
     bedrock_sonnet_model: str = Field(default="anthropic.claude-sonnet-5-5", alias="BEDROCK_SONNET_MODEL")
     bedrock_haiku_model: str = Field(default="anthropic.claude-haiku-5-5", alias="BEDROCK_HAIKU_MODEL")
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
+    anthropic_workspace_id: str = Field(default="", alias="ANTHROPIC_WORKSPACE_ID")
 
     @property
     def layers(self) -> list[int]:
