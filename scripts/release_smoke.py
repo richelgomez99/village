@@ -79,6 +79,7 @@ async def main() -> int:
 
     if args.cold:
         os.environ.pop("RELEASE_SANDBOX_ID", None)
+        os.environ["RELEASE_COLD"] = "1"
     model_on = os.environ.get("VILLAGE_LLM", "off") != "off"
     spec = json.loads((ROOT / args.spec).read_text())
     vid = spec["village"]["id"]
@@ -99,7 +100,7 @@ async def main() -> int:
         elif kind == "build_log":
             print(f"  +{dt:5.1f}s   log[{payload['level']}] {payload['line'][:150]}", flush=True)
 
-    print(f"arize={arize} model={'on' if model_on else 'off'} sandbox={'cold' if not os.environ.get('RELEASE_SANDBOX_ID') else 'reuse'} rev={rev} inject={'contrast' if args.break_contrast else None}")
+    print(f"arize={arize} model={'on' if model_on else 'off'} sandbox={'cold' if args.cold else ('id' if os.environ.get('RELEASE_SANDBOX_ID') else 'warm-label')} rev={rev} inject={'contrast' if args.break_contrast else None}")
     history: list[dict] = []
     try:
         receipt = await run_release(

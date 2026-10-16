@@ -90,6 +90,17 @@ class DaytonaBuilder:
                 self._sb = sb
             except Exception:
                 self._sb = None
+        if self._sb is None and os.environ.get("RELEASE_COLD", "0") != "1":
+            # No id given: reuse any started warm sandbox of this lane (keeps one, avoids leaks).
+            try:
+                from daytona import ListSandboxesQuery
+
+                async for cand in d.list(ListSandboxesQuery(labels=dict(WARM_LABEL))):
+                    if "started" in str(getattr(cand, "state", "")).lower():
+                        self._sb = cand
+                        break
+            except Exception:
+                self._sb = None
         if self._sb is None:
             labels = dict(WARM_LABEL)
             if self.image:

@@ -3,13 +3,17 @@
 GET /v/{village}/r/{rev}/{path}   candidate build (blue/green: any staged rev)
 GET /v/{village}/                 published rev (var/releases/<v>/published.json)
 GET /releases/{rel}/qa/{file}     QA evidence (screenshots, report.json)
-GET /villages/{village}/releases  receipts (local store)"""
+GET /villages/{village}/releases  receipts newest first + live_rev (openapi listReleases)
+POST /villages/{village}/releases {rev, trigger?, inject_failure?, publish?} → 202 {release_id, candidate_path}
+                                  (409 in progress, 404 no spec, 422 bad body, 503 no builder)"""
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
 from fastapi.responses import FileResponse, JSONResponse
 
 from core.release.receipts import ReceiptStore
@@ -76,8 +80,32 @@ async def qa_file(rel: str, file: str) -> FileResponse:
 
 
 @router.get("/villages/{village}/releases")
-async def list_releases(village: str) -> JSONResponse:
+async def list_releases(village: str, limit: int = Query(20, ge=1, le=100)) -> JSONResponse:
     if not VID.match(village):
         raise HTTPException(404)
-    return JSONResponse({"village": village, "published_rev": LocalPublisher().published_rev(village),
-                         "releases": ReceiptStore().all(village)})
+    rows = sorted(ReceiptStore().all(village), key=lambda r: (r.get("created_at", ""), r.get("rev", 0)), reverse=True)
+    return JSONResponse({"receipts": rows[:limit], "live_rev": LocalPublisher().published_rev(village)})
+
+
+class StartRelease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rev: int = Field(ge=1)
+    trigger: Literal["manual", "repair"] = "manual"
+    repair_of: str | None = Field(default=None, pattern=r"^rel_[a-z0-9_]+_r[0-9]+$")
+    inject_failure: Literal["contrast"] | None = None
+    publish: bool = True
+
+
+@router.post("/villages/{village}/releases", status_code=202)
+async def start_release(village: str, body: StartRelease) -> JSONResponse:
+    from core.release.service import get_service
+
+    if not VID.match(village):
+        raise HTTPException(404)
+    try:
+        out = get_service().start(village, body.rev, inject=body.inject_failure, trigger=body.trigger, publish=body.publish)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(409 if "in progress" in str(exc) else 503, str(exc)) from exc
+    return JSONResponse(out, status_code=202)
