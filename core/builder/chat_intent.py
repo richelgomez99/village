@@ -21,7 +21,7 @@ CHANGE_TOOL = {
     "input_schema": {
         "type": "object", "additionalProperties": False, "required": ["event"],
         "properties": {
-            "event": {"type": "string"}, "date_day": {"type": "integer"}, "month": {"type": "string"}, "place": {"type": "string"},
+            "event": {"type": "string", "description": "short name, 2-5 words (e.g. 'Thanksgiving', 'the cooling-center move')"}, "date_day": {"type": "integer"}, "month": {"type": "string"}, "place": {"type": "string"},
             "people_count": {"type": "integer"},
             "brings": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["who", "what"], "properties": {"who": {"type": "string"}, "what": {"type": "string"}}}},
             "arrivals": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["who"], "properties": {"who": {"type": "string"}, "train": {"type": "string"}, "pickup_at": {"type": "string"}, "pickup_place": {"type": "string"}}}},
@@ -120,14 +120,14 @@ NAME = r"(?:(?:the|Mr\.|Mrs\.|Ms\.|Dr\.) )?[A-ZÁÉÍÓÚ][a-zá-ú]+(?: [A-ZÁ�
 def _group_rules(t: str, out: dict[str, Any]) -> dict[str, Any]:
     """Group plans (no family vocabulary): '<X> drives <Y>', '<X> stays with <thing>', '<Y> needs a ride', 'to <place> at <time>'."""
     got: dict[str, Any] = {}
-    tm = re.search(r"\bat (\d{1,2}(?::\d{2})?)\s*(am|pm|a\.m\.|p\.m\.)?(?![\w:])", t, re.I)
+    tm = re.search(r"\bat (\d{1,2}(?::\d{2})?)\s*(am|pm|a\.m\.|p\.m\.)?(?!\w)(?!:\d)", t, re.I)
     if tm:
         got["time"] = tm.group(1)
     rides = [{"driver": d, "riders": r.strip(), "at": got.get("time", "")} for d, r in re.findall(rf"\b({NAME}) (?:drives|picks up|takes) ({NAME}(?: and {NAME})?)", t)]
     rides += [{"driver": "", "riders": w, "at": got.get("time", "")} for w in re.findall(rf"\b({NAME}) needs a ride", t)]
     if rides:
         got["rides"] = rides
-    stays = [{"who": w, "with": x.strip()} for w, x in re.findall(rf"\b({NAME}) stays (?:with|at|by) ([^,.:;]+?)(?=,| and [A-Z]|[.;:]|$)", t)]
+    stays = [{"who": w, "with": x.strip()} for w, x in re.findall(rf"\b({NAME}) stays (?:with|at|by) ((?:Mrs?\.|Ms\.|Dr\.|[^,.:;])+?)(?=,| and [A-Z]|[.;:]|$)", t)]
     if stays:
         got["stays"] = stays
     mv = re.search(r"\bmov(?:e|ing) [^.]*?\bto (?:the )?([A-Z][^,:.]*?)(?= at \d|[,:.]|$)", t)
@@ -145,7 +145,10 @@ async def extract_change(text: str, llm: Any | None = None) -> dict[str, Any]:
         return rules
     try:
         out = await llm.tool_call(system="Extract only what was said; never invent people, times or dishes.", messages=[{"role": "user", "content": strip_mention(text)}], tool=CHANGE_TOOL, max_tokens=800)
-        return {**rules, **{k: v for k, v in out.items() if v not in (None, "", [])}}
+        got = {**rules, **{k: v for k, v in out.items() if v not in (None, "", [])}}
+        if rules.get("event") not in (None, "the plan") or len(str(got.get("event", ""))) > 40:
+            got["event"] = rules.get("event") if rules.get("event") not in (None, "the plan") else str(got["event"])[:40].rsplit(" ", 1)[0]
+        return got
     except Exception:
         return rules
 
@@ -211,7 +214,7 @@ PLANS: dict[str, dict[str, dict[str, Any]]] = {}  # village → plan_id → {id,
 
 
 def plan_id_for(ch: dict[str, Any]) -> str:
-    ev = re.sub(r"[^a-z0-9]+", "_", str(ch.get("event", "plan")).lower()).strip("_")[:20] or "plan"
+    ev = re.sub(r"[^a-z0-9]+", "_", re.sub(r"^the ", "", str(ch.get("event", "plan")).lower())).strip("_")[:20].strip("_") or "plan"
     month_n = {"Jan": "01", "Nov": "11", "Dec": "12"}.get(ch.get("month", ""), "")
     day = f"{int(ch['date_day']):02d}" if ch.get("date_day") else ""
     return f"{ev}_{month_n}{day}" if day else ev
@@ -346,7 +349,8 @@ def _group_change_ops(spec: dict[str, Any], ch: dict[str, Any], plan_id: str, it
     event = str(ch.get("event") or "The plan")
     ev_cap = event[:1].upper() + event[1:]
     ev_cap = ev_cap[4:5].upper() + ev_cap[5:] if ev_cap.lower().startswith("the ") else ev_cap
-    when = ch.get("time", "")
+    when = str(ch.get("time") or "")
+    when = f"{when}:00" if when.isdigit() else when
     title = (f"{ev_cap} · {when}" if when else ev_cap)[:60]
     names = {p["id"]: p for p in spec["blueprint"]["people"]}
     cand = copy.deepcopy(spec)
