@@ -131,6 +131,11 @@ def policy_params(village_id: str | None, rule_id: str) -> dict[str, Any] | None
     return None
 
 
+def receptionist_mode(village_id: str | None = None) -> bool:
+    """D19 receptionist on the care recipient's line: policies[R-MONEY-UNKNOWN].params.receptionist_mode (set by Evolve)."""
+    return bool((policy_params(village_id, "R-MONEY-UNKNOWN") or {}).get("receptionist_mode"))
+
+
 def quiet_hours(village_id: str | None = None) -> str | None:
     params = policy_params(village_id, "P-QH-01")
     if params and params.get("quiet_hours"):

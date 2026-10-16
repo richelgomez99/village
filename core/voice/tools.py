@@ -22,6 +22,8 @@ COMMON_REQUIRED = {
     "submit_verification_answer": ["verification_id", "verification_answer"],
     "create_village": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
     "answer_proposal": ["conversation_id", "caller_id", "call_secs", "utterance", "proposal_id", "answer"],
+    # D19 receptionist (evolve lane): Core side in core/evolve/receptionist.py; phase 2 passes verification_id.
+    "screen_caller": ["conversation_id", "caller_id", "utterance"],
 }
 
 OPTIONAL_FIELDS = {
@@ -63,6 +65,7 @@ OPTIONAL_FIELDS = {
     "listener_quote",
     "call_sid",
     "member_id",
+    "max_wait_s",
 }
 
 SENSITIVE_DIGITS = re.compile(r"(?<!\d)\d[\d\s-]{3,}\d(?!\d)")
