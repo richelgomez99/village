@@ -35,6 +35,7 @@ async def health(request: Request) -> dict:
         "now": datetime.now(ZoneInfo("America/New_York")).isoformat(),
         "clock_offset_minutes": getattr(request.app.state, "clock_offset_minutes", 0),
         "layers": settings.layers,
+        "demo_caller": __import__("core.demo_caller", fromlist=["role"]).role(),
         "deps": {
             "surreal": "configured" if settings.surreal_db_url else "memory",
             "live": live_status.status,
