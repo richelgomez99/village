@@ -263,6 +263,6 @@ def _incident(current: dict[str, Any], incident_type: str, severity: str) -> dic
             "summary": {"en": "Verification did not confirm the request.", "es": "La verificación no confirmó la solicitud."},
             "related_event_ids": [current.get("money_request_event_id") or f"ev_{current['id']}_money"],
             "verification_id": current["id"],
-            "notified": ["m_ana"],
+            "notified": [m for m in [current.get("coordinator_id")] if m],
         },
     }

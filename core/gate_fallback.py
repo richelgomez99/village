@@ -4,9 +4,18 @@ from datetime import datetime
 from typing import Any
 
 
+def _name(state: dict[str, Any], member_id: str | None, fallback: str) -> str:
+    for member in state.get("members", []):
+        if member.get("id") == member_id and member.get("name"):
+            return str(member["name"])
+    return fallback
+
+
 def decide(inp: dict[str, Any]) -> dict[str, Any]:
     event = inp["event"]
     alloc = inp.get("alloc", {})
+    state = inp.get("village_state", {})
+    recipient = state.get("care_recipient_id")
     if event["kind"] == "dose":
         slot = event["payload"].get("slot", "evening")
         taken_at = event["payload"].get("taken_at") or event["at"]
@@ -14,7 +23,7 @@ def decide(inp: dict[str, Any]) -> dict[str, Any]:
             "id": alloc.get("decision_id", "dc_dose"),
             "rule_id": "R-WINDOW",
             "decision": "record",
-            "say": {"es": "Listo, Carmen. Anoté sus pastillas.", "en": "Done. I logged it."},
+            "say": {"es": f"Listo, {_name(state, recipient, '').strip() or 'ya'}. Anoté sus pastillas.".replace("Listo, ya.", "Listo."), "en": "Done. I logged it."},
             "say_key": "dose_recorded",
             "say_vars": {"slot": slot},
             "notify": [],
@@ -22,7 +31,7 @@ def decide(inp: dict[str, Any]) -> dict[str, Any]:
                 {
                     "kind": "dose",
                     "payload": {
-                        "subject": event["payload"].get("subject", "m_carmen"),
+                        "subject": event["payload"].get("subject") or recipient,
                         "slot": slot,
                         "taken_at": taken_at,
                         "confidence": event["payload"].get("confidence", "confirmed"),
@@ -36,18 +45,19 @@ def decide(inp: dict[str, Any]) -> dict[str, Any]:
     if event["kind"] == "money_request":
         verification_id = alloc.get("verification_id", "ver_stub")
         deadline = event["payload"].get("deadline") or "2026-10-16T14:02:54-04:00"
-        claimed = event["payload"].get("claimed_member_id", "m_marco")
+        claimed = event["payload"].get("claimed_member_id")
+        claimed_name = _name(state, claimed, "la persona")
         return {
             "id": alloc.get("decision_id", "dc_money"),
             "rule_id": "R-MONEY-VERIFY",
             "decision": "verify_with_member",
             "say": {
-                "es": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
-                "en": "I'm checking with Marco right now. Please don't send any money yet.",
+                "es": f"Voy a confirmar con {claimed_name} ahora mismo. No mande dinero todavía.",
+                "en": f"I'm checking with {claimed_name} right now. Please don't send any money yet.",
             },
             "say_key": "money_hold",
-            "say_vars": {"claimed_name": "Marco"},
-            "notify": [{"member_id": "m_ana", "channel": "app", "severity": "warn", "reason": "money_request_pending"}],
+            "say_vars": {"claimed_name": claimed_name},
+            "notify": [{"member_id": state.get("coordinator_id"), "channel": "app", "severity": "warn", "reason": "money_request_pending"}],
             "verification": {
                 "id": verification_id,
                 "claimed_member": claimed,
@@ -64,7 +74,7 @@ def decide(inp: dict[str, Any]) -> dict[str, Any]:
                     "kind": "verification_pending",
                     "payload": {
                         "verification_id": verification_id,
-                        "subject": event["payload"].get("subject", "m_carmen"),
+                        "subject": event["payload"].get("subject") or recipient,
                         "claimed_member_id": claimed,
                         "deadline": deadline,
                         "channels": ["app_prompt", "outbound_call"],

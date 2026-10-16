@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from core.gate.models import Decision, GateInput, append_rule, decision_base, member_name
+from core.gate.models import Decision, GateInput, append_rule, decision_base, member_by_id, member_name
 from core.gate.say import say
 
 
@@ -27,13 +27,24 @@ def finish(
 ) -> Decision:
     out = decision_base(inp, rule_id, gate_decision)
     values = say_vars or {}
-    out["say"] = say(say_key, **values)
+    out["say"] = say(say_key, **{**village_names(inp), **values})
     out["say_vars"] = {k: str(v) for k, v in values.items()}
     if say_key != "silent":
         out["say_key"] = say_key
     for rule in rules or []:
         append_rule(out, rule)
     return out
+
+
+def village_names(inp: GateInput) -> dict[str, str]:
+    """Names for gate-owned lines come from village_state (built from the village spec), never code."""
+    state = inp.village_state
+    names: dict[str, str] = {}
+    for var, key in (("coordinator_name", "coordinator_id"), ("recipient_name", "care_recipient_id")):
+        member = member_by_id(state, state.get(key))
+        if member and member.get("name"):
+            names[var] = str(member["name"])
+    return names
 
 
 def coordinator_notify(inp: GateInput, severity: str = "warn", reason: str = "gate_notice") -> dict[str, str]:

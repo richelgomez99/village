@@ -204,3 +204,67 @@ def timezone(village_id: str | None = None) -> str:
 
 def member_village(member_id: str | None, fallback: str | None = None) -> str:
     return village_of_member(member_id) or fallback or default_village_id()
+
+
+# ---- pure: GateInput.village_state from a spec dict (used by services and by the two-village gate test) ----
+
+def state_from_spec(
+    spec_doc: dict[str, Any],
+    *,
+    now: str,
+    rota_today: dict[str, Any] | None = None,
+    open_verifications: list[dict[str, Any]] | None = None,
+    recent_money_requests: list[dict[str, Any]] | None = None,
+    dose_windows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Rules are parameters (D30): quiet hours (P-QH-01), coordinator (R-MONEY-DEFAULT), money verifiers
+    (R-MONEY-VERIFY trusted_contacts + consent), names and pronouns all come from the village spec."""
+    village = spec_doc.get("village", {})
+    people_ = spec_doc.get("blueprint", {}).get("people", [])
+    params = {p.get("rule_id"): p.get("params") or {} for p in spec_doc.get("policies", [])}
+    trusted = set((params.get("R-MONEY-VERIFY") or {}).get("trusted_contacts") or [])
+    coord = (params.get("R-MONEY-DEFAULT") or {}).get("coordinator") or village.get("coordinator_id") or next(
+        (p["id"] for p in people_ if p.get("role") == "coordinator"), None
+    )
+    recipient = village.get("care_recipient_id")
+    channels = spec_doc.get("channels", {})
+    members = []
+    for p in people_:
+        consent = p.get("consent") or {}
+        first = str(p.get("name", p["id"])).split()
+        first = first[1] if first and first[0].rstrip(".").lower() in {"mr", "mrs", "ms", "dr"} and len(first) > 1 else (first[0] if first else p["id"])
+        members.append({
+            "id": p["id"],
+            "name": first,
+            "aliases": [first.lower()],
+            "role": p.get("role", "member"),
+            "pronoun": pronoun(p),
+            "has_app_session": any(str(c).startswith("app:") for c in channels.get(p["id"], [])) or bool(p.get("view") and p["id"] != recipient),
+            "consent": {
+                "ai_calls": bool(consent.get("ai_calls")),
+                "app_prompts": bool(consent.get("app_prompts")),
+                "dose_logging": bool(consent.get("dose_logging", False)),
+                "money_verifier": bool(consent.get("money_verifier", False)) or p["id"] in trusted,
+                "share_with": consent.get("share_with", []),
+                "money_safety_share_with": consent.get("money_safety_share_with", []),
+            },
+        })
+    helpers_ = [p["id"] for p in people_ if p.get("role") in {"caregiver", "helper", "volunteer"}]
+    state: dict[str, Any] = {
+        "village_id": village.get("id", ""),
+        "now": now,
+        "timezone": village.get("timezone", "America/New_York"),
+        "kill_switch": False,
+        "coordinator_id": coord,
+        "rota_today": rota_today or {"date": now[:10], "on_duty": (helpers_ or [coord])[0], "backup": coord},
+        "members": members,
+        "dose_windows": dose_windows or [],
+        "open_verifications": open_verifications or [],
+        "recent_money_requests": recent_money_requests or [],
+    }
+    if recipient:
+        state["care_recipient_id"] = recipient
+    qh = (params.get("P-QH-01") or {}).get("quiet_hours")
+    if qh:
+        state["quiet_hours"] = qh
+    return state
