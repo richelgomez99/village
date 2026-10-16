@@ -312,7 +312,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 timings["evals"] = int((time.perf_counter() - t0) * 1000)
                 await run.end(r, "arize_evals", er.ok, t0, eval_scores=er.scores, eval_thresholds=er.thresholds,
                               failures=er.failures[:20], trace_id=trace_id, evidence_url=er.trace_url,
-                              summary=("evals passed" if er.ok else f"eval failed: {er.failures[0] if er.failures else ''}")[:200])
+                              summary=(("evals passed" if er.ok else f"eval failed: {er.failures[0] if er.failures else ''}")
+                                       + (f" · {er.model_chip}" if er.model_chip else ""))[:200])
                 if not er.ok:
                     await run.block(r)
                     obs.finish(root, False, error="evals failed")

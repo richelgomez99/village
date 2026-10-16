@@ -49,6 +49,7 @@ class EvalResult:
     records: list[dict[str, Any]] = field(default_factory=list)
     trace_url: str | None = None
     mirror_path: Path | None = None
+    model_chip: str | None = None  # "Bedrock · claude-haiku-4-5 · 520 ms TTFT" (measured on the judge call)
 
 
 class DaytonaPort(Protocol):

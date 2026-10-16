@@ -137,6 +137,60 @@ def elder_judge(client: Any, spec: dict[str, Any]) -> dict[str, Any]:
             "explanation": str(data.get("explanation", ""))[:300], "kind": "llm"}
 
 
+def _short_model(model: str) -> str:
+    m = model.rsplit("/", 1)[-1]
+    for pre in ("us.", "eu.", "global.", "apac."):
+        m = m.removeprefix(pre)
+    m = m.removeprefix("anthropic.")
+    return re.sub(r"-v\d+(:\d+)?$", "", m)
+
+
+class _Metered:
+    """Wraps the judge client: streams each call and records time-to-first-token (TTFT)."""
+
+    def __init__(self, client: Any) -> None:
+        self.client = client
+        self.village_model = getattr(client, "village_model", None)
+        self.village_provider = getattr(client, "village_provider", None)
+        self.ttft_ms: list[int] = []
+        self.streamed = False
+
+    @property
+    def messages(self) -> "_Metered":
+        return self
+
+    def create(self, **kw: Any) -> Any:
+        from types import SimpleNamespace
+
+        t0 = time.perf_counter()
+        try:
+            resp = self.client.messages.create(stream=True, **kw)
+        except TypeError:
+            resp = self.client.messages.create(**kw)
+        if hasattr(resp, "content"):  # client ignored stream=True (test doubles): total latency, not TTFT
+            self.ttft_ms.append(int((time.perf_counter() - t0) * 1000))
+            return resp
+        parts: list[str] = []
+        first: float | None = None
+        for ev in resp:
+            delta = getattr(ev, "delta", None)
+            text = getattr(delta, "text", None) if getattr(ev, "type", "") == "content_block_delta" else None
+            if text is not None:
+                if first is None:
+                    first = time.perf_counter()
+                parts.append(text)
+        self.streamed = True
+        self.ttft_ms.append(int(((first or time.perf_counter()) - t0) * 1000))
+        return SimpleNamespace(content=[SimpleNamespace(text="".join(parts))])
+
+    def chip(self) -> str | None:
+        if not self.ttft_ms:
+            return None
+        provider = {"bedrock": "Bedrock", "anthropic": "Anthropic"}.get(str(self.village_provider), str(self.village_provider or "model"))
+        what = "TTFT" if self.streamed else "latency"
+        return f"{provider} · {_short_model(str(self.village_model or 'claude'))} · {min(self.ttft_ms)} ms {what}"
+
+
 class ReleaseEvals:
     def __init__(self, llm: Callable[[str], Any] | None = None, mirror_dir: Path | None = None, timeout_s: float = 20.0) -> None:
         self.llm = llm
@@ -166,6 +220,8 @@ class ReleaseEvals:
         t0 = time.perf_counter()
         records = [needs_coverage(spec), no_medical_advice(spec)]
         client = self._client()
+        metered = _Metered(client) if client is not None else None
+        client = metered or None
         if client is not None:
             tb, ea = await asyncio.gather(
                 self._judged(translation_backcheck, client, fallback=None, name="translation_backcheck"),
@@ -190,6 +246,8 @@ class ReleaseEvals:
         self.mirror_dir.mkdir(parents=True, exist_ok=True)
         mirror = self.mirror_dir / f"{release_id}.json"
         mirror.write_text(json.dumps({"release_id": release_id, "village": village_id, "rev": rev,
-                                      "duration_ms": int((time.perf_counter() - t0) * 1000), "model": client is not None,
+                                      "duration_ms": int((time.perf_counter() - t0) * 1000), "model": client is not None, "model_chip": metered.chip() if metered else None,
                                       "records": records}, indent=1, ensure_ascii=False))
-        return EvalResult(ok=not failures, scores=scores, thresholds=thresholds, failures=failures, records=records, mirror_path=mirror)
+        chip = metered.chip() if metered else None
+        return EvalResult(ok=not failures, scores=scores, thresholds=thresholds, failures=failures, records=records, mirror_path=mirror,
+                          model_chip=chip)
