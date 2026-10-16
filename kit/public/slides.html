@@ -91,8 +91,9 @@
 <!-- 2 -->
 <section data-vo="Carmen is seventy-eight, speaks Spanish, and will not learn an app. Last week a stranger called her as her son and asked for money." data-dur="11">
   <div>
-    <p class="eyebrow">The problem is one person</p>
-    <h2>Carmen is 78, speaks Spanish, and will not learn an app.</h2>
+    <p class="eyebrow">The problem</p>
+    <h2>Everyone says it takes a village. Nobody is paid to run one.</h2>
+    <p>Carmen is 78, speaks Spanish, and will not learn an app. Running her village is a job that lands on one daughter and a group chat.</p>
     <ul>
       <li>A blood thinner twice a day, from a weekly organizer. Some nights she is not sure she took it.</li>
       <li>Three children, three different lives: Ana coordinates, Marco forgets his night, Lucía is far away.</li>
@@ -110,7 +111,7 @@
   <div style="display:grid; grid-template-columns: 30fr 70fr; gap:3vw; align-items:center;">
     <div>
       <p class="eyebrow">Build</p>
-      <h2>One conversation. Four pieces of software.</h2>
+      <h2>Describe the group once. Each person gets different software.</h2>
       <p>Ana talks for ten minutes. Village draws each person's app from the parts of the family's life their job touches. Marco's app is one question. Lucía's is what she can do from New Jersey.</p>
       <p class="muted">Each app is a JSON spec from a fixed component catalog, validated with pydantic on the server and zod on the client; unknown types render nothing. Tabs derive from the group's life areas. Built, tested and released before anyone sees it.</p>
     </div>
@@ -122,22 +123,6 @@
   </div>
 </section>
 
-
-<!-- advantages -->
-<section class="one" data-vo="This did not exist because three things had to be true at once: generated per person, an agent with labelled autonomy, and a release pipeline for software an AI wrote." data-dur="12">
-  <div style="display:grid; grid-template-columns: 40fr 60fr; gap:3vw; align-items:center;">
-    <div>
-      <p class="eyebrow">Why this did not exist</p>
-      <h2>Not an app. Software that is different for each person, and rewrites itself.</h2>
-      <p class="muted">Three things had to be true at once.</p>
-    </div>
-    <div class="nums" style="grid-template-columns:1fr;">
-      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">Generated per person, from a catalog</strong><span>The model composes each app from fixed, validated parts. Carmen gets three buttons; Ana gets a dashboard; Marco gets one question. Unknown parts render nothing.</span></div>
-      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">An agent with labelled autonomy</strong><span>Every decision says whether Village did it on its own, asked a person, or refused itself. Code, not prompts, draws the lines.</span></div>
-      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">A release pipeline for software an AI wrote</strong><span>Sandbox build, generated floor tests, a real phone-size browser, evals, then a blue/green switch. Twelve seconds, with a receipt.</span></div>
-    </div>
-  </div>
-</section>
 
 <!-- 4 -->
 <section class="one" data-vo="Village sits in the group's chat and asks the right person. Every decision is labelled: on its own, asked a person, refused itself." data-dur="12">
@@ -185,17 +170,31 @@
 </section>
 
 <!-- 6 -->
-<section class="one" data-vo="The agent acts on its own. Code draws the lines: a pure-Python gate tested with the model off, catalog-only UI, sandboxes with no internet." data-dur="12">
+<section class="one" data-vo="The agent acts on its own. Code draws the lines: a pure-Python gate tested with the model off, catalog-only UI, and a release pipeline nothing skips." data-dur="12">
   <div>
     <p class="eyebrow">Safeguards</p>
     <h2>The agent acts on its own. Code draws the lines it cannot cross.</h2>
-    <div class="pipe"><span>spec</span><span class="ok">Daytona sandbox build</span><span class="ok">floor tests, generated per village</span><span class="ok">Anchor phone-size check</span><span class="ok">Arize evals</span><span>blue / green release</span></div>
-    <ul>
-      <li>The gate is pure Python, tested with the model off. The voice line speaks the gate's sentences word for word.</li>
-      <li>Money asked for in a family name is checked with that person before anything is said. The Oct 9 scam call never got past it.</li>
-      <li>Generated UI is catalog-only, validated on the server and the client. Elder text at least 28 px, contrast at least 7:1, a 911 contact on every elder app.</li>
-      <li>Sandboxes cannot reach the internet. The one build that failed today was caught at contrast 4.1:1, fixed by the Builder, and rebuilt before anyone saw it.</li>
-    </ul>
+    <div class="nums" style="grid-template-columns: repeat(3, 1fr); margin-top:2vh;">
+      <div class="num"><strong style="font-size:clamp(24px,2.3vw,40px)">The gate</strong><span>Money, dosing, quiet hours, 911-first, address privacy: pure Python, no model, no network, tested with the model off. The voice line speaks the gate's sentences word for word. Every decision is a record: on its own · asked a person · refused itself.</span></div>
+      <div class="num"><strong style="font-size:clamp(24px,2.3vw,40px)">The catalog</strong><span>Generated UI is JSON from a fixed component catalog, validated with pydantic and zod; unknown types render nothing. Elder floors: text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact. Generated UI never writes data directly.</span></div>
+      <div class="num"><strong style="font-size:clamp(24px,2.3vw,40px)">The release</strong><span>Sandbox build with egress blocked → floor tests generated per village → a real browser at phone size → evals → human yes → blue/green. The one build that failed today was caught at contrast 4.1:1, fixed by the Builder, rebuilt before anyone saw it.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- advantages -->
+<section class="one" data-vo="Three things had to be true at once: generated per person, an agent with labelled autonomy, and a release pipeline for software an AI wrote." data-dur="12">
+  <div style="display:grid; grid-template-columns: 40fr 60fr; gap:3vw; align-items:center;">
+    <div>
+      <p class="eyebrow">What made this possible</p>
+      <h2>Not an app. Software that is different for each person, and rewrites itself.</h2>
+      <p class="muted">Three things had to be true at once.</p>
+    </div>
+    <div class="nums" style="grid-template-columns:1fr;">
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">Generated per person, from a catalog</strong><span>The model composes each app from fixed, validated parts. Carmen gets three buttons; Ana gets a dashboard; Marco gets one question. Unknown parts render nothing.</span></div>
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">An agent with labelled autonomy</strong><span>Every decision says whether Village did it on its own, asked a person, or refused itself. Code, not prompts, draws the lines.</span></div>
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">A release pipeline for software an AI wrote</strong><span>Sandbox build, generated floor tests, a real phone-size browser, evals, then a blue/green switch. Twelve seconds, with a receipt.</span></div>
+    </div>
   </div>
 </section>
 
@@ -209,6 +208,7 @@
       <li>A coordinator, volunteers, a resident on oxygen, a parent with an infant, a deli with ice.</li>
       <li>Village checks rumors against official sources before anything is broadcast, and calls the cooling centers itself to log who has power.</li>
     </ul>
+    <p class="muted">One core, zero village names in it: a village is a spec, a data file and seeds registered in one index; the same gate runs with different parameters; the same renderer draws every app.</p>
   </div>
   <div class="two">
     <figure><img src="hero/block-room.png" alt="Control Room for the West 147th block"><figcaption>West 147th block · Control Room</figcaption></figure>
