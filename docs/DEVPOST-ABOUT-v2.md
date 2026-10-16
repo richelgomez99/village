@@ -36,8 +36,8 @@ One FastAPI core (Python 3.13) runs the agent loop, the gate, the WebSocket hub 
 
 ### Daytona: build and test every version before anyone sees it
 Every version of a village's app is a real `vite build` inside a Daytona sandbox, with floor tests generated for that village. A build that fails never reaches a phone.
-- **For what → feature → number.** Build each release in isolation → sandbox from snapshot `village-kit` (node 22), one warm sandbox reused by label → cold sandbox 1.0 s, warm reuse 149 ms, Reyes release 15.0 s warm.
-- Test what the group needs, not a generic suite → floor tests generated per village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → 58 tests for Reyes at rev 6, 33 for the West 147th block.
+- **For what → feature → number.** Build each release in isolation → sandbox from snapshot `village-kit` (node 22), one warm sandbox reused by label → cold sandbox from the snapshot 1.0 s (a full cold release with npm install 29.7 s), warm reuse 149 ms, Reyes release 15.0 s warm; the receipt names the sandbox and image (e.g. 'sandbox 1172d474 · build 2.1 s').
+- Test what the group needs, not a generic suite → floor tests generated per village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → 58 floor tests for Reyes at rev 6 (52 at rev 3), 33 for the West 147th block.
 - Catch the Builder's mistake once, and keep the proof → the only failed build today, rev 3, stopped at "contrast 4.1:1 on elder Text (needs 7:1)"; the model changed #4C80B4 to #2D5A8C and rebuilt in the same sandbox → rev 4 went live; the receipt keeps both attempts.
 - Keep AI-written code off the internet → sandbox egress blocked, Core pulls `dist` out → blocked to every host we tested (Anchor, SurrealDB, Bedrock, DailyMed, example.com).
 
@@ -57,12 +57,13 @@ Village reads its own traces to decide what to change, and no release ships with
 - Prove the receptionist is safe before shipping it → experiment on dataset `village-scam-eval` → 30/30 scam calls caught, 0/20 false alarms.
 - Turn an eval into a proposal → the Watcher reads a session eval that flagged the Oct 9 call as possible fraud (0.95) → that score is the evidence on the receptionist proposal Ana approved.
 - Version the Builder's prompt where the team can see it → Prompt Hub prompt `village-builder`, v2 labelled `production`, fetched at runtime with a local fallback → all three founding render spans carry the Hub version id; elder, coordinator and helper apps validated first try.
+- Record who said yes → `human_approval` annotation (label approved, score 1, annotator = the approving member) written on the release span → 1 span updated per approved release.
 
 **Code:** `core/obs/tracing.py`, `evals/`, `core/release/evals.py`, `core/builder/prompts.py`
 
 ### Anchor Browser: a real phone-sized browser checks every build
 A human never sees a version that an Anchor browser hasn't clicked through first.
-- Check the build the way Carmen will see it → Anchor session at 390×844, click-through of the home tab, screenshot and recording → 4.1 s warm in the smoke run, 9 s on the 14:22 release through the tunnel.
+- Check the build the way Carmen will see it → Anchor session at 390×844, click-through of the home tab, screenshot and recording → 5.3 s per check, 8.3 s with the MP4 recording.
 - Put the evidence on the receipt → the screenshot, the MP4 and the live-view link attached to each release → the Control Room's PHONE tile links straight to it.
 - Refuse what wasn't checked → the release gate requires the Anchor pass before the blue/green switch → the blocked rev 3 never reached a phone.
 
@@ -73,12 +74,14 @@ Carmen's whole Village is a phone number that speaks formal Spanish.
 - Give the elder a line, not an app → a Conversational AI agent on a real number, formal usted, English for English callers → first real call at 12:23.
 - Let the voice act inside the rules → mid-call tools `report_money_request`, `await_verification`, `screen_caller` call Core; the gate's sentences are spoken word for word → hold line 18 s into the call, refusal 31 s after Marco's tap on his phone.
 - Screen the unknown caller → the receptionist (built by a live rebuild at 13:00) asked who was calling and why, offered to take a message, did not put the call through → verified live at 13:28; refused a live money ask at 14:00.
+- Grade every call → 4 evaluation criteria on the live agent (safe_money_outcome, verified_with_real_member, usted_register, ai_disclosed) + data collection (claimed_identity, amount, outcome, caller_language) → every call scored on the ElevenLabs side.
 
 **Code:** `agents/`, `core/voice/`
 
 ### AWS: the reasoning that kept the day running
 - Keep the product up when a key fails → Claude Haiku 4.5 on Bedrock (Mantle) behind one `llm()` factory, with Claude Sonnet 5.5 / Haiku 5.5 through the Anthropic API as the primary path → it ran every role for the first hours, before our Anthropic key worked.
 - Run the cheap, frequent reasoning → scam extraction, release evals, the Builder's repair → the scam set's model-on run (30/30, 0/20) used Bedrock Haiku 4.5; time to first token 520–600 ms.
+- Show which model did the work → the release receipt names provider and model → 'evals passed · Anthropic · claude-haiku-5-5 · 2686 ms TTFT'.
 
 **Code:** `core/llm.py`
 
