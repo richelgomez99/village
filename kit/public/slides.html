@@ -271,7 +271,7 @@
   function start(){ auto=true; document.body.classList.add('auto'); arm(); }
   function stop(){ auto=false; document.body.classList.remove('auto'); cancelAnimationFrame(raf); prog.style.width='0%'; }
   const _show=show; show=function(n){ _show(n); vo.textContent=slides[n].dataset.vo||''; if(auto) arm(); };
-  addEventListener('keydown',e=>{ if(e.key==='a'||e.key==='A'){ auto?stop():start(); } else if(e.key===' ' && auto){ e.preventDefault(); stop(); } }, true);
+  addEventListener('keydown',e=>{ if(e.key==='a'||e.key==='A'){ auto?stop():start(); } else if(e.key===' ' && auto){ e.preventDefault(); e.stopImmediatePropagation(); stop(); } }, true);
   show(i); if (new URLSearchParams(location.search).get('auto')==='1') start();
 </script>
 </body>
