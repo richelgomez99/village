@@ -3,111 +3,238 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Village · slides</title>
+<title>Village · pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600&display=swap">
 <style>
-  :root { --bg:#f6f1e8; --ink:#1d2a24; --accent:#1f5c47; --muted:#6b7570; --card:#ffffff; --warn:#a63d2f; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family: Georgia, "Iowan Old Style", "Times New Roman", serif; }
-  .wrap { height:100%; display:grid; grid-template-columns: 44fr 56fr; }
-  .wrap.solo { grid-template-columns: 0fr 1fr; }
-  .wrap.room { grid-template-columns: 27fr 73fr; }
-  .wrap.room h2 { font-size:clamp(22px, 1.9vw, 34px); }
-  .wrap.room p, .wrap.room li { font-size:clamp(15px, 1.1vw, 20px); }
-  .wrap.room .num { font-size:clamp(28px, 2.6vw, 44px); }
-  .wrap.room .grid { grid-template-columns: 1fr; }
-  .wrap.solo .deck, .wrap.solo .foot { display:none; }
+  /* Layout: a projector deck on the Control Room's dark ground; words at the left, one real screenshot per idea at the right. */
+  :root {
+    --bg:#101a16; --ink:#f3eee4; --muted:#a3ada6; --accent:#8fd0b4; --accent-ink:#0f1f1a;
+    --card:#17241f; --line:#26352f; --refuse:#e08a7b; --block:#f0b35b;
+    --display:"Fraunces", Georgia, "Iowan Old Style", serif; --body:"Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:var(--body); }
   .deck { height:100%; display:grid; place-items:center; overflow:hidden; }
-  .stage { height:100%; background:#0f1412; display:grid; place-items:center; border-left:1px solid rgba(0,0,0,.15); position:relative; }
-  .stage iframe { border:0; background:#fff; }
-  .stage.wide iframe { width:100%; height:100%; }
-  .stage.phone iframe { width:390px; height:844px; border-radius:36px; box-shadow:0 20px 60px rgba(0,0,0,.45); transform:scale(min(1, calc((100vh - 48px) / 844px))); transform-origin:center; }
-  .stage .tag { position:absolute; top:12px; left:16px; color:#9aa49e; font: 13px system-ui, sans-serif; }
-  section { display:none; width:100%; padding:4vh 3vw; box-sizing:border-box; }
-  section.on { display:block; }
-  h1 { font-size:clamp(40px, 5vw, 84px); line-height:1.02; margin:0 0 .3em; letter-spacing:-.01em; }
-  h2 { font-size:clamp(26px, 2.6vw, 44px); margin:0 0 .6em; color:var(--accent); }
-  p, li { font-size:clamp(17px, 1.45vw, 26px); line-height:1.35; margin:0 0 .5em; }
+  section { display:none; width:100%; height:100%; padding:5vh 4vw 8vh; box-sizing:border-box; grid-template-columns: 38fr 62fr; gap:3vw; align-items:center; }
+  section.on { display:grid; }
+  section.one { grid-template-columns: 1fr; align-content:center; }
+  .eyebrow { font-weight:600; text-transform:uppercase; letter-spacing:.12em; font-size:clamp(12px,1vw,16px); color:var(--accent); margin:0 0 1.2em; }
+  .eyebrow.block { color:var(--block); }
+  h1 { font-family:var(--display); font-weight:600; font-size:clamp(44px,7vw,120px); line-height:.98; margin:0 0 .25em; letter-spacing:-.02em; text-wrap:balance; }
+  h2 { font-family:var(--display); font-weight:500; font-size:clamp(30px,3.3vw,56px); line-height:1.05; margin:0 0 .5em; letter-spacing:-.01em; text-wrap:balance; }
+  p, li { font-size:clamp(17px,1.45vw,26px); line-height:1.38; margin:0 0 .55em; }
   .muted { color:var(--muted); }
-  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.2vw; margin-top:1vh; }
-  .card { background:var(--card); border-radius:18px; padding:2.2vh 1.6vw; box-shadow:0 1px 0 rgba(0,0,0,.06); }
-  .card b { display:block; font-size:clamp(20px, 2.1vw, 30px); color:var(--accent); margin-bottom:.25em; }
-  .card span { font-size:clamp(17px, 1.7vw, 24px); line-height:1.3; display:block; }
-  .num { font-size:clamp(36px, 3.6vw, 64px); color:var(--accent); line-height:1; margin:0; }
-  .num small { font-size:clamp(18px, 1.8vw, 26px); color:var(--muted); display:block; margin-top:.3em; font-family: system-ui, sans-serif; }
-  ul { padding-left:1.1em; }
-  .foot { position:fixed; left:1.5vw; width:40vw; bottom:1.6vh; display:flex; justify-content:space-between; font-family: system-ui, sans-serif; font-size:14px; color:var(--muted); }
-  .rule { border-left:6px solid var(--warn); padding-left:.8em; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#141a17; --ink:#efe9dd; --card:#1e2622; --muted:#9aa49e; --accent:#8fd0b4; } }
+  ul { padding-left:1.05em; margin:0; }
+  li { margin-bottom:.45em; }
+  li b, p b { color:var(--accent); font-weight:600; }
+  .refuse { color:var(--refuse); }
+  .shot { max-width:100%; max-height:84vh; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.55); display:block; margin-inline:auto; }
+  .phones { display:flex; gap:1.6vw; justify-content:center; align-items:flex-end; }
+  .phones figure { margin:0; text-align:center; min-width:0; }
+  .phones img { height:min(72vh, 820px); width:auto; max-width:100%; border-radius:26px; box-shadow:0 24px 60px rgba(0,0,0,.55); display:block; }
+  figcaption { margin-top:1vh; font-size:clamp(13px,1.1vw,18px); color:var(--muted); }
+  .two { display:grid; grid-template-columns: 1fr 1fr; gap:1.6vw; align-items:start; }
+  .two img { width:100%; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,.5); display:block; }
+  .two figure { margin:0; min-width:0; }
+  .pipe { display:flex; flex-wrap:wrap; gap:.8vw; margin:1vh 0 2vh; }
+  .pipe span { font-weight:600; font-size:clamp(14px,1.3vw,22px); padding:.45em .9em; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+  .pipe span.ok { border-color:var(--accent); color:var(--accent); }
+  .nums { display:grid; grid-template-columns: repeat(2, 1fr); gap:1.4vw; }
+  .num { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:2.2vh 1.6vw; }
+  .num strong { display:block; font-family:var(--display); font-weight:600; font-size:clamp(40px,5vw,86px); line-height:1; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .num span { display:block; margin-top:.5em; font-size:clamp(14px,1.25vw,21px); color:var(--muted); }
+  table { border-collapse:collapse; width:100%; font-size:clamp(14px,1.25vw,21px); }
+  td, th { padding:.5em .6em; border-bottom:1px solid var(--line); vertical-align:top; text-align:left; }
+  th { font-weight:600; text-transform:uppercase; letter-spacing:.08em; font-size:clamp(12px,1vw,16px); color:var(--muted); }
+  .cmp td:first-child { color:var(--muted); font-weight:600; white-space:nowrap; width:1%; }
+  .cmp th.fam, .cmp td.fam b { color:var(--accent); }
+  .cmp th.blk, .cmp td.blk b { color:var(--block); }
+  .tools td:first-child { color:var(--accent); font-weight:600; white-space:nowrap; width:1%; padding-left:0; }
+  .foot { position:fixed; left:4vw; right:4vw; bottom:2.2vh; display:flex; justify-content:space-between; font-size:13px; color:var(--muted); }
+  .dots { display:flex; gap:6px; }
+  .dots i { width:7px; height:7px; border-radius:50%; background:var(--line); display:inline-block; }
+  .dots i.on { background:var(--accent); }
+  a { color:var(--accent); }
+  .pill-link { display:inline-block; margin-top:2vh; padding:.6em 1.2em; border-radius:999px; background:var(--accent); color:var(--accent-ink); text-decoration:none; font-weight:600; font-size:clamp(16px,1.4vw,24px); }
+  @media (max-width: 900px) { section, section.on { grid-template-columns:1fr; height:auto; display:block; overflow:auto; } .phones { flex-wrap:wrap; } .phones img { height:48vh; } .two, .nums { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion: no-preference) { section.on { animation: in .3s ease-out; } @keyframes in { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:none; } } }
 </style>
 </head>
 <body>
-<div class="wrap" id="wrap">
 <div class="deck">
 
-<section class="on" data-frame="/control.html?t=control&presenter=1&as=m_ana" data-mode="wide" data-tag="Control Room · Ana's villages (live)">
-  <p class="muted">Daytona HackSprint NYC · October 16, 2026 · Richel Gomez</p>
-  <h1>Village</h1>
-  <p>Software that builds itself around your people.</p>
-  <p class="muted">One conversation about a group → a different app for each person in it → an agent that runs the group, changes the software when life changes, and refuses itself when it should.</p>
+<!-- 1 -->
+<section class="on">
+  <div>
+    <p class="eyebrow">Daytona HackSprint · NYC · Oct 16 2026</p>
+    <h1>Village</h1>
+    <p>Software that builds itself around your people.</p>
+    <p class="muted">One conversation about a group. A different app for each person in it. An agent that runs the group, changes the software when life changes, and refuses itself when it should.</p>
+  </div>
+  <img class="shot" src="hero/reyes-room.png" alt="Village Control Room: Ana's villages, the Reyes family">
 </section>
 
-<section data-frame="/?m=mt_carmen_c5d4bc37befd769f&village=v_reyes" data-mode="phone" data-tag="Carmen's phone (live)">
-  <h2>The problem, as one person</h2>
-  <p>Carmen is 78, speaks Spanish, takes a blood thinner twice a day, and will not learn an app. Her daughter Ana coordinates. Her son Marco forgets his night. Her granddaughter Lucía is far away.</p>
-  <p>Last week a stranger called Carmen as Marco and asked for money.</p>
-  <p class="muted">No app fits all four of them. The right software for each one is different, and it changes as the family's life does.</p>
-</section>
-
-<section data-frame="/control.html?fake=control&seq=founding&village=v_reyes" data-mode="wide" data-tag="The founding conversation (replay · space pauses inside the frame)">
-  <h2>What Village does</h2>
-  <div class="grid">
-    <div class="card"><b>Build</b><span>A founding conversation with Ana. Village draws each person's app from the parts of the family's life their job touches. Carmen gets three big buttons and a phone line, not an app.</span></div>
-    <div class="card"><b>Run</b><span>Village is a participant in the family chat: it asks the right person, logs what it did on its own, what it asked, and what it refused.</span></div>
-    <div class="card"><b>Rebuild</b><span>After the second money call in Marco's name, Village proposes answering unknown callers for Carmen. Ana taps yes. Every phone updates.</span></div>
-    <div class="card"><b>Any group</b><span>Same code built a second village today: a Harlem block in a heat-wave blackout, with a coordinator, volunteers and a resident on oxygen.</span></div>
+<!-- 2 -->
+<section>
+  <div>
+    <p class="eyebrow">The problem is one person</p>
+    <h2>Carmen is 78, speaks Spanish, and will not learn an app.</h2>
+    <ul>
+      <li>A blood thinner twice a day, from a weekly organizer. Some nights she is not sure she took it.</li>
+      <li>Three children, three different lives: Ana coordinates, Marco forgets his night, Lucía is far away.</li>
+      <li class="refuse">Last week a stranger called her as Marco and asked for $1,500.</li>
+    </ul>
+    <p class="muted">So her software is three big buttons and a phone line. In Spanish. Read aloud.</p>
+  </div>
+  <div class="phones">
+    <figure><img src="hero/phone-carmen.png" alt="Carmen's app: Hola Carmen, Esta noche cuida Marco, Llamar a Village, Llamar a Ana, Necesito ayuda"><figcaption>Carmen · elder app, Spanish, read aloud</figcaption></figure>
   </div>
 </section>
 
-<section data-frame="/?m=mt_ana_4d5165eaedabf52f&village=v_reyes" data-mode="phone" data-tag="Ana's phone (live): What Village did · on its own · asked a person · refused itself">
-  <h2>How it is an agent, and how it stays safe</h2>
-  <ul>
-    <li><b>Perceives</b> events, calls, memory facts and its own Arize evals. <b>Decides</b> with model tool calls under three labelled modes: on its own · asked a person · refused itself.</li>
-    <li><b>Acts</b> through tools: chat, placing and screening calls, writing memory, building, testing and releasing software.</li>
-    <li class="rule">Code draws the lines: the gate is pure Python, tested with the model off. Generated UI is catalog-only. Nothing ships without a sandbox build, floor tests, a phone-size browser check and evals.</li>
-    <li>No agent framework in between: one process, one <code>llm()</code> factory, every step a traced span.</li>
-  </ul>
-</section>
-
-<section data-frame="/control.html?t=control&presenter=1&as=m_ana" data-mode="wide" data-tag="Control Room (live): Rebuild → the six-stage receipt">
-  <h2>Built and measured today</h2>
-  <div class="grid">
-    <div class="card"><p class="num">12 s<small>Ana's yes → every phone patched (13:00)</small></p></div>
-    <div class="card"><p class="num">30/30<small>scam calls caught · 0/20 false alarms (Arize experiment)</small></p></div>
-    <div class="card"><p class="num">1.0 s<small>cold Daytona sandbox from snapshot village-kit</small></p></div>
-    <div class="card"><p class="num">12:23<small>first real call on Carmen's line: money report → Marco's tap → refusal spoken</small></p></div>
+<!-- 3 -->
+<section class="one">
+  <div style="display:grid; grid-template-columns: 30fr 70fr; gap:3vw; align-items:center;">
+    <div>
+      <p class="eyebrow">Build</p>
+      <h2>One conversation. Four pieces of software.</h2>
+      <p>Ana talks for ten minutes. Village draws each person's app from the parts of the family's life their job touches. Marco's app is one question. Lucía's is what she can do from New Jersey.</p>
+      <p class="muted">Tabs come from the group's life areas. Every element comes from a fixed, validated catalog.</p>
+    </div>
+    <div class="phones">
+      <figure><img src="hero/phone-ana-home-v2.png" alt="Ana's app: Mamá today, right now, what Village did"><figcaption>Ana · coordinator</figcaption></figure>
+      <figure><img src="hero/phone-marco-v2.png" alt="Marco's app: Is it my turn tonight?"><figcaption>Marco · "Is it my turn?"</figcaption></figure>
+      <figure><img src="hero/phone-lucia-v2.png" alt="Lucía's app: other ways you could help from a distance"><figcaption>Lucía · from a distance</figcaption></figure>
+    </div>
   </div>
-  <p class="muted" style="margin-top:2vh">Daytona builds and tests every version · Anchor clicks it at phone size · Arize scores it and holds the prompt · SurrealDB remembers with history · ElevenLabs is Carmen's whole product · Claude on Bedrock and the API does the reasoning.</p>
 </section>
 
-<section data-frame="/control.html?t=control&presenter=1&as=m_ana" data-mode="wide" data-tag="Control Room (live)">
-  <h1>Live</h1>
-  <p>Control Room: Ana's villages.</p>
-  <p class="muted">Build → Run → Rebuild → the block. Your phone is Carmen's caller. The judge's phone is Marco's.</p>
+<!-- 4 -->
+<section>
+  <div>
+    <p class="eyebrow">Run</p>
+    <h2>Village is a participant, not a form.</h2>
+    <ul>
+      <li>It sits in the family chat. "Someone needs to take Mom to the doctor Friday" becomes a Friday plan item and a question to the people who can actually drive.</li>
+      <li>Every decision is labelled: <b>did it on its own</b> · <b>asked a person</b> · <b>refused itself</b>.</li>
+      <li>It remembers with history: lisinopril is 10 mg since Oct 3, and "as of Oct 2" still answers 5 mg.</li>
+    </ul>
+  </div>
+  <div class="two">
+    <figure><img src="hero/phone-ana-did.png" alt="What Village did: on its own, asked a person, refused itself"><figcaption>Ana · What Village did</figcaption></figure>
+    <figure><img src="hero/phone-ana-fact.png" alt="Fact card: lisinopril 10 mg since Oct 3, 5 mg kept as history"><figcaption>What it knows, and how it knows</figcaption></figure>
+  </div>
+</section>
+
+<!-- 5 -->
+<section>
+  <div>
+    <p class="eyebrow">Rebuild</p>
+    <h2>Life changed. The software changed.</h2>
+    <p>After the second money call in Marco's name, Village weighs three fixes and proposes one: answer unknown callers on Carmen's line first. It says why. It waits for Ana's yes.</p>
+    <p>Then it builds the new version in a sandbox, tests it, clicks through it at phone size, scores it, and patches every phone.</p>
+    <p><b>12 seconds</b> from Ana's tap to every phone, live at 13:00 today.</p>
+  </div>
+  <div class="two">
+    <figure><img src="hero/room-rebuild-proposal.png" alt="Village proposes a change · needs your yes"><figcaption>The proposal, the reason, the wait</figcaption></figure>
+    <figure><img src="hero/room-rebuild.png" alt="Six-stage receipt: spec, Daytona build, floor tests, Anchor, Arize evals, live"><figcaption>The six-stage receipt</figcaption></figure>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="one">
+  <div>
+    <p class="eyebrow">Safeguards</p>
+    <h2>The agent acts on its own. Code draws the lines it cannot cross.</h2>
+    <div class="pipe"><span>spec</span><span class="ok">Daytona sandbox build</span><span class="ok">floor tests, generated per village</span><span class="ok">Anchor phone-size check</span><span class="ok">Arize evals</span><span>blue / green release</span></div>
+    <ul>
+      <li>The gate is pure Python, tested with the model off. The voice line speaks the gate's sentences word for word.</li>
+      <li>Money asked for in a family name is checked with that person before anything is said. The Oct 9 scam call never got past it.</li>
+      <li>Generated UI is catalog-only, validated on the server and the client. Elder text at least 28 px, contrast at least 7:1, a 911 contact on every elder app.</li>
+      <li>Sandboxes cannot reach the internet. The one build that failed today was caught at contrast 4.1:1, fixed by the Builder, and rebuilt before anyone saw it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 -->
+<section>
+  <div>
+    <p class="eyebrow block">Any group</p>
+    <h2>Same code. A block in a blackout.</h2>
+    <p>Ana also lives on West 147th. When the block lost power in a heat wave, the same pipeline built a village for the neighborhood. Nothing from the family carried over except the code.</p>
+    <ul>
+      <li>A coordinator, volunteers, a resident on oxygen, a parent with an infant, a deli with ice.</li>
+      <li>Village checks rumors against official sources before anything is broadcast, and calls the cooling centers itself to log who has power.</li>
+    </ul>
+  </div>
+  <div class="two">
+    <figure><img src="hero/block-room.png" alt="Control Room for the West 147th block"><figcaption>West 147th block · Control Room</figcaption></figure>
+    <figure><img src="hero/block-chat-phones.png" alt="Block chat on the phones: ice, oxygen, a rumor checked"><figcaption>The block chat, Village as a participant</figcaption></figure>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="one">
+  <div style="display:grid; grid-template-columns: 46fr 54fr; gap:3vw; align-items:center;">
+    <div>
+      <p class="eyebrow block">What changed between the two villages</p>
+      <table class="cmp">
+        <tr><th></th><th class="fam">Reyes family</th><th class="blk">West 147th block</th></tr>
+        <tr><td>Center</td><td class="fam"><b>Carmen</b>, 78, at home</td><td class="blk"><b>A block</b> without power at 97°F</td></tr>
+        <tr><td>Life areas</td><td class="fam">Pills · Money · People</td><td class="blk">Power &amp; medical devices · Cooling · Water &amp; ice · Check-ins · Rumor control</td></tr>
+        <tr><td>Roles</td><td class="fam">coordinator · helper · elder on a phone line</td><td class="blk">coordinator · volunteers · residents (oxygen, insulin, infant) · phone-line neighbors</td></tr>
+        <tr><td>Hard rules</td><td class="fam">money asked in a family name is verified first</td><td class="blk">911 first · oxygen &gt; insulin &gt; infant &gt; mobility · no apartment numbers beyond the matched volunteer</td></tr>
+        <tr><td>What Village calls</td><td class="fam">Marco, to verify a money ask</td><td class="blk">cooling centers and the hospital, to log power and capacity</td></tr>
+        <tr><td>Each app leads with</td><td class="fam">Carmen: who's here tonight · Marco: is it my turn · Ana: Mamá today</td><td class="blk">resident: "someone is coming at 3" · volunteer: this shift · coordinator: the shift board and the rumor queue</td></tr>
+      </table>
+    </div>
+    <figure style="margin:0;"><img style="width:100%; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,.5);" src="hero/block-three-apps.png" alt="Three block apps: coordinator, volunteer, resident"><figcaption>Three job-shaped block apps, from the same renderer that drew the family's</figcaption></figure>
+  </div>
+</section>
+
+<!-- 9 -->
+<section>
+  <div>
+    <p class="eyebrow">Measured today</p>
+    <div class="nums">
+      <div class="num"><strong>12 s</strong><span>Ana's yes to every phone patched</span></div>
+      <div class="num"><strong>30/30</strong><span>scam calls caught · 0 of 20 false alarms</span></div>
+      <div class="num"><strong>1.0 s</strong><span>cold Daytona sandbox from snapshot</span></div>
+      <div class="num"><strong>12:23</strong><span>first real call on Carmen's line, refusal spoken</span></div>
+    </div>
+  </div>
+  <div>
+    <table class="tools">
+      <tr><td>Daytona</td><td>Every version built and tested in a sandbox from snapshot <code>village-kit</code>; floor tests generated per village; egress blocked.</td></tr>
+      <tr><td>Anchor</td><td>A real browser at 390×844 clicks through each build; the recording sits on the receipt.</td></tr>
+      <tr><td>Arize</td><td>Every step a span, every gate a guardrail span; the scam set as an experiment; the Builder prompt versioned on Prompt Hub.</td></tr>
+      <tr><td>SurrealDB</td><td>Live fan-out to every phone; Agent Memory facts with history and sources.</td></tr>
+      <tr><td>ElevenLabs</td><td>Carmen's whole product: a Spanish phone line whose tools call the gate mid-call.</td></tr>
+      <tr><td>AWS</td><td>Claude on Bedrock behind one <code>llm()</code> factory; it carried the morning.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="one">
+  <div style="text-align:center;">
+    <p class="eyebrow">Live</p>
+    <h1 style="font-size:clamp(40px,6vw,100px)">Ana's villages</h1>
+    <p class="muted">Build → Run → Rebuild → the block. My phone is Carmen's caller. Yours is Marco's.</p>
+    <a class="pill-link" href="/control.html?t=control&presenter=1&as=m_ana">Open the Control Room</a>
+  </div>
 </section>
 
 </div>
-<div class="stage wide" id="stage"><span class="tag"><span id="tag"></span> · <a id="pop" href="#" target="_blank" style="color:#8fd0b4">open in its own window ↗</a> · click inside to drive it, click a slide to come back</span><iframe id="frame" title="Village live" allow="autoplay"></iframe></div>
-</div>
-<div class="foot"><span id="pos"></span><span>← → · F fullscreen · L hide slides · R reload frame</span></div>
+<div class="foot"><span id="pos"></span><span class="dots" id="dots"></span><span>← → · F fullscreen</span></div>
 <script>
-  const slides=[...document.querySelectorAll('section')]; let i=Math.max(0, Math.min(slides.length-1, parseInt(location.hash.slice(1)||'0',10)||0));
-  const frame=document.getElementById('frame'), stage=document.getElementById('stage'), tag=document.getElementById('tag');
-  function show(n){ slides.forEach((s,k)=>s.classList.toggle('on',k===n)); i=n; location.hash=n; document.getElementById('pos').textContent=(n+1)+' / '+slides.length;
-    const sec=slides[n], src=sec.dataset.frame||''; stage.className='stage '+(sec.dataset.mode||'wide'); tag.textContent=sec.dataset.tag||'';
-    const wrap=document.getElementById('wrap'); wrap.classList.toggle('room', (sec.dataset.mode||'wide')==='wide');
-    setTimeout(()=>{ if ((sec.dataset.mode||'wide')==='wide') frame.focus(); }, 300);
-    if (src && frame.getAttribute('src')!==src) frame.setAttribute('src', src); document.getElementById('pop').href=src||'#'; }
-  addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(Math.min(i+1,slides.length-1)); else if(e.key==='ArrowLeft'||e.key==='PageUp') show(Math.max(i-1,0)); else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); else if(e.key==='l'||e.key==='L') document.getElementById('wrap').classList.toggle('solo'); else if(e.key==='r'||e.key==='R') frame.setAttribute('src', frame.getAttribute('src')); });
-  document.querySelector('.deck').addEventListener('click',e=>{ const r=e.currentTarget.getBoundingClientRect(); if(e.clientX-r.left>r.width/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
+  const slides=[...document.querySelectorAll('section')];
+  const dots=document.getElementById('dots'); slides.forEach(()=>dots.appendChild(document.createElement('i')));
+  let i=Math.max(0, Math.min(slides.length-1, parseInt(location.hash.slice(1)||'0',10)||0));
+  function show(n){ slides.forEach((s,k)=>s.classList.toggle('on',k===n)); i=n; location.hash=n;
+    document.getElementById('pos').textContent=(n+1)+' / '+slides.length; [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===n)); }
+  addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault(); show(Math.min(i+1,slides.length-1));} else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault(); show(Math.max(i-1,0));} else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); });
+  document.querySelector('.deck').addEventListener('click',e=>{ if(e.target.closest('a')) return; if(e.clientX>innerWidth/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
   show(i);
 </script>
 </body>
