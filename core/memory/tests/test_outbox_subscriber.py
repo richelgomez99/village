@@ -118,3 +118,16 @@ async def test_subscriber_live_from_db_publish(tmp_path, client):
     await asyncio.sleep(0.01)
     await sub.stop()
     assert ob.stats()["queued"] == 2
+
+
+async def test_runtime_start_stop(tmp_path, client):
+    import asyncio
+    from core.db import MemoryDB
+    from core.memory import runtime
+    mdb = MemoryDB()
+    mdb.events.append(MED)
+    await runtime.start(mdb, interval=0.01, path=tmp_path / "o.jsonl", client=client)
+    await asyncio.sleep(0.05)
+    h = runtime.health()
+    await runtime.stop()
+    assert h["sent"] >= 1 and h["dead"] == 0
