@@ -49,13 +49,35 @@ function Region({ test, title, children, className, extra }: { test: string; tit
 
 /* ---------------- Header ---------------- */
 
-export interface VillageTab { id: string; label: string }
+export interface VillageTab { id: string; label: string; role?: string }
+
+const firstName = (p: any) => String(p?.short_name && p?.role !== "care_recipient" ? p.name ?? "" : p?.name ?? "").replace(/^(mr|mrs|ms|dr|the)\.?\s+/i, "").split(/\s+/)[0] ?? "";
+const ROLE_WORDS: Record<string, string> = { coordinator: "you coordinate", volunteer: "you volunteer", helper: "you help" };
+
+/** `?as=<member_id>`: the person the room belongs to. Per village: exact member id first, else the first name of
+ *  that member (found in any village) matched in this village. Returns the first name and each village's role words. */
+export function resolveAs(as: string | null | undefined, peopleByVillage: Record<string, any[]>): { first: string; roles: Record<string, string> } | null {
+  if (!as) return null;
+  const all = Object.values(peopleByVillage).flat();
+  const me = all.find((p) => p?.id === as);
+  if (!me) return null;
+  const first = firstName(me);
+  const roles: Record<string, string> = {};
+  for (const [vid, people] of Object.entries(peopleByVillage)) {
+    const hit = people.find((p) => p?.id === as) ?? (first ? people.find((p) => firstName(p).toLowerCase() === first.toLowerCase()) : undefined);
+    const words = hit ? ROLE_WORDS[String(hit.role ?? "").toLowerCase()] : undefined;
+    if (words) roles[vid] = words;
+  }
+  return { first, roles };
+}
 /** pseudo tab id for the empty founding room before POST /villages returns an id */
 export const NEW_VILLAGE = "__new__";
 
 export const TAGLINE = "Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.";
 
-export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails, villageTime }: {
+export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails, villageTime, owner }: {
+  /** `?as=`: "<First name>'s villages" in place of the brand */
+  owner?: string;
   details?: boolean; onDetails?: (on: boolean) => void;
   /** presenter mode: the clock in words ("Friday · 8:50 PM · <on-duty>'s night"), no demo chrome */
   villageTime?: string;
@@ -69,12 +91,13 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
     <header className="cr-header" data-test="cr-header">
       <div className="brand-block">
         <div className="brand-row">
-          <span className="brand">Village</span>
+          <span className="brand" data-test="brand">{owner ? `${owner}'s villages` : "Village"}</span>
           <span className="brand-dot" aria-hidden="true">·</span>
           <nav aria-label="Villages" className="tabs" role="tablist">
             {tabs.map((t) => (
               <button key={t.id} type="button" role="tab" aria-selected={t.id === tab} className={`tab${t.id === tab ? " active" : ""}`} data-test="village-tab" data-village={t.id} onClick={() => onTab(t.id)}>
                 {t.label}
+                {t.role ? <span className="muted tab-role" data-test="tab-role">{` · ${t.role}`}</span> : null}
               </button>
             ))}
             <button type="button" role="tab" aria-selected={tab === NEW_VILLAGE} className={`tab tab-new${tab === NEW_VILLAGE ? " active" : ""}`} data-test="new-village" onClick={onNew}>
@@ -597,18 +620,67 @@ export function factWriter(f: FactCard): string {
   return "Watcher";
 }
 
-function FactRow({ f }: { f: FactCard }) {
+
+/** Bookkeeping the system writes for itself (consents, dated rota rows, published rev, last dose, outcomes). */
+export const isHousekeeping = (f: FactCard): boolean =>
+  /^(consent_|published_rev|verification_outcome|last_|on_duty_\d|rota_\d)|_refill_due$/.test(f.key);
+
+/** Life area of a fact: its `area` label (founding facts), else a guess from the key; matched to the group's own areas. */
+export function factArea(f: FactCard, areas: string[]): string {
+  const a = String(f.labels?.area ?? "").toLowerCase();
+  if (a) return a;
+  if (/dose|med|pill|lisinopril|apixaban|prescri|pharm|bp/.test(f.key)) return areas.includes("health") ? "health" : areas[0] ?? "general";
+  if (/money|scam|pay/.test(f.key)) return areas.includes("money") ? "money" : areas[0] ?? "general";
+  return areas.includes("people") ? "people" : areas[0] ?? "general";
+}
+
+const shortDay = (iso?: string | null) => {
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+};
+
+/** Source chip in words: "call · 1:28", "app · Marco", "seed". */
+export function sourceChip(f: FactCard, names: Record<string, string> = {}): string {
+  const s = f.source;
+  if (!s) return "";
+  if (s.kind === "call") return `call${s.secs != null ? ` · ${Math.floor(s.secs / 60)}:${String(Math.round(s.secs % 60)).padStart(2, "0")}` : ""}`;
+  if (s.ref === "seed") return "seed";
+  if (s.kind === "app") return `app · ${names[s.ref] ?? s.ref}`;
+  return s.kind;
+}
+
+/** Group the knowledge facts by the group's life areas; supersession attached inline. */
+export function groupKnowledge(facts: FactCard[], areas: string[]) {
+  const live = facts.filter((f) => !f.superseded);
+  const knowledge = live.filter((f) => !isHousekeeping(f));
+  const housekeeping = live.filter(isHousekeeping);
+  const prior = (f: FactCard) => facts.filter((p) => p.superseded && p.entity === f.entity && p.key === f.key).sort((a, b) => b.observed_at.localeCompare(a.observed_at))[0];
+  const order = [...areas];
+  const groups: Record<string, { f: FactCard; was?: FactCard }[]> = {};
+  for (const f of knowledge) {
+    const a = factArea(f, areas);
+    if (!order.includes(a)) order.push(a);
+    (groups[a] ??= []).push({ f, was: prior(f) });
+  }
+  const calls = knowledge.filter((f) => f.source?.kind === "call").length;
+  const last = knowledge.map((f) => f.observed_at).sort().pop();
+  return { order: order.filter((a) => groups[a]?.length), groups, knowledge, housekeeping, calls, last };
+}
+
+function KnowRow({ f, was, names }: { f: FactCard; was?: FactCard; names: Record<string, string> }) {
   const [open, setOpen] = useState(false);
-  const src = f.source;
-  const chip = src ? (src.kind === "call" ? `call${src.secs != null ? ` · ${Math.floor(src.secs / 60)}:${String(Math.round(src.secs % 60)).padStart(2, "0")}` : ""}` : `${src.kind} · ${src.ref}`) : "";
+  const chip = sourceChip(f, names);
+  const q = f.source?.quote;
   return (
     <li className="fact-row" data-test="fact-row" data-key={f.key}>
-      <span className="fact-row-text">{cleanFactText(f.text)}</span>
-      <span className="fact-row-meta">
-        <span className="role-tag" data-test="fact-writer">{factWriter(f)}</span>
-        {chip ? <button type="button" className="fact-source" data-test="fact-row-source" aria-expanded={open} onClick={() => setOpen(!open)}>{chip}</button> : null}
+      <span className="fact-row-text">
+        {cleanFactText(f.text)}
+        {was ? <span className="muted" data-test="fact-was">{` (was ${was.value} until ${shortDay(was.valid_to ?? f.observed_at)})`}</span> : null}
       </span>
-      {open || (src?.quote && src.quote.length <= 60) ? (src?.quote ? <span className="fact-row-quote" data-test="fact-row-quote"><Cap es={src.quote} /></span> : null) : null}
+      <span className="fact-row-meta">
+        {chip ? <button type="button" className="fact-source" data-test="fact-row-source" title={q ?? undefined} aria-expanded={open} onClick={() => setOpen(!open)}>{chip}</button> : null}
+      </span>
+      {open && q ? <span className="fact-row-quote" data-test="fact-row-quote"><Cap es={q} /></span> : null}
     </li>
   );
 }
@@ -617,6 +689,7 @@ export function KnowsRegion({ api: api0, village, data, spec }: { api: ApiConfig
   const t = factTarget(data);
   const api = useMemo(() => (t ? withSnapshotHistory(api0, data, t.entity, t.key) : api0), [api0, t?.entity, t?.key, data[t ? `facts:history?subject=${t.entity}&key=${t.key}` : ""]]); // eslint-disable-line react-hooks/exhaustive-deps
   const [facts, setFacts] = useState<FactCard[] | null>(null);
+  const [hkOpen, setHkOpen] = useState(false);
   useEffect(() => {
     let live = true;
     listFacts(api0, village).then((r) => live && setFacts(Array.isArray(r?.facts) ? r.facts : []), () => live && setFacts([]));
@@ -624,20 +697,41 @@ export function KnowsRegion({ api: api0, village, data, spec }: { api: ApiConfig
       live = false;
     };
   }, [api0, village]);
-  const top = (facts ?? [])
-    .filter((f) => !f.superseded && !(t && f.key === t.key && f.entity === t.entity))
-    .map((f) => [f, factScore(f, t?.key)] as const)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, t ? 5 : 6)
-    .map(([f]) => f);
+  const areas: string[] = (spec?.blueprint?.life_areas ?? []).map((a: any) => String(typeof a === "string" ? a : a?.id ?? a?.name ?? "").toLowerCase()).filter(Boolean);
+  const areaLabel: Record<string, string> = Object.fromEntries((spec?.blueprint?.life_areas ?? []).filter((x: any) => x && typeof x === "object").map((x: any) => [String(x.id).toLowerCase(), String(x.label_i18n?.en ?? String(x.label ?? x.id).split(":")[0])]));
+  const names: Record<string, string> = Object.fromEntries((spec?.blueprint?.people ?? []).map((p: any) => [p.id, String(p.name ?? p.id).split(" ")[0]]));
+  const rest = (facts ?? []).filter((f) => !(t && f.key === t.key && f.entity === t.entity));
+  const g = groupKnowledge(rest, areas);
+  const n = g.knowledge.length + (t ? 1 : 0);
+  const group = String(spec?.village?.name ?? "the group");
+  const lastAt = g.last ? new Date(g.last) : null;
+  const last = lastAt && !Number.isNaN(lastAt.getTime()) ? lastAt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
   const who = t ? memberDisplay(t.entity, spec, data) : "";
   return (
-    <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key, "data-facts": top.length }}>
+    <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key, "data-facts": g.knowledge.length }}>
+      {facts ? (
+        <p className="knows-headline" data-test="knows-headline">
+          {`Village knows ${n} things about ${group} · ${g.calls} heard in calls${last ? ` · last learned ${last}` : ""}`}
+        </p>
+      ) : null}
       {t ? (
         <FactHistoryCard api={api} village={village} entity={t.entity} factKey={t.key} title={`${t.med.charAt(0).toUpperCase()}${t.med.slice(1)}${who ? ` · ${who}` : ""}`} />
       ) : null}
-      {top.length ? <ul className="fact-rows" data-test="fact-rows">{top.map((f) => <FactRow key={f.id} f={f} />)}</ul> : null}
-      {!t && facts && !top.length ? <p className="empty">Nothing recorded yet. Facts appear here as Village hears them.</p> : null}
+      {g.order.map((a) => (
+        <div key={a} className="knows-area" data-test="knows-area" data-area={a}>
+          <h4 className="knows-area-title">{areaLabel[a] ?? a.charAt(0).toUpperCase() + a.slice(1).replace(/_/g, " ")}</h4>
+          <ul className="fact-rows" data-test="fact-rows">
+            {[...g.groups[a]].sort((x, y) => factScore(y.f, t?.key) - factScore(x.f, t?.key)).slice(0, 4).map(({ f, was }) => <KnowRow key={f.id} f={f} was={was} names={names} />)}
+          </ul>
+        </div>
+      ))}
+      {g.housekeeping.length ? (
+        <div className="knows-hk" data-test="knows-housekeeping">
+          <button type="button" className="muted linklike" aria-expanded={hkOpen} onClick={() => setHkOpen(!hkOpen)}>{`and ${g.housekeeping.length} housekeeping facts`}</button>
+          {hkOpen ? <ul className="fact-rows muted">{g.housekeeping.map((f) => <KnowRow key={f.id} f={f} names={names} />)}</ul> : null}
+        </div>
+      ) : null}
+      {!t && facts && !g.knowledge.length && !g.housekeeping.length ? <p className="empty">Nothing recorded yet. Facts appear here as Village hears them.</p> : null}
       <p className="caption knows-caption" data-test="knows-caption">{KNOWS_CAPTION}</p>
     </Region>
   );

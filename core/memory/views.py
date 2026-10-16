@@ -40,6 +40,9 @@ def mirror(deps: MemoryDeps, village: str) -> list[dict[str, Any]]:
     extra = deps.extra.get("drafts")
     if extra is not None:  # facts written outside the ledger (e.g. institution calls)
         drafts += [dict(d) for d in extra(village)]
+    from core.memory.founding import founding_drafts
+
+    drafts += founding_drafts(village)
     chains: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for d in drafts:
         chains.setdefault((d["entity"], d["key"]), []).append(d)
@@ -78,6 +81,8 @@ def _labels_from_draft(d: dict[str, Any]) -> dict[str, str]:
         lab["secs"] = cv._num(s["secs"])
     if d.get("event_id"):
         lab["event"] = d["event_id"]
+    for k, v in (d.get("extra_labels") or {}).items():
+        lab.setdefault(k, str(v))
     return lab
 
 

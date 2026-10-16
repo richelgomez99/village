@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApiConfig } from "../src/control/api";
 import { PresenterLayer } from "../src/control/PresenterLayer";
 import { SCRIPT, presenterRequest } from "../src/control/presenter";
-import { KnowsRegion, ReleaseTiles, factScore, factWriter, stageToolLine } from "../src/control/regions";
+import { KnowsRegion, ReleaseTiles, factScore, factWriter, groupKnowledge, isHousekeeping, stageToolLine } from "../src/control/regions";
 import { initialScene, sceneReducer, type SceneState } from "../src/control/scene";
 import reyes from "../../contracts/fixtures/reyes_spec.json";
 
@@ -12,23 +12,38 @@ const ctl = (kind: string, payload: any, at = "2026-10-16T14:00:00-04:00") => ({
 const tick = async (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 
 describe("ROOM-6 Agent Memory list", () => {
-  it("ranks what Village runs on: heard-in-a-call facts with words first, dated rota rows and consents last; writer from labels/source", async () => {
+  it("ROOM-8: groups knowledge by the group's life areas, counts it in the headline, collapses housekeeping", async () => {
     vi.useFakeTimers();
     const { container } = render(<div className="control"><KnowsRegion api={{ base: "", token: "", fake: true }} village="v_reyes" data={{}} spec={reyes} /></div>);
     await tick(200);
     const rows = Array.from(container.querySelectorAll<HTMLElement>("[data-test='fact-row']"));
     const keys = rows.map((r) => r.dataset.key);
-    expect(keys.slice(0, 2)).toEqual(["quiet_hours", "availability"]);
-    expect(keys).toContain("lisinopril_dose");
-    expect(keys.at(-1)).toBe("rota_2026_10_12");
+    expect(keys).toContain("quiet_hours");
+    rows.unshift(rows.find((r) => r.dataset.key === "quiet_hours")!);
+    expect(keys).not.toContain("rota_2026_10_12");
     expect(rows[0].textContent).toContain("quiet hours is 21:30-07:00");
     expect(rows[0].textContent).not.toContain("(m_carmen)");
+    const src = rows[0].querySelector<HTMLElement>("[data-test='fact-row-source']")!;
+    expect(src.textContent).toBe("call · 1:48");
+    expect(src.getAttribute("title")).toContain("Después de las nueve y media, no.");
+    fireEvent.click(src);
     expect(rows[0].querySelector("[data-test='fact-row-quote']")?.textContent).toContain("Después de las nueve y media, no.");
-    expect(rows[0].querySelector("[data-test='fact-row-source']")?.textContent).toBe("call · 1:48");
-    expect(rows[0].querySelector("[data-test='fact-writer']")?.textContent).toBe("voice");
+    const head = container.querySelector("[data-test='knows-headline']")?.textContent ?? "";
+    expect(head).toMatch(/^Village knows \d+ things about Familia Reyes · \d+ heard in calls/);
+    const areas = Array.from(container.querySelectorAll<HTMLElement>("[data-test='knows-area']")).map((e) => e.dataset.area);
+    expect(areas.length).toBeGreaterThan(0);
+    expect(container.querySelector("[data-test='knows-housekeeping']")?.textContent).toMatch(/^and \d+ housekeeping facts$/);
     expect(container.querySelector("[data-test='knows-caption']")?.textContent).toBe("Typed · time-aware · supersedes rather than overwrites · traced to source · shared across agents · SurrealDB Agent Memory");
     expect(factWriter({ labels: { agent: "memory" }, source: { kind: "system", ref: "seed" } } as any)).toBe("seed");
     expect(factScore({ key: "rota_2026_10_12", source: { kind: "system", ref: "seed" } } as any)).toBeLessThan(0);
+    expect(isHousekeeping({ key: "consent_ai_calls" } as any)).toBe(true);
+    expect(isHousekeeping({ key: "quiet_hours" } as any)).toBe(false);
+    const g = groupKnowledge([
+      { id: "a", entity: "m_carmen", key: "lisinopril_dose", value: "10 mg", text: "", observed_at: "2026-10-03T09:00:00-04:00", superseded: false, source: { kind: "call", ref: "c", secs: 88 } },
+      { id: "b", entity: "m_carmen", key: "lisinopril_dose", value: "5 mg", text: "", observed_at: "2026-09-01T09:00:00-04:00", valid_to: "2026-10-03T09:00:00-04:00", superseded: true, source: { kind: "system", ref: "seed" } },
+    ] as any, ["health", "money", "people"]);
+    expect(g.groups.health[0].was?.value).toBe("5 mg");
+    expect(g.calls).toBe(1);
   });
 });
 

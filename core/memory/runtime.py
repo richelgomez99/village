@@ -34,6 +34,9 @@ async def start(db: Any, *, backfill: bool = True, interval: float = 2.0, path: 
     if backfill:  # events already in the ledger (seed) -> idempotent enqueue
         for e in list(getattr(db, "events", [])):
             sub.on_event(e)
+        from core.memory.founding import enqueue_founding
+
+        enqueue_founding(ob)  # founding facts from each village's data file (idempotent ids)
     sub.start(db)
     ob.start(interval)
     _state.update(outbox=ob, subscriber=sub, voice=asyncio.create_task(_voice_loop(sub, 5.0), name="memory-voice-outbox"))
