@@ -14,6 +14,8 @@ export interface FakeOptions {
   tail?: Tail | null;
   speed?: number;
   seq?: ControlSeq | null;
+  /** secondary socket (Control Room view-as / village tab): don't take over window.__fake. */
+  quiet?: boolean;
 }
 
 export function parseFakeOptions(search: string): FakeOptions {
@@ -249,7 +251,7 @@ export function isFakeClient(v: string | null): v is FakeClient {
 /** Returns a WebSocket-compatible constructor bound to one fake client; also exposes window.__fake for the presenter. */
 export function createFakeWebSocket(client: FakeClient, opts: FakeOptions): typeof WebSocket {
   const hub = new FakeHub(opts);
-  if (typeof window !== "undefined") (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub };
+  if (typeof window !== "undefined" && !opts.quiet) (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub };
   const Ctor = function (this: unknown, url: string) {
     return new FakeSocket(url, hub, client);
   } as unknown as typeof WebSocket;

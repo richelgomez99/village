@@ -22,7 +22,7 @@ export function liveConfig(client: ClientName, loc: Location = window.location):
   } catch {
     stored = null;
   }
-  const token = p.get("m") ?? stored ?? `mt_${fake ?? "anonymous"}_offline_demo`;
+  const token = (client === "control" ? p.get("t") ?? p.get("m") : p.get("m")) ?? stored ?? `mt_${fake ?? "anonymous"}_offline_demo`;
   const env = (import.meta as any).env ?? {};
   const core: string =
     env.VITE_CORE_WS ??
@@ -31,9 +31,9 @@ export function liveConfig(client: ClientName, loc: Location = window.location):
   return { url, village, token, client, fake };
 }
 
-export function makeSocket(cfg: LiveConfig, search = typeof window !== "undefined" ? window.location.search : ""): VillageSocket {
-  const WebSocketImpl = isFakeClient(cfg.fake) ? createFakeWebSocket(cfg.fake, parseFakeOptions(search)) : undefined;
-  return new VillageSocket({ url: cfg.url, village: cfg.village, token: cfg.token, client: cfg.client, WebSocketImpl });
+export function makeSocket(cfg: LiveConfig, search = typeof window !== "undefined" ? window.location.search : "", extra: { viewAs?: string; fakeOverrides?: Partial<ReturnType<typeof parseFakeOptions>> } = {}): VillageSocket {
+  const WebSocketImpl = isFakeClient(cfg.fake) ? createFakeWebSocket(cfg.fake, { ...parseFakeOptions(search), ...(extra.fakeOverrides ?? {}) }) : undefined;
+  return new VillageSocket({ url: cfg.url, village: cfg.village, token: cfg.token, client: cfg.client, WebSocketImpl, viewAs: extra.viewAs });
 }
 
 export function useLive(client: ClientName = "kit") {
