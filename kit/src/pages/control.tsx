@@ -12,6 +12,7 @@ import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } fro
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
 import { TransportBar } from "../control/transport";
+import { PresenterLayer } from "../control/PresenterLayer";
 import type { Transport } from "../dev/transport";
 import { liveConfig, makeSocket, type LiveConfig } from "../live/useLive";
 import type { VillageSocket } from "../live/ws";
@@ -48,8 +49,37 @@ export function useSceneWithDispatch(socket: VillageSocket, village: string) {
   return [scene, dispatch] as const;
 }
 
+/** ?presenter=1: live stage mode — keys drive Core, no demo chrome (clock in words, no transport/details/banners). */
+const PRESENTER = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("presenter") === "1";
+
+/** "Friday · 8:50 PM · Marco's night" from the room clock and the rota. */
+export function villageTimeWords(nowIso: string, data: Record<string, unknown>): string {
+  const d = new Date(nowIso);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  const onDuty = data["rota:current.on_duty"] as { name?: string } | null | undefined;
+  let who = onDuty?.name ?? "";
+  if (!who && Array.isArray(data["rota:week"])) {
+    const ymd = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const row = (data["rota:week"] as { date: string; on_duty: string }[]).find((r) => r.date === ymd);
+    const m = row ? (data[`member:${row.on_duty}`] as { name?: string } | undefined) : undefined;
+    who = m?.name ?? "";
+  }
+  return [day, time, who ? `${who}'s night` : ""].filter(Boolean).join(" · ");
+}
+
 /** ?hero=1: screenshot mode, dev chrome hidden (connection banner, clock warp, view-as bar). */
 const HERO = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("hero") === "1";
+
+const ADMIN_KEY = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("admin") ?? "" : "";
+
+/** first proposal waiting for a yes (proposals:pending, else the room's latest proposal frame) */
+function firstPending(scene: SceneState): string | null {
+  const p = scene.data["proposals:pending"];
+  if (Array.isArray(p) && p.length) return String((p[0] as { proposal_id?: string; id?: string }).proposal_id ?? (p[0] as { id?: string }).id ?? "") || null;
+  return scene.proposal && ["proposed", "ready"].includes(scene.proposal.status) ? scene.proposal.id : null;
+}
 
 export function isFounding(scene: SceneState): boolean {
   return !scene.spec || (!scene.blueprint.done && (Object.keys(scene.blueprint.stages).length > 0 || scene.transcript.length > 0));
@@ -168,7 +198,24 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     if (b !== "build") p.delete("village");
     window.location.search = p.toString();
   };
-  return <VillageRoom key={tab} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} />;
+  const reselect = () => {
+    const old = sockets[tab];
+    const s = make({ village: tab });
+    s.connect();
+    setSockets((m) => ({ ...m, [tab]: s }));
+    old?.close();
+  };
+  const nextVillage = () => setTab(list[(list.indexOf(tab) + 1) % list.length] ?? tab);
+  return <VillageRoom key={`${tab}:${roomEpoch(sockets[tab])}`} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} onReselect={reselect} onNextVillage={nextVillage} />;
+}
+
+const EPOCHS = new WeakMap<object, number>();
+let epochSeq = 0;
+/** a stable number per socket object, so re-opening a village's socket remounts its room */
+function roomEpoch(s: object | undefined): number {
+  if (!s) return 0;
+  if (!EPOCHS.has(s)) EPOCHS.set(s, ++epochSeq);
+  return EPOCHS.get(s)!;
 }
 
 /** village.name from each socket's control snapshot (spec), for the switcher pills. */
@@ -186,7 +233,8 @@ function useVillageNames(sockets: Record<string, VillageSocket>): Record<string,
   return names;
 }
 
-function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false }: {
+function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false, onReselect, onNextVillage }: {
+  onReselect?: () => void; onNextVillage?: () => void;
   village: string; socket: VillageSocket; tabs: VillageTab[]; onTab: (v: string) => void; onNew: () => void;
   make: (o: { village: string; viewAs?: string }) => VillageSocket; api: ApiConfig;
   details?: boolean; onDetails?: (on: boolean) => void; onJump?: (b: ArcBeat) => void; anyone?: boolean;
@@ -196,6 +244,16 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const founding = isFounding(scene);
   const beat: ArcBeat = anyone ? "anyone" : founding ? "build" : scene.beat ?? "run";
   const transport = typeof window !== "undefined" ? ((window as any).__fake?.transport as Transport | null | undefined) ?? null : null;
+  // presenter: a connection banner only after 5 s down
+  const [downLong, setDownLong] = useState(false);
+  useEffect(() => {
+    if (state.status === "live" || state.status === "idle") {
+      setDownLong(false);
+      return;
+    }
+    const t = setTimeout(() => setDownLong(true), 5000);
+    return () => clearTimeout(t);
+  }, [state.status]);
   // decisions log backfill from Core (then control{gate|reasoning} frames keep it live)
   useEffect(() => {
     let live = true;
@@ -266,13 +324,13 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   };
   const spec = scene.spec;
   const people = scene.blueprint.stages.people ?? spec?.blueprint?.people ?? [];
-  const coordP = people.find((p: any) => p.role === "coordinator");
+  const coordP = people.find((p: any) => p.role === "coordinator") ?? (spec?.blueprint?.people ?? []).find((p: any) => p.role === "coordinator");
   const coordinator = coordP ? displayName(coordP, nameCtx(scene)) : "Coordinator";
   return (
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}${transport && !HERO ? " has-transport" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32 + (transport && !HERO ? 56 : 0)}px` }}>
-      <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} />
+      <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} villageTime={PRESENTER ? villageTimeWords(scene.clock?.now ?? new Date(socket.nowMs()).toISOString(), scene.data) || " " : undefined} />
       <ArcStrip beat={beat} onJump={(b) => onJump?.(b)} />
-      {state.status !== "live" && state.status !== "idle" ? (
+      {state.status !== "live" && state.status !== "idle" && (!PRESENTER || downLong) ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}
       {!scene.spec && scene.frames === 0 ? (
@@ -304,7 +362,16 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
           </aside>
         </div>
       )}
-      {transport && !HERO ? <TransportBar transport={transport} beat={beat} villages={tabs} /> : null}
+      {transport && !HERO && !PRESENTER ? <TransportBar transport={transport} beat={beat} villages={tabs} /> : null}
+      {PRESENTER ? (
+        <PresenterLayer
+          api={api}
+          ctx={{ village, description: String(spec?.blueprint?.description?.text ?? ""), pendingProposal: firstPending(scene), coordinatorName: coordinator, adminKey: ADMIN_KEY }}
+          onNextVillage={() => onNextVillage?.()}
+          onDetails={() => onDetails?.(!details)}
+          onReselect={() => onReselect?.()}
+        />
+      ) : null}
       <CaptionsLayer ref={capRef} captions={scene.captions} />
     </main>
   );

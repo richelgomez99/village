@@ -92,7 +92,10 @@ describe("Control Room proposal frame", () => {
     const { ProposalRegion } = await import("../src/control/regions");
     const { container } = render(<div className="control"><ProposalRegion proposal={{ ...NEW, status: "verifying" }} release={{ stages: [{ name: "spec", status: "passed" }, { name: "daytona_build", status: "running" }] }} spec={reyes} /></div>);
     expect(Array.from(container.querySelectorAll(".pb h4")).map((h) => h.textContent)).toEqual(["What happened", "What changes", "What stays the same", "Village checked"]);
-    expect(container.querySelector("[data-test='release-stepper']")?.getAttribute("data-stage")).toBe("daytona_build");
+    // with a receipt, the six tiles name the tool that did each stage
+    expect(Array.from(container.querySelectorAll("[data-test='release-tile']")).map((t) => t.getAttribute("data-stage"))).toEqual(["daytona_build"]);
+    const { container: c2 } = render(<div className="control"><ProposalRegion proposal={{ ...NEW, status: "verifying" }} release={null} spec={reyes} /></div>);
+    expect(c2.querySelector("[data-test='release-stepper']")).not.toBeNull();
     expect(container.textContent).not.toMatch(/src=|trace/);
   });
 });

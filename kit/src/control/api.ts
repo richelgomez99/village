@@ -6,12 +6,12 @@ export interface AskAnswer { answer: string; lang: string; citations: Citation[]
 export interface QrEntry { member_id: string; kind: "app" | "join" | "lid"; url: string; svg?: string }
 export interface ClockState { now: string; offset_minutes: number }
 
-import { fakeAsk, fakeCreateVillage, fakeFactHistory, fakeFactsAsOf, fakeQr } from "../dev/fakeApi";
+import { fakeAsk, fakeCreateVillage, fakeFactHistory, fakeFacts, fakeFactsAsOf, fakeQr } from "../dev/fakeApi";
 
 export interface FactSource { kind: string; ref: string; secs?: number; url?: string; quote?: string }
 export interface FactVersion { id: string; value: string; text: string; observed_at: string; recorded_at: string; superseded: boolean; source: FactSource; event_id?: string }
 export interface FactHistory { village: string; entity: string; key: string; versions: FactVersion[]; degraded: boolean; degraded_reason?: string }
-export interface FactCard extends FactVersion { entity: string; key: string; valid_to?: string | null }
+export interface FactCard extends FactVersion { entity: string; key: string; valid_to?: string | null; labels?: Record<string, string> }
 export interface FactsAsOf { village: string; as_of: string; facts: FactCard[]; degraded: boolean }
 
 export interface ApiConfig {
@@ -29,11 +29,11 @@ export function apiConfig(loc: Location = window.location): ApiConfig {
   return { base, token: p.get("t") ?? p.get("m") ?? (p.get("fake") ? "" : "control"), fake: !!p.get("fake") };
 }
 
-async function call<T>(cfg: ApiConfig, method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(cfg: ApiConfig, method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
   const f = cfg.fetchImpl ?? fetch;
   const res = await f(`${cfg.base}${path}`, {
     method,
-    headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {}) },
+    headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {}), ...extraHeaders },
     body: body ? JSON.stringify(body) : undefined
   });
   if (!res.ok) throw new Error(`${res.status}`);
@@ -68,7 +68,8 @@ export async function createVillage(cfg: ApiConfig, description: string): Promis
 /** Founding follow-up: POST /villages/{id}/answers {answers:[{question, text}]}. */
 export async function answerFollowUp(cfg: ApiConfig, village: string, question: string, text: string): Promise<{ village_id: string; state: string }> {
   if (cfg.fake) return { village_id: village, state: "building" };
-  return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/answers`, { answers: [{ question: question.slice(0, 200), text }], lang: "en" });
+  // core reads `text`; `answers` is the contract shape
+  return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/answers`, { text, answers: [{ question: question.slice(0, 200), text }], lang: "en" });
 }
 
 /** Agent Memory (SurrealDB): every version of one fact, newest first (GET /villages/{id}/facts/{entity}/{key}/history). */
@@ -104,4 +105,15 @@ export async function listDecisions(cfg: ApiConfig, village: string): Promise<an
   if (cfg.fake) return [];
   const r = await call<{ decisions: any[] }>(cfg, "GET", `/villages/${encodeURIComponent(village)}/decisions?limit=40`);
   return Array.isArray(r?.decisions) ? r.decisions : [];
+}
+
+/** GET /villages/{id}/facts: what Village is running on right now (Agent Memory read model). */
+export async function listFacts(cfg: ApiConfig, village: string): Promise<FactsAsOf> {
+  if (cfg.fake) return fakeFacts(village);
+  return call(cfg, "GET", `/villages/${encodeURIComponent(village)}/facts`);
+}
+
+/** Raw request for presenter keys (always real Core, never the fake). */
+export async function apiRequest(cfg: ApiConfig, method: string, path: string, body?: unknown, headers?: Record<string, string>): Promise<unknown> {
+  return call(cfg, method, path, body, headers);
 }

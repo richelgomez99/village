@@ -75,3 +75,21 @@ export async function fakeFactsAsOf(village: string, entity: string, key: string
   const v = h.versions.filter((x) => Date.parse(x.observed_at) <= t).sort((a, b) => Date.parse(b.observed_at) - Date.parse(a.observed_at))[0];
   return { village, as_of: asOf, degraded: false, facts: v ? [{ ...v, entity, key, superseded: false }] : [] };
 }
+
+/** What Village is running on (Reyes), the shape GET /villages/{id}/facts returns. */
+export async function fakeFacts(village: string): Promise<FactsAsOf> {
+  if (village !== "v_reyes") return { village, as_of: "2026-10-16T14:00:00-04:00", facts: [], degraded: false };
+  const f = (entity: string, key: string, value: string, text: string, agent: string, source: any, observed_at: string) =>
+    ({ id: `fact:${key}:${entity}`, village, entity, key, value, text, labels: { agent, village }, observed_at, recorded_at: observed_at, superseded: false, source });
+  return {
+    village, as_of: "2026-10-16T14:00:00-04:00", degraded: false,
+    facts: [
+      f("m_carmen", "quiet_hours", "21:30-07:00", "Carmen Reyes (m_carmen)'s quiet hours is 21:30-07:00", "voice", { kind: "call", ref: "welcome_call", secs: 108, quote: "Después de las nueve y media, no." }, "2026-10-10T18:00:00-04:00"),
+      f("m_marco", "availability", "Tue Thu Fri Sat", "Marco can be there Tue · Thu · Fri · Sat evenings.", "founder", { kind: "call", ref: "consent_call_marco", secs: 21, quote: "Tuesday, Thursday, Friday, Saturday. And yes, you can call me." }, "2026-10-16T13:58:31-04:00"),
+      f("m_carmen", "lisinopril_dose", "10 mg", "Lisinopril is 10 mg since Oct 3 (Dr. Park).", "memory", { kind: "call", ref: "conv_setup_0003", secs: 88, quote: "The doctor changed her lisinopril from five to ten on October third." }, "2026-10-03T17:40:00-04:00"),
+      f("m_carmen", "channels", "phone", "Won't use apps; will answer a call.", "founder", { kind: "call", ref: "conv_setup_0003", secs: 131, quote: "She won't use apps. She'll answer a call." }, "2026-10-16T13:58:40-04:00"),
+      f("village", "rota_coverage", "complete", "Every night has a name.", "watcher", { kind: "system", ref: "rota check" }, "2026-10-16T13:58:20-04:00"),
+      f("village", "rota_2026_10_12", "m_ana", "Village v_reyes's rota 2026 10 12 is m_ana", "seed", { kind: "system", ref: "seed" }, "2026-10-12T09:00:00-04:00")
+    ]
+  };
+}

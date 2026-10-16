@@ -36,3 +36,18 @@ Shot list = the same beats, but Build uses the **block** founding with the recor
 
 ## Open fixes before freeze (in order)
 1. Verify the paced founding scene live and with `?resume=8` (orchestrator). 2. Phone copy: names not ids in chat, no rule ids on family phones, short proposal message (kit). 3. `reset_demo.sh` clears proposals and re-seeds both villages (pitch/core). 4. Approve → patch on three real phones (operator test). 5. Receptionist live call (operator test).
+
+## Presenter keys (Control Room `control.html?t=control&presenter=1`)
+Live Core only (Bearer control token); `?admin=<ADMIN_KEY>` for R. Keys are ignored while typing in a field. Hover the ⌨ mark bottom-right for this map; a one-second toast names each action.
+
+| Key | What it does | Core call |
+|---|---|---|
+| R | Reset the demo, re-open the village | `POST /admin/reset` (X-Admin-Key) |
+| F | Resume the founding at 8 of 10 | `POST /villages {description, language:"en", mode:"fixture", resume:8, village_id, pace:3}` |
+| 1 · 2 · 3 | Send A10 · A11 · A12 (docs/FOUNDING-INTAKE.md) | `POST /villages/{id}/answers {text}` |
+| P | The Watcher weighs fixes (rebuild) | `POST /villages/{id}/evolve/trigger` |
+| A | Approve the first pending proposal (as the coordinator) | `POST /villages/{id}/proposals/{pid}/approve` |
+| U | Presenter phone: elder ↔ unknown caller | `POST /admin/demo-caller {role}` |
+| V | Next village pill | — |
+| D | Details (ids, rule ids, traces) on/off | — |
+| Esc | Hide the key map | — |
