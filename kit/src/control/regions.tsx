@@ -500,8 +500,10 @@ function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; na
   if (!entry) return <p className="qr-missing small muted" data-test="qr-empty">Join code appears once the village is live.</p>;
   return (
     <figure className={`qr-tile${judge ? " sage" : ""}`} data-test="qr-tile" data-member={entry.member_id}>
-      {entry.svg ? <img alt="" src={`data:image/svg+xml;utf8,${encodeURIComponent(entry.svg)}`} width={96} height={96} /> : <QRCodeSVG value={entry.url} size={96} marginSize={1} />}
-      <figcaption>{center ? `Open ${name}'s app` : `Be ${name}`}</figcaption>
+      <a href={entry.url} target="_blank" rel="noreferrer" data-test="qr-link" aria-label={`Open ${name}'s app`}>
+        {entry.svg ? <img alt="" src={`data:image/svg+xml;utf8,${encodeURIComponent(entry.svg)}`} width={96} height={96} /> : <QRCodeSVG value={entry.url} size={96} marginSize={1} />}
+      </a>
+      <figcaption>{center ? `Open ${name}'s app` : `Be ${name}`} · <a href={entry.url} target="_blank" rel="noreferrer" className="qr-open" data-test="qr-open">Open {name}</a></figcaption>
     </figure>
   );
 }
@@ -901,13 +903,13 @@ export function GateRegion({ gate, decisions, autonomy, details = false }: { gat
 export type ArcBeat = "build" | "run" | "rebuild" | "anyone";
 const ARC: [ArcBeat, string][] = [["build", "Build"], ["run", "Run"], ["rebuild", "Rebuild"], ["anyone", "Anyone"]];
 
-export function ArcStrip({ beat, onJump }: { beat: ArcBeat | null; onJump: (b: ArcBeat) => void }) {
+export function ArcStrip({ beat, onJump, selected }: { beat: ArcBeat | null; onJump: (b: ArcBeat) => void; selected?: ArcBeat | null }) {
   return (
-    <nav className="arc-strip" data-test="arc-strip" data-beat={beat ?? ""} aria-label="Demo arc">
+    <nav className="arc-strip" data-test="arc-strip" data-beat={beat ?? ""} data-selected={selected ?? ""} aria-label="Sections">
       {ARC.map(([b, label], i) => (
         <Fragment key={b}>
           {i ? <span className="arc-arrow" aria-hidden="true">→</span> : null}
-          <button type="button" className={`arc-beat${beat === b ? " lit" : ""}`} data-test="arc-beat" data-beat={b} aria-current={beat === b ? "step" : undefined} onClick={() => onJump(b)}>{label}</button>
+          <button type="button" className={`arc-beat${beat === b ? " lit" : ""}${selected === b ? " selected" : ""}`} data-test="arc-beat" data-beat={b} aria-current={beat === b ? "step" : undefined} aria-pressed={b === "anyone" ? undefined : selected === b} onClick={() => onJump(b)}>{label}</button>
         </Fragment>
       ))}
     </nav>
