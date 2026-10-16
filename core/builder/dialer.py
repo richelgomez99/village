@@ -27,7 +27,11 @@ class ScriptedConsentDialer:
         return out
 
 
-REYES_SCRIPT = {"m_marco": {"availability_days": ["Tue", "Thu", "Fri", "Sat"], "ai_calls": True, "secs": 41}}  # D29 A2/A5
+def demo_script(kind: str) -> dict[str, dict[str, Any]]:
+    """Scripted consent answers for replay (data/builder/villages.json `dialer_script`)."""
+    from .registry import kind_config
+
+    return dict(kind_config(kind).get("dialer_script", {}))
 
 
 def consent_call_payload(person: dict[str, Any], *, village_id: str, coordinator_name: str, family_label: str) -> dict[str, Any]:

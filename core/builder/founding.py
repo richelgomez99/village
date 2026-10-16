@@ -20,14 +20,14 @@ from . import frames, templates
 from .blueprint import heuristic_blueprint, stream_blueprint
 from .capabilities import decision_rows as capability_rows
 from .capabilities import plan_capabilities
-from .conversation import DAYS, IntakeState, Question, Review, load_intake, merge, next_question, now_i_know, record_answer
+from .conversation import DAYS, IntakeState, Question, Review, load_intake, med_names, merge, next_question, now_i_know, record_answer
 from .critique import critique
 from .dailymed import fixture_transport, lookup_medication
 from .decisions import builder_decision
-from .dialer import REYES_SCRIPT, ScriptedConsentDialer, consent_call_payload, default_dialer
+from .dialer import ScriptedConsentDialer, consent_call_payload, default_dialer, demo_script
 from .llm_port import get_llm
 from .mapping import ensure_chat
-from .paths import DATA
+from .registry import kind_config, record as kind_record
 from .render import RoleResult, render_views
 from .services_stub import MemoryServices
 from .spans import span
@@ -35,11 +35,6 @@ from .validate import validate_spec
 
 STATES = ["listening", "clarify", "working", "draft", "review"]
 DAILYMED_FIXTURES = Path(__file__).parent / "tests" / "data" / "dailymed"
-REYES_RECORD = DATA / "villages" / "reyes_family.json"
-NEED_QUOTES = {  # needs that come from intake answers, located in the founder's words
-    "n_dose_change": ["The old lisinopril bottle is still in her cabinet", "doubled to ten milligrams"],
-    "n_refills": ["she does the refills and the insurance calls", "does the refills"],
-}
 
 
 @dataclass
@@ -135,20 +130,13 @@ def _set_state(run: BuilderRun, state: str) -> None:
         run.states.append(state)
 
 
-def _record() -> dict[str, Any]:
-    try:
-        return json.loads(REYES_RECORD.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-
-def rebase_spans(spec: dict[str, Any], text: str) -> None:
+def rebase_spans(spec: dict[str, Any], text: str, need_quotes: dict[str, list[str]] | None = None) -> None:
     """Point every need's source_span at the founder's words; needs not found become origin data."""
     old = spec["blueprint"]["description"]["text"]
     spec["blueprint"]["description"]["text"] = text
     for need in spec["blueprint"]["needs"]:
         s = need.get("source_span")
-        quotes = [old[s["start"] : s["end"]]] if s else NEED_QUOTES.get(need["id"], [])
+        quotes = [old[s["start"] : s["end"]]] if s else (need_quotes or {}).get(need["id"], [])
         need["source_span"] = None
         for q in quotes:
             at = text.find(q)
@@ -162,7 +150,7 @@ def rebase_spans(spec: dict[str, Any], text: str) -> None:
 
 
 def apply_member_rules(spec: dict[str, Any], record: dict[str, Any], *, pending_at: str | None = None) -> list[dict[str, Any]]:
-    """D24 #5 Carmen's own rules → P-QH-01. Pending (D29) until she says them on the welcome call."""
+    """D24 #5 the center person's own rules → P-QH-01. Pending (D29) until she says them on the welcome call."""
     applied = []
     people = {p["id"]: p for p in spec["blueprint"]["people"]}
     for rule in record.get("rules_from_members", []):
@@ -283,7 +271,7 @@ def rota_check(intake: IntakeState, helper: str) -> tuple[bool, str]:
     a = intake.fields["availability"]
     names: dict[str, str] = {}
     for d in (a.get("speaker_days") or {}).get("days", []):
-        names[d] = "Ana"
+        names[d] = intake.speaker
     for d in (a.get("helper_days") or {}).get("days", []):
         names[d] = helper
     gaps = [d for d in DAYS if d not in names]
@@ -363,6 +351,34 @@ def review_patch(spec: dict[str, Any], text: str) -> tuple[dict[str, Any], str |
     return out, f"RefillCard added to {m.group(1)}'s view ({role})"
 
 
+def surfaces_line(spec: dict[str, Any]) -> str:
+    out = []
+    for p in spec["blueprint"]["people"]:
+        ch = spec["channels"].get(p["id"], [])
+        bits = [("app" if any(c.startswith("app:") for c in ch) else ""), ("phone line" if "phone_line" in ch else ""), ("calls" if "verification:call" in ch else ""), ("fridge card" if "fridge_card" in ch else "")]
+        out.append(f"{p['name'].split()[0]} {' + '.join(b for b in bits if b) or 'no channel yet'}")
+    return "Surfaces: " + "; ".join(out)
+
+
+def topic_line(topic: str, intake: IntakeState, spec: dict[str, Any]) -> str:
+    f = intake.fields
+    t = next((x for x in intake.topics if x["id"] == topic), {})
+    if intake.kind == "care":
+        if topic == "routine":
+            return "Rules on: never says how many pills · dose already logged → report, tell the on-duty person · missed dose → reminder, then the on-duty person"
+        if topic == "money":
+            return f"Rules on: money in a family member's name → check with that person first · not confirmed → don't send · Village never moves money · verifier: {f['money'].get('handler', '?')} (first), {intake.speaker}"
+        if topic == "emergencies":
+            return f"Emergency → 911 first · ladder {f['emergencies'].get('first', '')} · {f['emergencies'].get('hospital', '')} on the fridge card"
+        if topic == "consent":
+            return f"Welcome call planned {f['consent'].get('welcome_call', '?')} · quiet hours pending her words"
+        if topic == "home":
+            return "Contacts: " + ", ".join(f["home"].get("nearby", []))
+    if topic == "channels":
+        return surfaces_line(spec)
+    return t.get("does", "covered")
+
+
 def closing_summary(spec: dict[str, Any], run: BuilderRun, intake: IntakeState | None) -> str:
     bp = spec["blueprint"]
     rules = len(spec.get("policies", []))
@@ -374,13 +390,14 @@ def closing_summary(spec: dict[str, Any], run: BuilderRun, intake: IntakeState |
 async def found(
     input: FoundingInput,
     *,
-    village_id: str = "v_reyes",
+    village_id: str | None = None,
     services: Any | None = None,
     options: FoundingOptions | None = None,
     run: BuilderRun | None = None,
 ) -> BuilderRun:
     svc = services or MemoryServices()
     opts = options or FoundingOptions()
+    village_id = village_id or kind_config(input.kind or "care")["village_id"]
     run = run or BuilderRun(village_id=village_id, trace_id=uuid.uuid4().hex, mode=opts.mode)
     RUNS[village_id] = run
     intake = IntakeState(opener=input.description)
@@ -417,16 +434,18 @@ async def found(
             bp = await stream_blueprint(input.description, village_id, svc, input.kind, llm=llm, allowed_ids={m["id"] for m in input.members if "id" in m}, trace_id=run.trace_id, timings=run.timings)
             kind = input.kind or bp.get("kind") or "care"
             spec = templates.spec(kind, village_id=village_id, status="draft")
-            record = _record() if (kind == "care" and opts.demo_record) else {}
+            record = kind_record(kind) if opts.demo_record else {}
             center_id = spec["village"].get("care_recipient_id")
             speaker = next((p["name"].split()[0] for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("coordinator_id")), "Founder")
+            intake = IntakeState(opener=input.description, kind=kind, speaker=speaker)
+            session.intake = intake
             found0 = await record_answer(input.description, None, intake, None)
             merge(intake, found0)
             q: Question | Review = next_question(intake)
             await _emit(svc, run, f"{now_i_know(intake, found0, None)} · {intake.meter()} · gaps: {', '.join(intake.gaps()[:4])}{'…' if len(intake.gaps()) > 4 else ''}")
             await svc.broadcast_control(village_id, frames.counter("intake_covered", len(intake.covered()), "topics covered", of=10))
             # ---- intake turns (care villages; block villages go straight to the draft)
-            while kind == "care" and isinstance(q, Question):
+            while isinstance(q, Question):
                 _set_state(run, "clarify")
                 intake.asked.append(f"{q.topic}.{q.field}")
                 session.question = q
@@ -450,32 +469,28 @@ async def found(
                 if intake.family_word:
                     run.family_word = intake.family_word
                 # side effects (the Founder does work between questions)
-                av = intake.fields["availability"]
-                helper = next((m["name"] for m in (intake.fields["members"].get("members") or []) if m.get("relation") != "self" and not m.get("remote")), None)
+                av = intake.fields.get("availability", {})
+                mem = intake.fields.get("members", {}).get("members")
+                helper = next((m["name"] for m in mem if m.get("relation") != "self" and not m.get("remote")), None) if isinstance(mem, list) else None
                 if "call" not in tasks and (av.get("helper_days") or {}).get("days"):
                     hp = next((p for p in spec["blueprint"]["people"] if p["name"].split()[0] == helper), None)
                     if hp:
                         hp["profile"]["availability"] = [{"days": av["helper_days"]["days"], "window": "17:00-21:30"}]
                     tasks["call"] = asyncio.create_task(consent_call(spec, run, svc, opts, ledger, helper))
+                if "call" not in tasks and "volunteers" in intake.covered():
+                    tasks["call"] = asyncio.create_task(consent_call(spec, run, svc, opts, ledger))
                 if "rota" not in tasks and av.get("helper_days") and av.get("speaker_days"):
                     ok, line = rota_check(intake, helper or "the helper")
                     await ledger.row("done" if ok else "fallback", "Rota coverage check", line)
                     tasks["rota"] = asyncio.create_task(asyncio.sleep(0))
-                meds = [m["name"] for m in intake.fields["meds"].get("meds") or []]
+                meds = med_names(intake)
                 if meds and "meds" not in tasks:
                     tasks["meds"] = asyncio.create_task(check_medications(run, svc, opts, meds, ledger, center_id))
-                    ch = next((m for m in intake.fields["meds"]["meds"] if m.get("change")), None)
+                    ch = next((m for m in (intake.fields.get("meds", {}).get("meds") or []) if isinstance(m, dict) and m.get("change")), None)
                     if ch:
                         await ledger.row("done", "Refill list", f"{ch['name']} {ch['change']['to']} mg (was 5 mg, Oct 3, {intake.fields['meds'].get('prescriber', '')}) · old bottle in the cabinet → need added")
                 for t in newly:
-                    line = {"routine": "Rules on: never says how many pills · dose already logged → report, tell the on-duty person · missed dose → reminder, then the on-duty person",
-                            "money": f"Rules on: money in a family member's name → check with that person first · not confirmed → don't send · Village never moves money · verifier: {intake.fields['money'].get('handler', '?')} (first), Ana",
-                            "emergencies": f"Emergency → 911 first · ladder {intake.fields['emergencies'].get('first', '')} · {intake.fields['emergencies'].get('hospital', '')} on the fridge card",
-                            "channels": "Surfaces: Carmen phone line · fridge card · Spanish, read aloud; Ana app + calls; Marco app + calls; Lucía app only",
-                            "consent": f"Welcome call planned {intake.fields['consent'].get('welcome_call', '?')} · quiet hours pending her words",
-                            "home": "Contacts: " + ", ".join(intake.fields["home"].get("nearby", []))}.get(t)
-                    if line:
-                        await ledger.row("done", f"{t} covered", line)
+                    await ledger.row("done", f"{t} covered", topic_line(t, intake, spec))
                 if found_.get("money", {}).get("family_word"):
                     await ledger.row("done", "Family word", "set (never shown here)")
                 q = next_question(intake)
@@ -497,20 +512,21 @@ async def found(
             run.blueprint = bp
             _set_state(run, "working")
             text = (input.description + ("\n" + intake.answers_text() if intake.transcript else ""))[:2000]
-            rebase_spans(spec, text)
-            changes = apply_intake(spec, intake) if intake.transcript else {}
+            rebase_spans(spec, text, kind_config(kind).get("need_quotes"))
+            changes = apply_intake(spec, intake) if (intake.transcript and kind == "care") else {}
             run.intake["applied"] = changes
             if not intake.transcript:
                 bp_names = {p.get("name", "").split()[0].lower() for p in bp.get("people", [])}
                 for p in spec["blueprint"]["people"]:
                     if p["name"].split()[0].lower() not in bp_names and p.get("short_name", "").lower() not in bp_names and p["role"] not in ("coordinator", "care_recipient"):
                         await svc.record_decision(builder_decision(village_id, f"{p['name'].split()[0]}: from the village record, not from what you said; confirm on review.", kind="note", mode="asked_human", refs=[{"kind": "member", "id": p["id"]}], trace_id=run.trace_id))
-            pending_at = intake.fields["consent"].get("welcome_call") if intake.fields["consent"].get("center_rules") else None
+            cons = intake.fields.get("consent", {})
+            pending_at = cons.get("welcome_call") if cons.get("center_rules") else None
             for item in apply_member_rules(spec, record, pending_at=pending_at):
                 rule, person = item["rule"], item["member"]
                 src = rule["source"]
                 if item["pending"]:
-                    await svc.record_decision(builder_decision(village_id, f"Quiet hours for {person['name'].split()[0]}: pending her words (welcome call {pending_at}). Village asks her, not Ana.", rule_id="P-QH-01", mode="asked_human", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], trace_id=run.trace_id))
+                    await svc.record_decision(builder_decision(village_id, f"Quiet hours for {person['name'].split()[0]}: pending her words (welcome call {pending_at}). Village asks her, not {speaker}.", rule_id="P-QH-01", mode="asked_human", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], trace_id=run.trace_id))
                 else:
                     mmss = f"{int(src['secs']) // 60}:{int(src['secs']) % 60:02d}"
                     await svc.record_decision(builder_decision(village_id, f"{person.get('short_name') or person['name'].split()[0]}'s rule: no calls {rule['params']['quiet_hours']} — her words: \"{rule.get('words', '')}\" (welcome call, {mmss}).", rule_id="P-QH-01", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], source={"kind": src["kind"], "ref": src["ref"], "secs": src["secs"], "quote": rule.get("words", "")}, trace_id=run.trace_id))
@@ -556,7 +572,7 @@ async def found(
             # ---- review turn: the founder edits in words, Village patches
             run.closing = closing_summary(spec, run, intake)
             await _emit(svc, run, f"Village: {run.closing}", "plan", mode="asked_human")
-            if opts.review and kind == "care":
+            if opts.review:
                 _set_state(run, "review")
                 session.question = Review(run.closing)
                 edit = await get_answer(live_ok=True)
@@ -587,16 +603,16 @@ async def found(
     return run
 
 
-def demo_options(**kw: Any) -> FoundingOptions:
-    """Model-off demo wiring: recorded DailyMed + scripted consent answer (both mocked, labelled)."""
-    kw.setdefault("dialer", ScriptedConsentDialer(answers=deepcopy(REYES_SCRIPT)))
+def demo_options(kind: str = "care", **kw: Any) -> FoundingOptions:
+    """Replay wiring: recorded DailyMed + scripted consent answer (both mocked, labelled)."""
+    kw.setdefault("dialer", ScriptedConsentDialer(answers=deepcopy(demo_script(kind))))
     kw.setdefault("dailymed", "fixture")
     return FoundingOptions(**kw)
 
 
-def replay_input(path: Any = None) -> tuple[FoundingInput, list[str]]:
-    rows = load_intake(path)
-    return FoundingInput(description=rows[0]["text"]), [r["text"] for r in rows[1:]]
+def replay_input(path: Any = None, kind: str = "care") -> tuple[FoundingInput, list[str]]:
+    rows = load_intake(path, kind)
+    return FoundingInput(description=rows[0]["text"], kind=kind), [r["text"] for r in rows[1:]]
 
 
 def answer(village_id: str, text: str) -> bool:

@@ -29,7 +29,7 @@ FIRST_PERSON = re.compile(r"\b(i|me|my|i'm|i've)\b", re.I)
 
 SYSTEM = """You extract a founding blueprint for Village, software built for one group of people.
 Call extract_blueprint exactly once. Rules:
-- People: ONLY people the speaker names or clearly refers to ("Mom", "my brother Marco", "I"). Never invent names.
+- People: ONLY people the speaker names or clearly refers to ("Mom", "my brother Sam", "I"). Never invent names.
   The speaker ("I") is the coordinator; if unnamed, name them "You". A referred-to person without a name keeps the
   word used ("Mom"). Ids: m_<firstname> for care villages, b_<name> for blocks, lowercase ascii.
 - Order the output: kind, people, edges, needs, rules, life_areas, questions.
@@ -168,7 +168,9 @@ def finding_text(stage: str, item: Any, description: str) -> tuple[str, str]:
 
 def heuristic_blueprint(description: str, kind: str = "care", answers: str = "") -> dict[str, Any]:
     """Model-off blueprint from the kind's fixture, keeping only what the words support."""
-    fx = json.loads((FIXTURES / ("block_spec.json" if kind == "block" else "reyes_spec.json")).read_text(encoding="utf-8"))
+    from .registry import fixture_path
+
+    fx = json.loads(fixture_path(kind).read_text(encoding="utf-8"))
     bp = fx["blueprint"]
     text = description + ("\n" + answers if answers else "")
     tool_people = []

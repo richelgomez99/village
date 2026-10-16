@@ -91,7 +91,7 @@ def _rank(question: str, material: list[dict[str, Any]]) -> list[dict[str, Any]]
             scored.append((s, -i, m))
     scored.sort(key=lambda x: (-x[0], x[1]))
     ranked = [m for _, _, m in scored]
-    # cover every named term first ("why Marco and not Lucía" needs a row for each person)
+    # cover every named term first ("why A and not B" needs a row for each person)
     picked: list[dict[str, Any]] = []
     for t in sorted(terms):
         hit = next((m for m in ranked if t in _fold(m["text"]) and m not in picked and _fold(m["text"]).lstrip().startswith(t)), None)
@@ -127,7 +127,7 @@ async def ask(
     with span("builder.ask", "AGENT", **{"session.id": f"village-{village_id}", "graph.node.id": "ask", "channel": channel, "input.value": question[:300]}) as sp:
         if FAMILY_WORD_Q.search(question):
             sp.set("refused", True)
-            return AskAnswer(answer="I can't share the family word here. Ana has it on the fridge card.", refused=True, trace_id=trace_id)
+            return AskAnswer(answer="I can't share the family word here. The coordinator has it on the fridge card.", refused=True, trace_id=trace_id)
         material = await gather_material(village_id, svc)
         safe_material = [{**m, "text": redact(m["text"], family_word)[0]} for m in material]
         source = "rules"

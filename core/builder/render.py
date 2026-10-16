@@ -28,7 +28,7 @@ CONTRACT 1.2.0 ADDENDUM (overrides anything above where they differ)
   that appear in reference_view or the catalog above. Keep element ids lowercase.
 - needs_served may cite ONLY ids listed in village.needs, or n_safety.
 - Do not add VillageChat: Core inserts it into every non-elder view. Never put VillageChat in an elder view.
-- Elder views (D22): TonightCard + exactly 3 BigButtons (Llamar a Village · Llamar a Ana · Necesito ayuda) + a 911
+- Elder views (D22): TonightCard + exactly 3 BigButtons (call Village · call the coordinator · I need help, in her language) + a 911
   ContactCard; no medication names; confirm on danger buttons.
 - "capabilities" lists what the Founder chose for each person and the components each one implements: build the
   view from those.

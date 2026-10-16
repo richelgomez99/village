@@ -9,8 +9,9 @@ from .paths import FIXTURES
 
 
 def fixture_for_kind(kind: str) -> dict[str, Any]:
-    name = "block_spec.json" if kind == "block" else "reyes_spec.json"
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    from .registry import fixture_path
+
+    return json.loads(fixture_path(kind).read_text(encoding="utf-8"))
 
 
 def spec(

@@ -1,0 +1,172 @@
+{
+ "version": 1,
+ "kind": "block",
+ "source": "D30: the block village is born through the same intake path",
+ "topics": [
+  {
+   "n": 1,
+   "id": "situation",
+   "title": "What happened, where",
+   "required": [
+    "crisis"
+   ],
+   "detect": {
+    "crisis": "power'?s out|blackout|outage|flood|heat|degrees"
+   },
+   "questions": [
+    {
+     "field": "crisis",
+     "text": "What's happening, and where?"
+    }
+   ],
+   "does": "opens the blueprint; group type"
+  },
+  {
+   "n": 2,
+   "id": "residents",
+   "title": "Who lives here",
+   "required": [
+    "residents"
+   ],
+   "questions": [
+    {
+     "field": "residents",
+     "text": "Who on the block should Village know about, and which floor are they on?"
+    }
+   ],
+   "does": "member cards per floor"
+  },
+  {
+   "n": 3,
+   "id": "medical",
+   "title": "Medical needs",
+   "required": [
+    "medical"
+   ],
+   "detect": {
+    "medical": "oxygen|insulin|dialysis|ventilator|wheelchair|newborn"
+   },
+   "questions": [
+    {
+     "field": "medical",
+     "text": "Anyone with a medical device, medicine that needs cold, or who can't do stairs?"
+    }
+   ],
+   "does": "DailyMed lookup for named medicines; priority order (medical first)"
+  },
+  {
+   "n": 4,
+   "id": "resources",
+   "title": "Power and resources",
+   "required": [
+    "resources"
+   ],
+   "detect": {
+    "resources": "generator|battery|car|ice|inverter"
+   },
+   "questions": [
+    {
+     "field": "resources",
+     "text": "Who has power, a car, ice, anything to share?"
+    }
+   ],
+   "does": "resource board"
+  },
+  {
+   "n": 5,
+   "id": "phones",
+   "title": "Phones and the block line",
+   "required": [
+    "phone_only"
+   ],
+   "questions": [
+    {
+     "field": "phone_only",
+     "text": "Who only has a regular phone or a landline? Is there a place people go to make calls?"
+    }
+   ],
+   "does": "block line for phone-only residents"
+  },
+  {
+   "n": 6,
+   "id": "info",
+   "title": "Information and rumors",
+   "required": [
+    "rumors"
+   ],
+   "detect": {
+    "rumors": "rumor|group chat|heard that|they say"
+   },
+   "questions": [
+    {
+     "field": "rumors",
+     "text": "What are people hearing, and where do you get the real updates?"
+    }
+   ],
+   "does": "verified info feed (official sources only)"
+  },
+  {
+   "n": 7,
+   "id": "volunteers",
+   "title": "Volunteers and availability",
+   "required": [
+    "volunteers"
+   ],
+   "questions": [
+    {
+     "field": "volunteers",
+     "text": "Who can help, with what, and when?"
+    }
+   ],
+   "does": "consent call to a volunteer; who covers what"
+  },
+  {
+   "n": 8,
+   "id": "emergencies",
+   "title": "Emergencies",
+   "required": [
+    "first"
+   ],
+   "questions": [
+    {
+     "field": "first",
+     "text": "If someone can't breathe or passes out, what's the rule?"
+    }
+   ],
+   "does": "911 first everywhere"
+  },
+  {
+   "n": 9,
+   "id": "channels",
+   "title": "Channels and language",
+   "required": [
+    "channels"
+   ],
+   "questions": [
+    {
+     "field": "channels",
+     "text": "Who will use an app, and who needs a call? Any languages besides English?"
+    }
+   ],
+   "does": "per-person surfaces"
+  },
+  {
+   "n": 10,
+   "id": "consent",
+   "title": "Consent",
+   "required": [
+    "consent"
+   ],
+   "questions": [
+    {
+     "field": "consent",
+     "text": "Can Village call people to check on them? Who said yes?"
+    }
+   ],
+   "does": "calls only to people who said yes"
+  }
+ ],
+ "review": {
+  "text": "Here is the draft. What is wrong?"
+ }
+}

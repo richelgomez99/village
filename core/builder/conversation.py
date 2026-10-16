@@ -14,8 +14,6 @@ from typing import Any
 
 from .paths import DATA
 
-PLAN_PATH = DATA / "intake" / "plan.json"
-TRANSCRIPT_PATH = DATA / "builder" / "reyes_intake.jsonl"
 UNKNOWN = "unknown"
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 DAY_WORDS = {"monday": "Mon", "tuesday": "Tue", "wednesday": "Wed", "thursday": "Thu", "friday": "Fri", "saturday": "Sat", "sunday": "Sun"}
@@ -48,12 +46,14 @@ def fold(t: str) -> str:
 
 
 @lru_cache
-def plan() -> dict[str, Any]:
-    return json.loads(PLAN_PATH.read_text(encoding="utf-8"))
+def plan(kind: str = "care") -> dict[str, Any]:
+    from .registry import path
+
+    return json.loads(path(kind, "plan").read_text(encoding="utf-8"))
 
 
-def topics() -> list[dict[str, Any]]:
-    return plan()["topics"]
+def topics(kind: str = "care") -> list[dict[str, Any]]:
+    return plan(kind)["topics"]
 
 
 @dataclass
@@ -72,14 +72,24 @@ class Review:
 @dataclass
 class IntakeState:
     opener: str = ""
-    fields: dict[str, dict[str, Any]] = field(default_factory=lambda: {t["id"]: {} for t in topics()})
+    kind: str = "care"
+    speaker: str = "you"
+    fields: dict[str, dict[str, Any]] = field(default_factory=dict)
     asked: list[str] = field(default_factory=list)  # "topic.field"
     transcript: list[dict[str, str]] = field(default_factory=list)  # {who, text, topic?}
     family_word: str | None = None  # never in frames, traces or the description
 
+    def __post_init__(self) -> None:
+        for t in topics(self.kind):
+            self.fields.setdefault(t["id"], {})
+
+    @property
+    def topics(self) -> list[dict[str, Any]]:
+        return topics(self.kind)
+
     def covered(self) -> list[str]:
         out = []
-        for t in topics():
+        for t in self.topics:
             f = self.fields[t["id"]]
             if all(f.get(r) not in (None, "", [], UNKNOWN) for r in t["required"]):
                 out.append(t["id"])
@@ -87,12 +97,12 @@ class IntakeState:
 
     def gaps(self) -> list[str]:
         cov = set(self.covered())
-        return [t["title"] for t in topics() if t["id"] not in cov]
+        return [t["title"] for t in self.topics if t["id"] not in cov]
 
     def meter(self) -> str:
         n = len(self.covered())
-        g = 10 - n
-        return f"{n} of 10 covered · {g} gap{'s' if g != 1 else ''}"
+        g = len(self.topics) - n
+        return f"{n} of {len(self.topics)} covered · {g} gap{'s' if g != 1 else ''}"
 
     def answers_text(self, *, exclude_topics: tuple[str, ...] = ("money.family_word",)) -> str:
         return "\n".join(t["text"] for t in self.transcript if t["who"] == "founder" and t.get("ask") not in exclude_topics)
@@ -103,13 +113,15 @@ class IntakeState:
 
 # ---- next question -----------------------------------------------------------------------------
 def helper_name(state: IntakeState) -> str:
-    members = state.fields["members"].get("members") or []
+    members = state.fields.get("members", {}).get("members") or []
+    if not isinstance(members, list):
+        return "the main helper"
     local = [m for m in members if m.get("relation") != "self" and not m.get("remote")]
-    return local[0]["name"] if local else "your brother"
+    return local[0]["name"] if local else "the main helper"
 
 
 def next_question(state: IntakeState) -> Question | Review:
-    for t in topics():
+    for t in state.topics:
         for q in t["questions"]:
             key = f"{t['id']}.{q['field']}"
             val = state.fields[t["id"]].get(q["field"])
@@ -118,7 +130,7 @@ def next_question(state: IntakeState) -> Question | Review:
             if t["id"] == "center" and t["id"] in state.covered():
                 continue
             return Question(t["id"], q["field"], q["text"].format(helper=helper_name(state)), len(state.asked) + 1)
-    return Review(plan()["review"]["text"])
+    return Review(plan(state.kind)["review"]["text"])
 
 
 # ---- rules extractor (model-off record_answer) -------------------------------------------------
@@ -134,6 +146,28 @@ def _sentences(text: str) -> list[str]:
 
 
 def extract(answer: str, q: Question | None, state: IntakeState) -> dict[str, dict[str, Any]]:
+    """Plan-driven extraction: per-field `detect` regexes (any kind), the care extractors, then the
+    asked field gets the founder's own words when nothing more specific matched."""
+    out = _extract_care(answer, q, state) if state.kind == "care" else {}
+    if q is not None and out.get(q.topic, {}).get(q.field) == UNKNOWN:
+        return out
+    for t in state.topics:
+        for fld, rx in (t.get("detect") or {}).items():
+            if state.fields[t["id"]].get(fld) or out.get(t["id"], {}).get(fld):
+                continue
+            m = re.search(rx, answer, re.I)
+            if m:
+                sent = next((x for x in _sentences(answer) if re.search(rx, x, re.I)), m.group(0))
+                out.setdefault(t["id"], {})[fld] = sent.strip()[:160]
+    if q is not None and not (q.topic == "money" and q.field == "family_word"):
+        if DONT_KNOW.search(answer) and len(answer) < 60:
+            out.setdefault(q.topic, {})[q.field] = UNKNOWN
+        elif not out.get(q.topic, {}).get(q.field) and state.kind != "care":
+            out.setdefault(q.topic, {})[q.field] = answer.strip()[:160]
+    return out
+
+
+def _extract_care(answer: str, q: Question | None, state: IntakeState) -> dict[str, dict[str, Any]]:
     """Fields stated in `answer` (any topic). The asked field gets `unknown` on 'I don't know'."""
     out: dict[str, dict[str, Any]] = {}
     ft = fold(answer)
@@ -181,7 +215,7 @@ def extract(answer: str, q: Question | None, state: IntakeState) -> dict[str, di
                     m["remote"] = True
         me = re.search(r"\bI'?m in ([A-Z][a-z]+)[^.]*?(\w+(?:-\w+)?) minutes", answer)
         if me:
-            members.append({"name": "Ana", "relation": "self", "lives": me.group(1), "distance": f"{me.group(2)} minutes"})
+            members.append({"name": state.speaker, "relation": "self", "lives": me.group(1), "distance": f"{me.group(2)} minutes"})
         if len([m for m in members if m["relation"] != "self"]) >= 1 and (q is None or q.topic == "members"):
             prior = state.fields["members"].get("members") or []
             names = {m["name"] for m in prior}
@@ -234,7 +268,7 @@ def extract(answer: str, q: Question | None, state: IntakeState) -> dict[str, di
     if fails and (q is None or q.topic == "routine"):
         put("routine", "what_fails", fails.group(0).strip()[:160])
         if re.search(r"calls me", ft):
-            put("routine", "who_called", "Ana")
+            put("routine", "who_called", state.speaker)
     # 6 money
     if q is not None and q.topic == "money" and q.field == "family_word":
         w = re.match(r"\s*[\"'“]?([A-Za-zÁÉÍÓÚáéíóúñÑ]+)", answer)
@@ -266,8 +300,11 @@ def extract(answer: str, q: Question | None, state: IntakeState) -> dict[str, di
             put("home", "bp_log", _days(answer))
     # 8 emergencies
     if "911" in answer:
-        order = [w for w in re.findall(r"911|\bme\b|\bMarco\b|\bAna\b|\bLuc[ií]a\b", answer)]
-        put("emergencies", "first", " → ".join(o if o != "me" else "Ana" for o in order))
+        mem = state.fields.get("members", {}).get("members")
+        names = [m["name"] for m in mem if isinstance(m, dict)] if isinstance(mem, list) else []
+        alts = "|".join(re.escape(n) for n in names + [state.speaker] if n)
+        order = re.findall(rf"911|\bme\b{'|' + alts if alts else ''}", answer)
+        put("emergencies", "first", " → ".join(o if o != "me" else state.speaker for o in dict.fromkeys(order)))
     hosp = re.search(r"([A-Z][a-z]+) Hospital", answer)
     put("emergencies", "hospital", f"{hosp.group(1)} Hospital" if hosp else None)
     # 9 channels
@@ -307,6 +344,8 @@ def merge(state: IntakeState, found: dict[str, dict[str, Any]]) -> list[str]:
 def now_i_know(state: IntakeState, found: dict[str, dict[str, Any]], q: Question | None) -> str:
     f = state.fields
     bits: list[str] = []
+    if state.kind != "care":
+        return _generic_know(state, found, q)
     if "center" in found:
         c = f["center"]
         bits.append(", ".join(str(x) for x in (c.get("age") and f"{c['age']}", c.get("lives") and f"alone in {c['lives']}") if x) + (" · " + ", ".join(c.get("problems", [])) if c.get("problems") else ""))
@@ -322,7 +361,7 @@ def now_i_know(state: IntakeState, found: dict[str, dict[str, Any]], q: Question
         ch = next((m for m in ms if m.get("change")), None)
         bits.append(f"{len(ms)} medications" + (f", {ch['name']} now {ch['change']['to']} mg" if ch else "") + (f", {f['meds'].get('prescriber')}" if f["meds"].get("prescriber") else ""))
     if "routine" in found:
-        bits.append("organizer; unsure nights call Ana")
+        bits.append(f"organizer; unsure nights call {state.speaker}")
     if "money" in found:
         if found["money"].get("family_word"):
             bits.append("family word · set")
@@ -341,8 +380,29 @@ def now_i_know(state: IntakeState, found: dict[str, dict[str, Any]], q: Question
     return "Now I know: " + "; ".join(b for b in bits if b) if bits else "Noted."
 
 
-def load_intake(path: Any = None) -> list[dict[str, Any]]:
-    return [json.loads(l) for l in open(path or TRANSCRIPT_PATH, encoding="utf-8") if l.strip()]
+def _generic_know(state: IntakeState, found: dict[str, dict[str, Any]], q: Question | None) -> str:
+    titles = {t["id"]: t["title"] for t in state.topics}
+    bits = []
+    for t, vals in found.items():
+        for k, v in vals.items():
+            bits.append(f"{titles.get(t, t).lower()}: {'unknown (a gap; I won’t guess)' if v == UNKNOWN else str(v)[:70]}")
+    return "Now I know: " + "; ".join(bits) if bits else "Noted."
+
+
+def med_names(state: IntakeState) -> list[str]:
+    meds = state.fields.get("meds", {}).get("meds")
+    if isinstance(meds, list) and meds:
+        return [m["name"] for m in meds]
+    if state.kind == "care":
+        return []
+    text = fold(state.opener + " " + " ".join(t["text"] for t in state.transcript))
+    return sorted({MED_WORDS[w] for w in re.findall(r"[a-z]+", text) if w in MED_WORDS})
+
+
+def load_intake(path: Any = None, kind: str = "care") -> list[dict[str, Any]]:
+    from .registry import path as kpath
+
+    return [json.loads(l) for l in open(path or kpath(kind, "intake"), encoding="utf-8") if l.strip()]
 
 
 async def record_answer(answer: str, q: Question | None, state: IntakeState, llm: Any | None = None) -> dict[str, dict[str, Any]]:
@@ -352,7 +412,7 @@ async def record_answer(answer: str, q: Question | None, state: IntakeState, llm
         return rules
     try:
         out = await llm.tool_call(
-            system="Extract intake fields from the founder's answer. Plan: " + json.dumps([{"id": t["id"], "required": t["required"], "optional": t.get("optional", [])} for t in topics()]),
+            system="Extract intake fields from the founder's answer. Plan: " + json.dumps([{"id": t["id"], "required": t["required"], "optional": t.get("optional", [])} for t in state.topics]),
             messages=[{"role": "user", "content": json.dumps({"asked": q.text if q else None, "topic": q.topic if q else None, "answer": answer}, ensure_ascii=False)}],
             tool=RECORD_ANSWER_TOOL,
             max_tokens=1200,

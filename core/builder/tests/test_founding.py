@@ -136,3 +136,20 @@ def test_block_found_model_off() -> None:
     assert validate_spec(svc.specs["v_w147"]).ok
     assert set(run.capabilities["b_tanya"]) == {"dashboard", "village_chat"}
     assert not any("DailyMed" in l for l in run.ledger)
+
+
+def test_block_village_born_through_the_same_intake() -> None:
+    inp, answers = replay_input(kind="block")
+    svc = MemoryServices()
+    run = asyncio.run(found(inp, services=svc, options=demo_options("block", llm="off", replay=answers)))
+    spec = svc.specs["v_w147"]
+    assert validate_spec(spec).ok
+    fx = json.loads((Path(__file__).resolve().parents[3] / "contracts" / "fixtures" / "block_spec.json").read_text())
+    assert list(spec["views"]) == list(fx["views"])
+    assert [p["name"] for p in spec["blueprint"]["people"]] == [p["name"] for p in fx["blueprint"]["people"]]
+    assert int(run.turns[-1]["meter"].split()[0]) == 10
+    assert len(run.turns) == 6
+    assert any("DailyMed: insulin" in l for l in run.ledger)
+    assert any("Darnell confirmed" in l for l in run.ledger)
+    needs = {n["id"]: n for n in spec["blueprint"]["needs"]}
+    assert needs["n_infant"]["source_span"] and needs["n_mobility"]["source_span"]
