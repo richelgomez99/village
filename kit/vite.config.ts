@@ -34,6 +34,16 @@ export default defineConfig({
       }
     })
   ],
+  // CORE_PROXY=http://localhost:8790 npm run dev → same-origin /ws and REST to a live Core (no CORS needed)
+  server: process.env.CORE_PROXY
+    ? {
+        proxy: Object.fromEntries(
+          ["/villages", "/clock", "/auth", "/verifications", "/health"].map((p) => [p, { target: process.env.CORE_PROXY, changeOrigin: true }]).concat([
+            ["/ws", { target: process.env.CORE_PROXY!.replace(/^http/, "ws"), ws: true, changeOrigin: true } as any]
+          ])
+        )
+      }
+    : undefined,
   build: {
     rollupOptions: {
       input: {

@@ -542,8 +542,22 @@ export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, liv
 
 /* ---------------- What Village knows (Agent Memory) ---------------- */
 
-export function KnowsRegion({ api, village, data, spec }: { api: ApiConfig; village: string; data: Record<string, unknown>; spec: any }) {
+/** When the snapshot already carries `facts:history?subject=…&key=…`, answer the history read from it (no request);
+ *  the as-of re-query still goes to Core. */
+function withSnapshotHistory(api: ApiConfig, data: Record<string, unknown>, entity: string, key: string): ApiConfig {
+  const hit = data[`facts:history?subject=${entity}&key=${key}`];
+  if (!hit || typeof hit !== "object" || api.fake) return api;
+  const real = api.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const fetchImpl = (async (url: any, init?: any) =>
+    String(url).includes(`/facts/${encodeURIComponent(entity)}/${encodeURIComponent(key)}/history`)
+      ? new Response(JSON.stringify({ village: "", degraded: false, ...(hit as object) }), { status: 200, headers: { "content-type": "application/json" } })
+      : real(url, init)) as typeof fetch;
+  return { ...api, fetchImpl };
+}
+
+export function KnowsRegion({ api: api0, village, data, spec }: { api: ApiConfig; village: string; data: Record<string, unknown>; spec: any }) {
   const t = factTarget(data);
+  const api = useMemo(() => (t ? withSnapshotHistory(api0, data, t.entity, t.key) : api0), [api0, t?.entity, t?.key, data[t ? `facts:history?subject=${t.entity}&key=${t.key}` : ""]]); // eslint-disable-line react-hooks/exhaustive-deps
   const who = t ? memberDisplay(t.entity, spec, data) : "";
   return (
     <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key }}>

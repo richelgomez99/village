@@ -25,7 +25,8 @@ export function apiConfig(loc: Location = window.location): ApiConfig {
   const p = new URLSearchParams(loc.search);
   const env = (import.meta as any).env ?? {};
   const base: string = env.VITE_CORE_HTTP ?? (env.DEV ? "http://localhost:8787" : `${loc.protocol}//${loc.host}`);
-  return { base, token: p.get("t") ?? p.get("m") ?? "", fake: !!p.get("fake") };
+  // the Control Room's control token: ?t=, else ?m=, else the demo default "control"
+  return { base, token: p.get("t") ?? p.get("m") ?? (p.get("fake") ? "" : "control"), fake: !!p.get("fake") };
 }
 
 async function call<T>(cfg: ApiConfig, method: string, path: string, body?: unknown): Promise<T> {
@@ -87,4 +88,20 @@ export async function getFactsAsOf(cfg: ApiConfig, village: string, entity: stri
 export async function undoProposal(cfg: ApiConfig, village: string, pid: string): Promise<unknown> {
   if (cfg.fake) return { ok: true };
   return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/proposals/${encodeURIComponent(pid)}/undo`);
+}
+
+export interface VillageListItem { id: string; name?: string; status?: string; kind?: string; people_count?: number; rev?: number }
+
+/** GET /villages (control bearer): the switcher pills. */
+export async function listVillages(cfg: ApiConfig): Promise<VillageListItem[]> {
+  if (cfg.fake) return [];
+  const r = await call<VillageListItem[] | { villages: VillageListItem[] }>(cfg, "GET", "/villages");
+  return Array.isArray(r) ? r : r?.villages ?? [];
+}
+
+/** GET /villages/{id}/decisions: the decision log backfill (then control{gate|reasoning} frames). */
+export async function listDecisions(cfg: ApiConfig, village: string): Promise<any[]> {
+  if (cfg.fake) return [];
+  const r = await call<{ decisions: any[] }>(cfg, "GET", `/villages/${encodeURIComponent(village)}/decisions?limit=40`);
+  return Array.isArray(r?.decisions) ? r.decisions : [];
 }
