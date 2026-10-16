@@ -1,13 +1,13 @@
 // Control Room regions (T021–T026, T042). Each region states one thing with names and numbers (D18, INTERACTIONS §8).
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { forwardRef, useEffect, useMemo, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { captionFor } from "../i18n/captions";
 import { Renderer } from "../renderer/Renderer";
-import type { RenderCtx } from "../renderer/context";
+import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
-import type { CaptionLine, DecisionRow, GateRow, LedgerRow, LiveMoment, Mode, SceneState } from "./scene";
+import { displayName, memberDisplay, nameCtx, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
 
 const hhmm = (iso: string) => {
   const d = new Date(iso);
@@ -44,13 +44,14 @@ function Region({ test, title, children, className, extra }: { test: string; tit
 
 /* ---------------- Header ---------------- */
 
-export const VILLAGE_TABS = [
-  { id: "v_reyes", label: "Reyes family" },
-  { id: "v_w147", label: "West 147th St" }
-];
+export interface VillageTab { id: string; label: string }
+/** pseudo tab id for the empty founding room before POST /villages returns an id */
+export const NEW_VILLAGE = "__new__";
 
-export function Header({ tab, onTab, phones, clock, nowMs, onWarp, warpState }: {
-  tab: string; onTab: (id: string) => void; phones: number | null; clock: SceneState["clock"]; nowMs: () => number;
+export const TAGLINE = "Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.";
+
+export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState }: {
+  tabs: VillageTab[]; tab: string; onTab: (id: string) => void; onNew: () => void; phones: number | null; clock: SceneState["clock"]; nowMs: () => number;
   onWarp: () => void; warpState: "idle" | "busy" | "failed";
 }) {
   const now = useNow(nowMs, 1000);
@@ -58,15 +59,23 @@ export function Header({ tab, onTab, phones, clock, nowMs, onWarp, warpState }: 
   const n = phones ?? 0;
   return (
     <header className="cr-header" data-test="cr-header">
-      <span className="brand">Village</span>
-      <span className="eyebrow">Control room · {VILLAGE_TABS.find((t) => t.id === tab)?.label ?? tab}</span>
-      <nav aria-label="Villages" className="tabs" role="tablist">
-        {VILLAGE_TABS.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={t.id === tab} className={`tab${t.id === tab ? " active" : ""}`} data-test="village-tab" data-village={t.id} onClick={() => onTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      <div className="brand-block">
+        <div className="brand-row">
+          <span className="brand">Village</span>
+          <span className="brand-dot" aria-hidden="true">·</span>
+          <nav aria-label="Villages" className="tabs" role="tablist">
+            {tabs.map((t) => (
+              <button key={t.id} type="button" role="tab" aria-selected={t.id === tab} className={`tab${t.id === tab ? " active" : ""}`} data-test="village-tab" data-village={t.id} onClick={() => onTab(t.id)}>
+                {t.label}
+              </button>
+            ))}
+            <button type="button" role="tab" aria-selected={tab === NEW_VILLAGE} className={`tab tab-new${tab === NEW_VILLAGE ? " active" : ""}`} data-test="new-village" onClick={onNew}>
+              + New village
+            </button>
+          </nav>
+        </div>
+        <p className="tagline" data-test="tagline">{TAGLINE}</p>
+      </div>
       <div className="header-right">
         <span className="pill" data-test="phones-counter" data-count={n} aria-label={`${n} phones live`}>
           <span className="dots" aria-hidden="true">
@@ -86,6 +95,53 @@ export function Header({ tab, onTab, phones, clock, nowMs, onWarp, warpState }: 
         </span>
       </div>
     </header>
+  );
+}
+
+/* ---------------- Founding transcript ---------------- */
+
+export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator" }: { lines: TranscriptLine[]; onSend?: (text: string) => Promise<void>; speakerName?: string }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t || busy || !onSend) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSend(t);
+      setText("");
+    } catch {
+      setError("Village didn't get that: Core didn't reply. Try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const first = !lines.some((l) => l.who !== "village");
+  return (
+    <Region test="transcript" title="Founding · describe your people" className="r-transcript">
+      {first ? <p className="empty-hero" data-test="founding-empty">No village yet. Describe your people.</p> : null}
+      <ol className="transcript">
+        {lines.map((l) => (
+          <li key={l.id} className={`tr-line tr-${l.who}`} data-test="transcript-line" data-who={l.who}>
+            <span className="eyebrow">{l.who === "village" ? "Village" : l.who === "ana" ? speakerName : l.who}</span>
+            <p>{l.who === "village" ? l.text : `“${l.text}”`}</p>
+          </li>
+        ))}
+      </ol>
+      {onSend ? (
+        <form className="ask-form founding-form" onSubmit={submit}>
+          <textarea
+            aria-label={first ? "Describe your people" : "Answer Village"} data-test="founding-input" rows={first ? 3 : 2} maxLength={first ? 2000 : 600}
+            placeholder={first ? "Who is this group for, who helps, and what goes wrong?" : "Answer Village's question"} value={text} disabled={busy} onChange={(e) => setText(e.target.value)}
+          />
+          <button type="submit" data-test="founding-submit" disabled={busy || !text.trim()}>{busy ? "Sending…" : first ? "Start" : "Answer"}</button>
+        </form>
+      ) : null}
+      {error ? <p className="coral small" data-test="founding-error">{error}</p> : null}
+    </Region>
   );
 }
 
@@ -161,18 +217,29 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
   const rules: string[] = (streamed.rules?.map((r: any) => r.rule ?? r) as string[]) ?? bp?.rules ?? [];
   const kind: string | undefined = streamed.kind?.[0]?.kind ?? spec?.village?.kind;
   const quote: string | undefined = bp?.description?.text;
-  const speaker = people.find((p) => p.id === bp?.description?.speaker)?.name?.split(" ")[0];
+  const nctx = spec ?? nameCtx(scene);
+  const speakerP = people.find((p) => p.id === bp?.description?.speaker);
+  const speaker = speakerP ? displayName(speakerP, nctx) : undefined;
   const areaLabels = new Map(lifeAreas.map((a) => [a.id as string, a.label as string]));
   const channels: Record<string, string[]> = spec?.channels ?? {};
+  const meter = scene.coverage ? (
+    <div className="coverage" data-test="coverage" data-value={scene.coverage.value} data-of={scene.coverage.of}>
+      <span className="coverage-num">{scene.coverage.value} of {scene.coverage.of} covered · {Math.max(0, scene.gaps.length || scene.coverage.of - scene.coverage.value)} gaps</span>
+      <span className="coverage-bar" aria-hidden="true"><span style={{ width: `${(100 * scene.coverage.value) / (scene.coverage.of || 10)}%` }} /></span>
+      {scene.gaps.length ? <ul className="gaps" data-test="gaps">{scene.gaps.map((g) => <li key={g} data-test="gap">{g}</li>)}</ul> : null}
+    </div>
+  ) : null;
   if (!bp && !people.length) {
     return (
-      <Region test="blueprint" title="What Village heard" className="r-blueprint">
-        <p className="empty" data-test="blueprint-empty">Nothing heard yet. The blueprint appears here while the coordinator describes the group.</p>
+      <Region test="blueprint" title="What Village heard" className="r-blueprint" extra={{ "data-village": scene.village }}>
+        {meter}
+        <p className="empty" data-test="blueprint-empty">Nothing heard yet. The blueprint fills in while the coordinator describes the group.</p>
       </Region>
     );
   }
   return (
-    <Region test="blueprint" title="What Village heard" className="r-blueprint" extra={{ "data-village": spec?.village?.id, "data-people": people.length }}>
+    <Region test="blueprint" title="What Village heard" className="r-blueprint" extra={{ "data-village": spec?.village?.id ?? scene.village, "data-people": people.length }}>
+      {meter}
       {kind ? <p className="group-type" data-test="group-type">group type: <strong>{KIND_WORDS[kind] ?? kind}</strong></p> : null}
       {quote ? (
         <blockquote className="quote" data-test="blueprint-quote">
@@ -189,7 +256,7 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
       <ul className="people" data-test="bp-people">
         {people.map((p) => (
           <li key={p.id} className={`person${p.role === "care_recipient" ? " center" : ""}`} data-test="bp-person" data-member={p.id}>
-            <span className="person-name">{String(p.name).split(" ")[0]}</span>
+            <span className="person-name">{displayName(p, nctx)}</span>
             <span className="muted small">{[p.relation, p.role?.replace(/_/g, " "), LANG_WORDS[p.profile?.lang] ?? p.profile?.lang].filter(Boolean).join(" · ")}</span>
             <span className="chips">
               {(channels[p.id] ?? []).map((c) => <span key={c} className="chip chip-line" data-test="bp-channel">{channelWord(c)}</span>)}
@@ -247,19 +314,20 @@ export function LedgerRegion({ rows, nowMs }: { rows: LedgerRow[]; nowMs: () => 
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-export function LiveMomentRegion({ live, nowMs, spec }: { live: LiveMoment | null; nowMs: () => number; spec: any }) {
+export function LiveMomentRegion({ live, nowMs, spec, data }: { live: LiveMoment | null; nowMs: () => number; spec: any; data?: Record<string, unknown> }) {
   const now = useNow(nowMs, 250);
   if (!live) {
     return (
       <Region test="live-moment" title="Live" className="r-live" extra={{ "data-state": "idle" }}>
-        <p className="empty">No call right now. When someone asks Carmen for money, the check with the family plays here.</p>
+        <p className="empty">No call right now. When a caller asks for money, the check with a trusted person plays here.</p>
       </Region>
     );
   }
   const total = 45;
   const left = live.deadline ? Math.max(0, Math.ceil((Date.parse(live.deadline) - now) / 1000)) : null;
   const frac = left == null ? 0 : Math.min(1, left / total);
-  const who = spec?.blueprint?.people?.find((p: any) => p.id === live.claimed)?.name?.split(" ")[0] ?? (live.claimed ?? "").replace(/^[a-z]_/, "");
+  const who = memberDisplay(live.claimed, spec, data);
+  const subj = memberDisplay(live.subject, spec, data) || "On the line";
   const collapsed = live.state !== "pending";
   const outcome =
     live.state === "denied" ? `Scam stopped · ${who}: “that wasn't me”` :
@@ -269,7 +337,7 @@ export function LiveMomentRegion({ live, nowMs, spec }: { live: LiveMoment | nul
     <Region test="live-moment" title={collapsed ? "Live · finished" : "Live · money request"} className={`r-live${collapsed ? " collapsed" : ""}`} extra={{ "data-state": live.state, "data-seconds": left ?? undefined }}>
       {live.quote ? (
         <blockquote className="live-quote" data-test="live-quote">
-          <span className="eyebrow">Carmen, on the phone line{live.amount ? ` · $${live.amount.toLocaleString("en-US")}` : ""}</span>
+          <span className="eyebrow">{subj}, on the phone line{live.amount ? ` · $${live.amount.toLocaleString("en-US")}` : ""}</span>
           <Cap es={live.quote} />
         </blockquote>
       ) : null}
@@ -282,7 +350,7 @@ export function LiveMomentRegion({ live, nowMs, spec }: { live: LiveMoment | nul
             <line x1="150" y1="45" x2="260" y2="70" className="flow-line dim" />
           </svg>
           <div className="nodes">
-            <span className="node">Carmen</span>
+            <span className="node">{subj}</span>
             <span className="node village" data-test="village-node">Village</span>
             <span className="node">{who} · {live.channels.map((c) => (c === "app_prompt" ? "app" : c === "outbound_call" ? "call" : c)).join(" + ") || "app"}</span>
           </div>
@@ -301,19 +369,21 @@ export function LiveMomentRegion({ live, nowMs, spec }: { live: LiveMoment | nul
 
 /* ---------------- Three phones ---------------- */
 
-export function phoneSlots(spec: any): { role: string; label: string; member: string | null }[] {
+export function phoneSlots(spec: any): { role: string; label: string; name: string; member: string | null }[] {
   const views = Object.keys(spec?.views ?? {}).slice(0, 3);
-  return views.map((role) => {
+  return views.map((role, i) => {
     const p = spec?.blueprint?.people?.find((x: any) => x.view === role);
-    const first = p ? String(p.name).split(" ")[0] : "";
-    return { role, member: p?.id ?? null, label: `${first ? `${first} · ` : ""}${role}`.toUpperCase() };
+    const n = p ? displayName(p, spec) : "";
+    const center = p?.role === "care_recipient" || (i === 0 && role === "elder");
+    const label = n ? `${n}'s phone${center ? " · right now" : ""}` : `${role} view`;
+    return { role, member: p?.id ?? null, name: n, label };
   });
 }
 
 function PhoneScreen({ view, data, nowMs, role, village }: { view: View; data: Record<string, unknown>; nowMs: () => number; role: string; village: string }) {
   const ctx: RenderCtx = {
     view, data, lang: view.lang, role, memberId: null, village, nowMs, disabled: true, highlight: new Set(), results: {},
-    send: () => "", ack: () => {}, captions: true
+    send: () => "", ack: () => {}, captions: true, phoneFor: makePhoneFor(data)
   };
   return (
     <div className="phone app" data-theme={view.theme} data-lang={view.lang} data-test="app" data-role={role} lang={view.lang}>
@@ -322,11 +392,41 @@ function PhoneScreen({ view, data, nowMs, role, village }: { view: View; data: R
   );
 }
 
-export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live }: {
+/** Join codes for the phones (GET /villages/{id}/qr JSON); null while loading, [] when there are none yet. */
+function useQr(cfg: ApiConfig | undefined, village: string): QrEntry[] | null {
+  const [entries, setEntries] = useState<QrEntry[] | null>(null);
+  useEffect(() => {
+    if (!cfg) return;
+    let live = true;
+    setEntries(null);
+    getQr(cfg, village).then((e) => live && setEntries(e), () => live && setEntries([]));
+    return () => {
+      live = false;
+    };
+  }, [cfg, village]);
+  return entries;
+}
+
+/** "Be <name>" for the helper a judge plays (highlighted sage, D11); "Open <name>'s app" for the others. */
+function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; name: string; judge: boolean; center: boolean }) {
+  if (!entry) return <p className="qr-missing small muted" data-test="qr-empty">Join code appears once the village is live.</p>;
+  return (
+    <figure className={`qr-tile${judge ? " sage" : ""}`} data-test="qr-tile" data-member={entry.member_id}>
+      {entry.svg ? <img alt="" src={`data:image/svg+xml;utf8,${encodeURIComponent(entry.svg)}`} width={96} height={96} /> : <QRCodeSVG value={entry.url} size={96} marginSize={1} />}
+      <figcaption>{center ? `Open ${name}'s app` : `Be ${name}`}</figcaption>
+    </figure>
+  );
+}
+
+export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people, villageName }: {
   spec: any; data: Record<string, unknown>; village: string; nowMs: () => number; viewAs: string | null; onViewAs: (m: string | null) => void;
-  live: { role: string; view: View | null; data: Record<string, unknown> } | null;
+  live: { role: string; view: View | null; data: Record<string, unknown> } | null; cfg?: ApiConfig;
+  /** founding stream: people named so far (skeleton phones before the spec exists) */
+  people?: any[];
+  villageName?: string | null;
 }) {
-  const slots = phoneSlots(spec);
+  const nctx = spec ?? { village: { name: villageName ?? "" } };
+  const slots = spec?.views ? phoneSlots(spec) : (people ?? []).filter((p) => p.view).slice(0, 3).map((p) => ({ role: p.view as string, member: p.id as string, name: displayName(p, nctx), label: `${displayName(p, nctx)}'s phone` }));
   const parsed = useMemo(() => {
     const out: Record<string, View | null> = {};
     for (const s of slots) {
@@ -334,20 +434,23 @@ export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, liv
       out[s.role] = r.success ? r.data : null;
     }
     return out;
-  }, [spec]); // eslint-disable-line react-hooks/exhaustive-deps
-  const host = village === "v_w147" ? "west147" : village.replace(/^v_/, "");
+  }, [spec, slots.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const qr = useQr(spec?.views ? cfg : undefined, village);
+  const host = village.replace(/^v_/, "");
   return (
     <Region test="phones" title="Same address · different software, because it's a different person" className="r-phones" extra={{ "data-view-as": viewAs ?? "" }}>
       <p className="url-caption" data-test="shared-url">village.app/v/{host} · one site · three people</p>
-      <div className="view-as-bar" role="group" aria-label="View as">
-        <span className="muted small">View as</span>
-        {slots.filter((s) => s.member).map((s) => (
-          <button key={s.role} type="button" className={`chip-btn${viewAs === s.member ? " active" : ""}`} aria-pressed={viewAs === s.member} data-test="view-as-option" data-member={s.member!} onClick={() => onViewAs(viewAs === s.member ? null : s.member)}>
-            {s.label.split(" · ")[0]}
-          </button>
-        ))}
-      </div>
-      {slots.length === 0 ? <p className="empty">The three apps appear once the village has a spec.</p> : null}
+      {spec?.views ? (
+        <div className="view-as-bar" role="group" aria-label="View as">
+          <span className="muted small">View as</span>
+          {slots.filter((s) => s.member).map((s) => (
+            <button key={s.role} type="button" className={`chip-btn${viewAs === s.member ? " active" : ""}`} aria-pressed={viewAs === s.member} data-test="view-as-option" data-member={s.member!} onClick={() => onViewAs(viewAs === s.member ? null : s.member)}>
+              {s.name || s.role}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {slots.length === 0 ? <p className="empty">Each person's phone appears here once Village knows who they are.</p> : null}
       <div className="phones-row">
         {slots.map((s) => {
           const focused = viewAs && s.member === viewAs;
@@ -356,9 +459,16 @@ export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, liv
           const d = focused && live?.view ? live.data : data;
           return (
             <figure key={s.role} className={`bezel${focused ? " focused" : ""}${dim ? " dim" : ""}`} data-test="phone" data-role={s.role} data-member={s.member ?? ""}>
-              <figcaption className="eyebrow">{s.label}{focused ? " · live" : ""}</figcaption>
-              {v ? <PhoneScreen view={v} data={d} nowMs={nowMs} role={s.role} village={village} /> : <p className="empty">This view didn't validate.</p>}
+              <figcaption className="phone-label" data-test="phone-label">{s.label}{focused ? " · live" : ""}</figcaption>
+              {v ? (
+                <PhoneScreen view={v} data={d} nowMs={nowMs} role={s.role} village={village} />
+              ) : spec?.views ? (
+                <p className="empty">This view didn't validate.</p>
+              ) : (
+                <div className="phone skeleton-phone" data-test="phone-skeleton"><p>Building {s.name}'s app…</p></div>
+              )}
               {v?.lang === "es" ? <span className="muted small mono">her phone shows Spanish only; captions are for the room</span> : null}
+              {spec?.views && qr ? <QrTile entry={qr.find((e) => e.member_id === s.member && e.kind === "app")} name={s.name} judge={s.role === "helper" || (!slots.some((x) => x.role === "helper") && s.role === "volunteer")} center={s.label.endsWith("right now")} /> : null}
             </figure>
           );
         })}
@@ -432,7 +542,7 @@ export function AskWhyRegion({ cfg, village }: { cfg: ApiConfig; village: string
   return (
     <Region test="ask-why" title="Ask Village why · Explainer" className="r-ask">
       <form className="ask-form" onSubmit={submit}>
-        <input type="text" aria-label="Ask Village why" placeholder="Why did you call Marco?" value={q} onChange={(e) => setQ(e.target.value)} disabled={busy} data-test="ask-input" maxLength={600} />
+        <input type="text" aria-label="Ask Village why" placeholder="Ask: why did Village…?" value={q} onChange={(e) => setQ(e.target.value)} disabled={busy} data-test="ask-input" maxLength={600} />
         <button type="submit" disabled={busy || !q.trim()} data-test="ask-submit">{busy ? "Asking…" : "Ask"}</button>
       </form>
       {busy ? <p className="muted small" data-test="ask-busy">Explainer is reading the decision log…</p> : null}
@@ -450,54 +560,19 @@ export function AskWhyRegion({ cfg, village }: { cfg: ApiConfig; village: string
   );
 }
 
-/* ---------------- Join QR tiles ---------------- */
-
-const TILE_LABEL: Record<string, string> = { m_marco: "Be Marco", m_ana: "Be Ana", m_carmen: "See Carmen's app" };
-
-export function JoinQrRegion({ cfg, village }: { cfg: ApiConfig; village: string }) {
-  const [entries, setEntries] = useState<QrEntry[] | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let live = true;
-    setEntries(null);
-    setFailed(false);
-    getQr(cfg, village).then((e) => live && setEntries(e), () => live && setFailed(true));
-    return () => {
-      live = false;
-    };
-  }, [cfg, village]);
-  const order = ["m_marco", "m_ana", "m_carmen"];
-  const tiles = (entries ?? []).filter((e) => e.kind === "app").sort((a, b) => (order.indexOf(a.member_id) + 9) % 9 - (order.indexOf(b.member_id) + 9) % 9).slice(0, 3);
-  return (
-    <Region test="join-qr" title="Scan to join" className="r-qr">
-      {failed ? <p className="empty" data-test="qr-empty">Join codes appear once the village is live (Ana taps “Invite everyone”).</p> : null}
-      {!failed && !entries ? <p className="muted small">Loading join codes…</p> : null}
-      <div className="qr-tiles">
-        {tiles.map((t) => (
-          <figure key={t.member_id} className={`qr-tile${t.member_id === "m_marco" ? " sage" : ""}`} data-test="qr-tile" data-member={t.member_id}>
-            {t.svg ? <img alt="" src={`data:image/svg+xml;utf8,${encodeURIComponent(t.svg)}`} width={120} height={120} /> : <QRCodeSVG value={t.url} size={120} marginSize={1} />}
-            <figcaption>{TILE_LABEL[t.member_id] ?? t.member_id.replace(/^[a-z]_/, "")}</figcaption>
-          </figure>
-        ))}
-      </div>
-    </Region>
-  );
-}
-
 /* ---------------- Captions layer ---------------- */
 
-export function CaptionsLayer({ captions }: { captions: CaptionLine[] }) {
+export const CaptionsLayer = forwardRef<HTMLDivElement, { captions: CaptionLine[] }>(function CaptionsLayer({ captions }, ref) {
   const last = captions.slice(-2);
   if (!last.length) return null;
   return (
-    <div className="captions-layer" data-test="captions-layer" aria-live="polite">
+    <div className="captions-layer" data-test="captions-layer" aria-live="polite" ref={ref}>
       {last.map((c) => (
         <p key={c.id} className="caption-line" data-test="caption-line">
           {c.speaker ? <span className="eyebrow">{c.speaker}</span> : null}
-          {c.es ? <Cap es={c.es} en={c.en} /> : <span>{c.en}</span>}
+          {c.es && c.es !== c.en ? <Cap es={c.es} en={c.en} /> : <span>{c.en || c.es}</span>}
         </p>
       ))}
     </div>
   );
-}
-
+});

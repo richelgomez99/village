@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { CatalogProps } from "../renderer/catalog";
 import { useCtx } from "../renderer/context";
+import { k } from "../i18n/strings";
 import { Bi, ConfirmSheet, Icon, ReadAloud, memberName } from "./shared";
 
 export function Screen({ props, children }: CatalogProps) {
@@ -40,6 +41,8 @@ export function Text({ props }: CatalogProps) {
   );
 }
 
+const CALL_ACTIONS = new Set(["call_member", "call_number"]);
+
 export function BigButton({ id, props }: CatalogProps) {
   const ctx = useCtx();
   const [confirming, setConfirming] = useState(false);
@@ -53,6 +56,29 @@ export function BigButton({ id, props }: CatalogProps) {
     if (props.confirm) setConfirming(true);
     else fire();
   };
+  const label = (
+    <>
+      <Icon name={props.icon} />
+      <span className="bigbutton-label"><Bi value={props.label} /></span>
+    </>
+  );
+  // calls are real tel: links (iOS Safari ignores programmatic dialing); the action still goes to Core for the log
+  if (CALL_ACTIONS.has(props.action) && !props.confirm) {
+    const tel = ctx.phoneFor?.(props.action_arg ?? "") ?? null;
+    if (tel && !ctx.disabled) {
+      return (
+        <a className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} href={`tel:${tel}`} onClick={() => ctx.send({ name: props.action, arg: props.action_arg, element_id: id })}>
+          {label}
+        </a>
+      );
+    }
+    return (
+      <button type="button" className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} data-no-number={tel || ctx.disabled ? undefined : "true"} disabled>
+        {label}
+        {!tel && !ctx.disabled ? <span className="no-number small" data-test="no-number">{k("no_number", ctx.lang)}</span> : null}
+      </button>
+    );
+  }
   return (
     <>
       <button
@@ -64,8 +90,7 @@ export function BigButton({ id, props }: CatalogProps) {
         disabled={ctx.disabled}
         onClick={onClick}
       >
-        <Icon name={props.icon} />
-        <span className="bigbutton-label"><Bi value={props.label} /></span>
+        {label}
       </button>
       {confirming ? <ConfirmSheet text={props.confirm_text ?? props.label} onYes={fire} onNo={() => setConfirming(false)} /> : null}
     </>
@@ -75,29 +100,32 @@ export function BigButton({ id, props }: CatalogProps) {
 export function ContactCard({ id, props }: CatalogProps) {
   const ctx = useCtx();
   const bound = props.bind ? (ctx.data[props.bind] as { name?: string; phone?: string } | undefined) : undefined;
-  const phone: string | undefined = props.phone ?? bound?.phone;
+  const phone: string | undefined = props.phone ?? bound?.phone ?? (props.member_id ? ctx.phoneFor?.(props.member_id) ?? undefined : undefined);
   const name = props.name ?? bound?.name ?? memberName(props.member_id, ctx.data);
   const onClick = (e: React.MouseEvent) => {
     if (ctx.disabled) {
       e.preventDefault();
       return;
     }
-    if (!phone && props.member_id) {
+    if (!phone) {
       e.preventDefault();
-      ctx.send({ name: "call_member", arg: props.member_id, element_id: id });
+      return;
     }
+    if (props.member_id) ctx.send({ name: "call_member", arg: props.member_id, element_id: id });
   };
   return (
     <a
       className={`contact kind-${props.kind}${props.big ? " big" : ""}`}
       data-test="contact-card"
       data-kind={props.kind}
-      href={phone ? `tel:${phone}` : "#"}
-      aria-disabled={ctx.disabled}
+      href={phone && !ctx.disabled ? `tel:${phone}` : undefined}
+      aria-disabled={ctx.disabled || !phone}
+      data-no-number={phone ? undefined : "true"}
       onClick={onClick}
     >
       <Icon name={props.kind === "emergency" ? "sos" : "phone"} />
       <span className="contact-name"><Bi value={props.label ?? name} /></span>
+      {!phone ? <span className="no-number small" data-test="no-number">{k("no_number", ctx.lang)}</span> : null}
       {phone && props.label !== phone && !String(props.label ?? "").includes(phone) ? <span className="contact-phone">{phone}</span> : null}
     </a>
   );

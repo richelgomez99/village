@@ -19,7 +19,9 @@ export function JoinPage({ search = location.search, hash = location.hash, fetch
   const p = new URLSearchParams(search);
   const fake = p.get("fake");
   const invite = new URLSearchParams(hash.replace(/^#/, "")).get("i") ?? p.get("i") ?? "";
-  const as = p.get("as") ?? (fake === "marco" ? "Marco" : "");
+  const as = p.get("as") ?? "";
+  const village = p.get("vn") ?? "";
+  const care = p.get("care") ?? "the person you care for";
   const [name, setName] = useState(as);
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
@@ -29,7 +31,7 @@ export function JoinPage({ search = location.search, hash = location.hash, fetch
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || busy) return;
+    if ((!name.trim() && !fake) || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -49,7 +51,7 @@ export function JoinPage({ search = location.search, hash = location.hash, fetch
           consent: { ai_calls: consent, text_version: "join_v1" }
         })
       });
-      if (!res.ok) throw new Error(res.status === 409 ? "This invite was already used. Ask Ana for a new one." : `Join failed (${res.status})`);
+      if (!res.ok) throw new Error(res.status === 409 ? "This invite was already used. Ask your coordinator for a new one." : `Join failed (${res.status})`);
       const data = await res.json();
       if (data.member_token) store(data.member_token);
       go(data.app_url ?? "./");
@@ -61,12 +63,12 @@ export function JoinPage({ search = location.search, hash = location.hash, fetch
   return (
     <main data-test="join-form" className="app join">
       <form onSubmit={submit} className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <h1 className="screen-title" data-test="join-role">{as ? `Join as ${as}` : "Join the Reyes family"}</h1>
+        <h1 className="screen-title" data-test="join-role">{as ? `Join as ${as}` : village ? `Join ${village}` : "Join your village"}</h1>
         <label>First name<br /><input data-test="join-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" style={{ minHeight: 48, width: "100%" }} /></label>
         <label>Mobile, e.g. +1 555 555 0101 (optional)<br /><input data-test="join-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" style={{ minHeight: 48, width: "100%" }} /></label>
         <label style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
           <input data-test="join-consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ width: 28, height: 28 }} />
-          <span>Village may call me with an AI assistant when someone uses my name to ask Mamá for money. It always says it's an AI. I can turn this off anytime.</span>
+          <span>Village may call me with an AI assistant when someone uses my name to ask {care} for money. It always says it's an AI. I can turn this off anytime.</span>
         </label>
         <button className="btn btn-primary btn-xl" data-test="join-submit" disabled={!name.trim() || busy}>Join the family</button>
         {error ? <p data-test="join-error" role="alert" className="chip">{error}</p> : null}

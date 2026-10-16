@@ -1,19 +1,15 @@
 // D18 caption glossary: English for every Spanish string a projector surface can show.
-// Sources, in order: live control{kind:"caption"} pairs (addCaption), the kit's own es/en string tables (reverse map),
-// the reviewed elder-view copy from reyes_spec.json, then simple patterns for templated lines.
+// Sources, in order: live control{kind:"caption"} pairs (addCaption; the fake server registers its fixture lines the
+// same way), the kit's own es/en string tables (reverse map), common elder-view copy, then patterns for templated lines.
 import { tablesFor } from "./strings";
 
 const live = new Map<string, string>();
 
 const FIXED: Record<string, string> = {
-  "Hola, Carmen": "Hello, Carmen",
   "Llamar a Village": "Call Village",
-  "Llamar a Ana": "Call Ana",
   "Necesito ayuda": "I need help",
   "Emergencia: 911": "Emergency: 911",
   "¿Aviso a su familia ahora?": "Tell your family now?",
-  "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.":
-    "Marco called me crying, he says he's in trouble and needs two thousand dollars.",
   "Llame a Village: [NÚMERO]": "Call Village: [NUMBER]",
   "Village nunca pide dinero ni códigos.": "Village never asks for money or codes.",
   "Emergencia: llame al 911 primero.": "Emergency: call 911 first."

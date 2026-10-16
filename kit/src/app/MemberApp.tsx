@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IdentityChip, PromptOverlay, StatusStrip, ViewAs, ViewingAsBanner, type ViewAsOption } from "../components/chrome";
 import { memberName } from "../components/shared";
 import { k } from "../i18n/strings";
 import type { LiveState, VillageSocket } from "../live/ws";
-import type { RenderCtx } from "../renderer/context";
+import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { Renderer } from "../renderer/Renderer";
 
-export const REYES_MEMBERS: ViewAsOption[] = [
-  { member_id: "m_carmen", name: "Carmen" },
-  { member_id: "m_ana", name: "Ana" },
-  { member_id: "m_marco", name: "Marco" },
-  { member_id: "m_lucia", name: "Lucía" }
-];
+/** View-as options from the coordinator's own data: member:<id> records, then everyone on the rota. */
+export function viewAsOptions(data: Record<string, unknown>): ViewAsOption[] {
+  const out = new Map<string, string>();
+  for (const [k, v] of Object.entries(data)) {
+    if (k.startsWith("member:")) out.set(k.slice(7), (v as { name?: string } | null)?.name ?? memberName(k.slice(7)));
+  }
+  const rota = data["rota:week"];
+  if (Array.isArray(rota)) for (const d of rota as { on_duty?: string; backup?: string }[]) for (const m of [d.on_duty, d.backup]) if (m && !out.has(m)) out.set(m, memberName(m, data));
+  return [...out].map(([member_id, name]) => ({ member_id, name }));
+}
 
 export function useSocketState(socket: VillageSocket): LiveState {
   const [state, setState] = useState<LiveState>(socket.state);
@@ -35,11 +39,19 @@ export function MemberApp({ socket, captions = false }: { socket: VillageSocket;
   const ack = useCallback((id: string) => socket.ack(id), [socket]);
   const disabled = state.viewAs !== null;
   const highlight = useMemo(() => new Set(state.highlight), [state.highlight]);
+  const phoneFor = useMemo(() => makePhoneFor(data, state.identity?.village_number), [data, state.identity]);
 
   const ctx: RenderCtx | null = view
-    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions }
+    ? { view, data, lang, role: state.role, memberId: state.memberId, village: state.village, nowMs: socket.nowMs, disabled, highlight, results: state.results, send, ack, captions, phoneFor }
     : null;
 
+  // options come from my own snapshot; keep them while viewing as someone else
+  const optsRef = useRef<ViewAsOption[]>([]);
+  if (!state.viewAs) {
+    const o = viewAsOptions(data);
+    if (o.length) optsRef.current = o;
+  }
+  const viewOpts = optsRef.current;
   const selfRole = state.self?.role ?? state.role;
   const canViewAs = selfRole === "coordinator" || selfRole === "control";
   const prompt = state.prompt;
@@ -48,7 +60,7 @@ export function MemberApp({ socket, captions = false }: { socket: VillageSocket;
     <div className="app" data-test="app" data-role={state.role} data-theme={view?.theme ?? "family"} data-lang={lang} data-dir={dir} data-rev={state.rev} data-status={state.status} data-view-as={state.viewAs ?? ""}>
       <StatusStrip state={state} lang={lang} />
       <div className="topbar">
-        {canViewAs ? <ViewAs options={REYES_MEMBERS} current={state.viewAs} self={state.self?.memberId ?? null} onPick={(m) => socket.viewAs(m)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
+        {canViewAs ? <ViewAs options={viewOpts} current={state.viewAs} self={state.self?.memberId ?? null} onPick={(m) => socket.viewAs(m)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
         <IdentityChip memberId={state.memberId} role={state.role} village={state.village} lang={lang} identity={state.identity} />
       </div>
       {state.viewAs ? <ViewingAsBanner name={memberName(state.viewAs)} onBack={() => socket.viewAs(null)} lang="en" /> : null}

@@ -60,6 +60,7 @@ export function StatusStrip({ state, lang }: { state: LiveState; lang: string })
   let msg = "";
   if (status === "closed" && closedReason && closedReason !== "closed") msg = k("stopped", lang, { why: closedReason });
   else if (status === "reconnecting") msg = k("reconnecting", lang, { n: attempt });
+  else if (status === "updating") msg = k("updating", lang);
   else if (status === "connecting" || status === "hello_sent" || status === "idle") msg = k("connecting", lang);
   return (
     <div className={`ws-status ${msg ? "show" : ""}`} data-test="ws-status" data-state={status} data-attempt={attempt} role="status" aria-live="polite">

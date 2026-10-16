@@ -43,6 +43,7 @@ describe("scene reducer", () => {
 
   it("reasoning: decisions get D23 role names and modes; plans become ledger rows", () => {
     const s = run([
+      { type: "snapshot", rev: 5, village: "v_reyes", role: "control", member_id: null, spec: reyes, data: {}, now: T },
       ctl("reasoning", { source: "voice", kind: "decision", text: "Calling Marco to verify (consent on file)." }),
       ctl("reasoning", { source: "evolve", kind: "decision", text: "Did the evening check-in call." }),
       ctl("reasoning", { source: "builder", kind: "plan", text: "Three apps from three profiles." })
@@ -57,7 +58,13 @@ describe("scene reducer", () => {
     expect(s.blueprint.done).toBe(true);
     expect(s.blueprint.stages.people).toHaveLength(4);
     expect(s.ledger.find((r) => r.id === "bp:people")?.what).toContain("Found 4 people");
-    expect(s.ledger.find((r) => r.id === "dailymed")).toMatchObject({ status: "done", result: "no interactions flagged" });
+    expect(s.ledger.find((r) => r.id === "dm_apixaban")).toMatchObject({ status: "done", role: "Founder" });
+    expect(s.ledger.find((r) => r.id === "consent_marco")).toMatchObject({ status: "done", result: "confirmed Tue/Thu/Fri/Sat · yes to calls" });
+    expect(s.ledger.filter((r) => r.id === "consent_marco")).toHaveLength(1);
+    expect(s.coverage).toEqual({ value: 10, of: 10 });
+    expect(s.transcript.filter((l) => l.who === "ana").length).toBeGreaterThanOrEqual(11);
+    expect(s.transcript.find((l) => l.who === "village")?.text).toBeTruthy();
+    expect(s.spec?.views?.elder).toBeDefined();
     expect(s.decisions.every((d) => d.role === "Founder")).toBe(true);
   });
 
@@ -87,6 +94,25 @@ describe("scene reducer", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe("done");
     expect(s.proposal.status).toBe("applied");
+  });
+
+  it("1.2.1: ledger rows update in place by id (contract role/at/mode), caption speaker, reasoning + gate mode", () => {
+    const s = run([
+      ctl("ledger", { id: "x", at: T, status: "running", what: "Looking up", role: "watcher" }),
+      ctl("ledger", { id: "x", at: T, status: "done", what: "Looked up", result: "ok", role: "watcher", mode: "acted_alone", elapsed_ms: 1200 }),
+      ctl("caption", { es: "Hola", en: "Hello", speaker: "carmen" }),
+      ctl("reasoning", { source: "watcher", kind: "decision", text: "Did a thing.", mode: "refused" })
+    ], { ...initialScene("v_reyes"), spec: reyes });
+    expect(s.ledger).toHaveLength(1);
+    expect(s.ledger[0]).toMatchObject({ status: "done", result: "ok", role: "Watcher", mode: "acted_alone" });
+    expect(s.captions[0].speaker).toBe("Carmen");
+    expect(s.decisions[0]).toMatchObject({ role: "Watcher", mode: "refused" });
+  });
+
+  it("ignores frames that name another village", () => {
+    const s = run([ctl("caption", { es: "Hola", en: "Hello", village: "v_reyes" }), ctl("ledger", { id: "y", at: T, status: "done", what: "w", village: "v_reyes" })], initialScene("v_w147"));
+    expect(s.captions).toHaveLength(0);
+    expect(s.ledger).toHaveLength(0);
   });
 
   it("ignores unknown kinds", () => {
