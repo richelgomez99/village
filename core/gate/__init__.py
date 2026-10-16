@@ -13,6 +13,7 @@ from core.gate.models import (
 )
 from core.gate.rules.safety import decide_safety
 from core.gate.say import Say, say
+from core.gate.sm_verification import step_verification
 
 __all__ = [
     "Candidate",
@@ -25,6 +26,7 @@ __all__ = [
     "Say",
     "say",
     "decide",
+    "step_verification",
 ]
 
 
