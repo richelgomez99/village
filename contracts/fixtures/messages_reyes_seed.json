@@ -6,8 +6,8 @@
   "messages": [
     {
       "id": "msg_1016_0811_nudge", "village": "v_reyes", "author": "village", "kind": "nudge",
-      "text": "Mamá scanned her morning lid. All done for this morning.",
-      "text_i18n": { "en": "Mamá scanned her morning lid. All done for this morning.", "es": "Mamá escaneó la tapa de la mañana. Listo por esta mañana." },
+      "text": "Mamá's morning pills are taken. All done for this morning.",
+      "text_i18n": { "en": "Mamá's morning pills are taken. All done for this morning.", "es": "Mamá ya tomó las pastillas de la mañana. Listo por la mañana." },
       "mention": null, "reply_to": null,
       "refs": [ { "kind": "event", "id": "ev_1016_0811_dose_morning", "label": "from her phone" } ],
       "source": { "kind": "system", "ref": "scheduler" }, "at": "2026-10-16T08:11:06-04:00"

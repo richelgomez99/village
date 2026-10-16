@@ -236,7 +236,7 @@ async def propose(village_id: str, evidence: dict[str, Any], options: dict[str, 
         "detected_by": evidence.get("detected_by") if evidence.get("detected_by") in {"arize_eval", "memory_pattern"} else "memory_pattern",
         "title": {"en": f"Village answers unknown callers for {rel_en}", "es": f"Village contesta a desconocidos por {rel_es}"},
         "rationale": {
-            "en": f"{count} calls asked {rel_en} for money in {claimed}'s name. Village will answer unknown callers first and check with the real {claimed} before the call reaches {rel_en}.",
+            "en": f"{count} call{'' if count == 1 else 's'} asked {rel_en} for money in {claimed}'s name. Village will answer unknown callers first and check with the real {claimed} before the call reaches {rel_en}.",
             "es": f"{count} llamadas le pidieron dinero a {rel_es} en nombre de {claimed}. Village contestará primero a desconocidos y confirmará con {claimed} antes de pasarle la llamada.",
         },
         "changes": changes[:6],
