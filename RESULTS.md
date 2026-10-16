@@ -79,3 +79,6 @@
 
 ## Live rebuild on the demo Core (13:00, operator tapped Approve on Ana's phone)
 - Proposal created 13:00:22 (auto options + proposal) → Ana approved 13:00:44 → "Released rev 6 and patched every phone" 13:00:56: **12 s from the yes to every phone**, six stages passed (spec, daytona_build, tests, anchor_qa, arize_evals, live). Receipt: "Scored on 51 calls (last night's included)".
+
+## Receptionist live (13:28; presenter's phone set to "unknown caller", receptionist mode applied at rev 6)
+- Init webhook 200 with `receptionist=on, caller_known=false`. Luz answered "Carmen's phone, this is Village. Who's calling?"; the caller ("Richard from church") asked for Carmen twice; Village did not put the call through, asked the purpose, offered to pass a message, took a callback request; call ended by the caller at 76 s. No money/family claim → `screen_caller` was not needed (correct). Gaps: no AI disclosure in the receptionist greeting; the message was not relayed to the family chat; `calls:screened` stayed empty (post-call should log the screened call with outcome `message_taken`).
