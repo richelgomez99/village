@@ -47,7 +47,7 @@ Village is a platform: you describe your people, and it builds and runs software
 ### Daytona: build and test every version before anyone sees it
 Every version of a village's app is a real `vite build` inside a Daytona sandbox, with floor tests generated for that village. A build that fails never reaches a phone.
 - **For what → feature → number.** Build each release in isolation → sandbox from snapshot `village-kit` (node 22), one warm sandbox reused by label → cold sandbox 1.0 s, warm reuse 149 ms, Reyes release 15.0 s warm.
-- Test what the family needs, not a generic suite → floor tests generated per village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → 62 tests for Reyes, 33 for the West 147th block.
+- Test what the family needs, not a generic suite → floor tests generated per village (elder text ≥ 28 px, contrast ≥ 7:1, buttons ≥ 88 px, a 911 contact) → 58 tests for Reyes at rev 6, 33 for the West 147th block.
 - Catch the Builder's mistake once, and keep the proof → the only failed build today, rev 3, stopped at "contrast 4.1:1 on elder Text (needs 7:1)"; the model changed #4C80B4 to #2D5A8C and rebuilt in the same sandbox → rev 4 went live; the receipt keeps both attempts.
 - Keep AI-written code off the internet → sandbox egress blocked, Core pulls `dist` out → blocked to every host we tested (Anchor, SurrealDB, Bedrock, DailyMed, example.com).
 
@@ -91,6 +91,9 @@ Carmen's whole Village is a phone number that speaks formal Spanish.
 - Run the cheap, frequent reasoning → scam extraction, release evals, the Builder's repair → the scam set's model-on run (30/30, 0/20) used Bedrock Haiku 4.5; time to first token 520–600 ms.
 
 **Code:** `core/llm.py`
+
+### Why Village is an agent, not a workflow
+Village runs a perceive → decide → act → remember loop that nobody triggers by hand. It **perceives** events from the apps, calls on the voice line, facts in memory and its own evals in Arize. It **decides** with Claude tool calls under three explicit autonomy modes that every decision is labelled with: did it on its own, asked a person, refused itself. It **acts** through tools: posting in the family chat, placing and screening calls, writing memory, and building, testing and releasing new versions of the software. It **remembers** every outcome as a typed fact with a source. The Watcher runs rounds on the clock (check-ins, verification timeouts, nudges); the Evolve loop reads 14 days of its own traces to propose changes; the Builder is an agent of its own with a repair loop that fixed its failing build today. Code, not prompts, draws the lines it can't cross: the gate is pure Python, tested with the model off. There is no agent framework in between: one FastAPI process, one `llm()` factory, OpenInference spans with `graph.node.id` so Arize sees the whole graph.
 
 ### How the day was run
 One builder, Richel Gomez. A Claude session orchestrated: specs, briefs, merges, tests, tags. Codex sessions implemented the early core, gate, voice and contracts; after a shared rate limit, Claude sessions implemented the rest (builder, apps and Control Room, release pipeline, evals, memory, pitch), each in its own git worktree.
