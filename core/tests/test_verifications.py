@@ -2,6 +2,7 @@ from core.clock import clock
 from core.db import db
 from core.fixtures import reset_demo
 from core import services
+from core.scheduler import tick
 
 
 async def test_start_verification_persists_versioned_row() -> None:
@@ -71,3 +72,21 @@ async def test_duplicate_money_tool_returns_cached_body() -> None:
     second = await services.handle_tool("report_money_request", body)
     assert second == first
     assert len(db.verifications) == 1
+
+
+async def test_scheduler_times_out_past_deadline_verification() -> None:
+    await reset_demo("v_reyes")
+    await db.upsert_verification({
+        "id": "ver_due",
+        "village": "v_reyes",
+        "claimed_member_id": "m_marco",
+        "state": "pending",
+        "status": "pending",
+        "answers": [],
+        "deadline": "2000-01-01T00:00:00-05:00",
+        "version": 0,
+    })
+    result = await tick()
+    assert result["verification_timeouts"] == 1
+    assert db.verifications["ver_due"]["state"] == "timed_out"
+    assert db.events[-1]["kind"] == "verification_timeout"

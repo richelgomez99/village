@@ -12,6 +12,7 @@ from core.routes.health import router as health_router
 from core.routes.tools import router as tools_router
 from core.routes.ws import router as ws_router
 from core.settings import CONTRACT_VERSION, get_settings
+from core.scheduler import tick
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     app.state.clock_offset_minutes = 0
     await reset_demo("v_reyes")
     await start_live()
+    await tick()
     yield
     await stop_live()
 
