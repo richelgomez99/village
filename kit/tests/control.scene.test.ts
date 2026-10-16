@@ -53,11 +53,18 @@ describe("scene reducer", () => {
     expect(gateMode("verify_with_member")).toBe("asked_human");
   });
 
-  it("blueprint stages accumulate and mark done; Founder rows in the ledger", () => {
+  it("founding: one block per answer (Heard → Knows → Doing → Will build), drafts per role, then the spec", () => {
     const s = run(controlSequence("founding").map((t) => t.msg));
     expect(s.blueprint.done).toBe(true);
     expect(s.blueprint.stages.people).toHaveLength(4);
-    expect(s.ledger.find((r) => r.id === "bp:people")?.what).toContain("Found 4 people");
+    expect(s.blocks).toHaveLength(12);
+    expect(s.blocks[0].knows).toContain("Carmen, 78");
+    expect(s.blocks[2].doing).toEqual(["consent_marco"]);
+    expect(s.blocks[4].doing).toEqual(["dm_apixaban", "dm_lisinopril", "dm_metformin", "dm_atorvastatin"]);
+    expect(s.blocks[4].willBuild.map((w) => [w.component, w.person])).toEqual([["Refill checklist", "Marco"], ["Refill checklist", "Ana"]]);
+    expect(Object.keys(s.drafts).sort()).toEqual(["coordinator", "elder", "helper"]);
+    expect(s.drafts.elder.lang).toBe("es");
+    expect(s.drafts.helper.elements.s.children).toContain("refill");
     expect(s.ledger.find((r) => r.id === "dm_apixaban")).toMatchObject({ status: "done", role: "Founder" });
     expect(s.ledger.find((r) => r.id === "consent_marco")).toMatchObject({ status: "done", result: "confirmed Tue/Thu/Fri/Sat · yes to calls" });
     expect(s.ledger.filter((r) => r.id === "consent_marco")).toHaveLength(1);

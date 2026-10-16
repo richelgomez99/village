@@ -6,7 +6,9 @@
 // (dev/fakeControl.ts); hello{village:"v_w147"} gets the block_spec control snapshot; window.__fake.warp(min) ticks the clock.
 import { FAKE_CLIENTS, blockControlSnapshot, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
 import { addCaption } from "../i18n/captions";
-import { controlHelloSnapshot, controlSequence, isControlSeq, type ControlSeq } from "./fakeControl";
+import { blockFounding, controlHelloSnapshot, controlSequence, isControlSeq, type ControlSeq, type TimelineLine } from "./fakeControl";
+
+const BLOCK_VILLAGE = "v_w147";
 
 type Tail = "denied" | "timeout_tail" | "confirmed_tail";
 
@@ -17,6 +19,8 @@ export interface FakeOptions {
   seq?: ControlSeq | null;
   /** secondary socket (Control Room view-as / village tab): don't take over window.__fake. */
   quiet?: boolean;
+  /** block founding: play the recorded call (audio/w147_founding.mp3) and time the answers by its timeline */
+  audio?: boolean;
 }
 
 export function parseFakeOptions(search: string): FakeOptions {
@@ -29,7 +33,8 @@ export function parseFakeOptions(search: string): FakeOptions {
     start: startRaw === "off" ? "off" : startRaw != null && !Number.isNaN(Number(startRaw)) ? Number(startRaw) : 2,
     tail,
     speed: Number(p.get("speed") ?? "1") || 1,
-    seq: isControlSeq(p.get("seq")) ? (p.get("seq") as ControlSeq) : null
+    seq: isControlSeq(p.get("seq")) ? (p.get("seq") as ControlSeq) : null,
+    audio: p.get("audio") === "1"
   };
 }
 
@@ -117,14 +122,63 @@ class FakeHub {
   playControl(seq: ControlSeq, village?: string) {
     if (this.played.has(`seq:${seq}`)) return;
     this.played.add(`seq:${seq}`);
-    for (const t of controlSequence(seq, village)) {
+    if (seq === "founding" && village === BLOCK_VILLAGE) {
+      void this.playBlockFounding(village);
+      return;
+    }
+    this.schedule(controlSequence(seq, village));
+    // the scam scene also drives the member phones (and the control socket's own event frames)
+    if (seq === "scam") this.playStart();
+  }
+
+  schedule(frames: { ms: number; msg: any }[]) {
+    for (const t of frames) {
       const fire = () => this.sockets.forEach((s) => s.deliverControl(t.msg));
       const delay = t.ms / this.speed;
       if (delay <= 0) fire();
       else this.timers.push(setTimeout(fire, delay));
     }
-    // the scam scene also drives the member phones (and the control socket's own event frames)
-    if (seq === "scam") this.playStart();
+  }
+
+  /** The block founding as a recorded call: lines appear as they're spoken. Missing files → timed text. */
+  async playBlockFounding(village: string) {
+    if (!this.opts.audio || typeof window === "undefined") {
+      this.schedule(blockFounding(village, null));
+      return;
+    }
+    const base = typeof document !== "undefined" ? document.baseURI : "/";
+    let timeline: TimelineLine[] | null = null;
+    try {
+      const r = await fetch(new URL("audio/w147_founding.timeline.json", base).href);
+      timeline = r.ok ? ((await r.json()) as TimelineLine[]) : null;
+    } catch {
+      timeline = null;
+    }
+    const frames = blockFounding(village, timeline);
+    if (!timeline || typeof Audio === "undefined") {
+      this.schedule(frames);
+      return;
+    }
+    const audio = new Audio(new URL("audio/w147_founding.mp3", base).href);
+    const fake = (window as any).__fake ?? {};
+    const go = () => {
+      fake.audioState = "playing";
+      window.dispatchEvent(new CustomEvent("village-audio", { detail: "playing" }));
+      this.schedule(frames);
+    };
+    try {
+      await audio.play();
+      go();
+    } catch (e: any) {
+      if (e?.name === "NotAllowedError") {
+        // autoplay blocked: the Control Room shows "Play the call"; text waits for the click
+        fake.audioState = "blocked";
+        fake.startAudio = () => audio.play().then(go, () => this.schedule(frames));
+        window.dispatchEvent(new CustomEvent("village-audio", { detail: "blocked" }));
+      } else {
+        this.schedule(frames); // the mp3 is missing: same timings, text only
+      }
+    }
   }
 
   offsetMinutes = 0;
@@ -184,7 +238,7 @@ class FakeSocket extends EventTarget {
       const viewAs: string | undefined = f.view_as;
       const asClient = viewAs ? clientForMember(viewAs) : null;
       this.target = asClient ?? this.me;
-      if (this.target === "control" && f.village === "v_w147") {
+      if (this.target === "control" && f.village === BLOCK_VILLAGE && this.hub.opts.seq !== "founding") {
         this.emit(blockControlSnapshot());
         return;
       }

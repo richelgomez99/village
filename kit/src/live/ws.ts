@@ -242,6 +242,8 @@ export class VillageSocket {
         return;
       }
       case "patch": {
+        // the Control Room's founding drafts are patches too: its scene reducer applies them, not the socket
+        if (this.s.role === "control") return;
         // patches are per role (Core sends each socket its own role's ops); one for another role means our view is stale
         if (f.role && this.s.role && f.role !== this.s.role) {
           this.set({ status: "resync" });

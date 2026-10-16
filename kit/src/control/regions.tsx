@@ -8,7 +8,7 @@ import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
-import { displayName, memberDisplay, nameCtx, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
+import { displayName, memberDisplay, nameCtx, type AnswerBlock, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
 
 const hhmm = (iso: string) => {
   const d = new Date(iso);
@@ -101,7 +101,7 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
 
 /* ---------------- Founding transcript ---------------- */
 
-export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator" }: { lines: TranscriptLine[]; onSend?: (text: string) => Promise<void>; speakerName?: string }) {
+export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator", onPlayAudio }: { lines: TranscriptLine[]; onSend?: (text: string) => Promise<void>; speakerName?: string; onPlayAudio?: () => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +124,7 @@ export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator" }:
   return (
     <Region test="transcript" title="Founding · describe your people" className="r-transcript">
       {first ? <p className="empty-hero" data-test="founding-empty">No village yet. Describe your people.</p> : null}
+      {onPlayAudio ? <button type="button" className="play-call" data-test="audio-start" onClick={onPlayAudio}>▶ Play the call</button> : null}
       <ol className="transcript">
         {lines.map((l) => (
           <li key={l.id} className={`tr-line tr-${l.who}`} data-test="transcript-line" data-who={l.who}>
@@ -311,6 +312,48 @@ export function LedgerRegion({ rows, nowMs }: { rows: LedgerRow[]; nowMs: () => 
   );
 }
 
+/* ---------------- Founding: Village thinking and doing (D33) ---------------- */
+
+function Done({ row }: { row: LedgerRow }) {
+  const ms = row.elapsed_ms ?? (row.ended ? Date.parse(row.ended) - Date.parse(row.at) : null);
+  return ms != null && ms >= 0 ? <span className="mono muted small"> · {(ms / 1000).toFixed(1)} s</span> : null;
+}
+
+/** One block per answer: Heard → Knows → Doing (ledger rows, running → done with real elapsed) → Will build. */
+export function FoundingWorkRegion({ blocks, ledger, nowMs }: { blocks: AnswerBlock[]; ledger: LedgerRow[]; nowMs: () => number }) {
+  const byId = new Map(ledger.map((r) => [r.id, r]));
+  return (
+    <Region test="founding-work" title="Village thinking and doing" className="r-work">
+      {blocks.length === 0 ? <p className="empty">Village starts working the moment someone answers.</p> : null}
+      <ol className="work-blocks">
+        {blocks.map((b, i) => (
+          <li key={b.id} className="work-block" data-test="work-block" data-index={i}>
+            <p className="wb-line"><span className="wb-tag">Heard</span> “{b.heard.length > 110 ? `${b.heard.slice(0, 107)}…` : b.heard}”</p>
+            {b.knows ? <p className="wb-line" data-test="wb-knows"><span className="wb-tag mint">Knows</span> {b.knows}</p> : null}
+            {b.doing.map((id) => {
+              const r = byId.get(id);
+              if (!r) return null;
+              return (
+                <p key={id} className={`wb-line ledger-row st-${r.status}`} data-test="ledger-row" data-status={r.status} data-id={r.id}>
+                  <span className="wb-tag amber">Doing</span> <span className="glyph">{GLYPH[r.status]}</span> {r.status === "done" ? r.what : r.what}
+                  {r.status === "running" ? <Elapsed from={r.at} nowMs={nowMs} /> : null}
+                  {r.result && r.status !== "running" ? <span className="result"> · {r.result}</span> : null}
+                  {r.status === "done" ? <Done row={r} /> : null}
+                </p>
+              );
+            })}
+            {b.willBuild.map((w, k) => (
+              <p key={k} className="wb-line" data-test="will-build" data-role={w.role ?? ""}>
+                <span className="wb-tag plum">Will build</span> <strong>{w.component}</strong> for {w.person} · {w.reason}
+              </p>
+            ))}
+          </li>
+        ))}
+      </ol>
+    </Region>
+  );
+}
+
 /* ---------------- Live moment ---------------- */
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -381,9 +424,9 @@ export function phoneSlots(spec: any): { role: string; label: string; name: stri
   });
 }
 
-function PhoneScreen({ view, data, nowMs, role, village }: { view: View; data: Record<string, unknown>; nowMs: () => number; role: string; village: string }) {
+function PhoneScreen({ view, data, nowMs, role, village, highlight }: { view: View; data: Record<string, unknown>; nowMs: () => number; role: string; village: string; highlight?: string[] }) {
   const ctx: RenderCtx = {
-    view, data, lang: view.lang, role, memberId: null, village, nowMs, disabled: true, highlight: new Set(), results: {},
+    view, data, lang: view.lang, role, memberId: null, village, nowMs, disabled: true, highlight: new Set(highlight ?? []), results: {},
     send: () => "", ack: () => {}, captions: true, phoneFor: makePhoneFor(data)
   };
   return (
@@ -419,15 +462,24 @@ function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; na
   );
 }
 
-export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people, villageName }: {
+export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people, villageName, drafts, draftNew }: {
   spec: any; data: Record<string, unknown>; village: string; nowMs: () => number; viewAs: string | null; onViewAs: (m: string | null) => void;
   live: { role: string; view: View | null; data: Record<string, unknown> } | null; cfg?: ApiConfig;
   /** founding stream: people named so far (skeleton phones before the spec exists) */
   people?: any[];
   villageName?: string | null;
+  /** founding: per-role draft views from control patches, and the element ids each just gained (NEW) */
+  drafts?: Record<string, any>;
+  draftNew?: Record<string, string[]>;
 }) {
   const nctx = spec ?? { village: { name: villageName ?? "" } };
-  const slots = spec?.views ? phoneSlots(spec) : (people ?? []).filter((p) => p.view).slice(0, 3).map((p) => ({ role: p.view as string, member: p.id as string, name: displayName(p, nctx), label: `${displayName(p, nctx)}'s phone` }));
+  const seen = new Set<string>();
+  const slots = spec?.views
+    ? phoneSlots(spec)
+    : (people ?? [])
+        .filter((p) => p.view && !seen.has(p.view) && seen.add(p.view))
+        .slice(0, 3)
+        .map((p) => ({ role: p.view as string, member: p.id as string, name: displayName(p, nctx), label: `${displayName(p, nctx)}'s phone${p.role === "care_recipient" ? " · right now" : ""}` }));
   const parsed = useMemo(() => {
     const out: Record<string, View | null> = {};
     for (const s of slots) {
@@ -463,6 +515,8 @@ export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, liv
               <figcaption className="phone-label" data-test="phone-label">{s.label}{focused ? " · live" : ""}</figcaption>
               {v ? (
                 <PhoneScreen view={v} data={d} nowMs={nowMs} role={s.role} village={village} />
+              ) : drafts?.[s.role] && (drafts[s.role].elements.s.children ?? []).length ? (
+                <PhoneScreen view={drafts[s.role]} data={d} nowMs={nowMs} role={s.role} village={village} highlight={draftNew?.[s.role]} />
               ) : spec?.views ? (
                 <p className="empty">This view didn't validate.</p>
               ) : (

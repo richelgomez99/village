@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, createVillage, warpClock, type ApiConfig } from "../control/api";
-import { AskWhyRegion, BlueprintRegion, CaptionsLayer, GateRegion, Header, KnowsRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
+import { AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
@@ -177,6 +177,17 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
     return () => ro.disconnect();
   }, [scene.captions.length]);
 
+  // block founding with a recorded call: browsers block autoplay, so the first click starts the call (fake replay)
+  const [audioBlocked, setAudioBlocked] = useState(() => typeof window !== "undefined" && (window as any).__fake?.audioState === "blocked");
+  useEffect(() => {
+    const on = (e: Event) => setAudioBlocked((e as CustomEvent).detail === "blocked");
+    window.addEventListener("village-audio", on);
+    return () => window.removeEventListener("village-audio", on);
+  }, []);
+  const playAudio = () => {
+    setAudioBlocked(false);
+    (window as any).__fake?.startAudio?.();
+  };
   const lastQuestion = [...scene.transcript].reverse().find((l) => l.who === "village")?.text ?? "";
   const onAnswer = async (text: string) => {
     await answerFollowUp(api, village, lastQuestion, text);
@@ -193,17 +204,16 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
       ) : null}
       {founding ? (
         <div className="cr-grid">
-          <TranscriptRegion lines={scene.transcript} onSend={onAnswer} speakerName={coordinator} />
-          <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} />
+          <TranscriptRegion lines={scene.transcript} onSend={onAnswer} speakerName={coordinator} onPlayAudio={audioBlocked ? playAudio : undefined} />
+          <FoundingWorkRegion blocks={scene.blocks} ledger={scene.ledger} nowMs={socket.nowMs} />
           <BlueprintRegion spec={spec} scene={scene} />
-          {scene.data["prescriptions:current"] ? <KnowsRegion api={api} village={village} data={scene.data} spec={spec} /> : null}
-          <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={null} onViewAs={() => {}} live={null} cfg={api} people={people} villageName={scene.villageName} />
+          <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={null} onViewAs={() => {}} live={null} cfg={api} people={people} villageName={scene.villageName} drafts={scene.drafts} draftNew={scene.draftNew} />
         </div>
       ) : (
         <div className="cr-grid">
           <BlueprintRegion spec={spec} scene={scene} />
           <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} />
-          <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} />
+          {scene.live ? <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} /> : null}
           <KnowsRegion api={api} village={village} data={scene.data} spec={spec} />
           <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={viewAs} onViewAs={setViewAs} live={liveView} cfg={api} />
           <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} />
