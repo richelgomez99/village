@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/log_dose",
+    "url": "${TUNNEL_URL}/tools/log_dose",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -73,6 +73,14 @@
         "possible_duplicate": {
           "type": "boolean",
           "description": "possible duplicate"
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for log_dose"

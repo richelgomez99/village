@@ -1,0 +1,99 @@
+{
+  "api_schema": {
+    "url": "${TUNNEL_URL}/tools/screen_caller",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "utterance"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "What the caller just said, verbatim."
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "claimed_identity": {
+          "type": "string",
+          "description": "Who the caller says they are, in their words (e.g. 'Marco, her son'). 'unknown' if they will not say."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of money mentioned, as a number (0 if none)."
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
+        },
+        "verification_id": {
+          "type": "string",
+          "dynamic_variable": "verification_id"
+        }
+      },
+      "description": "Request body for screen_caller (D19 receptionist)"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    },
+    {
+      "dynamic_variable": "screen_result",
+      "value_path": "data.status"
+    },
+    {
+      "dynamic_variable": "screen_next",
+      "value_path": "data.next"
+    },
+    {
+      "dynamic_variable": "verification_id",
+      "value_path": "data.verification_id"
+    }
+  ],
+  "description": "Receptionist mode only: screen an unknown caller who claims to be family or asks for money. Speak the returned say verbatim. If data.next is screen_caller, call it again (it waits up to 30 s for the real family member).",
+  "disable_interruptions": true,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "screen_caller",
+  "response_timeout_secs": 35,
+  "type": "webhook"
+}

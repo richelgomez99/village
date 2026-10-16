@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/whats_my_schedule",
+    "url": "${TUNNEL_URL}/tools/whats_my_schedule",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -60,6 +60,14 @@
             "en"
           ],
           "description": "language"
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for whats_my_schedule"

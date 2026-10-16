@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from core.clock import clock
 from core.db import db
 from core import village
-from core import village
 
 _REL_SPOKEN = {"mother": "mom", "father": "dad"}
 
@@ -131,6 +130,12 @@ class OutboundService:
 
         payload = build_payload(person, request.verification_id)
         result = await self.dialer.outbound_call(payload)
+        try:  # D18: caption the verification call live on the Control Room (no-op without an API key)
+            from core.voice.captions import start_poller
+
+            start_poller(str(result.get("conversation_id") or ""), payload["conversation_initiation_client_data"]["dynamic_variables"].get("village_id", ""), {"user": person["name"].split()[0], "agent": "Village"})
+        except Exception:
+            pass
         latest = db.verifications[request.verification_id]
         channel = {
             "via": "outbound_call",

@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/await_verification",
+    "url": "${TUNNEL_URL}/tools/await_verification",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -46,6 +46,14 @@
         "verification_id": {
           "type": "string",
           "dynamic_variable": "verification_id"
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for await_verification"
