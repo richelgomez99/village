@@ -1,327 +1,327 @@
 {
- "version": 1,
- "source": "docs/FOUNDING-INTAKE.md (D29)",
- "topics": [
-  {
-   "n": 1,
-   "id": "center",
-   "title": "The person at the center",
-   "required": [
-    "age",
-    "lives",
-    "problems"
-   ],
-   "optional": [
-    "name",
-    "language"
-   ],
-   "questions": [
+  "version": 1,
+  "source": "docs/FOUNDING-INTAKE.md (D29)",
+  "topics": [
     {
-     "field": "age",
-     "text": "Tell me about the person at the center: how old, where does she live, what goes wrong?"
-    }
-   ],
-   "does": "extracts life areas; opens the blueprint"
-  },
-  {
-   "n": 2,
-   "id": "members",
-   "title": "Who is in the village",
-   "required": [
-    "members"
-   ],
-   "questions": [
-    {
-     "field": "members",
-     "text": "Who else is in this besides you and Marco, and where does everyone live relative to your mom?"
-    }
-   ],
-   "does": "member cards appear as named"
-  },
-  {
-   "n": 3,
-   "id": "availability",
-   "title": "Availability",
-   "required": [
-    "helper_days",
-    "speaker_days"
-   ],
-   "questions": [
-    {
-     "field": "helper_days",
-     "text": "What is {helper}'s week like? When can he actually be there?"
+      "n": 1,
+      "id": "center",
+      "title": "The person at the center",
+      "required": [
+        "age",
+        "lives",
+        "problems"
+      ],
+      "optional": [
+        "name",
+        "language"
+      ],
+      "questions": [
+        {
+          "field": "age",
+          "text": "Tell me about the person at the center: how old, where does she live, what goes wrong?"
+        }
+      ],
+      "does": "extracts life areas; opens the blueprint"
     },
     {
-     "field": "speaker_days",
-     "text": "And you?"
-    }
-   ],
-   "does": "rota coverage check: every night has a name, or Village names the gap"
-  },
-  {
-   "n": 4,
-   "id": "meds",
-   "title": "Health: medications",
-   "required": [
-    "meds",
-    "prescriber"
-   ],
-   "optional": [
-    "pharmacy",
-    "recent_change"
-   ],
-   "questions": [
-    {
-     "field": "meds",
-     "text": "Her pills: what does she take, and who prescribed them?"
-    }
-   ],
-   "does": "DailyMed lookup per med → facts with url provenance; refill list with supersession"
-  },
-  {
-   "n": 5,
-   "id": "routine",
-   "title": "Health: routine",
-   "required": [
-    "how_taken",
-    "what_fails"
-   ],
-   "questions": [
-    {
-     "field": "how_taken",
-     "text": "How does she take them, and what happens on the nights she isn't sure?"
-    }
-   ],
-   "does": "dose policy rows"
-  },
-  {
-   "n": 6,
-   "id": "money",
-   "title": "Money",
-   "required": [
-    "incident",
-    "handler",
-    "accounts"
-   ],
-   "optional": [
-    "family_word"
-   ],
-   "questions": [
-    {
-     "field": "incident",
-     "text": "Money. Tell me about the call last week."
+      "n": 2,
+      "id": "members",
+      "title": "Who is in the village",
+      "required": [
+        "members"
+      ],
+      "questions": [
+        {
+          "field": "members",
+          "text": "I'm sorry, Ana. Let's start with the people. Who else is in this besides you and Marco, and how far is each of you from her?"
+        }
+      ],
+      "does": "member cards appear as named"
     },
     {
-     "field": "family_word",
-     "text": "Pick a word only the family knows. Every real call from Village says it, so a caller without it is not us."
-    }
-   ],
-   "does": "R-MONEY-VERIFY / R-MONEY-DEFAULT / R-MONEY-NEVER on; verifier = named member"
-  },
-  {
-   "n": 7,
-   "id": "home",
-   "title": "Home and day",
-   "required": [
-    "routine",
-    "nearby"
-   ],
-   "questions": [
+      "n": 3,
+      "id": "availability",
+      "title": "Availability",
+      "required": [
+        "helper_days",
+        "speaker_days"
+      ],
+      "questions": [
+        {
+          "field": "helper_days",
+          "text": "{helper} first, since he's closest. What's his week like? When can he actually be there?"
+        },
+        {
+          "field": "speaker_days",
+          "text": "And you? Which nights are yours, and what do you already do for her?"
+        }
+      ],
+      "does": "rota coverage check: every night has a name, or Village names the gap"
+    },
     {
-     "field": "routine",
-     "text": "Her day and her home: what does a normal day look like, and is anyone nearby?"
-    }
-   ],
-   "does": "routines; neighbor as contact (role label only)"
-  },
-  {
-   "n": 8,
-   "id": "emergencies",
-   "title": "Emergencies",
-   "required": [
-    "first",
-    "hospital"
-   ],
-   "questions": [
+      "n": 4,
+      "id": "meds",
+      "title": "Health: medications",
+      "required": [
+        "meds",
+        "prescriber"
+      ],
+      "optional": [
+        "pharmacy",
+        "recent_change"
+      ],
+      "questions": [
+        {
+          "field": "meds",
+          "text": "Her pills. What does she take, and who prescribed them?"
+        }
+      ],
+      "does": "DailyMed lookup per med → facts with url provenance; refill list with supersession"
+    },
     {
-     "field": "first",
-     "text": "If she falls or can't breathe, who is first?"
-    }
-   ],
-   "does": "escalation ladder; 911 first everywhere"
-  },
-  {
-   "n": 9,
-   "id": "channels",
-   "title": "Channels and language",
-   "required": [
-    "center_channel",
-    "center_lang"
-   ],
-   "questions": [
+      "n": 5,
+      "id": "routine",
+      "title": "Health: routine",
+      "required": [
+        "how_taken",
+        "what_fails"
+      ],
+      "questions": [
+        {
+          "field": "how_taken",
+          "text": "How does she take them day to day, and what happens on the nights she isn't sure?"
+        }
+      ],
+      "does": "dose policy rows"
+    },
     {
-     "field": "center_channel",
-     "text": "Her phone and her language: what will she actually use?"
-    }
-   ],
-   "does": "per-person surfaces"
-  },
-  {
-   "n": 10,
-   "id": "consent",
-   "title": "Consent and the center's own rules",
-   "required": [
-    "welcome_call",
-    "center_rules"
-   ],
-   "questions": [
+      "n": 6,
+      "id": "money",
+      "title": "Money",
+      "required": [
+        "incident",
+        "handler",
+        "accounts"
+      ],
+      "optional": [
+        "family_word"
+      ],
+      "questions": [
+        {
+          "field": "incident",
+          "text": "Thank you. Now the money. Tell me about the call last week."
+        },
+        {
+          "field": "family_word",
+          "text": "Pick a word only the family knows. Every real call from Village says it, so a caller without it is not us."
+        }
+      ],
+      "does": "R-MONEY-VERIFY / R-MONEY-DEFAULT / R-MONEY-NEVER on; verifier = named member"
+    },
     {
-     "field": "welcome_call",
-     "text": "Two things Village can't take from you: Lucía's own yes to being called, and your mom's rules. Village asks Lucía in her app and calls your mom in Spanish to introduce itself. She can say no to all of it. When is she sharpest?"
+      "n": 7,
+      "id": "home",
+      "title": "Home and day",
+      "required": [
+        "routine",
+        "nearby"
+      ],
+      "questions": [
+        {
+          "field": "routine",
+          "text": "Her day and her home: what does a normal day look like, and is anyone nearby?"
+        }
+      ],
+      "does": "routines; neighbor as contact (role label only)"
+    },
+    {
+      "n": 8,
+      "id": "emergencies",
+      "title": "Emergencies",
+      "required": [
+        "first",
+        "hospital"
+      ],
+      "questions": [
+        {
+          "field": "first",
+          "text": "If she falls or can't breathe, who is first?"
+        }
+      ],
+      "does": "escalation ladder; 911 first everywhere"
+    },
+    {
+      "n": 9,
+      "id": "channels",
+      "title": "Channels and language",
+      "required": [
+        "center_channel",
+        "center_lang"
+      ],
+      "questions": [
+        {
+          "field": "center_channel",
+          "text": "And your mom herself. What language, what phone, and what will she actually use?"
+        }
+      ],
+      "does": "per-person surfaces"
+    },
+    {
+      "n": 10,
+      "id": "consent",
+      "title": "Consent and the center's own rules",
+      "required": [
+        "welcome_call",
+        "center_rules"
+      ],
+      "questions": [
+        {
+          "field": "welcome_call",
+          "text": "Two things Village can't take from you: Lucía's own yes to being called, and your mom's rules. Village asks Lucía in her app and calls your mom in Spanish to introduce itself. She can say no to all of it. When is she sharpest?"
+        }
+      ],
+      "does": "consent call to the helper during the conversation; plans the welcome call; her rules stay pending until she says them"
     }
-   ],
-   "does": "consent call to the helper during the conversation; plans the welcome call; her rules stay pending until she says them"
+  ],
+  "review": {
+    "text": "Here is the draft: four people, three life areas, five needs, ten rules on, one thing pending your mom. What is wrong?"
+  },
+  "builds": {
+    "center": [
+      {
+        "role": "elder",
+        "element": "e911",
+        "reason": "911 first, always, on {center}'s phone"
+      },
+      {
+        "role": "elder",
+        "element": "al",
+        "reason": "one alert line {center} can read in her language"
+      },
+      {
+        "role": "coordinator",
+        "element": "areas",
+        "reason": "health, money and people came up in your first sentence"
+      },
+      {
+        "role": "coordinator",
+        "element": "al",
+        "reason": "anything urgent about {center} shows here first"
+      }
+    ],
+    "members": [
+      {
+        "role": "coordinator",
+        "element": "rota",
+        "reason": "{n_people} people share the turns; last Thursday nobody went"
+      },
+      {
+        "role": "coordinator",
+        "element": "chat",
+        "reason": "the family and Village talk here"
+      },
+      {
+        "role": "helper",
+        "element": "chat",
+        "reason": "the family and Village talk here"
+      },
+      {
+        "role": "helper",
+        "element": "al",
+        "reason": "anything urgent about {center} shows here first"
+      }
+    ],
+    "availability.helper_days": [
+      {
+        "role": "helper",
+        "element": "ans",
+        "who": "helper",
+        "reason": "{helper} works nights and asked for a {reminder}: one answer, 'is it my turn?'"
+      }
+    ],
+    "availability.speaker_days": [
+      {
+        "role": "coordinator",
+        "element": "org",
+        "who": "speaker",
+        "reason": "you fill her organizer on Sunday"
+      }
+    ],
+    "meds": [
+      {
+        "role": "coordinator",
+        "element": "refill",
+        "who": "speaker",
+        "reason": "{change}; the refill list shows the old dose struck through"
+      },
+      {
+        "role": "coordinator",
+        "element": "dose",
+        "who": "speaker",
+        "reason": "{n_meds} medications, morning and evening"
+      }
+    ],
+    "routine": [
+      {
+        "role": "elder",
+        "element": "tonight",
+        "reason": "she asks 'did I take them?' 2-3 nights a week: tonight's pills, read aloud"
+      }
+    ],
+    "money": [
+      {
+        "role": "helper",
+        "element": "vp",
+        "who": "helper",
+        "reason": "{handler} is the verifier: money asked in his name is checked with him first"
+      },
+      {
+        "role": "coordinator",
+        "element": "vp",
+        "who": "speaker",
+        "reason": "you are the second verifier"
+      },
+      {
+        "role": "coordinator",
+        "element": "inc",
+        "who": "speaker",
+        "reason": "every money incident reaches you"
+      }
+    ],
+    "home": [
+      {
+        "role": "elder",
+        "element": "b_help",
+        "reason": "a neighbor and the super are close by"
+      }
+    ],
+    "emergencies": [
+      {
+        "role": "elder",
+        "element": "b_call",
+        "reason": "after 911, {speaker} is first"
+      },
+      {
+        "role": "helper",
+        "element": "b_mom",
+        "who": "helper",
+        "reason": "{helper} is next in the ladder"
+      }
+    ],
+    "channels": [
+      {
+        "role": "elder",
+        "element": "b_village",
+        "reason": "phone only, Spanish: big buttons that call, no reading"
+      }
+    ],
+    "consent": [
+      {
+        "role": "coordinator",
+        "element": "tl",
+        "who": "speaker",
+        "reason": "every decision with its source, including her own rules when she says them"
+      }
+    ]
   }
- ],
- "review": {
-  "text": "Here is the draft: four people, three life areas, five needs, ten rules on, one thing pending your mom. What is wrong?"
- },
- "builds": {
-  "center": [
-   {
-    "role": "elder",
-    "element": "e911",
-    "reason": "911 first, always, on {center}'s phone"
-   },
-   {
-    "role": "elder",
-    "element": "al",
-    "reason": "one alert line {center} can read in her language"
-   },
-   {
-    "role": "coordinator",
-    "element": "areas",
-    "reason": "health, money and people came up in your first sentence"
-   },
-   {
-    "role": "coordinator",
-    "element": "al",
-    "reason": "anything urgent about {center} shows here first"
-   }
-  ],
-  "members": [
-   {
-    "role": "coordinator",
-    "element": "rota",
-    "reason": "{n_people} people share the turns; last Thursday nobody went"
-   },
-   {
-    "role": "coordinator",
-    "element": "chat",
-    "reason": "the family and Village talk here"
-   },
-   {
-    "role": "helper",
-    "element": "chat",
-    "reason": "the family and Village talk here"
-   },
-   {
-    "role": "helper",
-    "element": "al",
-    "reason": "anything urgent about {center} shows here first"
-   }
-  ],
-  "availability.helper_days": [
-   {
-    "role": "helper",
-    "element": "ans",
-    "who": "helper",
-    "reason": "{helper} works nights and asked for a {reminder}: one answer, 'is it my turn?'"
-   }
-  ],
-  "availability.speaker_days": [
-   {
-    "role": "coordinator",
-    "element": "org",
-    "who": "speaker",
-    "reason": "you fill her organizer on Sunday"
-   }
-  ],
-  "meds": [
-   {
-    "role": "coordinator",
-    "element": "refill",
-    "who": "speaker",
-    "reason": "{change}; the refill list shows the old dose struck through"
-   },
-   {
-    "role": "coordinator",
-    "element": "dose",
-    "who": "speaker",
-    "reason": "{n_meds} medications, morning and evening"
-   }
-  ],
-  "routine": [
-   {
-    "role": "elder",
-    "element": "tonight",
-    "reason": "she asks 'did I take them?' 2-3 nights a week: tonight's pills, read aloud"
-   }
-  ],
-  "money": [
-   {
-    "role": "helper",
-    "element": "vp",
-    "who": "helper",
-    "reason": "{handler} is the verifier: money asked in his name is checked with him first"
-   },
-   {
-    "role": "coordinator",
-    "element": "vp",
-    "who": "speaker",
-    "reason": "you are the second verifier"
-   },
-   {
-    "role": "coordinator",
-    "element": "inc",
-    "who": "speaker",
-    "reason": "every money incident reaches you"
-   }
-  ],
-  "home": [
-   {
-    "role": "elder",
-    "element": "b_help",
-    "reason": "a neighbor and the super are close by"
-   }
-  ],
-  "emergencies": [
-   {
-    "role": "elder",
-    "element": "b_call",
-    "reason": "after 911, {speaker} is first"
-   },
-   {
-    "role": "helper",
-    "element": "b_mom",
-    "who": "helper",
-    "reason": "{helper} is next in the ladder"
-   }
-  ],
-  "channels": [
-   {
-    "role": "elder",
-    "element": "b_village",
-    "reason": "phone only, Spanish: big buttons that call, no reading"
-   }
-  ],
-  "consent": [
-   {
-    "role": "coordinator",
-    "element": "tl",
-    "who": "speaker",
-    "reason": "every decision with its source, including her own rules when she says them"
-   }
-  ]
- }
 }
