@@ -63,6 +63,7 @@
                   "al",
                   "vp",
                   "ans",
+                  "since",
                   "refill",
                   "b_mom",
                   "chat"
@@ -102,6 +103,26 @@
                   "show_next_shift": true
                 }
               },
+              "since": {
+                "type": "Timeline",
+                "props": {
+                  "title": "Since your last turn",
+                  "bind": "timeline:subject=m_carmen",
+                  "subject": "m_carmen",
+                  "event_kinds": [
+                    "dose",
+                    "reminder",
+                    "escalation",
+                    "shift",
+                    "money_request",
+                    "verification",
+                    "incident"
+                  ],
+                  "show_superseded": false,
+                  "show_provenance": false,
+                  "limit": 3
+                }
+              },
               "refill": {
                 "type": "RefillCard",
                 "props": {
@@ -136,6 +157,10 @@
               }
             },
             "needs_served": {
+              "since": [
+                "n_turns",
+                "n_scam_calls"
+              ],
               "al": [
                 "n_safety"
               ],
@@ -243,7 +268,52 @@
                   "valid_from": "2022-01-15"
                 }
               ]
-            }
+            },
+            "timeline:subject=m_carmen": [
+              {
+                "event_id": "ev_1016_0811_dose_morning",
+                "kind": "dose",
+                "at": "2026-10-16T08:11:04-04:00",
+                "text": {
+                  "en": "Morning pills taken",
+                  "es": "Pastillas de la mañana tomadas"
+                },
+                "source": {
+                  "kind": "scan",
+                  "ref": "st_reyes_morning"
+                },
+                "source_label": {
+                  "en": "Check-in call, morning"
+                },
+                "superseded": false
+              },
+              {
+                "event_id": "ev_1012_0900_shift_1016",
+                "kind": "shift",
+                "at": "2026-10-12T09:00:00-04:00",
+                "text": {
+                  "en": "Friday: Marco on duty, Ana backup"
+                },
+                "source": {
+                  "kind": "system",
+                  "ref": "seed"
+                },
+                "superseded": false
+              },
+              {
+                "event_id": "ev_1009_1922_incident",
+                "kind": "incident",
+                "at": "2026-10-09T19:22:15-04:00",
+                "text": {
+                  "en": "Couldn't confirm a $1,500 gift-card request in Marco's name. Nothing was sent."
+                },
+                "source": {
+                  "kind": "system",
+                  "ref": "gate"
+                },
+                "superseded": false
+              }
+            ]
           },
           "now": "2026-10-16T14:01:40-04:00",
           "identity": {

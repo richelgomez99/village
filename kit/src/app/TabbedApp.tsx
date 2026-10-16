@@ -56,15 +56,16 @@ export function rightNowLines(data: Record<string, unknown>, nowMs: number, lang
   return out;
 }
 
-interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string }[] }
+interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string; mode?: string }[] }
+const MODE_WORDS: Record<string, string> = { acted_alone: "did alone", asked_human: "asked a person", refused: "refused itself" };
 
 /** rounds:latest (core-glue): three counts + rows in words. Absent = hidden. */
 export function WhatVillageDid({ data }: { data: Record<string, unknown> }) {
   const r = data["rounds:latest"] as Rounds | null | undefined;
   if (!r || typeof r !== "object") return null;
   const c = r.counts ?? {};
-  const alone = c.did_alone ?? c.alone ?? r.did_alone ?? r.alone ?? 0;
-  const asked = c.asked ?? c.asked_person ?? r.asked ?? r.asked_person ?? 0;
+  const alone = c.acted_alone ?? c.did_alone ?? c.alone ?? r.did_alone ?? r.alone ?? 0;
+  const asked = c.asked_human ?? c.asked ?? c.asked_person ?? r.asked ?? r.asked_person ?? 0;
   const refused = c.refused ?? r.refused ?? 0;
   const rows = arr<NonNullable<Rounds["rows"]>[number]>(r.rows);
   return (
@@ -76,7 +77,7 @@ export function WhatVillageDid({ data }: { data: Record<string, unknown> }) {
         <ul className="wvd-rows">
           {rows.slice(0, 6).map((row, i) => (
             <li key={i} data-test="wvd-row">
-              {row.role || row.actor ? <span className="chip chip-gray">{row.role ?? row.actor}</span> : null} {text(row.text ?? row.line ?? row.summary ?? "", "en")}
+              {row.mode || row.role || row.actor ? <span className="chip chip-gray" data-mode={row.mode}>{(row.mode && MODE_WORDS[row.mode]) ?? row.role ?? row.actor}</span> : null} {text(row.text ?? row.line ?? row.summary ?? "", "en")}
             </li>
           ))}
         </ul>
