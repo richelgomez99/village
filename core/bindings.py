@@ -5,6 +5,18 @@ from typing import Any
 from core.db import db
 
 
+def view_binds(role: str) -> set[str]:
+    if role == "control":
+        return {"*"}
+    view = db.views.get(("v_reyes", role), {})
+    binds: set[str] = set()
+    for element in view.get("elements", {}).values():
+        bind = element.get("props", {}).get("bind")
+        if bind:
+            binds.add(bind)
+    return binds
+
+
 def dose_day(subject: str = "m_carmen", *, show_med_names: bool = False) -> dict[str, Any]:
     result = {"subject": subject, "date": "2026-10-16", "slots": {}}
     for slot in ("morning", "evening"):
@@ -40,16 +52,24 @@ def rota_me(member_id: str) -> dict[str, Any]:
 
 
 def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "facts:dose_event?subject=m_carmen&valid_at=today": dose_day("m_carmen", show_med_names=role != "elder"),
-        "facts:dose_event?subject=m_carmen&valid_at=today?count": len([ev for ev in db.events if ev["kind"] == "dose"]),
-    }
-    if member_id:
+    binds = view_binds(role)
+    data: dict[str, Any] = {}
+    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=today" in binds:
+        data["facts:dose_event?subject=m_carmen&valid_at=today"] = dose_day("m_carmen", show_med_names=role != "elder")
+    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=week" in binds:
+        data["facts:dose_event?subject=m_carmen&valid_at=week"] = dose_day("m_carmen", show_med_names=role != "elder")
+    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=today?count" in binds:
+        data["facts:dose_event?subject=m_carmen&valid_at=today?count"] = len([ev for ev in db.events if ev["kind"] == "dose"])
+    if member_id and ("*" in binds or "rota:current?member=me" in binds):
         data["rota:current?member=me"] = rota_me(member_id)
     return data
 
 
 def changed(event: dict[str, Any], role: str, member_id: str | None = None) -> dict[str, Any]:
     if event["kind"] == "dose":
-        return snapshot_data(role, member_id)
+        return {
+            key: value
+            for key, value in snapshot_data(role, member_id).items()
+            if key.startswith("facts:dose_event")
+        }
     return {}

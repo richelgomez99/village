@@ -4,7 +4,7 @@ T003 · done · `uv run pytest core -q` · clock warp broadcasts to in-process W
 T004 · done · `uv run python -m core.db --apply`; `uv run pytest core/tests/test_ids.py -q` · `ids.py` done; DB uses SurrealDB Cloud when `SURREAL_DB_URL` is set and keeps the in-process mirror/fallback when URL is empty; CAS-compatible return shape implemented
 T005 · done · `uv run python -m core.tools.seed`; `uv run pytest core/tests/test_fixtures.py -q` · fixture seed resets app tables, loads Reyes spec/events/views/members, and generated member tokens; no hashed slot tokens because D22 cuts lid scans from V0
 T006 · done · `uv run pytest core/tests/test_spine.py -q` · one WebSocket hub and DB change-feed fan-out work; SurrealDB Cloud writes are mirrored, and the local asyncio feed is the fallback/live source for demo acceptance
-T007 · partial · `uv run pytest core/tests/test_spine.py -q` · V0 dose-day and rota bindings implemented; fixture-exact lid scan binding not applicable to D22 check-in path
+T007 · done · `uv run pytest core/tests/test_bindings.py -q` · V0 dose-day and rota bindings are role-aware; elder hides med names; helper receives no dose payload on D22 check-in path
 T008 · partial · `uv run pytest core/tests/test_spine.py -q` · decisions are persisted and broadcast; uses `core/gate_fallback.py` until gate lane merges
 T009 · cut · not run · `/s/{slot_token}` optional per D22 addendum; not implemented in this increment
 T010 · partial · `uv run pytest core/tests/test_spine.py -q` · HTTP action/tool path and decisions endpoint work; WS inbound actions not wired yet
