@@ -53,21 +53,28 @@ export function authorName(author: string, data: Record<string, unknown>): strin
   return memberName(author, data);
 }
 
-/** First sentence, at most ~120 characters: a proposal post is a one-liner; the reasons live on the card's "why". */
+/** First sentence; past 140 characters, cut at a word boundary and add "…". Never mid-word. */
 export function oneLine(t: string): string {
   const first = (t.split(/(?<=[.!?])\s/)[0] ?? t).trim();
-  return first.length > 120 ? `${first.slice(0, 117).trimEnd()}…` : first;
+  return clip(first, 140);
+}
+
+export function clip(t: string, max = 140): string {
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max + 1);
+  const sp = cut.lastIndexOf(" ");
+  return `${(sp > max * 0.5 ? cut.slice(0, sp) : t.slice(0, max)).replace(/[\s,;:·-]+$/, "")}…`;
 }
 
 export interface ChatRow {
   id: string; kind: string; author: string; text: string; text_i18n?: Record<string, string>;
-  refs?: { kind: string; id: string; label?: string }[]; source?: { kind: string; ref?: string }; at?: string; mention?: string | null;
+  refs?: { kind: string; id: string; label?: string }[]; source?: { kind: string; ref?: string }; source_label?: unknown; at?: string; mention?: string | null;
   /** optimistic local row (not yet confirmed by Core) */
   pending?: boolean;
 }
 
 /** Ids never reach a phone (D18/D22): rule ids, ledger ids, trace ids. A chip label that carries one falls back to plain words. */
-const ID_RE = /\b([RP]-[A-Z0-9]+(-[A-Z0-9]+)*|(ev|dc|inc|ver|prop|rel|tr|m)_[a-z0-9_]+)\b/;
+const ID_RE = /\b([RP]-[A-Z0-9]+(-[A-Z0-9]+)*|(ev|dc|inc|ver|prop|rel|tr|m)_[a-z0-9_]+)\b|[A-Za-z][:_][A-Za-z0-9]/;
 const REF_WORDS: Record<string, string> = {
   event: "what happened", decision: "Village's reasoning", fact: "what Village knows", rule: "the family's rule", member: "their choice",
   incident: "why", verification: "the check", release: "receipt", proposal: "the proposal", trace: "details"
@@ -91,11 +98,16 @@ function VillageMark() {
   return <span className="village-mark" aria-hidden="true">V</span>;
 }
 
+const RAW = /[A-Za-z][:_][A-Za-z0-9]/;
+const CALL_KINDS = new Set(["call", "phone_line", "voice"]);
 function Chips({ m }: { m: ChatRow }) {
+  const ctx = useCtx();
   const refs = (m.refs ?? []).filter((r) => !(m.kind === "proposal" && r.kind === "proposal"));
-  if (!refs.length) return null;
+  const srcLabel = m.source_label ? text(m.source_label, ctx.lang) : m.author === "village" && m.source && CALL_KINDS.has(m.source.kind) ? "from her check-in call" : "";
+  if (!refs.length && !srcLabel) return null;
   return (
     <span className="chat-chips" data-test="chat-chips">
+      {srcLabel && !RAW.test(srcLabel) ? <span className="chat-chip" data-test="chat-chip" data-ref-kind="source">{srcLabel}</span> : null}
       {refs.slice(0, 4).map((r, i) => (
         <span key={`${r.kind}-${i}`} className="chat-chip" data-test="chat-chip" data-ref-kind={r.kind}>{chipLabel(r)}</span>
       ))}
@@ -156,6 +168,16 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false }: { m
   );
 }
 
+/** Oldest first by `at` (stable for equal times; rows without a time keep their place at the end). */
+export function byTime(rows: ChatRow[]): ChatRow[] {
+  return rows.map((r, i) => [r, i] as const).sort(([a, i], [b, j]) => {
+    // a message still sending is the newest by definition (device clocks drift)
+    const ta = a.pending || !a.at ? Number.POSITIVE_INFINITY : Date.parse(a.at);
+    const tb = b.pending || !b.at ? Number.POSITIVE_INFINITY : Date.parse(b.at);
+    return ta === tb ? i - j : ta - tb;
+  }).map(([r]) => r);
+}
+
 /** POST /villages/{id}/messages as the member (contracts/openapi.yaml postMessage). Offline (fake) = local only. */
 export async function postChat(api: ApiConfig | undefined, village: string, textValue: string): Promise<ChatRow | null> {
   if (!api || api.fake || !api.token) return null;
@@ -187,7 +209,7 @@ export function VillageChat({ id, props }: CatalogProps) {
     setDraft(prefill);
   }
   const serverTexts = new Set(rows.filter((r) => r.author === ctx.memberId).map((r) => r.text));
-  const shown = [...rows, ...local.filter((l) => !serverTexts.has(l.text))].slice(-(props.limit ?? 50));
+  const shown = byTime([...rows, ...local.filter((l) => !serverTexts.has(l.text))]).slice(-(props.limit ?? 50));
   const submit = async () => {
     const t = draft.trim();
     if (!t || ctx.disabled) return;
@@ -229,7 +251,7 @@ export function ChatPreview({ chatId, onOpen }: { chatId: string; onOpen: () => 
   return (
     <Card test="chat-preview" title={el?.props.title ? <Bi value={el.props.title} /> : "Chat"}>
       <ol className="chat chat-compact">
-        {rows.slice(-2).map((m) => <ChatMessage key={m.id} m={m} elementId={chatId} allowApprove={false} compact />)}
+        {byTime(rows).slice(-2).map((m) => <ChatMessage key={m.id} m={m} elementId={chatId} allowApprove={false} compact />)}
       </ol>
       {rows.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
       <button type="button" className="btn btn-link" data-test="chat-open" onClick={onOpen}>Open chat</button>

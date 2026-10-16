@@ -104,7 +104,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
               {plan.headline && !heroFirst ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
               {homeHistory.map((id) => <Node key={id} id={id} />)}
               {has("SinceYourTurn") ? null : <SinceLastTurn data={ctx.data} lang={ctx.lang} />}
-              {has("WhatVillageDid") ? null : <WhatVillageDid data={ctx.data} />}
+              {has("WhatVillageDid") ? null : <WhatVillageDid data={ctx.data} nowMs={ctx.nowMs()} />}
               {plan.homeRest.map((id) => <Node key={id} id={id} />)}
               {plan.chat ? <ChatPreview chatId={plan.chat} onOpen={() => setTab("chat")} /> : null}
             </>

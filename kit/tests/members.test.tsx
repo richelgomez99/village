@@ -206,3 +206,33 @@ describe("1.3.2 catalog types", () => {
     expect(container.textContent).not.toMatch(/\bm_[a-z]+/);
   });
 });
+
+describe("kit-members-2 fixes", () => {
+  it("chat sorts by time; a call source reads in words", async () => {
+    const { byTime } = await import("../src/components/generic");
+    const rows = [
+      { id: "b", kind: "chat", author: "m_marco", text: "x", at: "2026-10-16T13:55:00-04:00" },
+      { id: "a", kind: "nudge", author: "village", text: "y", at: "2026-10-16T13:32:00-04:00", refs: [{ kind: "event", id: "ev_1" }], source: { kind: "call", ref: "conv_1" } }
+    ];
+    expect(byTime(rows as any).map((r) => r.id)).toEqual(["a", "b"]);
+    const { container } = renderView(R.views.helper, { "chat:village": rows }, { memberId: "m_marco" });
+    const chips = [...container.querySelectorAll("[data-test='village-chat'] [data-test='chat-chip']")].map((c) => c.textContent);
+    expect(chips).toContain("from her check-in call");
+    expect(container.querySelector("[data-test='village-chat'] [data-test='chat-row']")?.getAttribute("data-kind")).toBe("nudge");
+  });
+  it("incident provenance in words, never a raw ref", async () => {
+    const { sourceWords } = await import("../src/components/shared");
+    expect(sourceWords({ kind: "call", ref: "conv_seed_1009", secs: 21 }, "2026-10-09T19:21:40-04:00", { "member:m_carmen": { short_name: "Mamá" } }, "m_carmen")).toBe("Mamá's call · Oct 9, 7:21 PM · 21 s in");
+  });
+  it("rounds rows carry their time in words", async () => {
+    const { whenWords } = await import("../src/components/brief");
+    expect(whenWords("2026-10-15T21:40:00-04:00", Date.parse("2026-10-16T14:00:00-04:00"))).toBe("last night 9:40 PM");
+  });
+  it("an acknowledged incident is not under Needs your yes", () => {
+    const inc = { incident_id: "inc_1", type: "money_request", severity: "high", status: "acked", title: "Scam call", summary: "Nothing sent", at: "2026-10-16T14:02:00-04:00", provenance: [] };
+    const ctx: RenderCtx = { ...defaultCtx, view: viewSchema.parse(R.views.coordinator), data: { ...areasData(R), "incidents:open": [inc] }, lang: "en" };
+    const { container } = render(<TabbedApp ctx={ctx} />);
+    expect(container.querySelector("[data-test='needs-your-yes']")?.hasAttribute("hidden")).toBe(true);
+    expect(container.querySelector("[data-test='tab-money'] [data-test='incident-card']")).not.toBeNull();
+  });
+});

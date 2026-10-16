@@ -33,7 +33,8 @@ describe("family-phone copy (DEMO-NOTES)", () => {
     expect(post.textContent).not.toContain("Options weighed");
     expect(container.querySelector("[data-test='chat-proposal-approve']")).not.toBeNull();
     expect(container.querySelector("[data-test='proposal'] [data-test='pb-changes']")?.textContent).toContain("Village answers unknown callers first");
-    expect(oneLine("x".repeat(200))).toHaveLength(118);
+    expect(oneLine("x".repeat(200))).toHaveLength(141); // 140 + "…" (no word boundary to cut at)
+    expect(oneLine(`${"word ".repeat(40)}end`)).toMatch(/word…$/); // never mid-word
   });
 
   it("family phones show no rule ids; life areas are plain words", async () => {
