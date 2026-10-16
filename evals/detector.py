@@ -1,7 +1,7 @@
 """Evolve detector: repeat money requests in one member's name -> Proposal evidence.
 
 detect_patterns(village_id, events) finds >= 2 money_request rows claiming the same
-member within 7 days and returns one pattern per (subject, claimed member) with
+member within 14 days and returns one pattern per (subject, claimed member) with
 `evidence` rows shaped per contracts/schemas/proposal.schema.json#/$defs/evidence:
 call_moment ('<conversation_id>@<secs>'), trace (32-hex Arize trace id, with the
 session eval label when known) and fact ('fact:money_request:<subject>:<date>').

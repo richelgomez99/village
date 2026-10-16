@@ -1,4 +1,4 @@
-"""Watcher trigger (D13/D19): the 2nd money_request claiming the same member within 7 days -> detector ->
+"""Watcher trigger (D13/D19): the 2nd money_request claiming the same member within 14 days -> detector ->
 consider_options -> propose. Fires from the verification resolution path (services port) or from
 POST /villages/{id}/evolve/trigger (control token, demo)."""
 from __future__ import annotations
@@ -54,7 +54,7 @@ def _forced_pattern(village_id: str) -> dict[str, Any] | None:
         evidence.extend(evidence_for(e, today=today, session_labels=_labels()))
     name = villages.first_name(village_id, claimed)
     return {"pattern": "repeat_money_request", "village": village_id, "subject": evs[0]["payload"].get("subject"),
-            "claimed_member_id": claimed, "count": len(evs), "window_days": 7, "event_ids": [e["id"] for e in evs],
+            "claimed_member_id": claimed, "count": len(evs), "window_days": 14, "event_ids": [e["id"] for e in evs],
             "detected_by": "arize_eval" if any("eval" in r for r in evidence) else "memory_pattern",
             "text": f"{len(evs)} money request{'s' if len(evs) != 1 else ''} in {name}'s name on record (demo trigger).",
             "evidence": evidence[:12]}
@@ -70,7 +70,7 @@ async def run(village_id: str, *, force: bool = False, source: str = "watcher") 
     pats = patterns(village_id)
     pattern = pats[0] if pats else (_forced_pattern(village_id) if force else None)
     if pattern is None:
-        return {"skipped": "no pattern (needs 2 money requests in one member's name within 7 days)"}
+        return {"skipped": "no pattern (needs 2 money requests in one member's name within 14 days)"}
     key = f"{pattern.get('pattern', 'manual')}:{pattern.get('subject')}:{pattern.get('claimed_member_id')}"
     existing = find_active(village_id, key)
     if existing is not None:
