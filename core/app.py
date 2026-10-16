@@ -139,6 +139,20 @@ for _module in LANE_ROUTER_MODULES:
         app.include_router(_lane_router)
     LANE_ROUTERS[_module] = "included"
 
+# Voice lane modules ship standalone FastAPI apps; graft their webhook/outbound routes onto Core (same paths ElevenLabs is configured with).
+for _vm, _prefixes in (("core.voice.init_hook", ("/hooks/",)), ("core.voice.post_call", ("/hooks/",)), ("core.voice.outbound", ("/calls/",))):
+    try:
+        _vmod = importlib.import_module(_vm)
+    except Exception as _exc:  # pragma: no cover
+        log.warning("voice module %s not grafted: %s", _vm, _exc)
+        continue
+    _vapp = getattr(_vmod, "app", None)
+    for _route in getattr(_vapp, "routes", []):
+        _path = getattr(_route, "path", "")
+        if _path.startswith(_prefixes) and not any(getattr(r, "path", None) == _path for r in app.router.routes):
+            app.router.routes.append(_route)
+    LANE_ROUTERS[_vm] = "grafted"
+
 # Serve the built kit (kit/dist) at / after all API routes. Vite base is './' so assets resolve relative to each entry.
 _dist = _Path(__file__).resolve().parent.parent / "kit" / "dist"
 if _dist.is_dir():
