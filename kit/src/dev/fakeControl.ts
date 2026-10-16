@@ -31,22 +31,22 @@ export interface FoundingTurn { said: string; know: string; ask?: string; covere
 
 /** docs/FOUNDING-INTAKE.md §2 A0–A12, one answer every ~5 s: what Ana says → what Village now knows → what it does → what it will build. */
 const REYES_TURNS: FoundingTurn[] = [
-  { said: "Mom's seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going.",
-    know: "Carmen, 78, alone in Queens · health, money, people.", ask: "Who else is in this besides you and Marco, and where does everyone live relative to your mom?", covered: 1, people: ["m_carmen", "m_ana", "m_marco"], areas: true,
+  { said: "It's my mom, Carmen. She's 78 and lives on her own in Queens. I'm scared about three things. She gets her pills mixed up. Last week someone called her pretending to be my brother Marco and she almost sent him money. And last Thursday nobody went to see her, because Marco and I each thought the other one was going.",
+    know: "Carmen, 78, alone in Queens · health, money, people.", ask: "I'm sorry, Ana. Let's start with the people. Who else is in this besides you and Marco, and how far is each of you from her?", covered: 1, people: ["m_carmen", "m_ana", "m_marco"], areas: true,
     build: [{ person: "Carmen", component: "Alert card", reason: "a scam call already reached her", role: "elder", el: "al" }] },
-  { said: "Marco and me, and our sister Lucía in New Jersey. Marco's in Astoria, ten minutes from Mom. I'm in Brooklyn, forty minutes. Lucía does the refills and the insurance calls.",
-    know: "4 people · Marco is 10 minutes away · Lucía handles refills and insurance.", ask: "What is Marco's week like? When can he actually be there?", covered: 2, people: ["m_carmen", "m_ana", "m_marco", "m_lucia"],
+  { said: "Just the three of us. Marco's in Astoria, ten minutes from her. I'm in Brooklyn, about forty. Our sister Lucía is in New Jersey, she can't get there fast but she does the refills and all the insurance calls.",
+    know: "4 people · Marco is 10 minutes away · Lucía handles refills and insurance.", ask: "Marco first, since he's closest. What's his week like? When can he actually be there?", covered: 2, people: ["m_carmen", "m_ana", "m_marco", "m_lucia"],
     build: [{ person: "Carmen", component: "Tonight card", reason: "nobody knew whose night it was", role: "elder", el: "tonight" }] },
-  { said: "He works nights. Sunday to Thursday he has to leave by nine-thirty. He can do Tuesday, Thursday, Friday and Saturday evenings. He wants a text at three on his days.",
-    know: "Marco: Tue · Thu · Fri · Sat evenings, leaves 9:30.", ask: "And you?", covered: 2,
+  { said: "He works nights. Sunday through Thursday he has to leave the house by 9:30. He can do Tuesday, Thursday, Friday and Saturday evenings. He forgets, so he wants a text around 3 on his days.",
+    know: "Marco: Tue · Thu · Fri · Sat evenings, leaves 9:30.", ask: "And you? Which nights are yours, and what do you already do for her?", covered: 2,
     rows: [{ id: "consent_marco", what: "Calling Marco: confirm Tue/Thu/Fri/Sat, may Village call him?", doneWhat: "Called Marco", result: "confirmed Tue/Thu/Fri/Sat · yes to calls", doneInTurn: 5 }],
     build: [{ person: "Marco", component: "\"Is it my turn?\" answer", reason: "he only needs to know if tonight is his", role: "helper", el: "ans" }] },
-  { said: "Monday, Wednesday, Sunday, after four. I do all the doctor visits. Sunday lunch is at Mom's and I fill her pill organizer then.",
-    know: "Ana: Mon · Wed · Sun after 4, doctor visits.", ask: "Her pills: what does she take, and who prescribed them?", covered: 3,
+  { said: "Monday, Wednesday and Sunday, after four. I do all the doctor visits. Sunday lunch is at Mom's, and I fill her pill organizer while I'm there.",
+    know: "Ana: Mon · Wed · Sun after 4, doctor visits.", ask: "Her pills. What does she take, and who prescribed them?", covered: 3,
     rows: [{ id: "rota", what: "Rota coverage check: every night of the week", result: "every night has a name · Thursday is Marco", doneAfter: 900 }],
     build: [{ person: "Ana", component: "Rota for the week", reason: "every night has a name now", role: "coordinator", el: "rota" }] },
-  { said: "Eliquis morning and night. Lisinopril in the morning, which Dr. Park just doubled to ten milligrams on the third. Metformin twice a day. Atorvastatin at night. The old lisinopril bottle is still in her cabinet, that scares me.",
-    know: "4 medications · lisinopril 10 mg since Oct 3 (was 5 mg, Dr. Park) · old bottle in the cabinet.", ask: "How does she take them, and what happens on the nights she isn't sure?", covered: 4,
+  { said: "Eliquis morning and night. Lisinopril in the morning, and Dr. Park just doubled that to 10 mg on the 3rd. Metformin twice a day. Atorvastatin at night. The old 5 mg lisinopril bottle is still in her cabinet. That one scares me.",
+    know: "4 medications · lisinopril 10 mg since Oct 3 (was 5 mg, Dr. Park) · old bottle in the cabinet.", ask: "How does she take them day to day, and what happens on the nights she isn't sure?", covered: 4,
     rows: [
       { id: "dm_apixaban", what: "DailyMed: apixaban", result: "high-alert · bleeding", doneAfter: 1100 },
       { id: "dm_lisinopril", what: "DailyMed: lisinopril", result: "no interaction flagged", doneAfter: 1500 },
@@ -57,36 +57,36 @@ const REYES_TURNS: FoundingTurn[] = [
       { person: "Marco", component: "Refill checklist", reason: "he fills the organizer on refill day", role: "helper", el: "refill" },
       { person: "Ana", component: "Refill checklist", reason: "the old 5 mg bottle is still in the cabinet", role: "coordinator", el: "refill" }
     ] },
-  { said: "Weekly organizer, yellow lid for morning, blue lid for evening. Two or three nights a week she calls me asking if she took them. Once she took them twice.",
-    know: "weekly organizer, morning and evening · 3 dose rules on (never says how many).", ask: "Money. Tell me about the call last week.", covered: 5, rules: 3,
+  { said: "A weekly organizer. Yellow lid is morning, blue lid is evening. Two or three nights a week she calls me asking if she already took them. Once she took them twice.",
+    know: "weekly organizer, morning and evening · 3 dose rules on (never says how many).", ask: "Thank you. Now the money. Tell me about the call last week.", covered: 5, rules: 3,
     build: [
       { person: "Ana", component: "Pills today", reason: "Mamá calls her asking \"did I take them?\"", role: "coordinator", el: "dose" },
       { person: "Ana", component: "Pill organizer", reason: "morning and evening compartments", role: "coordinator", el: "org" }
     ] },
-  { said: "Someone called saying he was Marco, crying, in trouble, needed fifteen hundred dollars in gift cards. Marco handles her money stuff with her.",
-    know: "money asked in a family name gets checked with that person first · verifier Marco, then Ana.", ask: "Pick a word only the family knows. Every real call from Village says it.", covered: 6, rules: 9,
+  { said: "A man called saying he was Marco. Crying, in trouble, he needed $1,500 in gift cards right away. She was on her way to the store when she called me. Marco is the one who handles her money with her.",
+    know: "money asked in a family name gets checked with that person first · verifier Marco, then Ana.", ask: "Then money asked for in a family name gets checked with that person first, Marco, then you. Pick a word only your family knows. Every real call from Village will say it.", covered: 6, rules: 9,
     build: [
       { person: "Marco", component: "Money check prompt", reason: "money asked in his name gets checked with him", role: "helper", el: "vp" },
       { person: "Ana", component: "Incidents card", reason: "she hears about every money call", role: "coordinator", el: "inc" }
     ] },
-  { said: "Pavo. Thanksgiving is at her place and Marco always brings the turkey.", know: "family word set (never shown on screen).", ask: "Her day and her home: what does a normal day look like, and is anyone nearby?", covered: 7 },
-  { said: "911, then me, then Marco. Elmhurst Hospital.", know: "911 first · then Ana, then Marco · Elmhurst Hospital.", ask: "Her phone and her language: what will she actually use?", covered: 8,
+  { said: "Pavo. Thanksgiving is always at her place and Marco always brings the turkey.", know: "family word set (never shown on screen).", ask: "If something goes really wrong, who gets called, in what order, and which hospital?", covered: 7 },
+  { said: "911 first. Then me, then Marco. Elmhurst Hospital, it's the closest.", know: "911 first · then Ana, then Marco · Elmhurst Hospital.", ask: "And your mom herself. What language, what phone, and what will she actually use?", covered: 8,
     build: [{ person: "Carmen", component: "911 button", reason: "911 first, always", role: "elder", el: "e911" }] },
-  { said: "Spanish only. A regular phone, she won't use apps. Big letters if anything. She'll answer a call; she won't read a text.",
-    know: "Carmen: phone line, Spanish, big letters, read aloud.", ask: "When is your mom sharpest, for Village's welcome call?", covered: 9,
+  { said: "Spanish only. A regular phone, she won't use apps. If there's anything on a screen it has to be big letters. She'll answer a call. She won't read a text.",
+    know: "Carmen: phone line, Spanish, big letters, read aloud.", ask: "When is she sharpest? I'd like to call her once to introduce myself, in Spanish, with you there if you want.", covered: 9,
     build: [
       { person: "Carmen", component: "\"Llamar a Village\" button", reason: "she answers calls, not texts", role: "elder", el: "b_village" },
       { person: "Carmen", component: "\"Llamar a Ana\" button", reason: "one tap to her daughter", role: "elder", el: "b_call" },
       { person: "Carmen", component: "\"Necesito ayuda\" button", reason: "help without reading", role: "elder", el: "b_help" },
       { person: "Marco", component: "Call Mamá button", reason: "one tap from his phone", role: "helper", el: "b_mom" }
     ] },
-  { said: "After lunch, around one-thirty. And she hates calls at night.", know: "welcome call at 13:30 · quiet hours pending her own words.", ask: "Here is the draft: four people, three life areas, five needs, ten rules on, one thing pending your mom. What is wrong?", covered: 10,
+  { said: "After lunch, around 1:30. And please, no calls at night, she hates that.", know: "welcome call at 13:30 · quiet hours pending her own words.", ask: "Here's the draft: four people, three life areas, five needs, ten rules on, and one thing I still need from your mom in her own words. Tell me what's wrong before anything goes out.", covered: 10,
     rows: [{ id: "draft", what: "Drafting 3 apps, a refill checklist, a fridge card, a Spanish phone line", doneWhat: "Drafted 3 apps, a refill checklist, a fridge card, a Spanish phone line", result: "nothing sent until Ana says “send the invites”", doneAfter: 2400 }],
     build: [
       { person: "Ana", component: "Her village (life areas)", reason: "health, money, people", role: "coordinator", el: "areas" },
       { person: "Ana", component: "What happened", reason: "every change, with its source", role: "coordinator", el: "tl" }
     ] },
-  { said: "Lucía should see the refill list too, she does the ordering. Send the invites.", know: "Lucía gets the refill checklist · invites ready.", covered: 10 }
+  { said: "Lucía should see the refill list too, she does the ordering. Otherwise yes. Send the invites.", know: "Lucía gets the refill checklist · invites ready.", covered: 10 }
 ];
 
 const BLOCK_TURNS: FoundingTurn[] = [

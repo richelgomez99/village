@@ -90,7 +90,7 @@
 </section>
 
 </div>
-<div class="stage wide" id="stage"><span class="tag" id="tag"></span><iframe id="frame" title="Village live" allow="autoplay"></iframe></div>
+<div class="stage wide" id="stage"><span class="tag"><span id="tag"></span> · <a id="pop" href="#" target="_blank" style="color:#8fd0b4">open in its own window ↗</a> · click inside to drive it, click a slide to come back</span><iframe id="frame" title="Village live" allow="autoplay"></iframe></div>
 </div>
 <div class="foot"><span id="pos"></span><span>← → · F fullscreen · L hide slides · R reload frame</span></div>
 <script>
@@ -98,7 +98,7 @@
   const frame=document.getElementById('frame'), stage=document.getElementById('stage'), tag=document.getElementById('tag');
   function show(n){ slides.forEach((s,k)=>s.classList.toggle('on',k===n)); i=n; location.hash=n; document.getElementById('pos').textContent=(n+1)+' / '+slides.length;
     const sec=slides[n], src=sec.dataset.frame||''; stage.className='stage '+(sec.dataset.mode||'wide'); tag.textContent=sec.dataset.tag||'';
-    if (src && frame.getAttribute('src')!==src) frame.setAttribute('src', src); }
+    if (src && frame.getAttribute('src')!==src) frame.setAttribute('src', src); document.getElementById('pop').href=src||'#'; }
   addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(Math.min(i+1,slides.length-1)); else if(e.key==='ArrowLeft'||e.key==='PageUp') show(Math.max(i-1,0)); else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); else if(e.key==='l'||e.key==='L') document.getElementById('wrap').classList.toggle('solo'); else if(e.key==='r'||e.key==='R') frame.setAttribute('src', frame.getAttribute('src')); });
   document.querySelector('.deck').addEventListener('click',e=>{ const r=e.currentTarget.getBoundingClientRect(); if(e.clientX-r.left>r.width/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
   show(i);

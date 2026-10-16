@@ -539,7 +539,7 @@
     "speaker": "m_ana",
     "language": "en",
     "approx_words": 31,
-    "text": "Mom's seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going.",
+    "text": "It's my mom, Carmen. She's 78 and lives on her own in Queens. I'm scared about three things. She gets her pills mixed up. Last week someone called her pretending to be my brother Marco and she almost sent him money. And last Thursday nobody went to see her, because Marco and I each thought the other one was going.",
     "life_areas_expected": {
       "health": "pills (n_evening_pills)",
       "money": "scam calls in Marco's name (n_scam_calls → verify with Marco)",
