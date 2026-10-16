@@ -468,3 +468,32 @@ Village on reconnect · done · village.patch "learns the village…" + "persist
 Patch per role · done · village.patch "approve → release → patch" · Core's receptionist ops (copied from `core/evolve/proposals.py build_ops`) apply on the elder (Text at index 1) and helper (Text + Timeline) at `base_rev`, flash NEW from `highlight`, no reconnect, unknown-types=0 / invalid-props=0; a patch for another role or a stale `base_rev` is not applied and the client re-hellos with `last_rev` for a fresh snapshot
 LD-17: a role-mismatched patch triggers a resync (re-hello) instead of being applied or silently skipped, so the rev never drifts.
 
+
+## ana-view
+READY FOR MERGE ANA-VIEW
+- Contract fixture `reyes_spec.json` (still rev 5): coordinator view gets `prop` (Proposal, bind `proposals:pending`, allow_approve/show_evidence/show_release_status, title "Village proposes a change · needs your yes") right after `al`, and `chat` (VillageChat, composer, allow_approve true) at the end; helper view gets `chat` (allow_approve false). Chat props/needs match `core/builder/mapping.ensure_chat` (title "Village chat", `@Village`, limit 50, `n_safety`). `title` is a single-language `label` in the schema, so only the English string fits (the view's lang is en). `ws_sequence_scam.json` connect snapshot updated to the new helper view. `validate.py`: `OK contract 1.2.1: 13 schemas, 30 examples, 7 fixtures, openapi 3.1.0 with 33 paths`.
+- Ana's screen now has 11 children (the schema max is 12), so the receptionist proposal's ops skip the extra "Calls Village screened" Timeline when a screen would go past 12 (`MAX_CHILDREN` in `core/evolve/proposals.py`). Ana gets only the receptionist card; she already has the full Timeline.
+- Core: `bindings.proposals_pending()` returns `[bv_proposal]` for proposed|ready|verifying proposals (title, localized changes, evidence labels, status, release_id). It is in the snapshot for every role that binds it (coordinator, control). `Hub.push_proposals()` runs from `proposals._announce`, which fires on create, approve, reject, apply, fail and undo. It sends an `event` frame (a spec_patch_proposed row that is not persisted) with `data["proposals:pending"]` to those sockets.
+- Kit: `Proposal` already matched (`action{name:"approve_proposal", arg: proposal_id}`, the same as `core/evolve/proposals.handle_action`). `VillageChat` now shows inline Approve · Not now on `kind: proposal` posts (it takes the proposal id from refs). The buttons only appear with `allow_approve` and while the proposal is still in proposals:pending. It also renders `text_i18n[lang]`. There is still no composer UI (the kit has no client for POST /messages).
+- Tests: pytest 344 passed (new `test_ana_proposal_card_live_and_ws_approve`); kit vitest 74 passed (new `tests/ana.proposal.test.tsx`); `npm run build` ok.
+
+E2E on a separate Core at :8796 (`SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off VILLAGE_EVOLVE_RELEASE=fake`), control frames omitted:
+```
+ana     <- {"type": "snapshot", "rev": 5, "role": "coordinator", "has_prop": true, "proposals:pending": []}
+carmen  <- {"type": "snapshot", "rev": 5, "role": "elder", "has_prop": false, "proposals:pending": "<not bound>"}
+marco   <- {"type": "snapshot", "rev": 5, "role": "helper", "has_prop": false, "proposals:pending": "<not bound>"}
+HTTP    -> POST /villages/v_reyes/evolve/trigger (Bearer control) -> prop_reyes_receptionist_1 status=proposed
+ana     <- {"type": "event", "kind": "spec_patch_proposed", "id": "ev_prop_reyes_receptionist_1_proposed", "data": {"proposals:pending": [{"proposal_id": "prop_reyes_receptionist_1", "title": {"en": "Village answers unknown callers for Mamá", "es": "Village contesta a desconocidos por Mamá"}, "changes": [{"en": "+ Village answers unknown callers on Mamá's line first; family rings straight through", "es": "+ Village contesta primero a desconocidos en la línea de Mamá; la familia entra directo"}, {"en": "+ “Village answers unknown calls first” card for the coordinator"}, {"en": "+ “Village answers unknown calls first” card for the helper"}, {"en": "+ New fridge card: family word first", "es": "+ Tarjeta nueva: la palabra de la familia primero"}], "evidence_labels": ["Oct 9 · call at 0:21 · “Marco” asked for $1,500 in gift cards", "Arize trace of the 2026-10-09 call", "Fact: money_request claimed_member=m_marco (src=call:conv_seed_1009, secs=21)"], "status": "proposed"}]}}
+ana     -> {"type": "action", "req_id": "rq_e2e_approve_1", "name": "approve_proposal", "arg": "prop_reyes_receptionist_1"}
+ana     <- {"type": "chat", "kind": "proposal", "text": "Village proposes a change · needs your yes. Village answers unknown ca…"}
+marco   <- {"type": "chat", "kind": "proposal", "text": "Village proposes a change · needs your yes. Village answers unknown ca…"}
+ana     <- {"type": "event", "kind": "spec_patch_proposed", "id": "ev_prop_reyes_receptionist_1_verifying", "data": {"proposals:pending": [{… same card …, "status": "verifying", "release_id": "rel_reyes_r6"}]}}
+ana     <- {"type": "result", "req_id": "rq_e2e_approve_1", "ok": true, "decision": {"decision": "allow", "data": {"proposal_id": "prop_reyes_receptionist_1", "status": "verifying"}}}
+ana     <- {"type": "patch", "role": "coordinator", "base_rev": 5, "rev": 6, "proposal_id": "prop_reyes_receptionist_1", "highlight": ["receptionist"]}
+carmen  <- {"type": "patch", "role": "elder", "base_rev": 5, "rev": 6, "proposal_id": "prop_reyes_receptionist_1", "highlight": ["receptionist"]}
+marco   <- {"type": "patch", "role": "helper", "base_rev": 5, "rev": 6, "proposal_id": "prop_reyes_receptionist_1", "highlight": ["receptionist", "screened"]}
+ana     <- {"type": "event", "kind": "spec_patch_proposed", "id": "ev_prop_reyes_receptionist_1_applied", "data": {"proposals:pending": []}}
+ana     <- {"type": "chat", "kind": "receipt", "text": "Done. Village answers unknown callers for Mamá (rev 6). Built in a san…"}
+HTTP    -> GET /villages/v_reyes/proposals -> [["prop_reyes_receptionist_1", "applied", 6]]
+```
+After merge: restart the live Core, then reset the demo so the new rev-5 views are loaded (`scripts/reset_demo.sh`, or whatever reloads `reyes_spec.json` into the store). The proposal that is live now was built against the old coordinator view (9 children). If you re-applied it to the new view, Ana's screen would reach 13 children and fail validation, so drop it and run `POST /villages/v_reyes/evolve/trigger` (Bearer control) again. Rebuild `kit/dist` (`cd kit && npm run build`) if that Core serves the kit.
