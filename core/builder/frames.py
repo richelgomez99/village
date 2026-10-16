@@ -18,8 +18,10 @@ def hhmm() -> str:
     return now_iso()[11:16]
 
 
-def reasoning(village: str, text: str, kind: str = "note", trace_id: str | None = None) -> dict[str, Any]:
-    payload: dict[str, Any] = {"source": "builder", "kind": kind, "text": text[:400], "village": village}
+def reasoning(village: str, text: str, kind: str = "note", trace_id: str | None = None, *, source: str = "builder", mode: str | None = None) -> dict[str, Any]:
+    payload: dict[str, Any] = {"source": source, "kind": kind, "text": text[:400], "village": village}
+    if mode:
+        payload["mode"] = mode
     if trace_id:
         payload["trace_id"] = trace_id
     return {"type": "control", "kind": "reasoning", "payload": payload, "at": now_iso()}
@@ -42,3 +44,31 @@ def blueprint(village: str, stage: str, items: list[dict[str, Any]], trace_id: s
 def ledger_line(status: str, what: str, result: str) -> str:
     """D23 #4 ledger row: `time · status · what · result`."""
     return f"{hhmm()} · {status} · {what} · {result}"
+
+
+def ledger(
+    village: str,
+    row_id: str,
+    status: str,
+    what: str,
+    result: str | None = None,
+    *,
+    role: str = "founder",
+    mode: str | None = "acted_alone",
+    trace_id: str | None = None,
+    elapsed_ms: int | None = None,
+    decision_id: str | None = None,
+) -> dict[str, Any]:
+    """1.2.1 ledger row; re-sent with the same id to move queued/running → done|fallback."""
+    payload: dict[str, Any] = {"id": row_id, "at": now_iso(), "status": status, "what": what[:200], "role": role, "village": village}
+    if result:
+        payload["result"] = result[:400]
+    if mode:
+        payload["mode"] = mode
+    if trace_id:
+        payload["trace_id"] = trace_id
+    if elapsed_ms is not None:
+        payload["elapsed_ms"] = max(0, int(elapsed_ms))
+    if decision_id:
+        payload["decision_id"] = decision_id
+    return {"type": "control", "kind": "ledger", "payload": payload, "at": payload["at"]}
