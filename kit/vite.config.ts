@@ -17,7 +17,9 @@ export default defineConfig({
           /^\/villages/,
           /^\/auth/,
           /^\/tools/,
-          /^\/hooks/
+          /^\/hooks/,
+          /^\/slides\.html/,
+          /^\/control\.html/
         ]
       },
       manifest: {
