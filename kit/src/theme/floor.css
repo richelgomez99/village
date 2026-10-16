@@ -278,7 +278,12 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .chat-meta { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); }
 .chat-time { font-size: 12px; color: var(--ink2); }
 .chat-bubble { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: var(--gray-soft); font-size: 16px; line-height: 1.35; }
-.chat-mine .chat-bubble { background: var(--blue-soft); }
+/* sent ("mine") bubble: both colors token-driven, set per theme below; contrast >= 7:1 on every theme */
+.app { --chat-mine-bg: #E3ECF8; --chat-mine-fg: #14243A; }
+.app[data-theme="dashboard"] { --chat-mine-bg: #1F2A37; --chat-mine-fg: #FFFFFF; }
+.app[data-theme="elder"] { --chat-mine-bg: #E3ECF8; --chat-mine-fg: #1F1A15; }
+.app .chat-mine .chat-bubble { background: var(--chat-mine-bg); color: var(--chat-mine-fg); }
+.app .chat-mine .chat-bubble :is(.chat-text, .chat-en, .chat-quote, .chat-proposal-line, .chat-ask-status, .muted, .small, a) { color: inherit; }
 .chat-village .chat-bubble { background: var(--sage-soft); border: 1px solid var(--sage); }
 .chat-relayed .chat-bubble { background: var(--amber-soft); border: 1px solid var(--amber-ink); }
 .chat-quote { font-style: italic; color: var(--amber-ink); }

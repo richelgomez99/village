@@ -622,10 +622,10 @@
             "al",
             "st",
             "plan",
+            "vf",
             "areas",
             "nb",
             "rb",
-            "vf",
             "ci",
             "cl",
             "src",
@@ -879,9 +879,9 @@
           "children": [
             "al",
             "ci",
+            "e911",
             "vf",
-            "chat",
-            "e911"
+            "chat"
           ]
         },
         "al": {
@@ -985,8 +985,8 @@
           },
           "children": [
             "al",
-            "nb",
             "plan",
+            "nb",
             "rb",
             "chat",
             "e911"
