@@ -40,7 +40,7 @@ T005 · done · `uv run pytest core/voice/tests/test_mock_core.py -q` · mocked:
 T006 · consumed · merged from core on main; voice imports core.services lazily and falls back to fixture stubs when a service is missing
 T010 · done · `uv run pytest core/voice/tests/test_tools.py -q` · mocked: fixture fallback for exact scam variants; real core delegation covered by test
 T011 · done · `uv run pytest core/voice/tests/test_init_hook.py -q` · mocked: call rows kept in in-memory voice-call log
-T012 · pending · outbound calls use FakeDialer in tests; live dialing blocked by Twilio geo-permissions until operator fixes
+T012 · done · `uv run pytest core/voice/tests/test_outbound.py -q` · mocked: FakeDialer; live outbound remains blocked by Twilio geo-permissions
 T014 · pending · post-call HMAC next
 T013/T015 · core-owned · merged core has verification persistence/idempotency; remaining WS prompt/incident binding is core acceptance surface
 LD-1: Live ElevenLabs agent, tool, and procedure operations remain dry-run despite credentials being present.
