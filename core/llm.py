@@ -1,3 +1,4 @@
+import logging
 from __future__ import annotations
 
 import os
@@ -51,7 +52,13 @@ def llm(role: str = "default"):
             return direct
     if settings.bedrock_sonnet_model or settings.bedrock_haiku_model:
         model = (settings.bedrock_haiku_model or settings.bedrock_sonnet_model) if role in HAIKU_ROLES else (settings.bedrock_sonnet_model or settings.bedrock_haiku_model)
-        client = anthropic.AnthropicBedrockMantle()
+        region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-west-2"
+        try:
+            client = anthropic.AnthropicBedrockMantle(aws_region=region)
+        except Exception as exc:  # never let a client-construction error take down a request
+            logging.getLogger(__name__).warning("bedrock client unavailable: %s", exc)
+            direct = _anthropic_client(settings)
+            return direct if direct is not None else OffClient(role=role)
         client.village_model = model
         client.village_provider = "bedrock"
         return client

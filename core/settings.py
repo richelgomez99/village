@@ -3,6 +3,10 @@ from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+
+# Put .env into os.environ (without overriding real env) so SDKs that read AWS_*/ARIZE_* directly see them.
+load_dotenv(override=False)
 
 
 ROOT = Path(__file__).resolve().parents[1]
