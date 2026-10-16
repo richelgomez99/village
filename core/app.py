@@ -32,6 +32,7 @@ LANE_ROUTER_MODULES = (
     "core.release.routes",
     "core.memory.routes",
     "core.watcher.routes",
+    "core.routes.proposals",
 )
 LANE_ROUTERS: dict[str, str] = {}
 
