@@ -41,7 +41,7 @@ Older people want to stay in their own homes. What ends that is rarely one big e
 - **Money rules.** Village never moves money or handles account numbers. A money request in a family member's name is checked with that person through a channel the caller doesn't control. No answer means "don't send," and Ana is told. A caller who isn't in the family is treated as unverified. Village only calls people who agreed to be called.
 - **Verification state machine.** Pending, confirmed, denied, timed out, late answers, duplicate answers, restarts: each has a test.
 - **Live family state.** A check-in goes tool call → gate → SurrealDB Cloud → change feed → every connected phone over WebSocket.
-- **Prescription history.** Marco's refill view shows lisinopril went from 5 mg to 10 mg on Oct 3 (Dr. Lee), with the old dose kept as history, not overwritten.
+- **Prescription history.** Marco's refill view shows lisinopril went from 5 mg to 10 mg on Oct 3 (Dr. Park), with the old dose kept as history, not overwritten.
 
 ### How we built it
 - **Core:** Python 3.13, FastAPI, one process. The gate (`core/gate/`) is pure Python with no model calls and no network.

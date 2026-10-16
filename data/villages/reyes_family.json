@@ -217,7 +217,7 @@
       "organizer_slot": null,
       "valid_from": "2025-11-20",
       "valid_until": null,
-      "prescriber": "Dr. Lee",
+      "prescriber": "Dr. Park",
       "high_alert": true,
       "high_alert_note": "Anticoagulant: on ISMP high-alert list; double dose raises bleeding risk. Village never advises; it blocks re-logging and escalates."
     },
