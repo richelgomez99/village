@@ -33,3 +33,8 @@ describe("Your turn: Done / Can't", () => {
     expect(container.querySelector("[data-test='turn-done']")).not.toBeNull();
   });
 });
+describe("only plan-shaped items", () => {
+  it("a prescription's items are not suggestions", () => {
+    expect(helpSuggestions({ "prescriptions:current": { items: [{ med_id: "m1", name: "lisinopril" }] } }, "m_marco", NOW)).toEqual([]);
+  });
+});

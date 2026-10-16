@@ -298,7 +298,7 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false, rows 
           }
           return <span className="chat-ask-status small muted" data-test="ask-status">{ans ? `${ctx.memberId === ask.addressee ? "You" : name}: ${ans === "yes" ? "can do" : "can't"}` : `waiting for ${name}…`}</span>;
         })() : null}
-        {pid && !compact && !(allowApprove && open && canDecide(ctx, prop as never)) ? (
+        {pid && !(open && canDecide(ctx, prop as never)) ? (
           <span className="chat-ask-status small muted" data-test="proposal-status">{proposalStatusLine(pid, rows, ctx.data, prop as never)}</span>
         ) : null}
         {allowApprove && pid && open && !compact && canDecide(ctx, prop as never) ? (

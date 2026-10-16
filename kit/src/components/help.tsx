@@ -19,6 +19,7 @@ export function helpSuggestions(data: Record<string, unknown>, me: string | null
   for (const [key, v] of Object.entries(data)) {
     const items = arr<{ id?: string; item_id?: string; text: unknown; owner?: string | null; status?: string; kind?: string; when?: string; remote?: boolean }>((v as { items?: unknown } | null)?.items);
     for (const it of items) {
+      if (it.text == null || !("status" in it || "owner" in it)) continue; // plan items only (a prescription's meds are not)
       if (it.owner || (it.status && it.status !== "open")) continue;
       if (opts.remoteOnly && (it.remote === false || (it.kind && ON_SITE.has(it.kind) && it.remote !== true))) continue;
       const id = it.id ?? it.item_id;
