@@ -216,10 +216,14 @@ class MemoryClient:
             return {"degraded": True, "degraded_reason": r.get("degraded_reason"), "status": r["status"]}
         return {"degraded": False, "status": r["status"], "data": r["data"]}
 
-    async def query(self, text: str, as_of: Any = None, *, village: str | None = None, k: int = 5) -> dict[str, Any]:
+    async def query(self, text: str, as_of: Any = None, *, village: str | None = None, k: int = 5,
+                    members: list[str] | None = None) -> dict[str, Any]:
+        """Hybrid recall. Lens = village scope OR each member scope (lenses are not hierarchical;
+        verified live: [[village/v_reyes]] alone misses facts in village/v_reyes/m_carmen)."""
         body: dict[str, Any] = {"query": text, "k": k, "source": "village"}
         if village:
-            body["lens"] = [[cv.village_scope(village)]]
+            mids = members if members is not None else sorted(cv.member_names())
+            body["lens"] = [[cv.village_scope(village)]] + [[cv.member_scope(village, m)] for m in mids]
         if as_of:
             body["asOf"] = cv.utc_iso(as_of)
         r = await self._req("POST", "/query", "query", json=body, timeout=QUERY_READ_S)
