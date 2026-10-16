@@ -83,7 +83,7 @@ class FakeHub {
     // the seeded chat keeps going on the fixture clock (D16): later rows arrive as chat frames on every non-elder phone
     for (const m of chatAfter(SNAPSHOT_NOW)) {
       const delay = Math.max(0, (ms((m as any).at) - base) / this.speed);
-      const fire = () => this.sockets.forEach((s) => { if (s.target !== "carmen") s.emitChat(m); });
+      const fire = () => this.sockets.forEach((s) => { if (s.target === "ana" || s.target === "marco" || s.target === "lucia" || s.target === "control") s.emitChat(m); });
       this.timers.push(setTimeout(fire, delay));
     }
     if (this.opts.tail) {

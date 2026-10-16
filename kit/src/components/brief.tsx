@@ -48,11 +48,25 @@ export function rightNowLines(data: Record<string, unknown>, nowMs: number, lang
   return out;
 }
 
-interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string; mode?: string }[] }
+interface Rounds { counts?: Record<string, number>; did_alone?: number; alone?: number; asked?: number; asked_person?: number; refused?: number; rows?: { at?: string; text?: unknown; line?: unknown; summary?: unknown; role?: string; actor?: string; mode?: string }[] }
 const MODE_WORDS: Record<string, string> = { acted_alone: "did alone", asked_human: "asked a person", refused: "refused itself" };
 
 /** rounds:latest (core-glue): three counts + rows in words. Absent = hidden. */
-export function WhatVillageDid({ data, bind = "rounds:latest", title = "What Village did", maxRows = 6 }: { data: Record<string, unknown>; bind?: string; title?: unknown; maxRows?: number }) {
+/** "last night 9:40 PM" · "today 8:11 AM" · "Thu 9:40 PM" in the village clock. */
+export function whenWords(iso: string, nowMs: number): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const time = fmtTime(iso, "en");
+  const day = todayIso(d.getTime());
+  const today = todayIso(nowMs);
+  const yesterday = todayIso(nowMs - 24 * 3600_000);
+  const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/New_York" }).format(d));
+  if (day === today) return `${hour >= 18 ? "tonight" : "today"} ${time}`;
+  if (day === yesterday) return `${hour >= 18 ? "last night" : "yesterday"} ${time}`;
+  return `${new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/New_York" }).format(d)} ${time}`;
+}
+
+export function WhatVillageDid({ data, bind = "rounds:latest", title = "What Village did", maxRows = 6, nowMs = Date.now() }: { data: Record<string, unknown>; bind?: string; title?: unknown; maxRows?: number; nowMs?: number }) {
   const r = data[bind] as Rounds | null | undefined;
   if (!r || typeof r !== "object") return null;
   if (!r.counts && !Array.isArray(r.rows)) return null; // {} = no round yet
@@ -75,6 +89,7 @@ export function WhatVillageDid({ data, bind = "rounds:latest", title = "What Vil
         <ul className="wvd-rows">
           {rows.slice(0, maxRows).map((row, i) => (
             <li key={i} data-test="wvd-row">
+              {row.at ? <span className="wvd-time small muted" data-test="wvd-time">{whenWords(row.at, nowMs)} </span> : null}
               {row.mode || row.role || row.actor ? <span className="chip chip-gray" data-mode={row.mode}>{(row.mode && MODE_WORDS[row.mode]) ?? row.role ?? row.actor}</span> : null} {text(row.text ?? row.line ?? row.summary ?? "", "en")}
             </li>
           ))}
@@ -121,7 +136,7 @@ export function RightNowCard({ lines, title }: { lines: { key: string; text: str
 
 export function WhatVillageDidEl({ props }: CatalogProps) {
   const ctx = useCtx();
-  return <WhatVillageDid data={ctx.data} bind={props.bind} title={props.title ?? "What Village did"} maxRows={props.max_rows ?? 6} />;
+  return <WhatVillageDid data={ctx.data} bind={props.bind} title={props.title ?? "What Village did"} maxRows={props.max_rows ?? 6} nowMs={ctx.nowMs()} />;
 }
 
 export function SinceYourTurn({ props }: CatalogProps) {

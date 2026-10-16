@@ -30,15 +30,15 @@ afterEach(() => vi.useRealTimers());
 describe("tabs from life areas (generic)", () => {
   it("Reyes coordinator: Home + the areas its elements serve, in spec order, + Chat", () => {
     const p = planTabs(view(R, "coordinator"), areasData(R), "en");
-    expect(p.areas.map((a) => a.id)).toEqual(["health", "people"]);
-    expect(p.areas.map((a) => a.label)).toEqual(["Health", "People"]);
+    expect(p.areas.map((a) => a.id)).toEqual(["health", "money", "people"]);
+    expect(p.areas.map((a) => a.label)).toEqual(["Health", "Money", "People"]);
     expect(p.headline).toBe("rn");
     expect(p.chat).toBe("chat");
     expect(p.attention).toEqual(["al", "prop", "inc", "vp"]);
   });
   it("localized labels from the spec's label_i18n when given", () => {
     const p = planTabs(view(R, "coordinator"), {}, "es", R.blueprint);
-    expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Familia"]);
+    expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Dinero", "Familia"]);
   });
   it("Reyes helper serves fewer than two areas on its own tabs: Home + Chat only", () => {
     const p = planTabs(view(R, "helper"), areasData(R), "en");
@@ -67,7 +67,7 @@ describe("tabs from life areas (generic)", () => {
     const { container } = mount("ana");
     await act(async () => { vi.advanceTimersByTime(10); });
     const tabs = [...container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent);
-    expect(tabs).toEqual(["Home", "Pills", "People", "Chat"]); // labels are whatever blueprint:life_areas says
+    expect(tabs).toEqual(["Home", "Pills", "Money", "People", "Chat"]); // labels are whatever blueprint:life_areas says
     expect(container.querySelectorAll("[data-test='right-now-line']").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelector("[data-test='wvd-counts']")?.textContent).toContain("Did 3 things on its own · asked a person 1 · refused itself 1");
     expect(container.querySelector("[data-test='chat-preview']")).not.toBeNull();
@@ -204,5 +204,81 @@ describe("1.3.3 catalog types", () => {
     expect([...container.querySelectorAll("[data-test='fact-written-by']")].map((e) => e.textContent?.trim())).toEqual(["written by Founder", "written by seed"]);
     expect(container.querySelector("[data-test='fact-caption']")?.textContent).toContain("shared across agents");
     expect(container.textContent).not.toMatch(/\bm_[a-z]+/);
+  });
+});
+
+describe("kit-members-2 fixes", () => {
+  it("chat sorts by time; a call source reads in words", async () => {
+    const { byTime } = await import("../src/components/generic");
+    const rows = [
+      { id: "b", kind: "chat", author: "m_marco", text: "x", at: "2026-10-16T13:55:00-04:00" },
+      { id: "a", kind: "nudge", author: "village", text: "y", at: "2026-10-16T13:32:00-04:00", refs: [{ kind: "event", id: "ev_1" }], source: { kind: "call", ref: "conv_1" } }
+    ];
+    expect(byTime(rows as any).map((r) => r.id)).toEqual(["a", "b"]);
+    const { container } = renderView(R.views.helper, { "chat:village": rows }, { memberId: "m_marco" });
+    const chips = [...container.querySelectorAll("[data-test='village-chat'] [data-test='chat-chip']")].map((c) => c.textContent);
+    expect(chips).toContain("from her check-in call");
+    expect(container.querySelector("[data-test='village-chat'] [data-test='chat-row']")?.getAttribute("data-kind")).toBe("nudge");
+  });
+  it("incident provenance in words, never a raw ref", async () => {
+    const { sourceWords } = await import("../src/components/shared");
+    expect(sourceWords({ kind: "call", ref: "conv_seed_1009", secs: 21 }, "2026-10-09T19:21:40-04:00", { "member:m_carmen": { short_name: "Mamá" } }, "m_carmen")).toBe("Mamá's call · Oct 9, 7:21 PM · 21 s in");
+  });
+  it("rounds rows carry their time in words", async () => {
+    const { whenWords } = await import("../src/components/brief");
+    expect(whenWords("2026-10-15T21:40:00-04:00", Date.parse("2026-10-16T14:00:00-04:00"))).toBe("last night 9:40 PM");
+  });
+  it("an acknowledged incident is not under Needs your yes", () => {
+    const inc = { incident_id: "inc_1", type: "money_request", severity: "high", status: "acked", title: "Scam call", summary: "Nothing sent", at: "2026-10-16T14:02:00-04:00", provenance: [] };
+    const ctx: RenderCtx = { ...defaultCtx, view: viewSchema.parse(R.views.coordinator), data: { ...areasData(R), "incidents:open": [inc] }, lang: "en" };
+    const { container } = render(<TabbedApp ctx={ctx} />);
+    expect(container.querySelector("[data-test='needs-your-yes']")?.hasAttribute("hidden")).toBe(true);
+    expect(container.querySelector("[data-test='tab-money'] [data-test='incident-card']")).not.toBeNull();
+  });
+});
+
+describe("block apps through the fake (same renderer, another village)", () => {
+  it("Tanya: Home · Health · Information · Chat with seeded boards; Darnell: Home · Chat", async () => {
+    vi.useFakeTimers();
+    const t = mount("tanya");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect([...t.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Health", "Information", "Chat"]);
+    expect(t.container.querySelectorAll("[data-board='NeedBoard'] li").length).toBe(4);
+    expect(t.container.querySelector("[data-test='screen']")?.textContent).not.toMatch(/\bb_[a-z]+/);
+    const d = mount("darnell");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect([...d.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Chat"]);
+  });
+});
+
+describe("D39 chat: Village as a participant", () => {
+  const ask = { id: "msg_ask1", village: "v_reyes", author: "village", kind: "nudge", text: "Lucía, can you cover Saturday for Marco?", refs: [{ kind: "member", id: "m_lucia", label: "Lucía" }, { kind: "event", id: "ask_sat_1", label: "Marco asked" }], source: { kind: "system", ref: "watcher" }, at: "2026-10-16T13:50:00-04:00" };
+  const names = { "member:m_lucia": { name: "Lucía" }, "member:m_marco": { name: "Marco" } };
+  it("the addressee gets Yes · Can't → answer_ask; others see the status", () => {
+    const send = vi.fn(() => "r1");
+    const mine = renderView(R.views.helper, { ...names, "chat:village": [ask] }, { memberId: "m_lucia", send });
+    fireEvent.click(mine.container.querySelector("[data-test='ask-yes']")!);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ name: "answer_ask", arg: "ask_sat_1", payload: { ask_id: "ask_sat_1", answer: "yes" } }));
+    mine.unmount();
+    const other = renderView(R.views.coordinator, { ...names, "chat:village": [ask] }, { memberId: "m_ana" });
+    expect(other.container.querySelector("[data-test='ask-yes']")).toBeNull();
+    expect(other.container.querySelector("[data-test='village-chat'] [data-test='ask-status']")?.textContent).toBe("waiting for Lucía…");
+    other.unmount();
+    const reply = { id: "msg_r", village: "v_reyes", author: "m_lucia", kind: "chat", text: "Yes, I can", reply_to: "msg_ask1", refs: [], source: { kind: "app", ref: "m_lucia" }, at: "2026-10-16T13:51:00-04:00" };
+    const after = renderView(R.views.coordinator, { ...names, "chat:village": [ask, reply] }, { memberId: "m_ana" });
+    expect(after.container.querySelector("[data-test='village-chat'] [data-test='ask-status']")?.textContent).toBe("Lucía: can do");
+    // no chip that is just a name
+    expect([...after.container.querySelectorAll("[data-test='village-chat'] [data-test='chat-chip']")].map((c) => c.textContent)).not.toContain("Lucía");
+  });
+  it("receipt undo expires to Kept; demo posts get a tag", () => {
+    const now = Date.parse("2026-10-16T14:00:30-04:00");
+    const rc = { id: "msg_rc", village: "v_reyes", author: "village", kind: "receipt", text: "Done. Saturday: Lucía covers. Undo within 10 s.", refs: [{ kind: "release", id: "rel_1", label: "receipt" }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:00:00-04:00" };
+    const dm = { id: "msg_dm", village: "v_reyes", author: "m_marco", kind: "chat", text: "[demo] Can someone take Saturday?", refs: [], source: { kind: "app", ref: "m_marco" }, at: "2026-10-16T13:49:00-04:00" };
+    const { container } = renderView(R.views.coordinator, { "chat:village": [dm, rc] }, { memberId: "m_ana", nowMs: () => now });
+    const chat = container.querySelector("[data-test='village-chat']")!;
+    expect(chat.querySelector("[data-test='chat-receipt']")?.textContent).toContain("Kept.");
+    expect(chat.textContent).not.toContain("Undo within");
+    expect(chat.querySelector("[data-test='chat-demo']")).not.toBeNull();
+    expect(chat.textContent).not.toContain("[demo]");
   });
 });
