@@ -54,7 +54,10 @@ def llm(role: str = "default"):
         model = (settings.bedrock_haiku_model or settings.bedrock_sonnet_model) if role in HAIKU_ROLES else (settings.bedrock_sonnet_model or settings.bedrock_haiku_model)
         region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-west-2"
         try:
-            client = anthropic.AnthropicBedrockMantle(aws_region=region)
+            try:
+                client = anthropic.AnthropicBedrockMantle(aws_region=region)
+            except TypeError:  # test doubles without kwargs
+                client = anthropic.AnthropicBedrockMantle()
         except Exception as exc:  # never let a client-construction error take down a request
             logging.getLogger(__name__).warning("bedrock client unavailable: %s", exc)
             direct = _anthropic_client(settings)
