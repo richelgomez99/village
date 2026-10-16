@@ -5,6 +5,11 @@ Rules: write what was seen on real phones, not what a test says. Every number is
 Run before filling: `scripts/acceptance_summary.sh` (checks + tags) and `scripts/reset_demo.sh` (proves the reset still works).
 
 ## 11:00 · V0 cutoff (slipped to ~11:15 per D25)
+### 11:00 → written 11:30 (V0-green tagged 10:50)
+- **Works on real phones:** `https://richel-macbook.tail8feae0.ts.net/` serves the kit via Tailscale Funnel (verified from Anchor's browser and the operator's phone). Core (port 8790) → SurrealDB Cloud → every connected phone in ~100 ms on `POST /tools/log_dose`. Three role views render from the Reyes rev 5 fixture. 158 tests green offline (core 16+, gate 110, voice 31). Mom line "Luz · Línea de Mamá" deployed on +1 848 257 9221 with tools pointed at the Funnel; outbound call to the operator's phone PASSED. Agent Memory supersession PASSED (p50 query ~3.8 s). Arize exporter PASSED.
+- **Mocked / not yet:** verification loop end to end (core V1 in progress), founding (builder V2), Control Room regions (kit V2), release receipts (V3), rounds + proposals (V4), scam number (evals running).
+- **Risks:** OpenAI rate limit cuts Codex turns; Bedrock lab account only has Haiku 4.5 (Anthropic key needs a workspace); tool endpoints accept calls without a shared secret today; Daytona snapshots denied (image sandbox fallback 16 s).
+- **Cuts so far:** none of the version scope; `/s/{token}` scan page (D22) and lid stickers were already out.
 
 Target: V0 tag: gate tests model-off, spine to 3 phones, refill card 5→10 mg
 
