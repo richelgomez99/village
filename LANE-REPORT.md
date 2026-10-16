@@ -432,7 +432,12 @@ Core asks (V2b): send `member:<id>` (bv_person with `phone`) for every call targ
 
 
 ## core-glue
-READY FOR MERGE CORE-GLUE-3
+READY FOR MERGE CORE-GLUE-4
+Round 4 (contract 1.3.1, main a56ca1b merged): `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off uv run pytest -q` → 381 passed, 0 failed.
+G4-1 life_areas need_ids · done · `-k need_ids` · every `blueprint:life_areas` row carries `need_ids` = the area's `need_ids`/`needs` from the spec plus any need whose `life_area`/`area` matches, spec order, deduped (Reyes: health 3, money 1, people 1) · none
+G4-2 Ana's live snapshot · confirmed · `-k coordinator_snapshot` · has `rounds:latest` (non-empty after reset) and `facts:history?subject=m_carmen&key=lisinopril_dose`; the ledger fallback now matches a `<med>_dose` key to that med's prescription history (versions "lisinopril 10 mg", "lisinopril 5 mg") until Agent Memory answers · fallback is degraded:true
+G4-3 chat seed · confirmed · `reset_demo` loads `contracts/fixtures/messages_reyes_seed.json` from main (a56ca1b third-person copy) verbatim; the 2 rows before 14:02 are seeded ("Mamá's morning pills are taken…") · none
+Round 3:
 Round 3 (contract 1.3.0, main e818871 merged): `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off uv run pytest -q` → 378 passed, 1 failed = `core/release/tests/test_units.py::test_template_catalog_matches_contract`, which fails identically on main (release template catalog lacks the 1.3.0 types; not this lane). Tests: `core/tests/test_core_glue3.py` (5).
 G3-1 view_binds · done · binds are read generically from every element's `props.bind` (RightNow/WhatVillageDid/SinceYourTurn/PlanBoard/ScreenedCalls/FactCard need no code); the Control Room gets the union of all its village's view binds · none
 G3-2 plan:<id> · done · `-k plan` · `bv_plan {title, date, items}` from `core.builder.chat_intent.plan_data(village, plan_id)`, else an Evolve proposal record's `plan`, else `{items: []}`; items get `status: open` by default; app action `claim_plan_item {plan_id, index, status?, owner?}` updates the item and re-sends the snapshot to every socket whose view binds that plan · claims are in-memory

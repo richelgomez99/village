@@ -166,7 +166,8 @@ def _ledger_history(village_id: str, subject: str, key: str) -> list[dict[str, A
         value = p.get("value") or p.get("to") or p.get("dose") or p.get("slot") or ev["kind"]
         out.append({"value": value, "observed_at": ev.get("at"), "recorded_at": ev.get("at"), "source": ev.get("source"), "event_id": ev.get("id")})
     for rx in db.prescriptions.get(village_id, []):
-        if k in str(rx.get("name", "")).lower() or k in str(rx.get("med_id", "")).lower():
+        name = str(rx.get("name", "")).lower()
+        if name and (k in name or name in k or k in str(rx.get("med_id", "")).lower()):  # "lisinopril_dose" ~ lisinopril
             out.append({"value": f"{rx.get('name')} {rx.get('dose')}", "observed_at": rx.get("valid_from"), "valid_until": rx.get("valid_until"),
                         "source": rx.get("source"), "superseded": rx.get("valid_until") is not None})
     out.sort(key=lambda r: str(r.get("observed_at") or ""), reverse=True)
