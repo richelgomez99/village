@@ -5,30 +5,78 @@
   "response_timeout_secs": 10,
   "execution_mode": "immediate",
   "api_schema": {
-    "url": "https://{{system_env__core_host}}/tools/report_symptom",
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/report_symptom",
     "method": "POST",
-    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_headers": {
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
     "request_body_schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "emergency_signals"],
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "description",
+        "emergency_signals"
+      ],
       "properties": {
-        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
-        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
-        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
-        "utterance": { "type": "string" },
-        "tool_call_id": { "type": "string" },
-        "village_id": { "type": "string", "dynamic_variable": "village_id" },
-        "description": { "type": "string" },
-        "type": { "type": "string", "enum": ["symptom", "mood", "fall", "blood_pressure_reading", "blood_sugar_reading", "info_for_family"] },
-        "value": { "type": "string" },
-        "emergency_signals": { "type": "boolean" }
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "symptom",
+            "mood",
+            "fall",
+            "blood_pressure_reading",
+            "blood_sugar_reading",
+            "info_for_family"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "emergency_signals": {
+          "type": "boolean"
+        }
       }
     }
   },
   "assignments": [
-    { "dynamic_variable": "gate_decision", "value_path": "decision" },
-    { "dynamic_variable": "say_text", "value_path": "say" }
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    }
   ]
 }
-

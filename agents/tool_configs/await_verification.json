@@ -8,29 +8,69 @@
   "tool_call_sound": "elevator1",
   "interruption_mode": "disable_during_tool",
   "api_schema": {
-    "url": "https://{{system_env__core_host}}/tools/await_verification",
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/await_verification",
     "method": "POST",
-    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_headers": {
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
     "request_body_schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "verification_id"],
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "verification_id"
+      ],
       "properties": {
-        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
-        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
-        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
-        "utterance": { "type": "string" },
-        "tool_call_id": { "type": "string" },
-        "village_id": { "type": "string", "dynamic_variable": "village_id" },
-        "verification_id": { "type": "string", "dynamic_variable": "verification_id" }
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "verification_id": {
+          "type": "string",
+          "dynamic_variable": "verification_id"
+        }
       }
     }
   },
   "assignments": [
-    { "dynamic_variable": "gate_decision", "value_path": "decision" },
-    { "dynamic_variable": "say_text", "value_path": "say" },
-    { "dynamic_variable": "verification_id", "value_path": "data.verification_id" },
-    { "dynamic_variable": "verification_status", "value_path": "data.status" }
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    },
+    {
+      "dynamic_variable": "verification_id",
+      "value_path": "data.verification_id"
+    },
+    {
+      "dynamic_variable": "verification_status",
+      "value_path": "data.status"
+    }
   ]
 }
-

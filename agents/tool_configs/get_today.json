@@ -5,26 +5,60 @@
   "response_timeout_secs": 10,
   "execution_mode": "immediate",
   "api_schema": {
-    "url": "https://{{system_env__core_host}}/tools/get_today",
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/get_today",
     "method": "POST",
-    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_headers": {
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
     "request_body_schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["conversation_id", "caller_id", "call_secs", "utterance"],
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance"
+      ],
       "properties": {
-        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
-        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
-        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
-        "utterance": { "type": "string" },
-        "tool_call_id": { "type": "string" },
-        "village_id": { "type": "string", "dynamic_variable": "village_id" },
-        "intent": { "type": "string", "enum": ["status", "take_another", "who_is_coming"] }
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "intent": {
+          "type": "string",
+          "enum": [
+            "status",
+            "take_another",
+            "who_is_coming"
+          ]
+        }
       }
     }
   },
   "assignments": [
-    { "dynamic_variable": "say_text", "value_path": "say" }
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    }
   ]
 }
-
