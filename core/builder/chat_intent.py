@@ -448,6 +448,9 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     text, author = message.get("text", ""), message.get("author")
     if author in (None, "village", "system"):
         return None
+    reply = await _answer_open_ask(message)
+    if reply:
+        return reply
     intent = await classify(text, llm)
     if intent == "chit_chat":
         return None
@@ -458,3 +461,33 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     out = await route_chat(village_id, text, author, llm=llm, intent=intent)
     msg = await services.post_message(village_id, author="village", kind="answer", text=out["text"], refs=out.get("refs") or [{"kind": "member", "id": author}], source={"kind": "system", "ref": "builder"}, reply_to=message.get("id"))
     return {"kind": "answer", "message": msg, "intent": intent}
+
+
+YES_RE = re.compile(r"^\s*(yes|yeah|yep|sure|ok(ay)?|i can|i'?ll (do|take) it|count me in|s[ií]|claro)\b", re.I)
+NO_RE = re.compile(r"^\s*(no|nope|can'?t|cannot|i can'?t|not (this|that) time|no puedo)\b", re.I)
+
+
+async def _answer_open_ask(message: dict[str, Any]) -> dict[str, Any] | None:
+    """A member's chat reply answers their open ask (ref {kind: ask, id}, reply to the ask message, or a plain yes/no)."""
+    from . import asks
+
+    author, text = message.get("author"), message.get("text", "")
+    ref_id = next((r["id"] for r in message.get("refs") or [] if r.get("kind") == "ask"), None)
+    target = None
+    if ref_id:
+        target = ref_id
+    else:
+        for gid, ask in reversed(list(asks.ASKS.items())):
+            if ask["status"] == "open" and author in ask["asked"] and author not in ask["answers"] and (message.get("reply_to") == ask["message_id"] or YES_RE.search(text) or NO_RE.search(text)):
+                target = ask["member_ask"][author]
+                break
+    if not target:
+        return None
+    value = "no" if NO_RE.search(text) else ("yes" if YES_RE.search(text) else None)
+    if value is None:
+        return None
+    try:
+        ask = await asks.answer(target, author, value)
+    except (KeyError, PermissionError):
+        return None
+    return {"kind": "ask_answer", "ask": ask["id"], "answer": value}

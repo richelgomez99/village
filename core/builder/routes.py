@@ -462,3 +462,40 @@ def install_answer_ask_action() -> bool:
 
 
 install_answer_ask_action()
+
+
+def install_wall_clock_chat() -> bool:
+    """ASKS-2 (4): live chat rows get wall-clock `at` (the demo clock may be warped); seeded rows don't pass here."""
+    try:
+        from core import services as core_services
+    except Exception:
+        return False
+    original = core_services.post_message
+    if getattr(original, "_village_wall_clock", False):
+        return True
+
+    async def post_message(village_id: str, **kw: Any) -> dict[str, Any]:
+        from core.db import db
+
+        from .asks import real_now
+
+        refs = kw.get("refs") or ()
+        message: dict[str, Any] = {
+            "id": core_services._message_id(), "village": village_id, "author": kw["author"], "kind": kw["kind"], "text": str(kw["text"])[:2000],
+            "mention": kw.get("mention"), "reply_to": kw.get("reply_to"),
+            "refs": [r if isinstance(r, dict) else core_services._ref_for_id(str(r)) for r in refs][:12],
+            "source": kw["source"], "at": real_now(),
+        }
+        for key in ("text_i18n", "routed", "trace_id"):
+            if kw.get(key):
+                message[key] = kw[key]
+        core_services._MESSAGE_LOG.append(message)
+        await db.create_message(message)
+        return message
+
+    post_message._village_wall_clock = True  # type: ignore[attr-defined]
+    core_services.post_message = post_message
+    return True
+
+
+install_wall_clock_chat()
