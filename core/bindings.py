@@ -378,9 +378,9 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
 
     data.update(bindings_v3.resolve_all(all_view_binds(vid) if role == "control" else binds, vid))
 
-    if role in {"coordinator", "control"}:
+    if role in {"coordinator", "control"} or "rounds:latest" in binds:
         data["rounds:latest"] = live.rounds_latest(vid)
-    if role == "helper" and member_id:
+    if member_id and (role == "helper" or "events:since_last_turn?member=me" in binds):
         data["events:since_last_turn?member=me"] = live.events_since_last_turn(vid, member_id)
     if "*" in binds or "proposals:pending" in binds:
         try:
