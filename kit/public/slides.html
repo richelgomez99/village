@@ -19,6 +19,8 @@
   section { display:none; width:100%; height:100%; padding:5vh 4vw 8vh; box-sizing:border-box; grid-template-columns: 38fr 62fr; gap:3vw; align-items:center; }
   section.on { display:grid; }
   section.one { grid-template-columns: 1fr; align-content:center; }
+  section.tall { padding-top:2vh; padding-bottom:6vh; }
+  section.tall .shot { max-height:90vh !important; }
   .eyebrow { font-weight:600; text-transform:uppercase; letter-spacing:.12em; font-size:clamp(12px,1vw,16px); color:var(--accent); margin:0 0 1.2em; }
   .eyebrow.block { color:var(--block); }
   h1 { font-family:var(--display); font-weight:600; font-size:clamp(44px,7vw,120px); line-height:.98; margin:0 0 .25em; letter-spacing:-.02em; text-wrap:balance; }
@@ -58,8 +60,8 @@
   .vo { position:fixed; left:50%; transform:translateX(-50%); bottom:6.5vh; max-width:min(1100px, 86vw); padding:.6em 1.1em; border-radius:12px; background:rgba(16,26,22,.82); border:1px solid var(--line); font-size:clamp(16px,1.5vw,26px); line-height:1.35; text-align:center; color:var(--ink); display:none; backdrop-filter:blur(6px); }
   body.auto .vo { display:block; }
   body.auto .phones img { height:min(62vh, 700px); }
-  body.auto .shot, body.auto .two img:first-child { max-height:66vh; }
-  body.auto section { padding-bottom:16vh; }
+  body.auto .shot, body.auto .two img:first-child { max-height:76vh; }
+  body.auto .phones img { height:min(70vh, 780px); }
   .prog { position:fixed; left:0; right:0; top:0; height:4px; background:transparent; display:none; }
   .prog i { display:block; height:100%; width:0; background:var(--accent); transition:width .25s linear; }
   body.auto .prog { display:block; }
@@ -125,7 +127,7 @@
 
 
 <!-- 4 -->
-<section class="one" data-vo="Village sits in the group's chat and asks the right person. Every decision is labelled: on its own, asked a person, refused itself." data-dur="12">
+<section class="one tall" data-vo="Village sits in the group's chat and asks the right person. Every decision is labelled: on its own, asked a person, refused itself." data-dur="12">
   <div style="display:grid; grid-template-columns: 46fr 54fr; gap:3vw; align-items:center;">
     <div>
       <p class="eyebrow">Run</p>
