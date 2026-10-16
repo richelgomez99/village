@@ -19,3 +19,25 @@
 
 ## Public URL (10:52–11:10)
 - Funnel enabled; `https://richel-macbook.tail8feae0.ts.net/health` → 200 from Anchor's browser (external); Carmen's view opens on the operator's phone. The Mac itself cannot resolve `*.ts.net` (userspace tailscaled); test from outside only. Funnel verified → Core :8790.
+
+## Release pipeline (release lane, 11:45; real Daytona + Anchor + Bedrock Haiku)
+| Step (ms) | Cold, caught-and-fixed | Warm, caught-and-fixed | Warm, rev 5 |
+|---|---|---|---|
+| Sandbox create / reuse | 3444 | 149 | 108 |
+| npm install | 2044 | — | — |
+| Upload | 374 | 276 | 299 |
+| vite build | 2192 / 2254 | 2103 / 2088 | 2083 |
+| vitest (floor tests) | 1392 / 1461 | 1254 / 1160 | 1315 |
+| dist download | 208 | 184 | 285 |
+| Preview start | 1299 | 1420 | 1602 |
+| Anchor QA (390×844) | 9101 | 5211 | 5359 |
+| Evals | 3776 | 3249 | 3096 |
+| **Total** | **29731** | **19908** | **14957** |
+- Caught-and-fixed: r3 blocked "contrast 4.1:1 on elder Text (needs 7:1)" → model changed #4C80B4 → #2D5A8C → r4 live. Trace AGENT → TOOL daytona_build ✗ → LLM → TOOL daytona_build ✓.
+- Second family (West 147th block): released in 13409 ms, 33 floor tests passing. 27 release tests offline.
+- Anchor reached the build via the Daytona signed preview (Core's candidate route not yet mounted at run time); tunnel path is tried first once mounted.
+
+## Agent Memory + nightly rounds (memory lane, 11:50; real context `village`)
+- Writes p50 630 ms, p90 686 ms (n=31 Reyes facts; outbox drained in 20.8 s). History p50 248 ms; Fact view 303 ms; as-of 517 ms. Query 3.7 s (10 mg); asOf 2026-09-15 2.9 s (5 mg). Recall is never on a request path.
+- Lisinopril Fact view: current 10 mg since Oct 3 (source call:conv_setup_0003 @88 s, quote, event ev_1003_1740_med_change); superseded 5 mg since Sep 1.
+- Nightly round (seeded data, budget 3): **3 acted alone · 1 asked a person · 1 refused**. Refused: evening check-in at 9:40 PM, "Blocked by code: Carmen's rule, no calls after 9:30 PM" (P-QH-01, source welcome_call @108 s). Asked: "Ana has taken 9 of the last 12 nights. Ask Lucía to take the Sunday call?" Round through the core app: 519 ms. 37 memory/watcher tests offline.

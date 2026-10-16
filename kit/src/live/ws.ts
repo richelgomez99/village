@@ -1,7 +1,7 @@
 import type { Operation } from "fast-json-patch";
 import { applyViewPatch, viewSchema, type View } from "../renderer/view";
 import type { ActionRequest, ResultInfo } from "../renderer/context";
-import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type PromptFrame, type ServerFrame } from "./messages";
+import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type Identity, type PromptFrame, type ServerFrame } from "./messages";
 
 export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "closed";
 
@@ -17,6 +17,8 @@ export interface LiveState {
   /** who this socket really is (first snapshot); differs from role/memberId while viewing as someone (D21). */
   self: { role: string; memberId: string | null } | null;
   viewAs: string | null;
+  /** snapshot.identity (1.2.1) when the server sends it. */
+  identity: Identity | null;
   view: View | null;
   /** full VillageSpec on control snapshots. */
   spec: unknown;
@@ -34,23 +36,27 @@ export interface SocketOptions {
   token: string;
   client: ClientName;
   WebSocketImpl?: typeof WebSocket;
+  /** open this socket already viewing as a member (Control Room phones, D21). */
+  viewAs?: string;
   jitter?: number;
   pingMs?: number;
   deadMs?: number;
 }
 
 type Listener = (s: LiveState) => void;
+export type FrameListener = (f: ServerFrame) => void;
 
 export function initialLiveState(village = "v_reyes"): LiveState {
   return {
     status: "idle", attempt: 0, closedReason: null, lastError: null, rev: 0, village, role: "", memberId: null,
-    self: null, viewAs: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
+    self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
   };
 }
 
 export class VillageSocket {
   private ws: WebSocket | null = null;
   private listeners = new Set<Listener>();
+  private frameListeners = new Set<FrameListener>();
   private s: LiveState;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private pingTimer: ReturnType<typeof setInterval> | undefined;
@@ -80,6 +86,18 @@ export class VillageSocket {
     fn(this.s);
     return () => {
       this.listeners.delete(fn);
+    };
+  }
+
+  private frameLog: ServerFrame[] = [];
+
+  /** Every validated server frame, in order (Control Room scene reducer). Frames that arrived before the
+   *  listener subscribed (e.g. the snapshot, before React mounted) are replayed to it first. */
+  onFrame(fn: FrameListener) {
+    this.frameLog.forEach(fn);
+    this.frameListeners.add(fn);
+    return () => {
+      this.frameListeners.delete(fn);
     };
   }
 
@@ -129,6 +147,7 @@ export class VillageSocket {
       member_token: this.o.token,
       client: this.o.client
     };
+    if (this.o.viewAs && !this.s.viewAs && this.s.rev === 0) this.s = { ...this.s, viewAs: this.o.viewAs };
     if (this.s.rev > 0) frame.last_rev = this.s.rev;
     if (this.s.viewAs) frame.view_as = this.s.viewAs;
     this.sendRaw(frame);
@@ -179,6 +198,11 @@ export class VillageSocket {
       return;
     }
     this.handle(parsed.data);
+    if (this.o.client === "control") {
+      this.frameLog.push(parsed.data);
+      if (this.frameLog.length > 500) this.frameLog.splice(0, this.frameLog.length - 500);
+    }
+    this.frameListeners.forEach((l) => l(parsed.data));
   }
 
   private handle(f: ServerFrame) {
@@ -194,7 +218,7 @@ export class VillageSocket {
         }
         const self = this.s.self && this.s.viewAs ? this.s.self : { role: f.role, memberId: f.member_id };
         this.set({
-          status: "live", attempt: 0, rev: f.rev, village: f.village, role: f.role, memberId: f.member_id, self,
+          status: "live", attempt: 0, rev: f.rev, village: f.village, role: f.role, memberId: f.member_id, self, identity: f.identity ?? null,
           view, spec: f.role === "control" ? f.spec : null, data: { ...f.data }, highlight: [], lastError,
           prompt: this.s.viewAs ? null : this.s.prompt
         });

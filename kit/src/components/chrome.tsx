@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { k } from "../i18n/strings";
 import type { LiveState } from "../live/ws";
-import type { PromptFrame } from "../live/messages";
+import type { Identity, PromptFrame } from "../live/messages";
 import type { ResultInfo } from "../renderer/context";
 import { text } from "../renderer/view";
 import { mmss, secondsLeft, useNow } from "../util/time";
@@ -14,9 +14,11 @@ export function villageName(id: string, lang: string): string {
 }
 
 /** D21: who this app is for, always visible top-right. */
-export function IdentityChip({ memberId, role, village, lang }: { memberId: string | null; role: string; village: string; lang: string }) {
+export function IdentityChip({ memberId, role, village, lang, identity }: { memberId: string | null; role: string; village: string; lang: string; identity?: Identity | null }) {
   const family = !memberId || role === "guest" || role === "family";
-  const label = family ? k("you_are_family", lang, { village: villageName(village, lang) }) : k("you_are", lang, { name: memberName(memberId), village: villageName(village, lang) });
+  const vname = identity?.village_name ?? villageName(village, lang);
+  const name = identity?.name ?? memberName(memberId);
+  const label = family && !identity?.member_id ? k("you_are_family", lang, { village: vname }) : k("you_are", lang, { name, village: vname });
   return (
     <div className="identity-chip" data-test="identity-chip" data-member={memberId ?? "family"} data-role={role}>
       <span aria-hidden="true" className="identity-dot" />

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import reyes from "../../contracts/fixtures/reyes_spec.json";
-import { d22Overlay, baseData } from "../src/dev/fixtureData";
+import { baseData } from "../src/dev/fixtureData";
 import { viewSchema } from "../src/renderer/view";
 import { renderView } from "./helpers";
 import "../src/theme/floor.css";
 
 describe("elder floor (D8/D17)", () => {
   it("BigButtons ≥ 88px tall with ≥ 28px labels on paper #FBF6EE, read-aloud present", () => {
-    const view = d22Overlay(viewSchema.parse((reyes as any).views.elder), "elder");
+    const view = viewSchema.parse((reyes as any).views.elder);
     const { container } = renderView(view, baseData("carmen"));
     const buttons = Array.from(container.querySelectorAll<HTMLElement>("[data-test='bigbutton']"));
     expect(buttons).toHaveLength(3);

@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/voice_tools.schema.json",
   "title": "Voice tool exchange",
   "description": "ElevenLabs server (webhook) tools → POST /tools/{name} on core. The request body is exactly the tool's request_body_schema (no envelope). Every request carries conversation_id, caller_id, call_secs (system__* dynamic variables) and utterance. Every response is {decision, say, say_key?, rule_id, lang, data?}; the agent speaks `say` verbatim (structured procedure branch on `decision`; ElevenLabs assignments: gate_decision←decision, say_text←say, verification_id←data.verification_id). An instance of the root schema is one request/response exchange. The outbound verification agent's submit_verification_answer goes to POST /verifications/{id}/answer ($defs/verification_answer_request).",
-  "x-contract-version": "1.2.0",
+  "x-contract-version": "1.2.1",
   "type": "object",
   "additionalProperties": false,
   "required": ["tool", "request", "response"],
