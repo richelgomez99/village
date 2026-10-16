@@ -1,0 +1,189 @@
+{
+ "version": 1,
+ "source": "docs/FOUNDING-INTAKE.md (D29)",
+ "topics": [
+  {
+   "n": 1,
+   "id": "center",
+   "title": "The person at the center",
+   "required": [
+    "age",
+    "lives",
+    "problems"
+   ],
+   "optional": [
+    "name",
+    "language"
+   ],
+   "questions": [
+    {
+     "field": "age",
+     "text": "Tell me about the person at the center: how old, where does she live, what goes wrong?"
+    }
+   ],
+   "does": "extracts life areas; opens the blueprint"
+  },
+  {
+   "n": 2,
+   "id": "members",
+   "title": "Who is in the village",
+   "required": [
+    "members"
+   ],
+   "questions": [
+    {
+     "field": "members",
+     "text": "Who else is in this besides you and Marco, and where does everyone live relative to your mom?"
+    }
+   ],
+   "does": "member cards appear as named"
+  },
+  {
+   "n": 3,
+   "id": "availability",
+   "title": "Availability",
+   "required": [
+    "helper_days",
+    "speaker_days"
+   ],
+   "questions": [
+    {
+     "field": "helper_days",
+     "text": "What is {helper}'s week like? When can he actually be there?"
+    },
+    {
+     "field": "speaker_days",
+     "text": "And you?"
+    }
+   ],
+   "does": "rota coverage check: every night has a name, or Village names the gap"
+  },
+  {
+   "n": 4,
+   "id": "meds",
+   "title": "Health: medications",
+   "required": [
+    "meds",
+    "prescriber"
+   ],
+   "optional": [
+    "pharmacy",
+    "recent_change"
+   ],
+   "questions": [
+    {
+     "field": "meds",
+     "text": "Her pills: what does she take, and who prescribed them?"
+    }
+   ],
+   "does": "DailyMed lookup per med → facts with url provenance; refill list with supersession"
+  },
+  {
+   "n": 5,
+   "id": "routine",
+   "title": "Health: routine",
+   "required": [
+    "how_taken",
+    "what_fails"
+   ],
+   "questions": [
+    {
+     "field": "how_taken",
+     "text": "How does she take them, and what happens on the nights she isn't sure?"
+    }
+   ],
+   "does": "dose policy rows"
+  },
+  {
+   "n": 6,
+   "id": "money",
+   "title": "Money",
+   "required": [
+    "incident",
+    "handler",
+    "accounts"
+   ],
+   "optional": [
+    "family_word"
+   ],
+   "questions": [
+    {
+     "field": "incident",
+     "text": "Money. Tell me about the call last week."
+    },
+    {
+     "field": "family_word",
+     "text": "Pick a word only the family knows. Every real call from Village says it, so a caller without it is not us."
+    }
+   ],
+   "does": "R-MONEY-VERIFY / R-MONEY-DEFAULT / R-MONEY-NEVER on; verifier = named member"
+  },
+  {
+   "n": 7,
+   "id": "home",
+   "title": "Home and day",
+   "required": [
+    "routine",
+    "nearby"
+   ],
+   "questions": [
+    {
+     "field": "routine",
+     "text": "Her day and her home: what does a normal day look like, and is anyone nearby?"
+    }
+   ],
+   "does": "routines; neighbor as contact (role label only)"
+  },
+  {
+   "n": 8,
+   "id": "emergencies",
+   "title": "Emergencies",
+   "required": [
+    "first",
+    "hospital"
+   ],
+   "questions": [
+    {
+     "field": "first",
+     "text": "If she falls or can't breathe, who is first?"
+    }
+   ],
+   "does": "escalation ladder; 911 first everywhere"
+  },
+  {
+   "n": 9,
+   "id": "channels",
+   "title": "Channels and language",
+   "required": [
+    "center_channel",
+    "center_lang"
+   ],
+   "questions": [
+    {
+     "field": "center_channel",
+     "text": "Her phone and her language: what will she actually use?"
+    }
+   ],
+   "does": "per-person surfaces"
+  },
+  {
+   "n": 10,
+   "id": "consent",
+   "title": "Consent and the center's own rules",
+   "required": [
+    "welcome_call",
+    "center_rules"
+   ],
+   "questions": [
+    {
+     "field": "welcome_call",
+     "text": "Two things Village can't take from you: Lucía's own yes to being called, and your mom's rules. Village asks Lucía in her app and calls your mom in Spanish to introduce itself. She can say no to all of it. When is she sharpest?"
+    }
+   ],
+   "does": "consent call to the helper during the conversation; plans the welcome call; her rules stay pending until she says them"
+  }
+ ],
+ "review": {
+  "text": "Here is the draft: four people, three life areas, five needs, ten rules on, one thing pending your mom. What is wrong?"
+ }
+}

@@ -1,10 +1,12 @@
-"""Founder (AGENT.md §2): listening → clarify → working → draft. Blueprint streams first; the Founder
-picks capabilities per person, takes a second opinion, renders views in parallel and — while views
-render — does real work (D23 #4): DailyMed lookups and the helper's availability + consent call."""
+"""Founder (AGENT.md §2, docs/FOUNDING-INTAKE.md D29): listening → clarify (intake turns) → working →
+draft → review. After every answer: record_answer → coverage meter → side effects (DailyMed per med,
+the helper's consent call, the rota coverage check) → next highest-risk question. Then capabilities
+per person, a second opinion, parallel renders, and the review turn (word edits → patch)."""
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 import uuid
 from copy import deepcopy
@@ -15,9 +17,10 @@ from typing import Any
 import httpx
 
 from . import frames, templates
-from .blueprint import stream_blueprint
+from .blueprint import heuristic_blueprint, stream_blueprint
 from .capabilities import decision_rows as capability_rows
 from .capabilities import plan_capabilities
+from .conversation import DAYS, IntakeState, Question, Review, load_intake, merge, next_question, now_i_know, record_answer
 from .critique import critique
 from .dailymed import fixture_transport, lookup_medication
 from .decisions import builder_decision
@@ -30,9 +33,13 @@ from .services_stub import MemoryServices
 from .spans import span
 from .validate import validate_spec
 
-STATES = ["listening", "clarify", "working", "draft"]
+STATES = ["listening", "clarify", "working", "draft", "review"]
 DAILYMED_FIXTURES = Path(__file__).parent / "tests" / "data" / "dailymed"
 REYES_RECORD = DATA / "villages" / "reyes_family.json"
+NEED_QUOTES = {  # needs that come from intake answers, located in the founder's words
+    "n_dose_change": ["The old lisinopril bottle is still in her cabinet", "doubled to ten milligrams"],
+    "n_refills": ["she does the refills and the insurance calls", "does the refills"],
+}
 
 
 @dataclass
@@ -49,16 +56,20 @@ class FoundingInput:
 
 @dataclass
 class FoundingOptions:
-    mode: str = "full"  # full | fixture
+    mode: str = "full"  # full | fixture (fixture = no model; side effects still real)
     llm: str | None = None  # off | on | None (env)
-    clarify_wait_s: float = 0.0  # text founding: 30 s pause for an answer, then proceed
+    clarify_wait_s: float = 0.0  # per turn: wait for POST /answers, then proceed with what we have
     per_role_s: float = 45.0
     total_s: float = 60.0
     dialer: Any | None = None
     dailymed: str = "live"  # live | fixture | off
-    demo_record: bool = True  # care villages: use data/villages/reyes_family.json meds + member rules
+    demo_record: bool = True
     signals: dict[str, Any] = field(default_factory=dict)
-    llm_client: Any | None = None  # injected (tests)
+    llm_client: Any | None = None
+    replay: list[str] | None = None  # recorded answers in order (A1…A12)
+    replay_delay_s: float = 0.0
+    resume: int | None = None  # replay answers until the meter reaches N, then live answers
+    review: bool = True
 
 
 @dataclass
@@ -78,6 +89,11 @@ class BuilderRun:
     timings: dict[str, Any] = field(default_factory=dict)
     total_ms: int = 0
     error: str | None = None
+    intake: dict[str, Any] = field(default_factory=dict)
+    turns: list[dict[str, Any]] = field(default_factory=list)
+    review: dict[str, Any] = field(default_factory=dict)
+    closing: str = ""
+    family_word: str | None = field(default=None, repr=False)  # never in summary/frames
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -90,7 +106,11 @@ class BuilderRun:
             "capabilities": self.capabilities,
             "critique": self.critique,
             "ledger": self.ledger,
-            "questions": (self.blueprint or {}).get("questions", []),
+            "intake": self.intake,
+            "turns": self.turns,
+            "question": self.turns[-1]["question"] if self.turns and self.state == "clarify" else None,
+            "review": self.review,
+            "closing": self.closing,
             "timings": self.timings,
             "total_ms": self.total_ms,
             "error": self.error,
@@ -99,10 +119,10 @@ class BuilderRun:
 
 @dataclass
 class FoundingSession:
-    """Lets `POST /villages/{id}/answers` feed the clarify pause."""
-
     run: BuilderRun
     answers: asyncio.Queue = field(default_factory=asyncio.Queue)
+    intake: IntakeState | None = None
+    question: Any = None
 
 
 SESSIONS: dict[str, FoundingSession] = {}
@@ -111,46 +131,8 @@ RUNS: dict[str, BuilderRun] = {}
 
 def _set_state(run: BuilderRun, state: str) -> None:
     run.state = state
-    run.states.append(state)
-
-
-def rebase_spans(spec: dict[str, Any], text: str) -> None:
-    """Point every need's source_span at the founding words; needs not in them become origin data."""
-    old = spec["blueprint"]["description"]["text"]
-    spec["blueprint"]["description"]["text"] = text
-    for need in spec["blueprint"]["needs"]:
-        s = need.get("source_span")
-        if not s:
-            continue
-        quote = old[s["start"] : s["end"]]
-        at = text.find(quote)
-        if at >= 0:
-            need["source_span"] = {"start": at, "end": at + len(quote)}
-        else:
-            need["source_span"] = None
-            need["origin"] = "data"
-
-
-def apply_member_rules(spec: dict[str, Any], record: dict[str, Any]) -> list[dict[str, Any]]:
-    """D24 #5: the center's own rules (Carmen's quiet hours, her words on the welcome call)."""
-    applied = []
-    people = {p["id"]: p for p in spec["blueprint"]["people"]}
-    for rule in record.get("rules_from_members", []):
-        person = people.get(rule["member_id"])
-        if not person or rule["rule_id"] != "P-QH-01":
-            continue
-        qh = rule["params"]["quiet_hours"]
-        src = rule["source"]
-        person["profile"]["quiet_hours"] = qh
-        params = {"quiet_hours": qh, "source_kind": src["kind"], "source_ref": src["ref"], "source_secs": src["secs"], "words": rule.get("words", "")[:120]}
-        policy = next((p for p in spec["policies"] if p["rule_id"] == "P-QH-01"), None)
-        if policy is None:
-            policy = {"rule_id": "P-QH-01", "params": {}, "applies_to_member_ids": [person["id"]]}
-            spec["policies"].append(policy)
-        policy["params"] = params
-        policy["applies_to_member_ids"] = [person["id"]]
-        applied.append({"member": person, "rule": rule})
-    return applied
+    if not run.states or run.states[-1] != state:
+        run.states.append(state)
 
 
 def _record() -> dict[str, Any]:
@@ -160,73 +142,233 @@ def _record() -> dict[str, Any]:
         return {}
 
 
-async def _emit(services: Any, run: BuilderRun, text: str, kind: str = "note") -> None:
-    await services.broadcast_control(run.village_id, frames.reasoning(run.village_id, text, kind, run.trace_id))
+def rebase_spans(spec: dict[str, Any], text: str) -> None:
+    """Point every need's source_span at the founder's words; needs not found become origin data."""
+    old = spec["blueprint"]["description"]["text"]
+    spec["blueprint"]["description"]["text"] = text
+    for need in spec["blueprint"]["needs"]:
+        s = need.get("source_span")
+        quotes = [old[s["start"] : s["end"]]] if s else NEED_QUOTES.get(need["id"], [])
+        need["source_span"] = None
+        for q in quotes:
+            at = text.find(q)
+            if at >= 0:
+                need["source_span"] = {"start": at, "end": at + len(q)}
+                if not s:
+                    need["origin"] = "follow_up"
+                break
+        if need["source_span"] is None and s:
+            need["origin"] = "data"
 
 
-async def _ledger(services: Any, run: BuilderRun, status: str, what: str, result: str) -> None:
-    line = frames.ledger_line(status, what, result)
-    run.ledger.append(line)
-    await _emit(services, run, line, "decision")
-
-
-async def founder_work(spec: dict[str, Any], run: BuilderRun, services: Any, opts: FoundingOptions, medications: list[str]) -> None:
-    """DailyMed per medication + availability/consent call to the helper, in parallel with render."""
-    t0 = time.perf_counter()
-    vid = run.village_id
-    center = spec["village"].get("care_recipient_id")
-
-    async def meds() -> None:
-        if not medications or opts.dailymed == "off":
-            if medications:
-                await _ledger(services, run, "later", "DailyMed check", "will check after you invite")
-            return
-        transport = fixture_transport(DAILYMED_FIXTURES) if opts.dailymed == "fixture" else None
-        async with httpx.AsyncClient(timeout=6.0, transport=transport) as client:
-            results = await asyncio.gather(*(lookup_medication(m, client) for m in medications))
-        for r in results:
-            if r.checked:
-                fact = r.fact(vid, center)
-                run.facts.append(fact)
-                if hasattr(services, "record_fact"):
-                    await services.record_fact(fact)
-                title = (r.title or r.name).split("[")[0].strip().title()
-                await _ledger(services, run, "checked", f"DailyMed {r.name}", f"{title} label ({r.published}) {r.url}")
-                await services.record_decision(builder_decision(vid, f"Checked {r.name} on DailyMed: {title} label, published {r.published}. {r.url}"[:400], refs=[{"kind": "fact", "id": f"med_label:{r.name}"}], mode="acted_alone", source={"kind": "url", "ref": "dailymed", "url": r.url}, trace_id=run.trace_id))
-            else:
-                await _ledger(services, run, "later", f"DailyMed {r.name}", f"will check after you invite ({r.error})")
-        run.timings["dailymed_ms"] = max((r.ms for r in results), default=0)
-
-    async def consent_call() -> None:
-        people = spec["blueprint"]["people"]
-        helper = next((p for p in people if p["role"] in ("caregiver", "volunteer") and p.get("phone") and p.get("consent", {}).get("ai_calls") is not False), None)
-        if helper is None:
-            return
-        dialer = opts.dialer or default_dialer()
-        first = helper["name"].split()[0]
-        if dialer is None:
-            await _ledger(services, run, "later", f"call {first} (availability + consent)", "will call after you invite")
-            return
-        coord = next((p for p in people if p["id"] == spec["village"].get("coordinator_id")), people[0])
-        payload = consent_call_payload(helper, village_id=vid, coordinator_name=coord["name"].split()[0], family_label=spec["village"].get("name", "the family"))
-        try:
-            result = await dialer.outbound_call(payload)
-        except Exception as exc:
-            await _ledger(services, run, "failed", f"call {first}", f"{type(exc).__name__}; will call after you invite")
-            return
-        answer = result.get("answer")
-        conv = result.get("conversation_id", "")
-        if answer:
-            days = "/".join(answer.get("availability_days", []))
-            agreed = "agreed to calls" if answer.get("ai_calls") else "declined calls"
-            text = f"{first} confirmed {days}; {agreed}"
-            await _ledger(services, run, "done", f"call {first} (availability + consent)", text)
-            await services.record_decision(builder_decision(vid, f"{text} (Founder's call before the draft{', mocked' if result.get('mocked') else ''}).", refs=[{"kind": "member", "id": helper["id"], "label": first}], mode="acted_alone", rule_id="R-VERIFY-CONSENT", source={"kind": "call", "ref": conv or "founder_call", "secs": float(answer.get("secs", 0))}, trace_id=run.trace_id))
+def apply_member_rules(spec: dict[str, Any], record: dict[str, Any], *, pending_at: str | None = None) -> list[dict[str, Any]]:
+    """D24 #5 Carmen's own rules → P-QH-01. Pending (D29) until she says them on the welcome call."""
+    applied = []
+    people = {p["id"]: p for p in spec["blueprint"]["people"]}
+    for rule in record.get("rules_from_members", []):
+        person = people.get(rule["member_id"])
+        if not person or rule["rule_id"] != "P-QH-01":
+            continue
+        qh, src = rule["params"]["quiet_hours"], rule["source"]
+        person["profile"]["quiet_hours"] = qh
+        if pending_at:
+            params = {"quiet_hours": qh, "status": "pending_her_words", "source_kind": "call", "source_ref": "welcome_call", "welcome_call_at": pending_at}
         else:
-            await _ledger(services, run, "placed", f"call {first} (availability + consent)", f"ringing ({conv}); answer shows when the call ends")
+            params = {"quiet_hours": qh, "status": "confirmed", "source_kind": src["kind"], "source_ref": src["ref"], "source_secs": src["secs"], "words": rule.get("words", "")[:120]}
+        policy = next((p for p in spec["policies"] if p["rule_id"] == "P-QH-01"), None)
+        if policy is None:
+            policy = {"rule_id": "P-QH-01", "params": {}, "applies_to_member_ids": [person["id"]]}
+            spec["policies"].append(policy)
+        policy["params"], policy["applies_to_member_ids"] = params, [person["id"]]
+        applied.append({"member": person, "rule": rule, "pending": bool(pending_at)})
+    return applied
 
-    await asyncio.gather(meds(), consent_call())
-    run.timings["founder_work_ms"] = int((time.perf_counter() - t0) * 1000)
+
+def confirm_quiet_hours(spec: dict[str, Any], member_id: str, quiet_hours: str, words: str, secs: float, ref: str = "welcome_call") -> dict[str, Any]:
+    """Voice lane hook: after the welcome call, P-QH-01 becomes her words with call provenance."""
+    pol = next(p for p in spec["policies"] if p["rule_id"] == "P-QH-01")
+    pol["params"] = {"quiet_hours": quiet_hours, "status": "confirmed", "source_kind": "call", "source_ref": ref, "source_secs": secs, "words": words[:120]}
+    pol["applies_to_member_ids"] = [member_id]
+    return pol
+
+
+async def _emit(services: Any, run: BuilderRun, text: str, kind: str = "note", source: str = "founder", mode: str | None = None) -> None:
+    await services.broadcast_control(run.village_id, frames.reasoning(run.village_id, text, kind, run.trace_id, source=source, mode=mode))
+
+
+class Ledger:
+    """1.2.1 `control{kind: ledger}` rows, updated in place (same id) running → done|fallback."""
+
+    def __init__(self, services: Any, run: BuilderRun) -> None:
+        self.svc, self.run, self.t0, self.n = services, run, {}, 0
+
+    async def start(self, what: str, status: str = "running") -> str:
+        self.n += 1
+        rid = f"lg_{self.run.trace_id[:8]}_{self.n:02d}"
+        self.t0[rid] = time.perf_counter()
+        await self.svc.broadcast_control(self.run.village_id, frames.ledger(self.run.village_id, rid, status, what, trace_id=self.run.trace_id))
+        return rid
+
+    async def finish(self, rid: str, status: str, what: str, result: str = "", mode: str = "acted_alone") -> None:
+        ms = int((time.perf_counter() - self.t0.get(rid, time.perf_counter())) * 1000)
+        self.run.ledger.append(frames.ledger_line(status, what, result))
+        await self.svc.broadcast_control(self.run.village_id, frames.ledger(self.run.village_id, rid, status, what, result or None, mode=mode, trace_id=self.run.trace_id, elapsed_ms=ms))
+
+    async def row(self, status: str, what: str, result: str = "", mode: str = "acted_alone") -> None:
+        await self.finish(await self.start(what), status, what, result, mode)
+
+
+async def check_medications(run: BuilderRun, services: Any, opts: FoundingOptions, medications: list[str], ledger: Ledger, center: str | None) -> None:
+    if not medications:
+        return
+    if opts.dailymed == "off":
+        await ledger.row("fallback", "DailyMed check", "will check after you invite")
+        return
+    transport = fixture_transport(DAILYMED_FIXTURES) if opts.dailymed == "fixture" else None
+    t0 = time.perf_counter()
+
+    async def one(name: str, client: httpx.AsyncClient) -> None:
+        what = f"DailyMed: {name}"
+        rid = await ledger.start(what)
+        r = await lookup_medication(name, client)
+        if r.checked:
+            fact = r.fact(run.village_id, center)
+            run.facts.append(fact)
+            if hasattr(services, "record_fact"):
+                await services.record_fact(fact)
+            title = (r.title or r.name).split("[")[0].strip().title()
+            note = " (high-alert, bleeding)" if name in ("apixaban", "warfarin") else ""
+            await ledger.finish(rid, "done", what, f"✓{note} {title} label ({r.published}) {r.url}")
+            await services.record_decision(builder_decision(run.village_id, f"Checked {r.name} on DailyMed{note}: {title} label, published {r.published}. {r.url}"[:400], refs=[{"kind": "fact", "id": f"med_label:{r.name}"}], source={"kind": "url", "ref": "dailymed", "url": r.url}, trace_id=run.trace_id))
+        else:
+            await ledger.finish(rid, "fallback", what, f"will check after you invite ({r.error})")
+
+    async with httpx.AsyncClient(timeout=6.0, transport=transport) as client:
+        await asyncio.gather(*(one(m, client) for m in medications))
+    run.timings["dailymed_ms"] = int((time.perf_counter() - t0) * 1000)
+
+
+async def consent_call(spec: dict[str, Any], run: BuilderRun, services: Any, opts: FoundingOptions, ledger: Ledger, helper_first: str | None = None) -> dict[str, Any] | None:
+    people = spec["blueprint"]["people"]
+    helper = next((p for p in people if helper_first and p["name"].split()[0] == helper_first), None) or next((p for p in people if p["role"] in ("caregiver", "volunteer") and p.get("phone") and p.get("consent", {}).get("ai_calls") is not False), None)
+    if helper is None:
+        return None
+    first = helper["name"].split()[0]
+    days = "/".join(d for d in DAYS if d in {x for a in helper["profile"].get("availability", []) for x in a["days"]})
+    what = f"Calling {first} to confirm {days or 'availability'} and ask if Village may call him"
+    dialer = opts.dialer or default_dialer()
+    if dialer is None:
+        await ledger.row("fallback", what, "will call after you invite")
+        return None
+    rid = await ledger.start(what)
+    coord = next((p for p in people if p["id"] == spec["village"].get("coordinator_id")), people[0])
+    payload = consent_call_payload(helper, village_id=run.village_id, coordinator_name=coord["name"].split()[0], family_label=spec["village"].get("name", "the family"))
+    try:
+        result = await dialer.outbound_call(payload)
+    except Exception as exc:
+        await ledger.finish(rid, "fallback", what, f"{type(exc).__name__}; will call after you invite")
+        return None
+    ans = result.get("answer")
+    if not ans:
+        await ledger.finish(rid, "running", what, f"ringing ({result.get('conversation_id', '')}); answer shows when the call ends")
+        return result
+    text = f"{first} confirmed {'/'.join(ans.get('availability_days', []))} · {'yes to calls' if ans.get('ai_calls') else 'no calls'}"
+    await ledger.finish(rid, "done", what, text + (" (mocked dialer)" if result.get("mocked") else ""))
+    await services.record_decision(builder_decision(run.village_id, f"{text} (Founder's call during the intake{', mocked' if result.get('mocked') else ''}).", refs=[{"kind": "member", "id": helper["id"], "label": first}], rule_id="R-VERIFY-CONSENT", source={"kind": "call", "ref": result.get("conversation_id") or "founder_call", "secs": float(ans.get("secs", 0))}, trace_id=run.trace_id))
+    helper["consent"]["ai_calls"] = bool(ans.get("ai_calls"))
+    return result
+
+
+def rota_check(intake: IntakeState, helper: str) -> tuple[bool, str]:
+    a = intake.fields["availability"]
+    names: dict[str, str] = {}
+    for d in (a.get("speaker_days") or {}).get("days", []):
+        names[d] = "Ana"
+    for d in (a.get("helper_days") or {}).get("days", []):
+        names[d] = helper
+    gaps = [d for d in DAYS if d not in names]
+    if gaps:
+        return False, f"no one on {', '.join(gaps)}"
+    return True, f"every night has a name. Thursday is {names['Thu']}."
+
+
+def apply_intake(spec: dict[str, Any], intake: IntakeState) -> dict[str, Any]:
+    """Intake fields → the draft: people's days/notes, consent, contacts, fridge card, refill list owner."""
+    f = intake.fields
+    people = {p["name"].split()[0]: p for p in spec["blueprint"]["people"]}
+    changes: dict[str, Any] = {}
+    a = f["availability"]
+    helper = next((m["name"] for m in (f["members"].get("members") or []) if m.get("relation") != "self" and not m.get("remote")), None)
+    if helper in people and (a.get("helper_days") or {}).get("days"):
+        people[helper]["profile"]["availability"] = [{"days": a["helper_days"]["days"], "window": "17:00-21:30", "note": "; ".join(a["helper_days"].get("constraints", []) + ([a["helper_days"]["reminder"]] if a["helper_days"].get("reminder") else []))[:200]}]
+        changes[helper] = a["helper_days"]["days"]
+    coord = next((p for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("coordinator_id")), None)
+    if coord and (a.get("speaker_days") or {}).get("days"):
+        coord["profile"]["availability"] = [{"days": a["speaker_days"]["days"], "window": "16:00-22:00", "note": ", ".join(a.get("speaker_does", []))[:200] or "from the intake"}]
+    for m in f["members"].get("members") or []:
+        p = people.get(m["name"])
+        if p and m.get("relation") != "self":
+            bits = [x for x in (m.get("lives"), m.get("distance") and f"{m['distance']} away", m.get("remote") and "can't come on short notice", m.get("takes_on") and ", ".join(m["takes_on"])) if x]
+            if bits:
+                p["notes"] = ("; ".join(bits) + ". " + p.get("notes", ""))[:400]
+    center = next((p for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("care_recipient_id")), None)
+    if center:
+        ch = f["channels"]
+        if ch.get("center_lang") == "es":
+            center["profile"]["lang"] = "es"
+        nearby = f["home"].get("nearby") or []
+        hosp = f["emergencies"].get("hospital")
+        extra = "; ".join(x for x in (", ".join(nearby) and f"Nearby: {', '.join(nearby)}", f["home"].get("building"), hosp and f"Hospital: {hosp}") if x)
+        if extra:
+            center["notes"] = (extra + ". " + center.get("notes", ""))[:400]
+        changes["contacts"] = nearby
+    for pr in spec.get("printables", []):
+        if pr.get("kind") == "fridge_card" and f["emergencies"].get("hospital"):
+            pr["emergency_line"] = f"Emergencia: llame al 911 primero. Hospital: {f['emergencies']['hospital'].replace(' Hospital', '')}."
+    # D29 review beat: the helper view starts without the refill list; the review patch adds it
+    hv = spec["views"].get("helper")
+    if hv:
+        for eid in [e for e, el in hv["elements"].items() if el["type"] == "RefillCard"]:
+            hv["elements"].pop(eid)
+            hv.get("needs_served", {}).pop(eid, None)
+            for el in hv["elements"].values():
+                if "children" in el:
+                    el["children"] = [c for c in el["children"] if c != eid]
+            for area in spec["blueprint"]["life_areas"]:
+                area["modules"] = [m for m in area["modules"] if m != f"helper:{eid}"] or area["modules"]
+        changes["helper_refill_removed"] = True
+    return changes
+
+
+def review_patch(spec: dict[str, Any], text: str) -> tuple[dict[str, Any], str | None]:
+    """Word edits on the draft. 'X should see the refill list too' → RefillCard in X's view."""
+    m = re.search(r"([A-ZÁÉÍÓÚ][a-zá-ú]+) should see the refill (list|checklist)", text)
+    if not m:
+        return spec, None
+    person = next((p for p in spec["blueprint"]["people"] if p["name"].split()[0] == m.group(1)), None)
+    if not person or not person.get("view"):
+        return spec, None
+    role = person["view"]
+    out = deepcopy(spec)
+    view = out["views"][role]
+    if any(el["type"] == "RefillCard" for el in view["elements"].values()):
+        return out, f"{m.group(1)} already sees the refill list"
+    view["elements"]["refill"] = {"type": "RefillCard", "props": {"title": "Refill checklist", "bind": "prescriptions:current", "owner": m.group(1), "show_superseded": True, "show_schedule": True, "show_source": True}}
+    view["elements"]["s"]["children"].insert(1, "refill")
+    need = next((n["id"] for n in out["blueprint"]["needs"] if n["id"] in ("n_refills", "n_dose_change")), "n_safety")
+    view.setdefault("needs_served", {})["refill"] = [need]
+    health = next((a for a in out["blueprint"]["life_areas"] if a["id"] == "health"), None)
+    if health and f"{role}:refill" not in health["modules"]:
+        health["modules"].append(f"{role}:refill")
+    return out, f"RefillCard added to {m.group(1)}'s view ({role})"
+
+
+def closing_summary(spec: dict[str, Any], run: BuilderRun, intake: IntakeState | None) -> str:
+    bp = spec["blueprint"]
+    rules = len(spec.get("policies", []))
+    pending = 1 if any(p["rule_id"] == "P-QH-01" and p["params"].get("status", "").startswith("pending") for p in spec["policies"]) else 0
+    people = [p for p in bp["people"]]
+    return f"Here is the draft: {len(people)} people, {len(bp['life_areas'])} life areas, {len(bp['needs'])} needs, {rules} rules on, {pending} thing pending your mom. What is wrong?"
 
 
 async def found(
@@ -241,79 +383,203 @@ async def found(
     opts = options or FoundingOptions()
     run = run or BuilderRun(village_id=village_id, trace_id=uuid.uuid4().hex, mode=opts.mode)
     RUNS[village_id] = run
+    intake = IntakeState(opener=input.description)
     session = SESSIONS.setdefault(village_id, FoundingSession(run=run))
-    session.run = run
+    session.run, session.intake = run, intake
     t0 = time.perf_counter()
     llm = opts.llm_client if opts.llm_client is not None else (None if opts.mode == "fixture" else get_llm(opts.llm, "sonnet"))
     run.timings["llm"] = getattr(llm, "model", "off") if llm is not None else "off"
+    ledger = Ledger(svc, run)
+    tasks: dict[str, asyncio.Task] = {}
+    pending = list(input.answers)
+    replay = list(opts.replay or [])
+
+    async def get_answer(live_ok: bool) -> str | None:
+        if pending:
+            return pending.pop(0)
+        if replay and (opts.resume is None or len(intake.covered()) < opts.resume):
+            if opts.replay_delay_s:
+                await asyncio.sleep(opts.replay_delay_s)
+            return replay.pop(0)
+        if replay and opts.resume is not None:
+            replay.clear()  # resume point reached: the rest is live
+        if live_ok and opts.clarify_wait_s > 0:
+            try:
+                return str(await asyncio.wait_for(session.answers.get(), timeout=opts.clarify_wait_s))
+            except asyncio.TimeoutError:
+                return None
+        return None
+
     with span("builder.found", "AGENT", **{"session.id": f"village-{village_id}", "graph.node.id": "found", "input.value": input.description[:500]}) as root:
         try:
             _set_state(run, "listening")
             await _emit(svc, run, f"Listening: {len(input.description.split())} words from the founder.", "plan")
-            answers = " ".join(input.answers)
-            bp = await stream_blueprint(input.description, village_id, svc, input.kind, llm=llm, answers=answers, allowed_ids={m["id"] for m in input.members if "id" in m}, trace_id=run.trace_id, timings=run.timings)
-            if bp.get("questions") and not answers:
-                _set_state(run, "clarify")
-                for q in bp["questions"]:
-                    await svc.record_decision(builder_decision(village_id, f"Asked: {q}", kind="note", trace_id=run.trace_id))
-                if opts.clarify_wait_s > 0:
-                    try:
-                        answer = await asyncio.wait_for(session.answers.get(), timeout=opts.clarify_wait_s)
-                        answers = str(answer)
-                        await svc.record_decision(builder_decision(village_id, f"Answered: {answers}"[:400], kind="note", trace_id=run.trace_id))
-                        bp = await stream_blueprint(input.description, village_id, svc, input.kind, llm=llm, answers=answers, trace_id=run.trace_id, timings={})
-                    except asyncio.TimeoutError:
-                        await _emit(svc, run, f"No answer in {opts.clarify_wait_s:.0f} s; building with what I have.")
-            run.blueprint = bp
-            _set_state(run, "working")
+            bp = await stream_blueprint(input.description, village_id, svc, input.kind, llm=llm, allowed_ids={m["id"] for m in input.members if "id" in m}, trace_id=run.trace_id, timings=run.timings)
             kind = input.kind or bp.get("kind") or "care"
             spec = templates.spec(kind, village_id=village_id, status="draft")
-            rebase_spans(spec, input.description)
             record = _record() if (kind == "care" and opts.demo_record) else {}
-            bp_names = {p.get("name", "").split()[0].lower() for p in bp.get("people", [])}
-            for p in spec["blueprint"]["people"]:
-                if p["name"].split()[0].lower() not in bp_names and p.get("short_name", "").lower() not in bp_names and p["role"] not in ("coordinator", "care_recipient"):
-                    await svc.record_decision(builder_decision(village_id, f"{p['name'].split()[0]}: from the village record, not from what you said; confirm on review.", kind="note", refs=[{"kind": "member", "id": p["id"]}], trace_id=run.trace_id))
-            for item in apply_member_rules(spec, record):
+            center_id = spec["village"].get("care_recipient_id")
+            speaker = next((p["name"].split()[0] for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("coordinator_id")), "Founder")
+            found0 = await record_answer(input.description, None, intake, None)
+            merge(intake, found0)
+            q: Question | Review = next_question(intake)
+            await _emit(svc, run, f"{now_i_know(intake, found0, None)} · {intake.meter()} · gaps: {', '.join(intake.gaps()[:4])}{'…' if len(intake.gaps()) > 4 else ''}")
+            await svc.broadcast_control(village_id, frames.counter("intake_covered", len(intake.covered()), "topics covered", of=10))
+            # ---- intake turns (care villages; block villages go straight to the draft)
+            while kind == "care" and isinstance(q, Question):
+                _set_state(run, "clarify")
+                intake.asked.append(f"{q.topic}.{q.field}")
+                session.question = q
+                turn = {"n": q.n, "topic": q.topic, "question": q.text, "meter_before": intake.meter()}
+                await _emit(svc, run, f"Village: {q.text}", "note", mode="asked_human")
+                await svc.broadcast_control(village_id, frames.blueprint(village_id, "questions", [{"question": q.text}], run.trace_id))
+                await svc.record_decision(builder_decision(village_id, f"Asked ({q.topic}): {q.text}", kind="note", mode="asked_human", trace_id=run.trace_id))
+                ans = await get_answer(live_ok=True)
+                if not ans:
+                    turn["answer"] = None
+                    run.turns.append(turn)
+                    await _emit(svc, run, f"No answer yet; building with what I have · {intake.meter()}")
+                    break
+                is_word = q.topic == "money" and q.field == "family_word"
+                intake.transcript.append({"who": "founder", "text": ans, "ask": f"{q.topic}.{q.field}"})
+                shown = "[family word] · set" if is_word else ans
+                await _emit(svc, run, f"{speaker}: {shown}")
+                await svc.record_decision(builder_decision(village_id, f"Answered ({q.topic}): {shown}"[:400], kind="note", mode="asked_human", trace_id=run.trace_id))
+                found_ = await record_answer(ans, q, intake, llm)
+                newly = merge(intake, found_)
+                if intake.family_word:
+                    run.family_word = intake.family_word
+                # side effects (the Founder does work between questions)
+                av = intake.fields["availability"]
+                helper = next((m["name"] for m in (intake.fields["members"].get("members") or []) if m.get("relation") != "self" and not m.get("remote")), None)
+                if "call" not in tasks and (av.get("helper_days") or {}).get("days"):
+                    hp = next((p for p in spec["blueprint"]["people"] if p["name"].split()[0] == helper), None)
+                    if hp:
+                        hp["profile"]["availability"] = [{"days": av["helper_days"]["days"], "window": "17:00-21:30"}]
+                    tasks["call"] = asyncio.create_task(consent_call(spec, run, svc, opts, ledger, helper))
+                if "rota" not in tasks and av.get("helper_days") and av.get("speaker_days"):
+                    ok, line = rota_check(intake, helper or "the helper")
+                    await ledger.row("done" if ok else "fallback", "Rota coverage check", line)
+                    tasks["rota"] = asyncio.create_task(asyncio.sleep(0))
+                meds = [m["name"] for m in intake.fields["meds"].get("meds") or []]
+                if meds and "meds" not in tasks:
+                    tasks["meds"] = asyncio.create_task(check_medications(run, svc, opts, meds, ledger, center_id))
+                    ch = next((m for m in intake.fields["meds"]["meds"] if m.get("change")), None)
+                    if ch:
+                        await ledger.row("done", "Refill list", f"{ch['name']} {ch['change']['to']} mg (was 5 mg, Oct 3, {intake.fields['meds'].get('prescriber', '')}) · old bottle in the cabinet → need added")
+                for t in newly:
+                    line = {"routine": "Rules on: never says how many pills · dose already logged → report, tell the on-duty person · missed dose → reminder, then the on-duty person",
+                            "money": f"Rules on: money in a family member's name → check with that person first · not confirmed → don't send · Village never moves money · verifier: {intake.fields['money'].get('handler', '?')} (first), Ana",
+                            "emergencies": f"Emergency → 911 first · ladder {intake.fields['emergencies'].get('first', '')} · {intake.fields['emergencies'].get('hospital', '')} on the fridge card",
+                            "channels": "Surfaces: Carmen phone line · fridge card · Spanish, read aloud; Ana app + calls; Marco app + calls; Lucía app only",
+                            "consent": f"Welcome call planned {intake.fields['consent'].get('welcome_call', '?')} · quiet hours pending her words",
+                            "home": "Contacts: " + ", ".join(intake.fields["home"].get("nearby", []))}.get(t)
+                    if line:
+                        await ledger.row("done", f"{t} covered", line)
+                if found_.get("money", {}).get("family_word"):
+                    await ledger.row("done", "Family word", "set (never shown here)")
+                q = next_question(intake)
+                nxt = q.text if isinstance(q, Question) else "review"
+                know = now_i_know(intake, found_, run.turns and q if False else None)
+                turn.update({"answer": shown, "now_i_know": know, "meter": intake.meter(), "gaps": intake.gaps(), "next": nxt})
+                run.turns.append(turn)
+                await _emit(svc, run, f"{know} · {intake.meter()}" + (f" · gaps: {', '.join(intake.gaps()[:3])}" if intake.gaps() else "") + f" · next: {nxt}"[:160])
+                await svc.broadcast_control(village_id, frames.counter("intake_covered", len(intake.covered()), "topics covered", of=10))
+                await asyncio.sleep(0)  # let the Founder's background work land between questions
+            session.question = None
+            run.intake = intake.to_dict()
+            if intake.transcript:
+                extra = heuristic_blueprint(input.description, kind, intake.answers_text())
+                names = {p.get("name", "").split()[0].lower() for p in bp.get("people", [])}
+                for p in extra["people"]:
+                    if p["name"].split()[0].lower() not in names and p["role"] not in ("coordinator", "care_recipient"):
+                        bp["people"].append(p)
+            run.blueprint = bp
+            _set_state(run, "working")
+            text = (input.description + ("\n" + intake.answers_text() if intake.transcript else ""))[:2000]
+            rebase_spans(spec, text)
+            changes = apply_intake(spec, intake) if intake.transcript else {}
+            run.intake["applied"] = changes
+            if not intake.transcript:
+                bp_names = {p.get("name", "").split()[0].lower() for p in bp.get("people", [])}
+                for p in spec["blueprint"]["people"]:
+                    if p["name"].split()[0].lower() not in bp_names and p.get("short_name", "").lower() not in bp_names and p["role"] not in ("coordinator", "care_recipient"):
+                        await svc.record_decision(builder_decision(village_id, f"{p['name'].split()[0]}: from the village record, not from what you said; confirm on review.", kind="note", mode="asked_human", refs=[{"kind": "member", "id": p["id"]}], trace_id=run.trace_id))
+            pending_at = intake.fields["consent"].get("welcome_call") if intake.fields["consent"].get("center_rules") else None
+            for item in apply_member_rules(spec, record, pending_at=pending_at):
                 rule, person = item["rule"], item["member"]
                 src = rule["source"]
-                await svc.record_decision(builder_decision(village_id, f"{person.get('short_name') or person['name'].split()[0]}'s rule: no calls {rule['params']['quiet_hours']} — her words: \"{rule.get('words', '')}\" (welcome call, {int(src['secs']) // 60}:{int(src['secs']) % 60:02d}).", rule_id="P-QH-01", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], mode="acted_alone", source={"kind": src["kind"], "ref": src["ref"], "secs": src["secs"], "quote": rule.get("words", "")}, trace_id=run.trace_id))
-                await _emit(svc, run, f"Quiet hours · after 9:30 PM, no calls (her words, welcome call {int(src['secs']) // 60}:{int(src['secs']) % 60:02d})", "decision")
+                if item["pending"]:
+                    await svc.record_decision(builder_decision(village_id, f"Quiet hours for {person['name'].split()[0]}: pending her words (welcome call {pending_at}). Village asks her, not Ana.", rule_id="P-QH-01", mode="asked_human", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], trace_id=run.trace_id))
+                else:
+                    mmss = f"{int(src['secs']) // 60}:{int(src['secs']) % 60:02d}"
+                    await svc.record_decision(builder_decision(village_id, f"{person.get('short_name') or person['name'].split()[0]}'s rule: no calls {rule['params']['quiet_hours']} — her words: \"{rule.get('words', '')}\" (welcome call, {mmss}).", rule_id="P-QH-01", refs=[{"kind": "member", "id": person["id"]}, {"kind": "policy", "id": "P-QH-01"}], source={"kind": src["kind"], "ref": src["ref"], "secs": src["secs"], "quote": rule.get("words", "")}, trace_id=run.trace_id))
+                    await _emit(svc, run, f"Quiet hours · after 9:30 PM, no calls (her words, welcome call {mmss})", "decision", mode="acted_alone")
             people = spec["blueprint"]["people"]
             plan = plan_capabilities(spec, signals=opts.signals)
-            crit = await critique(plan, people, village_id=village_id, services=svc, llm=llm if opts.mode != "fixture" else None, trace_id=run.trace_id)
+            crit = await critique(plan, people, village_id=village_id, services=svc, llm=llm, trace_id=run.trace_id)
             run.critique = {"applied": crit.applied, "refused": crit.refused, "assumptions": crit.assumptions, "source": crit.source}
             run.capabilities = plan.as_dict()
             for row in capability_rows(village_id, plan, people, trace_id=run.trace_id):
                 await svc.record_decision(row)
-                await _emit(svc, run, row["text"], "decision")
-            meds = input.medications
-            if meds is None:
-                meds = sorted({m["name"] for m in record.get("medications", []) if m.get("status") != "superseded"}) if record else []
+                await _emit(svc, run, row["text"], "decision", mode="acted_alone")
+            if "meds" not in tasks:
+                meds = input.medications
+                if meds is None:
+                    meds = sorted({m["name"] for m in record.get("medications", []) if m.get("status") != "superseded"}) if record else []
+                tasks["meds"] = asyncio.create_task(check_medications(run, svc, opts, meds, ledger, center_id))
+            if "call" not in tasks:
+                tasks["call"] = asyncio.create_task(consent_call(spec, run, svc, opts, ledger))
             t_r = time.perf_counter()
-            (spec, roles), _ = await asyncio.gather(
-                render_views(spec, village_id=village_id, services=svc, llm=llm if opts.mode != "fixture" else None, plan=plan, per_role_s=opts.per_role_s, total_s=opts.total_s, trace_id=run.trace_id),
-                founder_work(spec, run, svc, opts, meds),
-            )
+            render_ids = {r: await ledger.start(f"Render {r} view") for r in spec["views"]}
+            spec, roles = await render_views(spec, village_id=village_id, services=svc, llm=llm, plan=plan, per_role_s=opts.per_role_s, total_s=opts.total_s, trace_id=run.trace_id)
+            for r, res in roles.items():
+                await ledger.finish(render_ids[r], "done" if res.status != "template" else "fallback", f"Render {r} view", f"{res.status}" + (f" ({res.reason})" if res.reason else f" in {res.ms / 1000:.1f} s"))
             run.timings["render_ms"] = int((time.perf_counter() - t_r) * 1000)
             run.timings["render_role_ms"] = {r: v.ms for r, v in roles.items()}
             run.roles = roles
+            await asyncio.gather(*tasks.values())
+            run.timings["founder_work_ms"] = int((time.perf_counter() - t0) * 1000)
             spec = ensure_chat(spec)
             for person in people:
                 chans = ", ".join(spec["channels"].get(person["id"], []))
-                await svc.record_decision(builder_decision(village_id, f"{person['name'].split()[0]}: {person['view'] or 'phone-only'} through {chans}.", refs=[{"kind": "member", "id": person["id"]}], mode="acted_alone", trace_id=run.trace_id))
+                await svc.record_decision(builder_decision(village_id, f"{person['name'].split()[0]}: {person['view'] or 'phone-only'} through {chans}.", refs=[{"kind": "member", "id": person["id"]}], trace_id=run.trace_id))
             report = validate_spec(spec)
-            if not report.ok:  # never ship an invalid draft: whole template
+            if not report.ok:
+                run.timings["invalid_merge"] = report.errors[:3]
                 await svc.record_decision(templates.template_decision(village_id, "all", report.errors[0][:200]))
                 spec = templates.spec(kind, village_id=village_id, status="draft")
             run.spec = spec
             await svc.store_spec(village_id, spec, status="draft")
             _set_state(run, "draft")
             await svc.broadcast_control(village_id, frames.blueprint(village_id, "done", [{"rev": spec.get("rev", 1)}], run.trace_id))
-            await _emit(svc, run, f"Draft ready: {len(spec['views'])} views, {len(people)} people, {len(run.ledger)} things checked.", "plan")
+            # ---- review turn: the founder edits in words, Village patches
+            run.closing = closing_summary(spec, run, intake)
+            await _emit(svc, run, f"Village: {run.closing}", "plan", mode="asked_human")
+            if opts.review and kind == "care":
+                _set_state(run, "review")
+                session.question = Review(run.closing)
+                edit = await get_answer(live_ok=True)
+                session.question = None
+                run.review = {"question": run.closing, "answer": edit}
+                if edit:
+                    await _emit(svc, run, f"{speaker}: {edit}")
+                    patched, what = review_patch(spec, edit)
+                    if what and validate_spec(patched).ok:
+                        spec = patched
+                        run.spec = spec
+                        await svc.store_spec(village_id, spec, status="draft")
+                        await ledger.row("done", "Patch from your words", what)
+                        await svc.record_decision(builder_decision(village_id, f"Review edit: \"{edit[:120]}\" → {what}.", mode="asked_human", trace_id=run.trace_id))
+                        run.review["patch"] = what
+                    else:
+                        await _emit(svc, run, "I couldn't turn that into a change yet; it stays a note on the draft.")
+                await _emit(svc, run, "Send the invites.", "plan", mode="asked_human")
         except Exception as exc:
             run.error = f"{type(exc).__name__}: {exc}"
             root.set("error", run.error)
+            for t in tasks.values():
+                t.cancel()
             raise
         finally:
             run.total_ms = int((time.perf_counter() - t0) * 1000)
@@ -323,7 +589,14 @@ async def found(
 
 def demo_options(**kw: Any) -> FoundingOptions:
     """Model-off demo wiring: recorded DailyMed + scripted consent answer (both mocked, labelled)."""
-    return FoundingOptions(dialer=ScriptedConsentDialer(answers=deepcopy(REYES_SCRIPT)), dailymed="fixture", **kw)
+    kw.setdefault("dialer", ScriptedConsentDialer(answers=deepcopy(REYES_SCRIPT)))
+    kw.setdefault("dailymed", "fixture")
+    return FoundingOptions(**kw)
+
+
+def replay_input(path: Any = None) -> tuple[FoundingInput, list[str]]:
+    rows = load_intake(path)
+    return FoundingInput(description=rows[0]["text"]), [r["text"] for r in rows[1:]]
 
 
 def answer(village_id: str, text: str) -> bool:

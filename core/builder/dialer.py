@@ -27,7 +27,7 @@ class ScriptedConsentDialer:
         return out
 
 
-REYES_SCRIPT = {"m_marco": {"availability_days": ["Tue", "Thu", "Fri", "Sat"], "ai_calls": True, "secs": 41}}
+REYES_SCRIPT = {"m_marco": {"availability_days": ["Tue", "Thu", "Fri", "Sat"], "ai_calls": True, "secs": 41}}  # D29 A2/A5
 
 
 def consent_call_payload(person: dict[str, Any], *, village_id: str, coordinator_name: str, family_label: str) -> dict[str, Any]:

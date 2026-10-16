@@ -1,29 +1,45 @@
-"""Founding intake dialogue (operator LD-6/LD-7). A deterministic turn policy over blueprint gaps:
-people → roles/contact → health → money/scams → coordination → household → rules/consent.
-Village reflects back what it heard, asks one short question at a time, never asks what it already
-knows, and stops when the picture is complete (`fast` = opener + 2 questions; `full` ≤ 12).
-The same policy serves text founding (POST /villages/{id}/answers) and the voice Setup agent."""
+"""Founding intake (docs/FOUNDING-INTAKE.md, D29): ten topics from data/intake/plan.json. After every
+answer: `record_answer` extraction (model tool call, or the rules extractor model-off) → coverage meter
+→ side effects (founding.py) → the next highest-risk question (plan order: money and meds before home).
+"I don't know" marks the field `unknown`: shown as a gap, never guessed, never re-asked."""
 from __future__ import annotations
 
 import json
 import re
 import unicodedata
+from copy import deepcopy
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
 
 from .paths import DATA
 
-WEEKDAYS = {"monday": "Mon", "tuesday": "Tue", "wednesday": "Wed", "thursday": "Thu", "friday": "Fri", "saturday": "Sat", "sunday": "Sun",
-            "lunes": "Mon", "martes": "Tue", "miercoles": "Wed", "jueves": "Thu", "viernes": "Fri", "sabado": "Sat", "domingo": "Sun"}
-MED_WORDS = {"eliquis": "apixaban", "apixaban": "apixaban", "lisinopril": "lisinopril", "metformin": "metformin", "atorvastatin": "atorvastatin",
-             "lipitor": "atorvastatin", "warfarin": "warfarin", "insulin": "insulin", "amlodipine": "amlodipine", "levothyroxine": "levothyroxine"}
-HOUSEHOLD = {
-    "groceries": r"grocer|bodega|shop(s|ping)?\b|bags|meals|comida|mercado",
-    "insurance": r"medicare|medicaid|insurance|seguro|paperwork|bills|autopay",
-    "appointments": r"appointment|cita|ride to|transport|doctor visits",
-    "home": r"stairs|floors|stove|heat|escalera|fall\b",
-    "keys": r"\bkeys\b|llaves|\bsuper\b",
-    "social": r"lonely|sola\b|company|checks on her",
+PLAN_PATH = DATA / "intake" / "plan.json"
+TRANSCRIPT_PATH = DATA / "builder" / "reyes_intake.jsonl"
+UNKNOWN = "unknown"
+DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+DAY_WORDS = {"monday": "Mon", "tuesday": "Tue", "wednesday": "Wed", "thursday": "Thu", "friday": "Fri", "saturday": "Sat", "sunday": "Sun"}
+MED_WORDS = {"eliquis": "apixaban", "apixaban": "apixaban", "lisinopril": "lisinopril", "metformin": "metformin", "atorvastatin": "atorvastatin", "lipitor": "atorvastatin", "warfarin": "warfarin", "insulin": "insulin", "amlodipine": "amlodipine"}
+NUMBER_WORDS = {"seventy": 70, "eighty": 80, "ninety": 90, "sixty": 60}
+ONES = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9}
+DONT_KNOW = re.compile(r"\b(i don'?t know|not sure|no idea|no s[eé])\b", re.I)
+
+RECORD_ANSWER_TOOL = {
+    "name": "record_answer",
+    "description": "Extract the structured intake fields stated in the founder's answer. Only what was said; omit anything not stated; use 'unknown' when they say they don't know.",
+    "input_schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["fields"],
+        "properties": {
+            "fields": {
+                "type": "object",
+                "description": "topic id → {field: value}. Topics/fields from the intake plan.",
+                "additionalProperties": {"type": "object"},
+            },
+            "now_i_know": {"type": "string", "maxLength": 160},
+        },
+    },
 }
 
 
@@ -31,248 +47,322 @@ def fold(t: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFKD", t.lower()) if not unicodedata.combining(c))
 
 
-@dataclass(frozen=True)
-class Slot:
-    id: str
-    category: str
-    question: str  # {name} = center's first name or "your mom"
+@lru_cache
+def plan() -> dict[str, Any]:
+    return json.loads(PLAN_PATH.read_text(encoding="utf-8"))
 
 
-SLOTS = [
-    Slot("center", "people", "What's {name_or_mom}'s name, and which language is easiest for her?"),
-    Slot("people", "people", "Besides you{and_known}, who else is part of this — family, a neighbor, an aide?"),
-    Slot("contact", "roles", "How does {name} like to be reached — phone, or would she use an app? And everyone else?"),
-    Slot("health", "health", "What medications does {name} take, and who's her doctor?"),
-    Slot("money", "money", "Has anyone tried to get money from {name} — calls, texts, someone pretending to be family?"),
-    Slot("coordination", "coordination", "Who goes to see {name} on which days?"),
-    Slot("household", "household", "And the rest of her week — groceries, bills, getting around, the apartment? Who has keys?"),
-    Slot("worry", "rules", "Of all that, what worries you most?"),
-    Slot("rules", "rules", "Any rules {name} would set herself — times not to call, things she doesn't want?"),
-    Slot("consent", "consent", "Is it OK for Village to call you and the others to check things, like when someone asks her for money?"),
-]
-SLOT_IDS = [s.id for s in SLOTS]
-MAX_QUESTIONS = {"fast": 2, "full": 12}
+def topics() -> list[dict[str, Any]]:
+    return plan()["topics"]
 
 
 @dataclass
 class Question:
-    slot: str
-    category: str
-    reflection: str
+    topic: str
+    field: str
     text: str
     n: int
 
-    @property
-    def say(self) -> str:
-        return f"{self.reflection} {self.text}".strip()
+
+@dataclass
+class Review:
+    text: str
 
 
 @dataclass
-class Done:
-    reason: str
-    gaps: list[str] = field(default_factory=list)
+class IntakeState:
+    opener: str = ""
+    fields: dict[str, dict[str, Any]] = field(default_factory=lambda: {t["id"]: {} for t in topics()})
+    asked: list[str] = field(default_factory=list)  # "topic.field"
+    transcript: list[dict[str, str]] = field(default_factory=list)  # {who, text, topic?}
+    family_word: str | None = None  # never in frames, traces or the description
 
+    def covered(self) -> list[str]:
+        out = []
+        for t in topics():
+            f = self.fields[t["id"]]
+            if all(f.get(r) not in (None, "", [], UNKNOWN) for r in t["required"]):
+                out.append(t["id"])
+        return out
 
-@dataclass
-class ConversationState:
-    opener: str
-    mode: str = "full"
-    turns: list[dict[str, str]] = field(default_factory=list)  # {slot, question, answer}
-    asked: list[str] = field(default_factory=list)
+    def gaps(self) -> list[str]:
+        cov = set(self.covered())
+        return [t["title"] for t in topics() if t["id"] not in cov]
 
-    @property
-    def answers_text(self) -> str:
-        return "\n".join(t["answer"] for t in self.turns if t.get("answer"))
+    def meter(self) -> str:
+        n = len(self.covered())
+        g = 10 - n
+        return f"{n} of 10 covered · {g} gap{'s' if g != 1 else ''}"
 
-    @property
-    def text(self) -> str:
-        return self.opener + ("\n" + self.answers_text if self.answers_text else "")
-
-    def answer_for(self, slot: str) -> str:
-        return next((t["answer"] for t in self.turns if t["slot"] == slot and t.get("answer")), "")
-
-    def add(self, slot: str, question: str, answer: str) -> None:
-        self.turns.append({"slot": slot, "question": question, "answer": answer.strip()})
+    def answers_text(self, *, exclude_topics: tuple[str, ...] = ("money.family_word",)) -> str:
+        return "\n".join(t["text"] for t in self.transcript if t["who"] == "founder" and t.get("ask") not in exclude_topics)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"opener": self.opener, "mode": self.mode, "turns": self.turns, "asked": self.asked}
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "ConversationState":
-        return cls(opener=d["opener"], mode=d.get("mode", "full"), turns=list(d.get("turns", [])), asked=list(d.get("asked", [])))
+        return {"fields": self.fields, "asked": self.asked, "covered": self.covered(), "meter": self.meter(), "gaps": self.gaps(), "family_word_set": bool(self.family_word)}
 
 
-# ---- what Village knows ------------------------------------------------------------------------
-def facts(state: ConversationState) -> dict[str, Any]:
-    text = state.text
-    f: dict[str, Any] = {}
-    center_ans = state.answer_for("center")
-    m = re.search(r"\b(?:se llama|her name is|mom'?s name is|named|mother,|mom,)\s+([A-Z][a-zá-ú]+)", text)
-    if center_ans:
-        nm = re.search(r"[A-ZÁÉÍÓÚ][a-zá-ú]+", center_ans)
-        f["name"] = nm.group(0) if nm else None
-    elif m:
-        f["name"] = m.group(1)
-    age = re.search(r"\b(seventy|eighty|ninety)(-\w+)?\b|\b([6-9]\d)\b(?= ?(?:years|y/o|,| and))", text, re.I)
-    if age:
-        words = {"seventy": 70, "eighty": 80, "ninety": 90}
-        ones = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9}
-        if age.group(1):
-            f["age"] = words[age.group(1).lower()] + ones.get((age.group(2) or "-").strip("-").lower(), 0)
-        else:
-            f["age"] = int(age.group(3))
-    place = re.search(r"\bin (Queens|Brooklyn|the Bronx|Manhattan|Staten Island|[A-Z][a-z]+ Heights)\b", text)
-    if place:
-        f["place"] = place.group(1)
+# ---- next question -----------------------------------------------------------------------------
+def helper_name(state: IntakeState) -> str:
+    members = state.fields["members"].get("members") or []
+    local = [m for m in members if m.get("relation") != "self" and not m.get("remote")]
+    return local[0]["name"] if local else "your brother"
+
+
+def next_question(state: IntakeState) -> Question | Review:
+    for t in topics():
+        for q in t["questions"]:
+            key = f"{t['id']}.{q['field']}"
+            val = state.fields[t["id"]].get(q["field"])
+            if key in state.asked or val not in (None, "", []):
+                continue
+            if t["id"] == "center" and t["id"] in state.covered():
+                continue
+            return Question(t["id"], q["field"], q["text"].format(helper=helper_name(state)), len(state.asked) + 1)
+    return Review(plan()["review"]["text"])
+
+
+# ---- rules extractor (model-off record_answer) -------------------------------------------------
+def _days(text: str) -> list[str]:
     ft = fold(text)
-    if re.search(r"spanish|espanol", ft):
-        f["lang"] = "es"
-    f["meds"] = sorted({MED_WORDS[w] for w in re.findall(r"[a-z]+", ft) if w in MED_WORDS})
-    doc = re.search(r"\bDr\.? ([A-Z][a-z]+)(?: at ([A-Z][a-z]+))?", text)
-    if doc:
-        f["doctor"] = f"Dr. {doc.group(1)}" + (f" at {doc.group(2)}" if doc.group(2) else "")
-    f["days"] = sorted({WEEKDAYS[w] for w in re.findall(r"[a-z]+?(?=s?\b)", ft) if w in WEEKDAYS}, key=list(WEEKDAYS.values()).index)
-    f["household"] = [k for k, rx in HOUSEHOLD.items() if re.search(rx, ft)]
-    f["phone_only"] = bool(re.search(r"won'?t use an app|flip phone|answer the phone|no apps?\b|doesn'?t do apps", ft))
-    qh = re.search(r"(nueve y media|nine-?thirty|9:30|after (nine|9))", ft)
-    if qh:
-        f["quiet_hours"] = "21:30-07:00"
-    f["outsiders"] = [o for o, rx in (("Mrs. Ortiz next door" if "ortiz" in ft else "a neighbor", r"neighbou?r|next door|vecin"), ("the super", r"\bsuper\b"), (f.get("doctor") or "her doctor", r"\bdr\.? "), ("the bodega", r"bodega")) if re.search(rx, ft)]
-    return f
+    found = {DAY_WORDS[w] for w in re.findall(r"[a-z]+?(?=s?\b)", ft) if w in DAY_WORDS}
+    return [d for d in DAYS if d in found]
 
 
-def known(state: ConversationState) -> dict[str, bool]:
-    """Which slots are already covered — by an answer or by what was said anywhere."""
-    t = fold(state.text)
-    f = facts(state)
-    answered = {x["slot"] for x in state.turns if x.get("answer")}
-    k = {
-        "center": bool(f.get("name")),
-        "people": len(re.findall(r"\bmy (brother|sister|son|daughter|husband|wife|cousin|aunt|uncle)\b|neighbou?r|\baide\b|next door", t)) >= 2,
-        "contact": f["phone_only"] or bool(re.search(r"smartphone|uses? the app|has the app", t)),
-        "health": bool(f["meds"]) or bool(re.search(r"\b\d+\s?mg\b", t)),
-        "money": bool(re.search(r"money|wired?|dinero|scam|pretending|gift card", t)),
-        "coordination": len(f["days"]) >= 2,
-        "household": len(f["household"]) >= 2 and bool({"home", "keys"} & set(f["household"])),
-        "worry": bool(re.search(r"worr|scared|afraid|preocup|miedo|biggest", t)) or _domains(t) >= 3,
-        "rules": bool(f.get("quiet_hours")) or bool(re.search(r"don'?t call|no calls after|quiet hours|never call", t)),
-        "consent": bool(re.search(r"call me anytime|ok(ay)? to call|fine to call|it'?s fine to call|said it'?s fine|agreed to calls|prefers? texts|can call (me|him|her)", t)),
-    }
-    for s in answered:
-        k[s] = True
-    return k
+def _sentences(text: str) -> list[str]:
+    safe = re.sub(r"\b(Dr|Mr|Mrs|Ms|St)\. ", r"\1~ ", text)
+    return [s.replace("~ ", ". ") for s in re.split(r"(?<=[.!?])\s+", safe) if s.strip()]
 
 
-def _domains(t: str) -> int:
-    return sum(bool(re.search(rx, t)) for rx in (r"pill|medic|pastill", r"money|wired|dinero|scam", r"nobody went|turn|visit", r"lonely|alone|sola"))
-
-
-def reflect(state: ConversationState) -> str:
-    f = facts(state)
-    name = f.get("name") or "She"
-    if not state.turns:
-        heard = []
-        t = fold(state.opener)
-        if re.search(r"pill|medic|pastill", t):
-            heard.append("the pills")
-        if re.search(r"money|wired|scam|pretending", t):
-            m = re.search(r"pretending to be ([A-Z][a-z]+)", state.opener)
-            heard.append(f"a money call in {m.group(1)}'s name" if m else "a money call")
-        if re.search(r"nobody went|whose turn|each thought", t):
-            heard.append("a missed visit")
-        return ("I heard " + ", ".join(heard[:-1]) + (" and " if len(heard) > 1 else "") + heard[-1] + ".") if heard else "Got it."
-    last = state.turns[-1]["slot"]
-    if last == "center":
-        bits = [b for b in (name, f.get("age") and str(f["age"]), f.get("place") and f"in {f['place']}") if b]
-        return ", ".join(bits) + (", Spanish first." if f.get("lang") == "es" else ".")
-    if last == "people":
-        found = [n for n in re.findall(r"\b(?:brother|sister|son|daughter) ([A-Z][a-zá-ú]+)", state.answer_for("people"))]
-        extra = [o for o in f["outsiders"] if "next door" in o or "neighbor" in o]
-        return "So: you, " + ", ".join(found + extra) + "." if found or extra else "Got it."
-    if last == "contact":
-        return f"{name} by phone, no app; the rest of you on the app." if f["phone_only"] else "Got it."
-    if last == "health":
-        n = len(f["meds"])
-        return f"{name} takes {n} medication{'s' if n != 1 else ''}; I'm checking them on DailyMed while we talk." if n else "Noted."
-    if last == "money":
-        return "That's exactly what Village checks before a dollar moves."
-    if last == "coordination":
-        return f"Got the days{'; Friday is refill day' if 'refill' in fold(state.answer_for('coordination')) else ''}."
-    if last == "household":
-        labels = {"groceries": "groceries", "insurance": "paperwork", "appointments": "appointments", "home": "the stairs", "keys": "keys", "social": "company"}
-        return ", ".join(labels[h] for h in f["household"]).capitalize() + " — noted." if f["household"] else "Noted."
-    if last == "rules":
-        return f"No calls after 9:30 — {name}'s rule." if f.get("quiet_hours") else "Noted."
-    return "Thanks."
-
-
-def next_turn(state: ConversationState) -> Question | Done:
-    k = known(state)
-    gaps = [s for s in SLOTS if not k[s.id] and s.id not in state.asked]
-    limit = MAX_QUESTIONS.get(state.mode, 12)
-    if not gaps:
-        return Done("complete")
-    if len(state.asked) >= limit:
-        return Done("enough for a first draft", [g.id for g in gaps])
-    slot = gaps[0]
-    f = facts(state)
-    name = f.get("name") or "her"
-    known_people = re.findall(r"pretending to be ([A-Z][a-z]+)|([A-Z][a-z]+) and I\b", state.opener)
-    first_known = next((a or b for a, b in known_people), None)
-    q = slot.question.format(name=name, name_or_mom="your mom" if not f.get("name") else name, and_known=f" and {first_known}" if first_known else "")
-    return Question(slot.id, slot.category, reflect(state), q, len(state.asked) + 1)
-
-
-def mark_asked(state: ConversationState, q: Question) -> None:
-    state.asked.append(q.slot)
-
-
-# ---- intake → needs (with spans into the founder's words) ------------------------------------
-NEED_RULES = [
-    ("n_groceries", r"bodega[^.]*|groceries[^.]*|can'?t carry bags[^.]*", "Groceries: shopping and carrying bags up the stairs", "logistics", "daily_living"),
-    ("n_insurance", r"Medicare paperwork[^.]*|insurance[^.]*|Bills are on autopay[^.]*", "Insurance, Medicare paperwork and bills", "money", "money"),
-    ("n_appointments", r"Dr\.? [A-Z][a-z]+ at [A-Z][a-z]+[^.]*|appointments?[^.]*", "Doctor appointments and getting there", "logistics", "daily_living"),
-    ("n_home_safety", r"three floors|stairs[^.]*|stove[^.]*", "Home safety: three flights of stairs", "safety", "home"),
-    ("n_keys", r"[Tt]he super has keys|keys[^.]*", "Who has keys (the super)", "safety", "home"),
-    ("n_social", r"checks on her[^.]*|lonely[^.]*", "Company and check-ins from neighbors", "social", "people"),
-]
-
-
-def intake_needs(text: str, center_id: str | None) -> list[dict[str, Any]]:
-    out, seen = [], set()
-    for nid, rx, label, domain, area in NEED_RULES:
-        m = re.search(rx, text)
-        if not m or nid in seen:
-            continue
-        seen.add(nid)
-        quote = m.group(0)[:80]
-        out.append({"id": nid, "text": f"{label}: \"{quote}\""[:160], "priority": 4, "domain": domain, "life_area": area, "subject_member_ids": [center_id] if center_id else [], "source_span": {"start": m.start(), "end": m.start() + len(quote)}, "origin": "follow_up"})
-    return out
-
-
-def person_assignments(text: str, first_names: dict[str, str]) -> dict[str, dict[str, Any]]:
-    """Per person: weekdays and household areas named in the same sentence as their first name."""
+def extract(answer: str, q: Question | None, state: IntakeState) -> dict[str, dict[str, Any]]:
+    """Fields stated in `answer` (any topic). The asked field gets `unknown` on 'I don't know'."""
     out: dict[str, dict[str, Any]] = {}
-    for sentence in re.split(r"(?<=[.!?])\s+|\n", text):
-        fs = fold(sentence)
-        for first, pid in first_names.items():
-            if re.search(rf"\b{fold(first)}\b", fs):
-                rec = out.setdefault(pid, {"days": [], "areas": set(), "refill": False})
-                if not re.search(rf"\b{fold(first)} (and I|thought)\b|pretending to be {fold(first)}", fs):
-                    rec["days"] += [WEEKDAYS[w] for w in re.findall(r"[a-z]+?(?=s?\b)", fs) if w in WEEKDAYS]
-                for k, rx in HOUSEHOLD.items():
-                    if re.search(rx, fs):
-                        rec["areas"].add({"groceries": "daily_living", "insurance": "money", "appointments": "daily_living", "home": "home", "keys": "home", "social": "people"}[k])
-                rec["refill"] = rec["refill"] or "refill" in fs
-    for rec in out.values():
-        rec["days"] = sorted(set(rec["days"]), key=list(WEEKDAYS.values()).index)
-        rec["areas"] = sorted(rec["areas"])
+    ft = fold(answer)
+
+    def put(topic: str, key: str, value: Any) -> None:
+        if value not in (None, "", []):
+            out.setdefault(topic, {})[key] = value
+
+    if q is not None and DONT_KNOW.search(answer) and len(answer) < 60:
+        put(q.topic, q.field, UNKNOWN)
+        return out
+    # 1 center
+    age = re.search(r"\b(sixty|seventy|eighty|ninety)(?:-(\w+))?\b|\b([6-9]\d)\b", ft)
+    if age and (q is None or q.topic == "center"):
+        put("center", "age", NUMBER_WORDS[age.group(1)] + ONES.get(age.group(2) or "", 0) if age.group(1) else int(age.group(3)))
+    lives = re.search(r"\b(?:alone|lives) in (Queens|Brooklyn|the Bronx|Manhattan|Staten Island|[A-Z][a-z]+ Heights)", answer)
+    if lives:
+        put("center", "lives", lives.group(1))
+    probs = [p for p, rx in (("pills", r"pill|medic"), ("money", r"money|wired|pretending"), ("visits", r"nobody went|each thought")) if re.search(rx, ft)]
+    if probs and (q is None or q.topic == "center"):
+        put("center", "problems", probs)
+    # 2 members
+    if q is None or q.topic == "members" or re.search(r"\bsister\b|\bbrother\b", ft):
+        members = []
+        for rel, name in re.findall(r"\b(?:our|my) (sister|brother|son|daughter) ([A-ZÁÉÍÓÚ][a-zá-ú]+)", answer):
+            members.append({"name": name, "relation": rel})
+        named = re.findall(r"\b([A-ZÁÉÍÓÚ][a-zá-ú]+)(?:'s| is) in ([A-Z][a-z]+(?: [A-Z][a-z]+)?)", answer)
+        for name, where in named:
+            m = next((x for x in members if x["name"] == name), None) or {"name": name, "relation": "family"}
+            m["lives"] = where
+            if m not in members:
+                members.append(m)
+        for m in members:
+            sent = next((s for s in _sentences(answer) if m["name"] in s), "")
+            dist = re.search(r"(\w+(?:-\w+)?) minutes", sent)
+            if dist:
+                m["distance"] = f"{dist.group(1)} minutes"
+            if re.search(r"in ([A-Z][a-z]+ [A-Z][a-z]+)", sent) and not m.get("lives"):
+                m["lives"] = re.search(r"in ([A-Z][a-z]+ [A-Z][a-z]+)", sent).group(1)
+        for s in _sentences(answer):
+            for m in members:
+                if m["name"] in s and re.search(r"refill|insurance|money|doctor", fold(s)):
+                    m["takes_on"] = [w for w in ("refills", "insurance", "money", "doctor visits") if w.split()[0][:5] in fold(s)]
+                if re.search(r"can'?t come|short notice", fold(s)) and m["name"] in s:
+                    m["remote"] = True
+        me = re.search(r"\bI'?m in ([A-Z][a-z]+)[^.]*?(\w+(?:-\w+)?) minutes", answer)
+        if me:
+            members.append({"name": "Ana", "relation": "self", "lives": me.group(1), "distance": f"{me.group(2)} minutes"})
+        if len([m for m in members if m["relation"] != "self"]) >= 1 and (q is None or q.topic == "members"):
+            prior = state.fields["members"].get("members") or []
+            names = {m["name"] for m in prior}
+            put("members", "members", prior + [m for m in members if m["name"] not in names])
+    # 3 availability
+    if q is not None and q.topic == "availability":
+        avail_sent = [s for s in _sentences(answer) if re.search(r"can do|evenings|after|mornings|\bI go\b", s, re.I)] or _sentences(answer)
+        days = _days(" ".join(avail_sent)) if q.field == "helper_days" else _days(answer)
+        rec: dict[str, Any] = {"days": days}
+        c = re.search(r"works nights|leave by [\w-]+|sleeps until [\w ]+?(?=\.)", answer)
+        if c:
+            rec["constraints"] = [m.group(0) for m in re.finditer(r"works nights|has to leave by [\w-]+|sleeps until [\w ]+?(?=\.)", answer)]
+        rem = re.search(r"text at (\w+)", answer)
+        if rem:
+            rec["reminder"] = f"text at {rem.group(1)}"
+        window = re.search(r"after (\w+)", answer)
+        if window:
+            rec["after"] = window.group(1)
+        if re.search(r"evenings", ft):
+            rec["window"] = "evenings"
+        if days:
+            put("availability", q.field, rec)
+        if re.search(r"doctor visits", ft):
+            put("availability", "speaker_does", ["doctor visits"] + (["fills the organizer Sunday"] if "organizer" in ft else []))
+    # 4 meds
+    meds = []
+    for w in re.findall(r"[a-z]+", ft):
+        if w in MED_WORDS and MED_WORDS[w] not in [m["name"] for m in meds]:
+            meds.append({"name": MED_WORDS[w], "said": w})
+    if meds:
+        for m in meds:
+            sent = next((s for s in _sentences(answer) if m["said"] in fold(s)), "")
+            fs = fold(sent)
+            m["slots"] = [s for s in ("morning", "night", "evening") if s in fs] or (["morning", "night"] if "twice a day" in fs else [])
+            ch = re.search(r"(doubled|bumped|changed)[^.]*?to (\w+) milligrams(?: on the (\w+))?", sent)
+            if ch:
+                nums = {"five": "5", "ten": "10", "twenty": "20", "two": "2", "forty": "40"}
+                m["change"] = {"to": nums.get(ch.group(2), ch.group(2)), "when": ch.group(3) or "", "words": sent.strip()[:160]}
+        put("meds", "meds", meds)
+        dr = re.search(r"Dr\.? ([A-Z][a-z]+)", answer)
+        put("meds", "prescriber", f"Dr. {dr.group(1)}" if dr else None)
+        ph = re.search(r"(Farmacia [A-Z][\w ]+?|[A-Z]\w+ Pharmacy)(?: on (\w+))?(?= fills|[.,])", answer)
+        put("meds", "pharmacy", (ph.group(1) + (f" on {ph.group(2)}" if ph.group(2) else "")) if ph else None)
+        if re.search(r"old [\w ]*bottle", ft):
+            put("meds", "risk", "old bottle still in the cabinet")
+    # 5 routine
+    if re.search(r"organizer|pastillero", ft) and (q is None or q.topic == "routine"):
+        put("routine", "how_taken", "weekly organizer" + (" (yellow lid morning, blue lid evening)" if "yellow" in ft else ""))
+    fails = re.search(r"[^.]*(calls me asking|took them twice|forgets)[^.]*", answer)
+    if fails and (q is None or q.topic == "routine"):
+        put("routine", "what_fails", fails.group(0).strip()[:160])
+        if re.search(r"calls me", ft):
+            put("routine", "who_called", "Ana")
+    # 6 money
+    if q is not None and q.topic == "money" and q.field == "family_word":
+        w = re.match(r"\s*[\"'“]?([A-Za-zÁÉÍÓÚáéíóúñÑ]+)", answer)
+        if w:
+            put("money", "family_word", "set")
+            state.family_word = w.group(1)
+        return out
+    if re.search(r"saying he was|pretending|gift cards|wire", ft) and q is not None and q.topic == "money":
+        amt = re.search(r"(fifteen hundred|two thousand|\$[\d,]+)", ft)
+        put("money", "incident", ("caller claimed to be family" + (f", asked {amt.group(1)}" if amt else "") + (" in gift cards" if "gift card" in ft else ""))[:160])
+    hd = re.search(r"([A-Z][a-z]+) handles her money", answer)
+    put("money", "handler", hd.group(1) if hd else None)
+    acc = re.search(r"(one checking account|checking account|savings account|one account)", ft)
+    put("money", "accounts", acc.group(1) if acc else None)
+    # 7 home
+    if q is not None and q.topic == "home":
+        times = re.findall(r"at (eight|eleven|seven(?:-thirty)?|nine|noon|\d{1,2}(?::\d\d)?)", ft)
+        put("home", "routine", times and f"{len(times)} fixed times a day" or None)
+        nearby = []
+        nb = re.search(r"(Doña [A-Z][a-z]+|Mrs?\. [A-Z][a-z]+)?,? ?(?:her )?neighbou?r(?: on the (\w+) floor)?", answer)
+        if nb:
+            nearby.append(f"neighbor{' (' + nb.group(2) + ' floor)' if nb.group(2) else ''}")
+        if re.search(r"\bsuper\b", ft):
+            nearby.append("building super")
+        put("home", "nearby", nearby)
+        if re.search(r"walk-up|no elevator", ft):
+            put("home", "building", "walk-up, no elevator")
+        if re.search(r"blood pressure", ft):
+            put("home", "bp_log", _days(answer))
+    # 8 emergencies
+    if "911" in answer:
+        order = [w for w in re.findall(r"911|\bme\b|\bMarco\b|\bAna\b|\bLuc[ií]a\b", answer)]
+        put("emergencies", "first", " → ".join(o if o != "me" else "Ana" for o in order))
+    hosp = re.search(r"([A-Z][a-z]+) Hospital", answer)
+    put("emergencies", "hospital", f"{hosp.group(1)} Hospital" if hosp else None)
+    # 9 channels
+    if q is not None and q.topic == "channels" or re.search(r"won'?t use apps?|regular phone|flip phone", ft):
+        if re.search(r"spanish only|solo espanol|only spanish", ft):
+            put("channels", "center_lang", "es")
+        elif re.search(r"spanish", ft):
+            put("channels", "center_lang", "es")
+        if re.search(r"won'?t use apps?|regular phone|flip phone|answer a call", ft):
+            put("channels", "center_channel", "phone")
+        if re.search(r"big letters", ft):
+            put("channels", "large_text", True)
+        if re.search(r"won'?t read a text", ft):
+            put("channels", "no_sms", True)
+    # 10 consent
+    if q is not None and q.topic == "consent":
+        wc = re.search(r"(one-thirty|1:30)", ft) or re.search(r"(two o'?clock|after lunch|morning)", ft)
+        put("consent", "welcome_call", "13:30" if wc and wc.group(1) in ("one-thirty", "1:30") else (wc.group(1) if wc else None))
+        if re.search(r"calls at night|late|night", ft):
+            put("consent", "center_rules", "pending her words (dislikes calls at night)")
     return out
 
 
-def load_transcript(path: Any = None) -> tuple[str, dict[str, str]]:
-    """(opener, {slot: answer}) from a recorded founding transcript (jsonl)."""
-    p = path or DATA / "builder" / "reyes_founding_transcript.jsonl"
-    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
-    opener = next(r["text"] for r in rows if r["slot"] == "opener")
-    return opener, {r["slot"]: r["text"] for r in rows if r["slot"] != "opener"}
+def merge(state: IntakeState, found: dict[str, dict[str, Any]]) -> list[str]:
+    """Merge extracted fields; returns topics newly covered."""
+    before = set(state.covered())
+    for topic, vals in found.items():
+        if topic not in state.fields:
+            continue
+        for k, v in vals.items():
+            if k == "family_word" and v not in ("set", UNKNOWN):
+                state.family_word, v = str(v), "set"
+            state.fields[topic][k] = deepcopy(v)
+    return [t for t in state.covered() if t not in before]
+
+
+def now_i_know(state: IntakeState, found: dict[str, dict[str, Any]], q: Question | None) -> str:
+    f = state.fields
+    bits: list[str] = []
+    if "center" in found:
+        c = f["center"]
+        bits.append(", ".join(str(x) for x in (c.get("age") and f"{c['age']}", c.get("lives") and f"alone in {c['lives']}") if x) + (" · " + ", ".join(c.get("problems", [])) if c.get("problems") else ""))
+    if "members" in found:
+        bits.append("cards: " + " · ".join(m["name"] + (f" ({', '.join(m['takes_on'])})" if m.get("takes_on") else "") for m in found["members"].get("members", [])))
+    if "availability" in found:
+        for k, v in found["availability"].items():
+            if isinstance(v, dict) and v.get("days"):
+                who = helper_name(state) if k == "helper_days" else "you"
+                bits.append(f"{who}: {'/'.join(v['days'])}" + (f" ({v['reminder']})" if v.get("reminder") else ""))
+    if "meds" in found and found["meds"].get("meds"):
+        ms = found["meds"]["meds"]
+        ch = next((m for m in ms if m.get("change")), None)
+        bits.append(f"{len(ms)} medications" + (f", {ch['name']} now {ch['change']['to']} mg" if ch else "") + (f", {f['meds'].get('prescriber')}" if f["meds"].get("prescriber") else ""))
+    if "routine" in found:
+        bits.append("organizer; unsure nights call Ana")
+    if "money" in found:
+        if found["money"].get("family_word"):
+            bits.append("family word · set")
+        else:
+            bits.append(f"verifier: {f['money'].get('handler') or 'unknown'}" + (f", {f['money']['accounts']}" if f["money"].get("accounts") else ""))
+    if "home" in found:
+        bits.append("contacts: " + ", ".join(f["home"].get("nearby", [])))
+    if "emergencies" in found:
+        bits.append(f"{f['emergencies'].get('first', '')} · {f['emergencies'].get('hospital', '')}")
+    if "channels" in found:
+        bits.append(f"phone only, {'Spanish' if f['channels'].get('center_lang') == 'es' else f['channels'].get('center_lang', '')}")
+    if "consent" in found:
+        bits.append(f"welcome call {f['consent'].get('welcome_call', '?')} · quiet hours pending her words")
+    if q is not None and found.get(q.topic, {}).get(q.field) == UNKNOWN:
+        bits.append(f"{q.field.replace('_', ' ')}: unknown (a gap; I won't guess)")
+    return "Now I know: " + "; ".join(b for b in bits if b) if bits else "Noted."
+
+
+def load_intake(path: Any = None) -> list[dict[str, Any]]:
+    return [json.loads(l) for l in open(path or TRANSCRIPT_PATH, encoding="utf-8") if l.strip()]
+
+
+async def record_answer(answer: str, q: Question | None, state: IntakeState, llm: Any | None = None) -> dict[str, dict[str, Any]]:
+    """Structured extraction: the model's `record_answer` when on (merged over the rules), rules otherwise."""
+    rules = extract(answer, q, state)
+    if llm is None:
+        return rules
+    try:
+        out = await llm.tool_call(
+            system="Extract intake fields from the founder's answer. Plan: " + json.dumps([{"id": t["id"], "required": t["required"], "optional": t.get("optional", [])} for t in topics()]),
+            messages=[{"role": "user", "content": json.dumps({"asked": q.text if q else None, "topic": q.topic if q else None, "answer": answer}, ensure_ascii=False)}],
+            tool=RECORD_ANSWER_TOOL,
+            max_tokens=1200,
+        )
+        model_fields = out.get("fields", {}) if isinstance(out, dict) else {}
+        merged = deepcopy(rules)
+        for t, vals in model_fields.items():
+            if t in state.fields and isinstance(vals, dict):
+                for k, v in vals.items():
+                    merged.setdefault(t, {}).setdefault(k, v)
+        return merged
+    except Exception:
+        return rules
