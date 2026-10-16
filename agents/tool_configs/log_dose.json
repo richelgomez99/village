@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/log_dose",
+    "url": "${TUNNEL_URL}/tools/log_dose",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

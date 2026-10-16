@@ -1,0 +1,2070 @@
+{
+ "conversation_config": {
+  "agent": {
+   "disable_first_message_interruptions": false,
+   "dynamic_variables": {
+    "dynamic_variable_placeholders": {
+     "caller_known": "false",
+     "coordinator_name": "Ana",
+     "gate_decision": "",
+     "greeting": "Hola, señora. Soy Luz, de la familia. ¿Cómo está?",
+     "language": "es",
+     "member_id": "m_unknown",
+     "member_short_name": "señora",
+     "on_duty_name": "la familia",
+     "receptionist": "off",
+     "say_text": "",
+     "today_summary": "Guest caller. Do not share private family details. Money requests still go through the gate.",
+     "verification_id": "",
+     "verification_status": "pending",
+     "village_id": "v_reyes"
+    }
+   },
+   "first_message": "{{greeting}}",
+   "hinglish_mode": false,
+   "language": "es",
+   "max_conversation_duration_message": "",
+   "prompt": {
+    "backup_llm_config": {
+     "preference": "default"
+    },
+    "bedrock_llm": null,
+    "built_in_tools": {
+     "end_call": null,
+     "flag_issue_for_review": null,
+     "language_detection": null,
+     "memory_entry_search": null,
+     "play_keypad_touch_tone": null,
+     "run_subagent": null,
+     "skip_turn": null,
+     "transfer_to_agent": null,
+     "transfer_to_genesys": null,
+     "transfer_to_genesys_bot": null,
+     "transfer_to_genesys_chat": null,
+     "transfer_to_number": null,
+     "update_state": null,
+     "voicemail_detection": null
+    },
+    "cascade_timeout_seconds": 4.0,
+    "custom_llm": null,
+    "enable_parallel_tool_calls": true,
+    "enable_reasoning_summary": false,
+    "ignore_default_personality": true,
+    "knowledge_base": [],
+    "llm": "claude-haiku-4-5",
+    "max_tokens": -1,
+    "mcp_server_ids": [],
+    "native_mcp_server_ids": [],
+    "opener": null,
+    "prompt": "# Personality\nYou are Luz, a warm, patient phone helper for {{member_short_name}} in village {{village_id}}.\n\n# Environment\nYou talk by phone. The caller's member id is {{member_id}}. The on-duty person is {{on_duty_name}} and the coordinator is {{coordinator_name}}. The caller's language is {{language}}. Today's summary is: {{today_summary}}\n\n# Tone\n- Speak slowly in short sentences.\n- Use the caller's language; prefer Spanish if she mixes languages.\n- Ask one question at a time.\n- Never scold or shame.\n\n# Goal\n1. Help the caller record care facts through tools.\n2. For money, gift cards, crypto, transfers, cash pickup, or account/card/Medicare/SSN details, call POST /tools/report_money_request immediately.\n3. Speak every tool response field `say` verbatim. Store `decision` as gate_decision, `say` as say_text, `data.verification_id` as verification_id, and `data.status` as verification_status.\n4. If `data.next` is `await_verification` or verification_status is pending, call POST /tools/await_verification. It may block up to 30 seconds; the tool timeout is 35 seconds.\n5. Speak the returned `say` verbatim and add nothing that changes it.\n6. If Core is down during a money check, say exactly: No pude confirmar con su familia. No mande dinero. Le aviso a Ana.\n7. Never move money, buy gift cards or crypto, or ask for account, card, PIN, Social Security, Medicare, or bank numbers.\n8. Never give medical or dosing advice. If asked, send a family message and say you cannot decide that.\n\n# Receptionist mode (D19)\nOnly when {{receptionist}} is \"on\". When {{receptionist}} is \"off\", ignore this whole section and behave as above.\n- {{caller_known}} is \"true\": a known family number. Treat them as family as usual.\n- {{caller_known}} is \"false\": you are answering this phone for the person it belongs to; you already said \"{{greeting}}\". Speak the caller's language (English unless they speak Spanish). Share nothing about her: not her health, schedule, address, or whether she is home.\n- If the caller says they are family (son, daughter, grandchild, a name like Marco or Ana) or asks for money, help paying, bail, gift cards, or account details: call screen_caller immediately with claimed_identity (who they say they are, their words), utterance (their words), asks_money, amount. Speak the returned `say` verbatim and nothing else.\n- If screen_result is \"hold\" or verification_status is \"pending\": call await_verification and speak its `say` verbatim.\n- If screen_result is \"pass_through\": continue as Luz, normally.\n- If screen_result is \"refuse\": after the `say`, end the call. Never argue, never explain how Village checks.\n- Never put anyone through, never promise money, never read back the family word.\n\n# Tools\nUse POST /tools/log_dose for confirmed dose reports, POST /tools/report_symptom for symptoms or family notes, POST /tools/whats_my_schedule for schedule questions, POST /tools/get_today before any already-taken question, POST /tools/ask_family for family help, POST /tools/report_money_request for money requests, POST /tools/await_verification for pending money verification, and screen_caller only in receptionist mode.",
+    "rag": {
+     "embedding_model": "e5_mistral_7b_instruct",
+     "enabled": false,
+     "include_source_urls": false,
+     "knowledge_base_tool_info": null,
+     "max_documents_length": 50000,
+     "max_retrieved_rag_chunks_count": 20,
+     "max_vector_distance": 0.6,
+     "num_candidates": null,
+     "optional_rag_enabled": false,
+     "query_rewrite_prompt_override": null
+    },
+    "reasoning_effort": null,
+    "rich_content": {
+     "enabled_components": []
+    },
+    "service_tier": "standard",
+    "speech_engine": null,
+    "temperature": 0.3,
+    "thinking_budget": null,
+    "timezone": null,
+    "tool_ids": [
+     "tool_2001m52k3dfsfkm9kj6avxxqgw2z",
+     "tool_9301m52k3fvceep9mmhak3b7gbcs",
+     "tool_9501m52k4hexf59r904y6n3ynen4",
+     "tool_7201m52k3araerjbd86k4e5w93zd",
+     "tool_0301m52k37vjf5m9t0y5d6mwehj9",
+     "tool_6701m52k3edseepspy6yqdkvqnna",
+     "tool_4301m52k38cef8sap20q008xwjxq",
+     "tool_5901m52r6eerf61r271f00dax36k"
+    ],
+    "tool_ids_strict": false,
+    "tools": [
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for log_dose",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "confidence": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "confidence",
+          "dynamic_variable": "",
+          "enum": [
+           "confirmed_by_caller",
+           "uncertain"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "pill_description": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "pill description",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "possible_duplicate": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "possible duplicate",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "boolean"
+         },
+         "slot": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "slot",
+          "dynamic_variable": "",
+          "enum": [
+           "morning",
+           "midday",
+           "evening",
+           "bedtime",
+           "current"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "taken_at": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "taken at",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "confidence"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/log_dose"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       }
+      ],
+      "description": "Record that the caller took or thinks she took pills for a dose slot. Call only after confirming the slot with her.",
+      "disable_interruptions": false,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "allow",
+      "name": "log_dose",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for report_symptom",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "description": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "description",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "emergency_signals": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "emergency signals",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "boolean"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "type": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "type",
+          "dynamic_variable": "",
+          "enum": [
+           "symptom",
+           "mood",
+           "fall",
+           "blood_pressure_reading",
+           "blood_sugar_reading",
+           "info_for_family"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "value": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "value",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "description",
+         "emergency_signals"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/report_symptom"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       }
+      ],
+      "description": "Record how the caller feels or other family-relevant information. Do not diagnose.",
+      "disable_interruptions": false,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "allow",
+      "name": "report_symptom",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for whats_my_schedule",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "language": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "language",
+          "dynamic_variable": "",
+          "enum": [
+           "es",
+           "en"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "slot": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "slot",
+          "dynamic_variable": "",
+          "enum": [
+           "morning",
+           "midday",
+           "evening",
+           "bedtime",
+           "all"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/whats_my_schedule"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       }
+      ],
+      "description": "Get the caller's current recorded schedule in plain words. Never add dosing advice.",
+      "disable_interruptions": false,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "allow",
+      "name": "whats_my_schedule",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for get_today",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "intent": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "intent",
+          "dynamic_variable": "",
+          "enum": [
+           "status",
+           "take_another",
+           "who_is_coming"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/get_today"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       }
+      ],
+      "description": "Get today's status and on-duty person. Always use before questions about taking another pill.",
+      "disable_interruptions": false,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "allow",
+      "name": "get_today",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for ask_family",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "message": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "message",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "reason": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "reason",
+          "dynamic_variable": "",
+          "enum": [
+           "dose_uncertain",
+           "possible_double_dose",
+           "missed_dose",
+           "symptom",
+           "emergency",
+           "refill",
+           "question",
+           "wants_to_talk",
+           "money_request"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "to": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "to",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "urgency": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "urgency",
+          "dynamic_variable": "",
+          "enum": [
+           "now",
+           "today",
+           "fyi"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "to",
+         "message",
+         "urgency"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/ask_family"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       }
+      ],
+      "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
+      "disable_interruptions": false,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "allow",
+      "name": "ask_family",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for report_money_request",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "amount": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "amount",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "number"
+         },
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "claimed_identity": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "claimed identity",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "claimed_member": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "claimed member",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "currency": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "currency",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "method": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "method",
+          "dynamic_variable": "",
+          "enum": [
+           "gift_card",
+           "crypto",
+           "wire",
+           "payment_app",
+           "cash_courier",
+           "bank_details",
+           "cash",
+           "unknown"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "red_flags": {
+          "constant_value": null,
+          "description": "red flags",
+          "dynamic_variable": "",
+          "is_omitted": false,
+          "items": {
+           "allowed_values": null,
+           "allowed_values_dynamic_variable": "",
+           "constant_value": "",
+           "description": "red flags item",
+           "dynamic_variable": "",
+           "enum": [
+            "secrecy",
+            "urgency",
+            "emotional_pressure",
+            "jail_bail",
+            "hospital",
+            "accident",
+            "voice_changed",
+            "new_number",
+            "threat_arrest",
+            "safe_account",
+            "prize",
+            "asks_village_to_pay"
+           ],
+           "is_omitted": false,
+           "is_system_provided": false,
+           "type": "string"
+          },
+          "type": "array"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "urgency": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "urgency",
+          "dynamic_variable": "",
+          "enum": [
+           "now",
+           "today",
+           "unspecified"
+          ],
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "urgency"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/report_money_request"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       },
+       {
+        "dynamic_variable": "verification_id",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.verification_id"
+       },
+       {
+        "dynamic_variable": "verification_status",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.status"
+       }
+      ],
+      "description": "Report that someone asked the caller for money, gift cards, crypto, a transfer, cash pickup, or bank/card/Medicare/SSN details. Call immediately before giving any opinion.",
+      "disable_interruptions": true,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "disable_during_tool_and_turn",
+      "name": "report_money_request",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for await_verification",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "utterance",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "verification_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "verification_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "verification_id"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/tools/await_verification"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       },
+       {
+        "dynamic_variable": "verification_id",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.verification_id"
+       },
+       {
+        "dynamic_variable": "verification_status",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.status"
+       }
+      ],
+      "description": "Wait for the family member's answer to a money verification. Blocks up to 30 seconds in Core; the agent speaks the returned say field verbatim.",
+      "disable_interruptions": true,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "disable_during_tool_and_turn",
+      "name": "await_verification",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 35,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     },
+     {
+      "api_schema": {
+       "auth_connection": null,
+       "auth_resolved_params": [],
+       "content_type": "application/json",
+       "kind": "webhook",
+       "method": "POST",
+       "mtls_auth_connection": null,
+       "path_params_schema": {},
+       "query_params_schema": null,
+       "request_body_schema": {
+        "description": "Request body for screen_caller (D19 receptionist)",
+        "dynamic_variable": "",
+        "is_omitted": false,
+        "properties": {
+         "amount": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Amount mentioned, as spoken, or empty.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "asks_money": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "True if the caller asks for money, gift cards, a transfer, bail, or account details.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "boolean"
+         },
+         "call_secs": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__call_duration_secs",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "caller_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__caller_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "claimed_identity": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "Who the caller says they are, in their words (e.g. 'Marco, her son'). 'unknown' if they will not say.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "conversation_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "system__conversation_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "tool_call_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "tool call id",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "utterance": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "What the caller just said, verbatim.",
+          "dynamic_variable": "",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         },
+         "village_id": {
+          "allowed_values": null,
+          "allowed_values_dynamic_variable": "",
+          "constant_value": "",
+          "description": "",
+          "dynamic_variable": "village_id",
+          "enum": null,
+          "is_omitted": false,
+          "is_system_provided": false,
+          "type": "string"
+         }
+        },
+        "required": [
+         "conversation_id",
+         "caller_id",
+         "call_secs",
+         "utterance",
+         "claimed_identity"
+        ],
+        "type": "object"
+       },
+       "request_headers": {
+        "Content-Type": "application/json",
+        "X-Village-Secret": {
+         "secret_id": "QYTxGuYaeInKPgEmAEau"
+        }
+       },
+       "response_body_schema": null,
+       "response_filter": null,
+       "url": "https://richel-macbook.tail8feae0.ts.net/hooks/elevenlabs/tools/screen_caller"
+      },
+      "assignments": [
+       {
+        "dynamic_variable": "gate_decision",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "decision"
+       },
+       {
+        "dynamic_variable": "say_text",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "say"
+       },
+       {
+        "dynamic_variable": "screen_result",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.screen"
+       },
+       {
+        "dynamic_variable": "verification_id",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.verification_id"
+       },
+       {
+        "dynamic_variable": "verification_status",
+        "preserve_native_type": false,
+        "sanitize": false,
+        "source": "response",
+        "value_path": "data.status"
+       }
+      ],
+      "description": "Receptionist mode only: screen an unknown caller who claims to be family or asks for money. Speak the returned say verbatim.",
+      "disable_interruptions": true,
+      "dynamic_variables": {
+       "dynamic_variable_placeholders": {}
+      },
+      "execution_mode": "immediate",
+      "follow_redirects": false,
+      "follow_redirects_allowed_domains": [],
+      "force_pre_tool_speech": false,
+      "interruption_mode": "disable_during_tool_and_turn",
+      "name": "screen_caller",
+      "pre_tool_speech": "auto",
+      "response_timeout_secs": 10,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "type": "webhook"
+     }
+    ]
+   },
+   "silence_end_call_message": "",
+   "subagents": [],
+   "text_behavior_overrides": {
+    "whatsapp": {
+     "disable_max_duration": true,
+     "interaction_budget": null,
+     "output_format": null,
+     "verbosity": null
+    }
+   }
+  },
+  "asr": {
+   "keywords": [
+    "Carmen",
+    "Marco",
+    "Ana",
+    "Lucia",
+    "dos mil",
+    "tarjetas",
+    "pastillas"
+   ],
+   "provider": "scribe_realtime",
+   "quality": "high",
+   "user_input_audio_format": "pcm_16000"
+  },
+  "conversation": {
+   "background_sound": {
+    "crossfade_loop": true,
+    "source_id": null,
+    "source_type": null,
+    "volume": 0.15
+   },
+   "client_events": [
+    "audio",
+    "interruption",
+    "agent_response",
+    "user_transcript",
+    "agent_response_correction",
+    "agent_tool_response"
+   ],
+   "compaction": {
+    "enabled": null,
+    "min_reclaimable_tokens": null,
+    "soft_trigger_fraction": null,
+    "tail_size": null
+   },
+   "dtmf_input_settings": null,
+   "file_input": {
+    "enabled": true,
+    "max_files_in_memory": 10,
+    "max_files_per_conversation": 10
+   },
+   "max_duration_seconds": 600,
+   "max_duration_seconds_after_last_agent_message": null,
+   "monitoring_enabled": false,
+   "monitoring_events": [
+    "user_transcript",
+    "agent_response",
+    "agent_response_correction"
+   ],
+   "source_attribution": false,
+   "text_only": false
+  },
+  "language_presets": {},
+  "realtime_model": null,
+  "tts": {
+   "agent_output_audio_format": "pcm_16000",
+   "audio_effects": null,
+   "enable_phoneme_tags": true,
+   "expressive_mode": true,
+   "model_id": "eleven_v4_turbo",
+   "optimize_streaming_latency": 3,
+   "pronunciation_dictionary_locators": [],
+   "similarity_boost": 0.75,
+   "speed": 1.0,
+   "stability": 0.5,
+   "suggested_audio_tags": [],
+   "supported_voices": [],
+   "text_normalisation_type": "system_prompt",
+   "voice_id": "EXAVITQu4vr4xnSDxMaL"
+  },
+  "turn": {
+   "initial_wait_time": 5.0,
+   "interruption_ignore_term_languages": [],
+   "interruption_ignore_terms": [
+    "aja",
+    "si",
+    "mm",
+    "okay"
+   ],
+   "merge_with_default_ignore_terms": false,
+   "mode": "turn",
+   "retranscribe_on_turn_timeout": false,
+   "silence_end_call_timeout": 90.0,
+   "soft_timeout_config": {
+    "additional_soft_timeout_messages": [],
+    "disable_until_first_user_message": false,
+    "llm_generated_message_prompt_override": null,
+    "max_soft_timeouts_per_generation": 1,
+    "message": "Un momentito...",
+    "randomize_fillers": false,
+    "timeout_seconds": 3.0,
+    "use_llm_generated_message": false
+   },
+   "speculative_turn": true,
+   "spelling_patience": "auto",
+   "transcribe_on_disabled_interruptions": false,
+   "turn_eagerness": "patient",
+   "turn_model": "turn_v3",
+   "turn_timeout": 15.0
+  },
+  "vad": {
+   "background_voice_detection": false
+  }
+ },
+ "default_hold_audio_url": "https://eleven-public-cdn-common.elevenlabs.io/convai/ambient-audio-assets/elevator1.mp3",
+ "name": "Luz - Linea de Mama",
+ "platform_settings": {
+  "alerting": null,
+  "analysis_bedrock_llm": null,
+  "analysis_items": {
+   "data_collection": [],
+   "evaluation_criteria": []
+  },
+  "analysis_llm": "gemini-2.5-flash",
+  "analysis_llm_billed": false,
+  "archived": false,
+  "auth": {
+   "allowlist": [],
+   "enable_auth": false,
+   "require_origin_header": false,
+   "shareable_token": null
+  },
+  "auto_translate_transcript_to_app_language": null,
+  "ban": null,
+  "call_limits": {
+   "agent_concurrency_limit": -1,
+   "bursting_enabled": true,
+   "daily_limit": 100000
+  },
+  "data_collection": {},
+  "data_collection_scopes": {},
+  "evaluation": {
+   "criteria": []
+  },
+  "guardrails": {
+   "content": {
+    "config": {
+     "harassment": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "medical_and_legal_information": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "profanity": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "religion_or_politics": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "self_harm": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "sexual": {
+      "is_enabled": false,
+      "threshold": "medium"
+     },
+     "violence": {
+      "is_enabled": false,
+      "threshold": "medium"
+     }
+    },
+    "execution_mode": "streaming",
+    "trigger_action": {
+     "type": "end_call"
+    }
+   },
+   "custom": {
+    "config": {
+     "configs": [
+      {
+       "evaluate_full_response_only": false,
+       "execution_mode": "blocking",
+       "history_include_tool_calls": false,
+       "history_message_count": 1,
+       "is_enabled": true,
+       "model": "gemini-2.5-flash-lite",
+       "name": "No money movement",
+       "prompt": "Block replies that offer to send money, buy gift cards or crypto, or ask for or repeat account, card, PIN, SSN, Medicare, or bank numbers.",
+       "trigger_action": {
+        "feedback": "Reason: {{trigger_reason}}",
+        "type": "retry"
+       }
+      }
+     ]
+    }
+   },
+   "focus": {
+    "is_enabled": false
+   },
+   "moderation": null,
+   "prompt_injection": {
+    "is_enabled": true
+   },
+   "synthetic_voice": {
+    "is_enabled": false,
+    "trigger_action": {
+     "type": "end_call"
+    }
+   },
+   "version": "1"
+  },
+  "overrides": {
+   "conversation_config_override": {
+    "agent": {
+     "first_message": false,
+     "language": false,
+     "max_conversation_duration_message": false,
+     "prompt": {
+      "knowledge_base": false,
+      "llm": false,
+      "native_mcp_server_ids": false,
+      "prompt": false,
+      "tool_ids": false,
+      "tool_ids_strict": false
+     },
+     "silence_end_call_message": false
+    },
+    "asr": {
+     "keywords": false
+    },
+    "conversation": {
+     "max_duration_seconds": false,
+     "text_only": true
+    },
+    "tts": {
+     "model_id": false,
+     "pronunciation_dictionary_locators": false,
+     "similarity_boost": false,
+     "speed": false,
+     "stability": false,
+     "supported_voices": false,
+     "voice_id": false
+    },
+    "turn": {
+     "soft_timeout_config": {
+      "additional_soft_timeout_messages": false,
+      "message": false
+     }
+    }
+   },
+   "custom_llm_extra_body": false,
+   "enable_conversation_initiation_client_data_from_webhook": false,
+   "enable_procedure_ids_from_client": false,
+   "enable_starting_workflow_node_id_from_client": false
+  },
+  "overview_dashboard_template_id": null,
+  "privacy": {
+   "apply_to_existing_conversations": false,
+   "conversation_history_redaction": {
+    "enabled": false,
+    "entities": [],
+    "excluded_data_collection_ids": []
+   },
+   "delete_audio": false,
+   "delete_transcript_and_pii": false,
+   "nested_history_redaction": false,
+   "record_voice": true,
+   "retention_days": -1,
+   "user_memory": {
+    "enabled": false,
+    "scale": "balanced"
+   },
+   "zero_retention_mode": false
+  },
+  "queueing_config": {
+   "enabled": true,
+   "hold_audio": null,
+   "wait_timeout_seconds": 180
+  },
+  "safety": {
+   "ignore_safety_evaluation": false,
+   "is_blocked_ivc": false,
+   "is_blocked_non_ivc": false
+  },
+  "sentiment_analysis": {
+   "enabled": true
+  },
+  "simulation_library": {
+   "enabled": false,
+   "test_ids": []
+  },
+  "smb_metadata": null,
+  "summary_language": null,
+  "testing": {
+   "attached_tests": [],
+   "referenced_tests_ids": []
+  },
+  "topic_discovery": {
+   "enabled": true
+  },
+  "trust_context": "unknown",
+  "widget": {
+   "action_text": null,
+   "always_expanded": false,
+   "avatar": {
+    "color_1": "#2792dc",
+    "color_2": "#9ce6e6",
+    "type": "orb"
+   },
+   "bg_color": "#ffffff",
+   "border_color": "#e1e1e1",
+   "border_radius": null,
+   "btn_color": "#000000",
+   "btn_radius": null,
+   "btn_text_color": "#ffffff",
+   "conversation_mode_toggle_enabled": false,
+   "custom_avatar_path": null,
+   "default_expanded": false,
+   "disable_banner": false,
+   "dismissible": false,
+   "end_call_text": null,
+   "end_confirmation_enabled": false,
+   "end_feedback": {
+    "type": "rating"
+   },
+   "expand_text": null,
+   "expandable": "never",
+   "feedback_mode": "none",
+   "first_message_quick_replies": [],
+   "focus_color": "#000000",
+   "language_presets": {},
+   "language_selector": false,
+   "listening_text": null,
+   "markdown_link_allow_http": true,
+   "markdown_link_allowed_hosts": [],
+   "markdown_link_include_www": true,
+   "mic_muting_enabled": true,
+   "override_link": null,
+   "placement": "bottom-right",
+   "shareable_page_show_terms": true,
+   "shareable_page_text": null,
+   "show_agent_status": false,
+   "show_avatar_when_collapsed": false,
+   "show_conversation_id": true,
+   "show_resize_button": true,
+   "speaking_text": null,
+   "start_call_text": null,
+   "strip_audio_tags": true,
+   "styles": {
+    "accent": null,
+    "accent_active": null,
+    "accent_border": null,
+    "accent_hover": null,
+    "accent_primary": null,
+    "accent_subtle": null,
+    "base": null,
+    "base_active": null,
+    "base_border": null,
+    "base_error": null,
+    "base_hover": null,
+    "base_primary": null,
+    "base_subtle": null,
+    "bubble_radius": null,
+    "button_radius": null,
+    "compact_sheet_radius": null,
+    "dropdown_sheet_radius": null,
+    "input_radius": null,
+    "overlay_padding": null,
+    "sheet_radius": null
+   },
+   "supports_text_only": true,
+   "syntax_highlight_theme": null,
+   "terms_html": null,
+   "terms_key": null,
+   "terms_text": null,
+   "text_color": "#000000",
+   "text_contents": {
+    "accept_terms": null,
+    "agent_done": null,
+    "agent_ended_conversation": null,
+    "agent_error": null,
+    "agent_working": null,
+    "attach_file": null,
+    "change_language": null,
+    "chatting_status": null,
+    "collapse": null,
+    "connecting_status": null,
+    "conversation_id": null,
+    "copied": null,
+    "copy": null,
+    "copy_id": null,
+    "dismiss_terms": null,
+    "download": null,
+    "end_call": null,
+    "error_occurred": null,
+    "expand": null,
+    "file_limit_reached": null,
+    "file_too_large": null,
+    "file_type_unsupported": null,
+    "file_upload_error": null,
+    "follow_up_feedback_placeholder": null,
+    "go_back": null,
+    "initiate_feedback": null,
+    "input_label": null,
+    "input_placeholder": null,
+    "input_placeholder_new_conversation": null,
+    "input_placeholder_text_only": null,
+    "listening_status": null,
+    "main_label": null,
+    "mute_microphone": null,
+    "new_call": null,
+    "queue_timed_out": null,
+    "queue_waiting_status": null,
+    "queue_waiting_status_short": null,
+    "remove_file": null,
+    "request_follow_up_feedback": null,
+    "rich_content_unavailable": null,
+    "send_message": null,
+    "speaking_status": null,
+    "start_call": null,
+    "start_chat": null,
+    "submit": null,
+    "switched_to_text_mode": null,
+    "switched_to_voice_mode": null,
+    "text_mode": null,
+    "thanks_for_feedback": null,
+    "thanks_for_feedback_details": null,
+    "typing_indicator": null,
+    "user_ended_conversation": null,
+    "voice_mode": null,
+    "wrap": null
+   },
+   "text_input_enabled": true,
+   "transcript_enabled": true,
+   "variant": "full"
+  },
+  "workspace_overrides": {
+   "cloud_storage_export": {
+    "destination_id": null,
+    "events": [
+     "transcript"
+    ],
+    "transcript_format": "json"
+   },
+   "conversation_initiation_client_data_webhook": {
+    "request_headers": {
+     "X-Village-Secret": {
+      "secret_id": "QYTxGuYaeInKPgEmAEau"
+     }
+    },
+    "url": "https://richel-macbook.tail8feae0.ts.net/hooks/elevenlabs/init"
+   },
+   "webhooks": {
+    "events": [
+     "transcript"
+    ],
+    "exclude_transcript": false,
+    "post_call_webhook_id": null,
+    "send_audio": false,
+    "transcript_format": "json"
+   }
+  }
+ },
+ "tags": [],
+ "workflow": {
+  "edges": {},
+  "nodes": {
+   "start_node": {
+    "edge_order": [],
+    "parent_subgraph_id": null,
+    "position": {
+     "x": 0.0,
+     "y": 0.0
+    },
+    "type": "start"
+   }
+  },
+  "prevent_subagent_loops": false,
+  "subgraphs": {}
+ }
+}

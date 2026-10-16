@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/create_village",
+    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/create_village",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -81,9 +81,13 @@
     {
       "dynamic_variable": "village_id",
       "value_path": "data.village_id"
+    },
+    {
+      "dynamic_variable": "next_question",
+      "value_path": "data.next_question"
     }
   ],
-  "description": "Create a village from the coordinator's own description, members, needs, and language.",
+  "description": "Start the village from the founder's opener (their words verbatim). Returns the village id and the first intake question to ask, word for word.",
   "disable_interruptions": false,
   "dynamic_variables": {
     "dynamic_variable_placeholders": {}

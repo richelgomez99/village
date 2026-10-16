@@ -53,6 +53,18 @@
       "type": "webhook",
       "config": "tool_configs/create_village.json",
       "id": "tool_4101m52k39bbem5r2137wkf7pawq"
+    },
+    {
+      "name": "submit_answer",
+      "type": "webhook",
+      "config": "tool_configs/submit_answer.json",
+      "id": "tool_9701m52r6er0fa5vmree38yzg976"
+    },
+    {
+      "name": "screen_caller",
+      "type": "webhook",
+      "config": "tool_configs/screen_caller.json",
+      "id": "tool_5901m52r6eerf61r271f00dax36k"
     }
   ]
 }

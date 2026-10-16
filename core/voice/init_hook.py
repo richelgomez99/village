@@ -18,7 +18,20 @@ INIT_VAR_KEYS = (
     "today_summary",
     "receptionist",
     "caller_known",
+    "greeting",
 )
+
+
+def greeting(village_id: str, values: dict[str, str]) -> str:
+    """First line of the call (agent first_message is {{greeting}})."""
+    if values["caller_known"] == "false":
+        if values["receptionist"] == "on":
+            owner = village.first_name(village_id, village.care_recipient_id(village_id)) or "This"
+            return f"{owner}'s phone, this is Village. Who's calling?"
+        return "Hola. Soy Luz, de la familia. ¿En qué le puedo ayudar?"
+    if values["language"] == "en":
+        return f"Hi {values['member_short_name']}, it's Luz, from the family. How are you doing?"
+    return f"Hola, {values['member_short_name']}. Soy Luz, de la familia. ¿Cómo está?"
 
 
 def receptionist_mode(village_id: str | None = None) -> str:
@@ -113,6 +126,7 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
             "receptionist": receptionist_mode(village_id),
             "caller_known": "true",
         }
+    values["greeting"] = greeting(village_id, values)
     return {key: values[key] for key in INIT_VAR_KEYS}
 
 

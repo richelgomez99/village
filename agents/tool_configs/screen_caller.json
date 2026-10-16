@@ -1,0 +1,93 @@
+{
+  "api_schema": {
+    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/screen_caller",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "claimed_identity"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "What the caller just said, verbatim."
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "claimed_identity": {
+          "type": "string",
+          "description": "Who the caller says they are, in their words (e.g. 'Marco, her son'). 'unknown' if they will not say."
+        },
+        "asks_money": {
+          "type": "boolean",
+          "description": "True if the caller asks for money, gift cards, a transfer, bail, or account details."
+        },
+        "amount": {
+          "type": "string",
+          "description": "Amount mentioned, as spoken, or empty."
+        }
+      },
+      "description": "Request body for screen_caller (D19 receptionist)"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    },
+    {
+      "dynamic_variable": "screen_result",
+      "value_path": "data.screen"
+    },
+    {
+      "dynamic_variable": "verification_id",
+      "value_path": "data.verification_id"
+    },
+    {
+      "dynamic_variable": "verification_status",
+      "value_path": "data.status"
+    }
+  ],
+  "description": "Receptionist mode only: screen an unknown caller who claims to be family or asks for money. Speak the returned say verbatim.",
+  "disable_interruptions": true,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "screen_caller",
+  "response_timeout_secs": 10,
+  "type": "webhook"
+}

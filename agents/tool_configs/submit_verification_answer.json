@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/verifications/{{verification_id}}/answer",
+    "url": "${TUNNEL_URL}/verifications/{{verification_id}}/answer",
     "method": "POST",
     "path_params_schema": {
       "verification_id": {

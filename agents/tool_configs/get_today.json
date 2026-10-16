@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/get_today",
+    "url": "${TUNNEL_URL}/tools/get_today",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

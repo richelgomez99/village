@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "https://richel-macbook.tail8feae0.ts.net/tools/whats_my_schedule",
+    "url": "${TUNNEL_URL}/tools/whats_my_schedule",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

@@ -1,0 +1,62 @@
+{
+  "api_schema": {
+    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/submit_answer",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "village_id",
+        "text"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "text": {
+          "type": "string",
+          "description": "The founder's answer to the current question, verbatim, in their words."
+        }
+      },
+      "description": "Request body for submit_answer"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "next_question",
+      "value_path": "data.next_question"
+    },
+    {
+      "dynamic_variable": "intake_meter",
+      "value_path": "data.meter"
+    }
+  ],
+  "description": "Send the founder's answer to the current intake question. Returns what Village now knows (meter, gaps) and next_question to ask word for word.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "submit_answer",
+  "response_timeout_secs": 15,
+  "type": "webhook"
+}
