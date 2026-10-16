@@ -1,0 +1,214 @@
+{
+ "village": "v_reyes",
+ "description": "Watcher fixture: who covered the evenings Oct 2-13 before the contracts seed (shift assigned/swapped rows, event.schema.json kind shift). Oct 4 and Oct 8 have no row: nobody was on (the 'last Thursday nobody went' night). Input to the carer-load check; counts are computed, not stored.",
+ "events": [
+  {
+   "id": "ev_hist_1002_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-02",
+    "on_duty": "m_marco",
+    "backup": "m_ana",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-02T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1002_swap",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-02",
+    "on_duty": "m_ana",
+    "backup": "m_marco",
+    "change": "swapped"
+   },
+   "actor": "m_marco",
+   "source": {
+    "kind": "app",
+    "ref": "m_marco",
+    "quote": "Can you take tonight? Work called me in."
+   },
+   "at": "2026-10-02T15:10:00-04:00"
+  },
+  {
+   "id": "ev_hist_1003_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-03",
+    "on_duty": "m_marco",
+    "backup": "m_ana",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-03T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1005_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-05",
+    "on_duty": "m_ana",
+    "backup": "m_lucia",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-05T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1006_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-06",
+    "on_duty": "m_marco",
+    "backup": "m_ana",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-06T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1006_swap",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-06",
+    "on_duty": "m_ana",
+    "backup": "m_marco",
+    "change": "swapped"
+   },
+   "actor": "m_marco",
+   "source": {
+    "kind": "app",
+    "ref": "m_marco",
+    "quote": "I'm stuck at work, can you go?"
+   },
+   "at": "2026-10-06T15:10:00-04:00"
+  },
+  {
+   "id": "ev_hist_1007_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-07",
+    "on_duty": "m_ana",
+    "backup": "m_lucia",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-07T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1009_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-09",
+    "on_duty": "m_marco",
+    "backup": "m_ana",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-09T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1010_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-10",
+    "on_duty": "m_marco",
+    "backup": "m_ana",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-10T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1010_swap",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-10",
+    "on_duty": "m_ana",
+    "backup": "m_marco",
+    "change": "swapped"
+   },
+   "actor": "m_marco",
+   "source": {
+    "kind": "app",
+    "ref": "m_marco",
+    "quote": "Ana, I can't make it tonight."
+   },
+   "at": "2026-10-10T15:10:00-04:00"
+  },
+  {
+   "id": "ev_hist_1011_shift",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-11",
+    "on_duty": "m_ana",
+    "backup": "m_marco",
+    "change": "assigned"
+   },
+   "actor": "system",
+   "source": {
+    "kind": "system",
+    "ref": "seed"
+   },
+   "at": "2026-10-11T09:00:00-04:00"
+  },
+  {
+   "id": "ev_hist_1013_swap",
+   "village": "v_reyes",
+   "kind": "shift",
+   "payload": {
+    "date": "2026-10-13",
+    "on_duty": "m_ana",
+    "backup": "m_marco",
+    "change": "swapped"
+   },
+   "actor": "m_marco",
+   "source": {
+    "kind": "app",
+    "ref": "m_marco",
+    "quote": "Can you cover Tuesday? I'll owe you."
+   },
+   "at": "2026-10-13T15:10:00-04:00"
+  }
+ ]
+}
