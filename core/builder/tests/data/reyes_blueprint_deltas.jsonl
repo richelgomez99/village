@@ -1,0 +1,427 @@
+{"t_ms": 1097, "partial_json": ""}
+{"t_ms": 1267, "partial_json": "{\"kind\""}
+{"t_ms": 1267, "partial_json": ": \"care\""}
+{"t_ms": 3760, "partial_json": ", \"peopl"}
+{"t_ms": 3761, "partial_json": "e\": [{\"id\""}
+{"t_ms": 3762, "partial_json": ":\"m_yo"}
+{"t_ms": 3762, "partial_json": "u\","}
+{"t_ms": 3763, "partial_json": "\"name"}
+{"t_ms": 3763, "partial_json": "\":\""}
+{"t_ms": 3764, "partial_json": "You\",\"re"}
+{"t_ms": 3764, "partial_json": "la"}
+{"t_ms": 3764, "partial_json": "tion\":\"a"}
+{"t_ms": 3764, "partial_json": "dult child\""}
+{"t_ms": 3764, "partial_json": ",\"role\":\"co"}
+{"t_ms": 3867, "partial_json": "ordinato"}
+{"t_ms": 3867, "partial_json": "r\",\"v"}
+{"t_ms": 3867, "partial_json": "iew\":\"coordi"}
+{"t_ms": 3868, "partial_json": "nator"}
+{"t_ms": 3868, "partial_json": "\",\"prof"}
+{"t_ms": 3868, "partial_json": "il"}
+{"t_ms": 3868, "partial_json": "e\":{\""}
+{"t_ms": 3868, "partial_json": "lang\":\"en"}
+{"t_ms": 3868, "partial_json": "\",\"me"}
+{"t_ms": 3868, "partial_json": "mo"}
+{"t_ms": 3868, "partial_json": "ry\":\"unkn"}
+{"t_ms": 3868, "partial_json": "own\","}
+{"t_ms": 3868, "partial_json": "\"tech_comf"}
+{"t_ms": 3868, "partial_json": "ort\":\""}
+{"t_ms": 3869, "partial_json": "unknow"}
+{"t_ms": 3869, "partial_json": "n\",\"prefe"}
+{"t_ms": 3869, "partial_json": "rred_channe"}
+{"t_ms": 3869, "partial_json": "ls\":[]},"}
+{"t_ms": 3869, "partial_json": "\"co"}
+{"t_ms": 3869, "partial_json": "nsent\":{\""}
+{"t_ms": 3869, "partial_json": "ai_c"}
+{"t_ms": 3869, "partial_json": "alls\":null,\""}
+{"t_ms": 3869, "partial_json": "app"}
+{"t_ms": 3869, "partial_json": "_prompts\":"}
+{"t_ms": 3870, "partial_json": "null,\"mo"}
+{"t_ms": 3870, "partial_json": "ne"}
+{"t_ms": 3870, "partial_json": "y_verifier"}
+{"t_ms": 3870, "partial_json": "\":false},\"r"}
+{"t_ms": 3870, "partial_json": "eason\":\"Coo"}
+{"t_ms": 3870, "partial_json": "rdinating c"}
+{"t_ms": 3870, "partial_json": "ar"}
+{"t_ms": 3870, "partial_json": "e for"}
+{"t_ms": 3870, "partial_json": " Mom\"},"}
+{"t_ms": 3870, "partial_json": "{\"id\":\"m"}
+{"t_ms": 3871, "partial_json": "_mom\","}
+{"t_ms": 3871, "partial_json": "\"name\":"}
+{"t_ms": 3871, "partial_json": "\"Mom"}
+{"t_ms": 3871, "partial_json": "\",\"re"}
+{"t_ms": 3871, "partial_json": "latio"}
+{"t_ms": 3871, "partial_json": "n\":\"mother\""}
+{"t_ms": 3871, "partial_json": ",\"rol"}
+{"t_ms": 3871, "partial_json": "e\":\"care_"}
+{"t_ms": 3871, "partial_json": "recipient\","}
+{"t_ms": 3871, "partial_json": "\"view\":\"eld"}
+{"t_ms": 3871, "partial_json": "er\","}
+{"t_ms": 3871, "partial_json": "\"profile\":{\""}
+{"t_ms": 3872, "partial_json": "lang\":\"en\",\""}
+{"t_ms": 3872, "partial_json": "memory\":"}
+{"t_ms": 3872, "partial_json": "\"signif"}
+{"t_ms": 3872, "partial_json": "icant\",\""}
+{"t_ms": 3872, "partial_json": "tec"}
+{"t_ms": 3872, "partial_json": "h_comfort\":\""}
+{"t_ms": 3872, "partial_json": "unkno"}
+{"t_ms": 3872, "partial_json": "wn"}
+{"t_ms": 3872, "partial_json": "\",\"pre"}
+{"t_ms": 3873, "partial_json": "ferred_c"}
+{"t_ms": 3873, "partial_json": "hanne"}
+{"t_ms": 3873, "partial_json": "ls\":[]},\"c"}
+{"t_ms": 3873, "partial_json": "onse"}
+{"t_ms": 3873, "partial_json": "nt\""}
+{"t_ms": 3873, "partial_json": ":{\"ai_calls"}
+{"t_ms": 3873, "partial_json": "\":null"}
+{"t_ms": 3873, "partial_json": ",\"app_"}
+{"t_ms": 3873, "partial_json": "promp"}
+{"t_ms": 3873, "partial_json": "ts\":null"}
+{"t_ms": 3873, "partial_json": ",\"mo"}
+{"t_ms": 3874, "partial_json": "ney_verifi"}
+{"t_ms": 3874, "partial_json": "er\":fals"}
+{"t_ms": 3874, "partial_json": "e},\"rea"}
+{"t_ms": 3874, "partial_json": "son\":\""}
+{"t_ms": 3874, "partial_json": "78"}
+{"t_ms": 3874, "partial_json": " years o"}
+{"t_ms": 3874, "partial_json": "ld, liv"}
+{"t_ms": 3874, "partial_json": "ing "}
+{"t_ms": 3874, "partial_json": "alone in Qu"}
+{"t_ms": 3874, "partial_json": "eens, me"}
+{"t_ms": 3874, "partial_json": "dicatio"}
+{"t_ms": 3874, "partial_json": "n manag"}
+{"t_ms": 3875, "partial_json": "ement issues"}
+{"t_ms": 3875, "partial_json": ", vulnerabl"}
+{"t_ms": 3875, "partial_json": "e to sc"}
+{"t_ms": 3875, "partial_json": "ams\"},{"}
+{"t_ms": 3875, "partial_json": "\"id\""}
+{"t_ms": 3875, "partial_json": ":\"m_marc"}
+{"t_ms": 3875, "partial_json": "o\",\"name"}
+{"t_ms": 3875, "partial_json": "\":\"Marco\",\""}
+{"t_ms": 3875, "partial_json": "rel"}
+{"t_ms": 3875, "partial_json": "ation\":\"br"}
+{"t_ms": 3875, "partial_json": "other"}
+{"t_ms": 3876, "partial_json": "\",\"role\":\"ca"}
+{"t_ms": 3876, "partial_json": "reg"}
+{"t_ms": 3876, "partial_json": "iver"}
+{"t_ms": 3876, "partial_json": "\",\"view\":\"he"}
+{"t_ms": 3876, "partial_json": "lper"}
+{"t_ms": 3876, "partial_json": "\",\"pro"}
+{"t_ms": 3876, "partial_json": "file\":{\""}
+{"t_ms": 3876, "partial_json": "lang\":\""}
+{"t_ms": 3876, "partial_json": "en\",\"m"}
+{"t_ms": 3876, "partial_json": "emory"}
+{"t_ms": 3876, "partial_json": "\":\"unknown"}
+{"t_ms": 3876, "partial_json": "\",\"tech"}
+{"t_ms": 3877, "partial_json": "_comfort\":"}
+{"t_ms": 3877, "partial_json": "\"unk"}
+{"t_ms": 3877, "partial_json": "nown\",\"pr"}
+{"t_ms": 3877, "partial_json": "efe"}
+{"t_ms": 3877, "partial_json": "rr"}
+{"t_ms": 3877, "partial_json": "ed_c"}
+{"t_ms": 3877, "partial_json": "hannels\""}
+{"t_ms": 3877, "partial_json": ":[]},"}
+{"t_ms": 3877, "partial_json": "\"consent\":{"}
+{"t_ms": 3877, "partial_json": "\"a"}
+{"t_ms": 3877, "partial_json": "i_calls\":"}
+{"t_ms": 3877, "partial_json": "null,\"app_pr"}
+{"t_ms": 3878, "partial_json": "ompts\":null"}
+{"t_ms": 3878, "partial_json": ",\"mone"}
+{"t_ms": 3878, "partial_json": "y_verifie"}
+{"t_ms": 3878, "partial_json": "r\":false},"}
+{"t_ms": 3878, "partial_json": "\"re"}
+{"t_ms": 3878, "partial_json": "ason\":\"Si"}
+{"t_ms": 3878, "partial_json": "bl"}
+{"t_ms": 3878, "partial_json": "ing h"}
+{"t_ms": 3878, "partial_json": "elping with"}
+{"t_ms": 3878, "partial_json": " Mom's c"}
+{"t_ms": 3878, "partial_json": "are\"}"}
+{"t_ms": 3878, "partial_json": "]"}
+{"t_ms": 4516, "partial_json": ", \"e"}
+{"t_ms": 4516, "partial_json": "dges\": [{\"f"}
+{"t_ms": 4516, "partial_json": "rom\":\"m_"}
+{"t_ms": 4516, "partial_json": "you\",\"t"}
+{"t_ms": 4517, "partial_json": "o\":\"m_mo"}
+{"t_ms": 4517, "partial_json": "m\",\"kind\":\""}
+{"t_ms": 4517, "partial_json": "cares_for\",\""}
+{"t_ms": 4517, "partial_json": "label\":\"Adul"}
+{"t_ms": 4517, "partial_json": "t c"}
+{"t_ms": 4517, "partial_json": "hild coo"}
+{"t_ms": 4517, "partial_json": "rdinating ca"}
+{"t_ms": 4517, "partial_json": "re\"},{"}
+{"t_ms": 4517, "partial_json": "\"f"}
+{"t_ms": 4517, "partial_json": "rom\":\""}
+{"t_ms": 4517, "partial_json": "m_marco\","}
+{"t_ms": 4518, "partial_json": "\"to"}
+{"t_ms": 4518, "partial_json": "\":\"m_mom\""}
+{"t_ms": 4518, "partial_json": ",\"kind\":"}
+{"t_ms": 4518, "partial_json": "\"cares_for"}
+{"t_ms": 4518, "partial_json": "\",\""}
+{"t_ms": 4518, "partial_json": "la"}
+{"t_ms": 4518, "partial_json": "bel\":\"Son c"}
+{"t_ms": 4518, "partial_json": "hecking i"}
+{"t_ms": 4518, "partial_json": "n on Mom\""}
+{"t_ms": 4518, "partial_json": "},{\"fro"}
+{"t_ms": 4518, "partial_json": "m\":\"m_"}
+{"t_ms": 4519, "partial_json": "you\",\"t"}
+{"t_ms": 4519, "partial_json": "o\":"}
+{"t_ms": 4519, "partial_json": "\"m_marco\","}
+{"t_ms": 4519, "partial_json": "\"ki"}
+{"t_ms": 4519, "partial_json": "nd\":\"coord"}
+{"t_ms": 4519, "partial_json": "ina"}
+{"t_ms": 4519, "partial_json": "tes\""}
+{"t_ms": 4519, "partial_json": ",\""}
+{"t_ms": 4519, "partial_json": "lab"}
+{"t_ms": 4519, "partial_json": "el\":\"Coor"}
+{"t_ms": 4519, "partial_json": "dinate visi"}
+{"t_ms": 4520, "partial_json": "ts and car"}
+{"t_ms": 4520, "partial_json": "e tasks\"}]"}
+{"t_ms": 6008, "partial_json": ", \"n"}
+{"t_ms": 6008, "partial_json": "eeds\": [{\""}
+{"t_ms": 6008, "partial_json": "id\":\"n_"}
+{"t_ms": 6008, "partial_json": "medication"}
+{"t_ms": 6008, "partial_json": "_ma"}
+{"t_ms": 6008, "partial_json": "nagement\""}
+{"t_ms": 6008, "partial_json": ",\"tex"}
+{"t_ms": 6008, "partial_json": "t\""}
+{"t_ms": 6008, "partial_json": ":\"Mom mixe"}
+{"t_ms": 6009, "partial_json": "s u"}
+{"t_ms": 6009, "partial_json": "p her pill"}
+{"t_ms": 6009, "partial_json": "s and needs"}
+{"t_ms": 6009, "partial_json": " help org"}
+{"t_ms": 6009, "partial_json": "ani"}
+{"t_ms": 6009, "partial_json": "zing and ta"}
+{"t_ms": 6009, "partial_json": "king medicat"}
+{"t_ms": 6009, "partial_json": "ions c"}
+{"t_ms": 6009, "partial_json": "orrectly\""}
+{"t_ms": 6010, "partial_json": ",\"prio"}
+{"t_ms": 6010, "partial_json": "rity\":5,\""}
+{"t_ms": 6010, "partial_json": "domain\""}
+{"t_ms": 6010, "partial_json": ":\"medic"}
+{"t_ms": 6012, "partial_json": "ation\",\"l"}
+{"t_ms": 6012, "partial_json": "ife_area\":\""}
+{"t_ms": 6012, "partial_json": "health\""}
+{"t_ms": 6012, "partial_json": ",\"source_s"}
+{"t_ms": 6012, "partial_json": "pan\":[35,"}
+{"t_ms": 6012, "partial_json": "54]},{"}
+{"t_ms": 6012, "partial_json": "\"id\""}
+{"t_ms": 6012, "partial_json": ":\"n_fi"}
+{"t_ms": 6012, "partial_json": "nan"}
+{"t_ms": 6012, "partial_json": "cial_safety\""}
+{"t_ms": 6012, "partial_json": ",\"te"}
+{"t_ms": 6017, "partial_json": "xt\":\"M"}
+{"t_ms": 6017, "partial_json": "om a"}
+{"t_ms": 6017, "partial_json": "lmost wi"}
+{"t_ms": 6017, "partial_json": "red mone"}
+{"t_ms": 6018, "partial_json": "y to some"}
+{"t_ms": 6018, "partial_json": "one pret"}
+{"t_ms": 6018, "partial_json": "ending to "}
+{"t_ms": 6020, "partial_json": "be Marco"}
+{"t_ms": 6020, "partial_json": ", need"}
+{"t_ms": 6020, "partial_json": "s prote"}
+{"t_ms": 6020, "partial_json": "ction from"}
+{"t_ms": 6020, "partial_json": " financial s"}
+{"t_ms": 6020, "partial_json": "cams\",\"prio"}
+{"t_ms": 6020, "partial_json": "rit"}
+{"t_ms": 6020, "partial_json": "y\":5,\"d"}
+{"t_ms": 6021, "partial_json": "om"}
+{"t_ms": 6021, "partial_json": "ain\":\"m"}
+{"t_ms": 6021, "partial_json": "oney\",\""}
+{"t_ms": 6021, "partial_json": "life"}
+{"t_ms": 6021, "partial_json": "_a"}
+{"t_ms": 6021, "partial_json": "rea\":\""}
+{"t_ms": 6021, "partial_json": "mone"}
+{"t_ms": 6021, "partial_json": "y\",\"s"}
+{"t_ms": 6021, "partial_json": "ourc"}
+{"t_ms": 6021, "partial_json": "e_sp"}
+{"t_ms": 6021, "partial_json": "an\":[70,"}
+{"t_ms": 6097, "partial_json": "126]},{"}
+{"t_ms": 6099, "partial_json": "\"id\":\""}
+{"t_ms": 6099, "partial_json": "n_visit_"}
+{"t_ms": 6100, "partial_json": "coordinatio"}
+{"t_ms": 6100, "partial_json": "n\",\"text\":\""}
+{"t_ms": 6100, "partial_json": "Mom nee"}
+{"t_ms": 6100, "partial_json": "ds regular v"}
+{"t_ms": 6100, "partial_json": "isits;"}
+{"t_ms": 6100, "partial_json": " coordi"}
+{"t_ms": 6100, "partial_json": "nat"}
+{"t_ms": 6100, "partial_json": "ion nee"}
+{"t_ms": 6100, "partial_json": "ded so someo"}
+{"t_ms": 6100, "partial_json": "ne ac"}
+{"t_ms": 6100, "partial_json": "tually g"}
+{"t_ms": 6100, "partial_json": "oes each"}
+{"t_ms": 6101, "partial_json": " day\""}
+{"t_ms": 6101, "partial_json": ",\"pri"}
+{"t_ms": 6101, "partial_json": "or"}
+{"t_ms": 6101, "partial_json": "ity\":4,"}
+{"t_ms": 6101, "partial_json": "\"domain\":"}
+{"t_ms": 6101, "partial_json": "\"social"}
+{"t_ms": 6101, "partial_json": "\",\"l"}
+{"t_ms": 6101, "partial_json": "ife_are"}
+{"t_ms": 6101, "partial_json": "a\":\""}
+{"t_ms": 6101, "partial_json": "people\",\"s"}
+{"t_ms": 6101, "partial_json": "ource_s"}
+{"t_ms": 6102, "partial_json": "pan\":"}
+{"t_ms": 6102, "partial_json": "[145,2"}
+{"t_ms": 6102, "partial_json": "08]}]"}
+{"t_ms": 6607, "partial_json": ", \"rules"}
+{"t_ms": 6613, "partial_json": "\": [\""}
+{"t_ms": 6614, "partial_json": "double_dos"}
+{"t_ms": 6615, "partial_json": "e_gu"}
+{"t_ms": 6615, "partial_json": "ard\""}
+{"t_ms": 6615, "partial_json": ",\""}
+{"t_ms": 6615, "partial_json": "no_dose_ad"}
+{"t_ms": 6616, "partial_json": "vic"}
+{"t_ms": 6616, "partial_json": "e\",\""}
+{"t_ms": 6616, "partial_json": "money_"}
+{"t_ms": 6616, "partial_json": "never_m"}
+{"t_ms": 6616, "partial_json": "oves"}
+{"t_ms": 6616, "partial_json": "\",\"money_de"}
+{"t_ms": 6616, "partial_json": "fa"}
+{"t_ms": 6617, "partial_json": "ult_dont_se"}
+{"t_ms": 6617, "partial_json": "nd"}
+{"t_ms": 6617, "partial_json": "\",\"m"}
+{"t_ms": 6617, "partial_json": "oney_"}
+{"t_ms": 6617, "partial_json": "veri"}
+{"t_ms": 6617, "partial_json": "fy_with_mem"}
+{"t_ms": 6617, "partial_json": "be"}
+{"t_ms": 6618, "partial_json": "r\",\"consen"}
+{"t_ms": 6618, "partial_json": "t_before_"}
+{"t_ms": 6618, "partial_json": "ca"}
+{"t_ms": 6618, "partial_json": "lls"}
+{"t_ms": 6618, "partial_json": "\"]"}
+{"t_ms": 8363, "partial_json": ", \"life"}
+{"t_ms": 8363, "partial_json": "_a"}
+{"t_ms": 8364, "partial_json": "reas"}
+{"t_ms": 8364, "partial_json": "\": [{\"i"}
+{"t_ms": 8364, "partial_json": "d\":\""}
+{"t_ms": 8364, "partial_json": "health\",\"la"}
+{"t_ms": 8364, "partial_json": "bel\":\"Medic"}
+{"t_ms": 8365, "partial_json": "ations &"}
+{"t_ms": 8365, "partial_json": " He"}
+{"t_ms": 8365, "partial_json": "al"}
+{"t_ms": 8365, "partial_json": "th\",\"need_i"}
+{"t_ms": 8365, "partial_json": "ds\":[\""}
+{"t_ms": 8366, "partial_json": "n_medi"}
+{"t_ms": 8366, "partial_json": "catio"}
+{"t_ms": 8366, "partial_json": "n_managem"}
+{"t_ms": 8366, "partial_json": "en"}
+{"t_ms": 8366, "partial_json": "t\"],\"rules\":"}
+{"t_ms": 8366, "partial_json": "[\""}
+{"t_ms": 8366, "partial_json": "Mom"}
+{"t_ms": 8367, "partial_json": " takes multi"}
+{"t_ms": 8367, "partial_json": "ple m"}
+{"t_ms": 8367, "partial_json": "edications "}
+{"t_ms": 8367, "partial_json": "th"}
+{"t_ms": 8367, "partial_json": "at she ca"}
+{"t_ms": 8367, "partial_json": "n mix u"}
+{"t_ms": 8367, "partial_json": "p\",\"Track wh"}
+{"t_ms": 8368, "partial_json": "at'"}
+{"t_ms": 8368, "partial_json": "s be"}
+{"t_ms": 8368, "partial_json": "en t"}
+{"t_ms": 8368, "partial_json": "aken and w"}
+{"t_ms": 8368, "partial_json": "hen\",\"Ale"}
+{"t_ms": 8369, "partial_json": "rt if doses "}
+{"t_ms": 8369, "partial_json": "seem missed "}
+{"t_ms": 8369, "partial_json": "or doubled\"]"}
+{"t_ms": 8369, "partial_json": "},{\"id\":\""}
+{"t_ms": 8369, "partial_json": "mo"}
+{"t_ms": 8369, "partial_json": "ney\""}
+{"t_ms": 8370, "partial_json": ",\"labe"}
+{"t_ms": 8370, "partial_json": "l\":\""}
+{"t_ms": 8370, "partial_json": "Financial S"}
+{"t_ms": 8370, "partial_json": "afet"}
+{"t_ms": 8371, "partial_json": "y\",\"n"}
+{"t_ms": 8371, "partial_json": "eed_i"}
+{"t_ms": 8372, "partial_json": "ds\":[\"n"}
+{"t_ms": 8372, "partial_json": "_fin"}
+{"t_ms": 8372, "partial_json": "anci"}
+{"t_ms": 8372, "partial_json": "al_safet"}
+{"t_ms": 8372, "partial_json": "y\"],\""}
+{"t_ms": 8372, "partial_json": "rules\":[\"M"}
+{"t_ms": 8372, "partial_json": "om s"}
+{"t_ms": 8372, "partial_json": "hould nev"}
+{"t_ms": 8372, "partial_json": "er wire mon"}
+{"t_ms": 8373, "partial_json": "ey withou"}
+{"t_ms": 8373, "partial_json": "t "}
+{"t_ms": 8373, "partial_json": "verif"}
+{"t_ms": 8373, "partial_json": "icatio"}
+{"t_ms": 8373, "partial_json": "n from"}
+{"t_ms": 8373, "partial_json": " You o"}
+{"t_ms": 8373, "partial_json": "r Marco\",\""}
+{"t_ms": 8373, "partial_json": "Flag"}
+{"t_ms": 8387, "partial_json": " any"}
+{"t_ms": 8387, "partial_json": " unusual m"}
+{"t_ms": 8388, "partial_json": "oney reque"}
+{"t_ms": 8388, "partial_json": "sts\",\""}
+{"t_ms": 8388, "partial_json": "Verify call"}
+{"t_ms": 8388, "partial_json": "er i"}
+{"t_ms": 8388, "partial_json": "den"}
+{"t_ms": 8388, "partial_json": "tity bef"}
+{"t_ms": 8388, "partial_json": "ore any"}
+{"t_ms": 8388, "partial_json": " fina"}
+{"t_ms": 8388, "partial_json": "ncia"}
+{"t_ms": 8389, "partial_json": "l decisio"}
+{"t_ms": 8389, "partial_json": "ns\"]},{\"id"}
+{"t_ms": 8389, "partial_json": "\":\"pe"}
+{"t_ms": 8389, "partial_json": "op"}
+{"t_ms": 8389, "partial_json": "le\",\"l"}
+{"t_ms": 8389, "partial_json": "ab"}
+{"t_ms": 8389, "partial_json": "el\":\"Soc"}
+{"t_ms": 8389, "partial_json": "ial"}
+{"t_ms": 8389, "partial_json": " & Vis"}
+{"t_ms": 8390, "partial_json": "its\",\"need_i"}
+{"t_ms": 8390, "partial_json": "ds\":["}
+{"t_ms": 8390, "partial_json": "\"n_visit_"}
+{"t_ms": 8390, "partial_json": "coordina"}
+{"t_ms": 8390, "partial_json": "tion\"],\"r"}
+{"t_ms": 8390, "partial_json": "ul"}
+{"t_ms": 8390, "partial_json": "es\":["}
+{"t_ms": 8390, "partial_json": "\"Coor"}
+{"t_ms": 8391, "partial_json": "din"}
+{"t_ms": 8391, "partial_json": "ate vis"}
+{"t_ms": 8391, "partial_json": "its betwee"}
+{"t_ms": 8391, "partial_json": "n You and Ma"}
+{"t_ms": 8391, "partial_json": "rco\",\"S"}
+{"t_ms": 8391, "partial_json": "omeone "}
+{"t_ms": 8392, "partial_json": "shou"}
+{"t_ms": 8392, "partial_json": "ld check "}
+{"t_ms": 8392, "partial_json": "on Mom reg"}
+{"t_ms": 8392, "partial_json": "ularl"}
+{"t_ms": 8392, "partial_json": "y\",\"Track w"}
+{"t_ms": 8392, "partial_json": "ho's going"}
+{"t_ms": 8392, "partial_json": " when to"}
+{"t_ms": 8392, "partial_json": " avoid du"}
+{"t_ms": 8392, "partial_json": "plicat"}
+{"t_ms": 8392, "partial_json": "io"}
+{"t_ms": 8393, "partial_json": "n o"}
+{"t_ms": 8393, "partial_json": "r gaps\"],"}
+{"t_ms": 8393, "partial_json": "\"trust"}
+{"t_ms": 8393, "partial_json": "ed_contact"}
+{"t_ms": 8393, "partial_json": "s\":[\""}
+{"t_ms": 8393, "partial_json": "m_you\""}
+{"t_ms": 8393, "partial_json": ",\"m_ma"}
+{"t_ms": 8393, "partial_json": "rco\"]"}
+{"t_ms": 8394, "partial_json": "}]"}
+{"t_ms": 8745, "partial_json": ", \"quest"}
+{"t_ms": 8757, "partial_json": "io"}
+{"t_ms": 8757, "partial_json": "ns\": [\"W"}
+{"t_ms": 8757, "partial_json": "hat are"}
+{"t_ms": 8757, "partial_json": " Mom"}
+{"t_ms": 8757, "partial_json": "'s specific"}
+{"t_ms": 8757, "partial_json": " med"}
+{"t_ms": 8757, "partial_json": "icatio"}
+{"t_ms": 8757, "partial_json": "ns"}
+{"t_ms": 8758, "partial_json": " and the cor"}
+{"t_ms": 8758, "partial_json": "re"}
+{"t_ms": 8758, "partial_json": "ct times/dos"}
+{"t_ms": 8758, "partial_json": "es?\",\"Besi"}
+{"t_ms": 8758, "partial_json": "des Marco an"}
+{"t_ms": 8758, "partial_json": "d you, does "}
+{"t_ms": 8758, "partial_json": "anyon"}
+{"t_ms": 8758, "partial_json": "e else h"}
+{"t_ms": 8758, "partial_json": "elp "}
+{"t_ms": 8758, "partial_json": "wit"}
+{"t_ms": 8759, "partial_json": "h Mo"}
+{"t_ms": 8759, "partial_json": "m's care"}
+{"t_ms": 8759, "partial_json": "?\"]}"}

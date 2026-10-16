@@ -434,3 +434,11 @@ def check_verification(record: dict[str, Any]) -> list[str]:
         if not any(a.get("outcome") == "applied" for a in record.get("answers", [])):
             errors.append(f"I7 verification state {state} has no applied answer")
     return errors
+
+
+def contract_errors(obj: dict[str, Any], ref: str) -> list[str]:
+    """Validate any object against a contract `$ref`, e.g. 'ws_messages.schema.json#/$defs/control'."""
+    file, _, pointer = ref.partition("#")
+    base = _schemas()[file]["$id"]
+    validator = Draft202012Validator({"$ref": f"{base}#{pointer}" if pointer else base}, registry=_registry(), format_checker=FormatChecker())
+    return [f"{'/'.join(str(x) for x in e.absolute_path) or '<root>'}: {e.message[:200]}" for e in validator.iter_errors(obj)]
