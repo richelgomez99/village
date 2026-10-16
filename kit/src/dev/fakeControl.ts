@@ -58,10 +58,10 @@ const REYES_TURNS: FoundingTurn[] = [
       { person: "Ana", component: "Refill checklist", reason: "the old 5 mg bottle is still in the cabinet", role: "coordinator", el: "refill" }
     ] },
   { said: "Weekly organizer, yellow lid for morning, blue lid for evening. Two or three nights a week she calls me asking if she took them. Once she took them twice.",
-    know: "organizer with 2 lids · 3 dose rules on (never says how many).", ask: "Money. Tell me about the call last week.", covered: 5, rules: 3,
+    know: "weekly organizer, morning and evening · 3 dose rules on (never says how many).", ask: "Money. Tell me about the call last week.", covered: 5, rules: 3,
     build: [
       { person: "Ana", component: "Pills today", reason: "Mamá calls her asking \"did I take them?\"", role: "coordinator", el: "dose" },
-      { person: "Ana", component: "Pill organizer", reason: "yellow lid morning, blue lid evening", role: "coordinator", el: "org" }
+      { person: "Ana", component: "Pill organizer", reason: "morning and evening compartments", role: "coordinator", el: "org" }
     ] },
   { said: "Someone called saying he was Marco, crying, in trouble, needed fifteen hundred dollars in gift cards. Marco handles her money stuff with her.",
     know: "money asked in a family name gets checked with that person first · verifier Marco, then Ana.", ask: "Pick a word only the family knows. Every real call from Village says it.", covered: 6, rules: 9,

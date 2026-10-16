@@ -165,7 +165,6 @@ export function Timeline({ props }: CatalogProps) {
             {props.show_provenance ? (
               <span className="tl-source" data-test="provenance">
                 {k("source", ctx.lang)}: {i.source_label ? text(i.source_label, ctx.lang) : `${i.source.kind} ${i.source.ref}${i.source.secs != null ? ` @${mmss(Math.round(i.source.secs))}` : ""}`}
-                {i.rule_id ? ` · ${i.rule_id}` : ""}
               </span>
             ) : null}
           </li>
@@ -206,20 +205,22 @@ export function CareRota({ id, props }: CatalogProps) {
 
 interface LifeArea { id: string; label: string; status: unknown; rules?: string[]; trusted_contacts?: string[] }
 
+/** Family phones get plain words per life area ("Money: 1 scam stopped"); rule ids live on the Control Room only. */
 export function LifeAreas({ props }: CatalogProps) {
   const ctx = useCtx();
   const areas = arr<LifeArea>(ctx.data[props.bind]).filter((a) => (props.areas as string[]).includes(a.id));
   return (
     <Card test="life-areas" title={props.title ? <Bi value={props.title} /> : undefined}>
       <ul className="areas">
-        {areas.map((a) => (
-          <li key={a.id} className={`area area-${a.id}`} data-test="life-area" data-area={a.id}>
-            <span className="area-label">{a.label}</span>
-            <span className="chip" data-test="life-area-status"><Bi value={a.status} /></span>
-            {props.show_rules && a.rules?.length ? <span className="mono small">{a.rules.join(" · ")}</span> : null}
-            {props.show_contacts && a.trusted_contacts?.length ? <span className="small muted">{a.trusted_contacts.map((m) => memberName(m, ctx.data)).join(", ")}</span> : null}
-          </li>
-        ))}
+        {areas.map((a) => {
+          const word = a.label.split(":")[0].trim();
+          return (
+            <li key={a.id} className={`area area-${a.id}`} data-test="life-area" data-area={a.id}>
+              <span className="area-line" data-test="life-area-status"><strong>{word}:</strong> <Bi value={a.status} /></span>
+              {props.show_contacts && a.trusted_contacts?.length ? <span className="small muted"> · {a.trusted_contacts.map((m) => memberName(m, ctx.data)).join(", ")}</span> : null}
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );

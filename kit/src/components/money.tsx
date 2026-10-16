@@ -158,9 +158,12 @@ export function Proposal({ id, props }: CatalogProps) {
       {items.map((p) => (
         <article key={p.proposal_id} className="proposal" data-test="proposal" data-status={p.status}>
           <h3><Bi value={p.title} /></h3>
-          <ul>{p.changes.map((c, i) => <li key={i}><Bi value={c} /></li>)}</ul>
-          {props.show_evidence ? <p className="small muted">{p.evidence_labels.join(" · ")}</p> : null}
           {props.show_release_status ? <p className="chip">{p.status}</p> : null}
+          <details className="proposal-why" data-test="proposal-why">
+            <summary>{k("why", ctx.lang)}</summary>
+            <ul>{p.changes.map((c, i) => <li key={i}><Bi value={c} /></li>)}</ul>
+            {props.show_evidence ? <p className="small muted">{p.evidence_labels.join(" · ")}</p> : null}
+          </details>
           {props.allow_approve ? (
             <div className="row">
               <button type="button" className="btn btn-primary" data-test="proposal-approve" disabled={ctx.disabled || p.status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: p.proposal_id, element_id: id })}>{k("approve", ctx.lang)}</button>

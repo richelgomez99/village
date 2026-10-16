@@ -6,6 +6,7 @@ import { Renderer } from "../renderer/Renderer";
 import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
+import { plural } from "../i18n/plural";
 import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
 import { displayName, memberDisplay, nameCtx, type AnswerBlock, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
@@ -78,12 +79,12 @@ export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, 
         <p className="tagline" data-test="tagline">{TAGLINE}</p>
       </div>
       <div className="header-right">
-        <span className="pill" data-test="phones-counter" data-count={n} aria-label={`${n} phones live`}>
+        <span className="pill" data-test="phones-counter" data-count={n} aria-label={`${plural(n, "phone")} live`}>
           <span className="dots" aria-hidden="true">
             {Array.from({ length: Math.min(n, 24) }, (_, i) => <span key={i} className="dot" data-test="phone-dot" />)}
           </span>
           <span className="num">{n}</span>
-          <span className="muted">phones live</span>
+          <span className="muted">{n === 1 ? "phone live" : "phones live"}</span>
         </span>
         <span className="pill" data-test="demo-clock" data-now={shown}>
           <span className="muted">demo clock</span>
@@ -152,7 +153,7 @@ export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator", o
 const AREA_CLASS: Record<string, string> = { health: "amber", money: "coral", people: "mint", home: "sky", daily_living: "plum", information: "sky" };
 
 const RULE_WORDS: Record<string, string> = {
-  double_dose_guard: "Lid already logged → report it, tell the on-duty person",
+  double_dose_guard: "Dose already recorded → report it, tell the on-duty person",
   no_dose_advice: "Never says how many pills to take",
   missed_dose_ladder: "Missed dose → reminder, then the on-duty person",
   emergency_911_first: "Emergency → 911 first",
@@ -226,7 +227,7 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
   const channels: Record<string, string[]> = spec?.channels ?? {};
   const meter = scene.coverage ? (
     <div className="coverage" data-test="coverage" data-value={scene.coverage.value} data-of={scene.coverage.of}>
-      <span className="coverage-num">{scene.coverage.value} of {scene.coverage.of} covered · {Math.max(0, scene.gaps.length || scene.coverage.of - scene.coverage.value)} gaps</span>
+      <span className="coverage-num">{scene.coverage.value} of {scene.coverage.of} covered · {plural(Math.max(0, scene.gaps.length || scene.coverage.of - scene.coverage.value), "gap")}</span>
       <span className="coverage-bar" aria-hidden="true"><span style={{ width: `${(100 * scene.coverage.value) / (scene.coverage.of || 10)}%` }} /></span>
       {scene.gaps.length ? <ul className="gaps" data-test="gaps">{scene.gaps.map((g) => <li key={g} data-test="gap">{g}</li>)}</ul> : null}
     </div>
@@ -253,7 +254,7 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
         {lifeAreas.map((a) => (
           <li key={a.id} className={`chip chip-${AREA_CLASS[a.id] ?? "amber"}`} data-test="bp-area" data-area={a.id}>{a.label}</li>
         ))}
-        <li className="muted small">{lifeAreas.length} life areas · {needs.length} needs</li>
+        <li className="muted small">{plural(lifeAreas.length, "life area")} · {plural(needs.length, "need")}</li>
       </ul>
       <ul className="people" data-test="bp-people">
         {people.map((p) => (
