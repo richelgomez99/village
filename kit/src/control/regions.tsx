@@ -7,7 +7,7 @@ import type { RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
-import { displayName, memberDisplay, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
+import { displayName, memberDisplay, nameCtx, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
 
 const hhmm = (iso: string) => {
   const d = new Date(iso);
@@ -119,7 +119,7 @@ export function TranscriptRegion({ lines, onSend, speakerName = "Coordinator" }:
       setBusy(false);
     }
   };
-  const first = lines.length === 0;
+  const first = !lines.some((l) => l.who !== "village");
   return (
     <Region test="transcript" title="Founding · describe your people" className="r-transcript">
       {first ? <p className="empty-hero" data-test="founding-empty">No village yet. Describe your people.</p> : null}
@@ -217,8 +217,9 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
   const rules: string[] = (streamed.rules?.map((r: any) => r.rule ?? r) as string[]) ?? bp?.rules ?? [];
   const kind: string | undefined = streamed.kind?.[0]?.kind ?? spec?.village?.kind;
   const quote: string | undefined = bp?.description?.text;
+  const nctx = spec ?? nameCtx(scene);
   const speakerP = people.find((p) => p.id === bp?.description?.speaker);
-  const speaker = speakerP ? displayName(speakerP, spec) : undefined;
+  const speaker = speakerP ? displayName(speakerP, nctx) : undefined;
   const areaLabels = new Map(lifeAreas.map((a) => [a.id as string, a.label as string]));
   const channels: Record<string, string[]> = spec?.channels ?? {};
   const meter = scene.coverage ? (
@@ -255,7 +256,7 @@ export function BlueprintRegion({ spec, scene }: { spec: any; scene: SceneState 
       <ul className="people" data-test="bp-people">
         {people.map((p) => (
           <li key={p.id} className={`person${p.role === "care_recipient" ? " center" : ""}`} data-test="bp-person" data-member={p.id}>
-            <span className="person-name">{displayName(p, spec)}</span>
+            <span className="person-name">{displayName(p, nctx)}</span>
             <span className="muted small">{[p.relation, p.role?.replace(/_/g, " "), LANG_WORDS[p.profile?.lang] ?? p.profile?.lang].filter(Boolean).join(" · ")}</span>
             <span className="chips">
               {(channels[p.id] ?? []).map((c) => <span key={c} className="chip chip-line" data-test="bp-channel">{channelWord(c)}</span>)}
@@ -417,13 +418,15 @@ function QrTile({ entry, name, judge, center }: { entry: QrEntry | undefined; na
   );
 }
 
-export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people }: {
+export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, live, cfg, people, villageName }: {
   spec: any; data: Record<string, unknown>; village: string; nowMs: () => number; viewAs: string | null; onViewAs: (m: string | null) => void;
   live: { role: string; view: View | null; data: Record<string, unknown> } | null; cfg?: ApiConfig;
   /** founding stream: people named so far (skeleton phones before the spec exists) */
   people?: any[];
+  villageName?: string | null;
 }) {
-  const slots = spec?.views ? phoneSlots(spec) : (people ?? []).filter((p) => p.view).slice(0, 3).map((p) => ({ role: p.view as string, member: p.id as string, name: displayName(p, spec), label: `${displayName(p, spec)}'s phone` }));
+  const nctx = spec ?? { village: { name: villageName ?? "" } };
+  const slots = spec?.views ? phoneSlots(spec) : (people ?? []).filter((p) => p.view).slice(0, 3).map((p) => ({ role: p.view as string, member: p.id as string, name: displayName(p, nctx), label: `${displayName(p, nctx)}'s phone` }));
   const parsed = useMemo(() => {
     const out: Record<string, View | null> = {};
     for (const s of slots) {

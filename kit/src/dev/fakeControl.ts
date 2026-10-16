@@ -98,7 +98,7 @@ function founding(villageId?: string): Timed[] {
 export function controlHelloSnapshot(seq: ControlSeq | null | undefined, village?: string): any {
   if (seq !== "founding") return null;
   const snap = fakeSnapshot("control") as any;
-  return { ...snap, rev: 0, spec: null, data: {}, village: village ?? snap.village };
+  return { ...snap, rev: 0, spec: null, data: {}, village: village ?? snap.village, now: at("13:58:00") };
 }
 
 function scam(): Timed[] {

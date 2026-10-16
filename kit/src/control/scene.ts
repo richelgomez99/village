@@ -46,6 +46,8 @@ export interface SceneState {
   release: any | null;
   buildLog: { at: string; stage: string; line: string; level: string }[];
   proposal: any | null;
+  /** village.name (spec) or snapshot.identity.village_name — names exist before the spec does during founding */
+  villageName: string | null;
   /** founding intake (docs/FOUNDING-INTAKE.md): transcript, coverage meter, gap list */
   transcript: TranscriptLine[];
   coverage: { value: number; of: number } | null;
@@ -57,7 +59,7 @@ export function initialScene(village = ""): SceneState {
   return {
     village, spec: null, data: {}, rev: 0, blueprint: { stages: {}, done: false }, ledger: [], gate: [], decisions: [],
     autonomy: { acted_alone: 0, asked_human: 0, refused: 0 }, live: null, counters: {}, phones: null, clock: null, captions: [],
-    release: null, buildLog: [], proposal: null, transcript: [], coverage: null, gaps: [], frames: 0
+    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], coverage: null, gaps: [], frames: 0
   };
 }
 
@@ -127,10 +129,16 @@ export function displayName(p: any, spec?: any): string {
   if (!p) return "";
   if (p.display_name) return String(p.display_name);
   const full = String(p.name ?? p.id ?? "");
-  const v = spec?.village;
-  const fam = v?.kind === "care" && typeof v?.name === "string" ? String(v.name).replace(/^(familia|family|the)\s+/i, "").replace(/\s+family$/i, "") : "";
+  const vname = String(spec?.village?.name ?? "");
+  const m = vname.match(/^(?:familia|family)\s+(\S+)$/i) ?? vname.match(/^(?:the\s+)?(\S+)\s+family$/i);
+  const fam = m ? m[1] : "";
   if (fam && full.endsWith(` ${fam}`) && !/^(mr|mrs|ms|dr|the)\b/i.test(full)) return full.slice(0, -fam.length - 1);
   return full;
+}
+
+/** Spec, or a stand-in carrying the village name while the spec doesn't exist yet (founding). */
+export function nameCtx(s: { spec: any; villageName: string | null }): any {
+  return s.spec ?? { village: { name: s.villageName ?? "" } };
 }
 
 /** Proper-cased member name from the record (spec people, then data member:<id>), else from the id. */
@@ -175,7 +183,8 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
   switch (f.type) {
     case "snapshot": {
       if (f.role !== "control") return { ...s, frames };
-      return { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev };
+      const villageName = (f.spec as any)?.village?.name ?? (f as any).identity?.village_name ?? s.villageName;
+      return { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev, villageName };
     }
     case "patch":
       return { ...s, frames, rev: f.rev };
@@ -302,7 +311,7 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const stages = { ...s.blueprint.stages, [stage]: items };
       const gaps = stage === "questions" ? items.map((q: any) => String(q.gap ?? q.topic ?? q.question ?? "")).filter(Boolean) : s.gaps;
       const done = stage === "done" || s.blueprint.done;
-      const ledger = upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, s.spec), role: "Founder" });
+      const ledger = upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, nameCtx(s)), role: "Founder" });
       if (stage === "questions") return { ...s, blueprint: { stages, done }, gaps };
       return { ...s, blueprint: { stages, done }, ledger, gaps: done ? [] : s.gaps };
     }

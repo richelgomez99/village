@@ -8,7 +8,7 @@ import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, createVillage, warpClock, type ApiConfig } from "../control/api";
 import { AskWhyRegion, BlueprintRegion, CaptionsLayer, GateRegion, Header, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
-import { displayName, initialScene, sceneReducer, type SceneState } from "../control/scene";
+import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
 import { liveConfig, makeSocket, type LiveConfig } from "../live/useLive";
@@ -113,7 +113,7 @@ function useVillageNames(sockets: Record<string, VillageSocket>): Record<string,
   useEffect(() => {
     const unsubs = Object.entries(sockets).map(([id, s]) =>
       s.subscribe((st) => {
-        const n = (st.spec as any)?.village?.name;
+        const n = (st.spec as any)?.village?.name ?? st.identity?.village_name;
         if (n) setNames((m) => (m[id] === n ? m : { ...m, [id]: n }));
       })
     );
@@ -181,7 +181,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
   const spec = scene.spec;
   const people = scene.blueprint.stages.people ?? spec?.blueprint?.people ?? [];
   const coordP = people.find((p: any) => p.role === "coordinator");
-  const coordinator = coordP ? displayName(coordP, spec) : "Coordinator";
+  const coordinator = coordP ? displayName(coordP, nameCtx(scene)) : "Coordinator";
   return (
     <main className={`control${founding ? " founding" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32}px` }}>
       <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} />
@@ -193,7 +193,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
           <TranscriptRegion lines={scene.transcript} onSend={onAnswer} speakerName={coordinator} />
           <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} />
           <BlueprintRegion spec={spec} scene={scene} />
-          <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={null} onViewAs={() => {}} live={null} cfg={api} people={people} />
+          <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={null} onViewAs={() => {}} live={null} cfg={api} people={people} villageName={scene.villageName} />
         </div>
       ) : (
         <div className="cr-grid">
