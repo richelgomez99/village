@@ -63,6 +63,7 @@
                   "al",
                   "vp",
                   "ans",
+                  "since",
                   "refill",
                   "b_mom",
                   "chat"
@@ -100,6 +101,14 @@
                   "subject": "m_carmen",
                   "show_status": true,
                   "show_next_shift": true
+                }
+              },
+              "since": {
+                "type": "SinceYourTurn",
+                "props": {
+                  "bind": "events:since_last_turn?member=me",
+                  "title": "Since your last turn",
+                  "max_rows": 3
                 }
               },
               "refill": {
@@ -155,6 +164,11 @@
               ],
               "chat": [
                 "n_safety"
+              ],
+              "since": [
+                "n_turns",
+                "n_scam_calls",
+                "n_evening_pills"
               ]
             }
           },
@@ -243,7 +257,42 @@
                   "valid_from": "2022-01-15"
                 }
               ]
-            }
+            },
+            "events:since_last_turn?member=me": [
+              {
+                "at": "2026-10-16T08:11:04-04:00",
+                "text": {
+                  "en": "Mamá answered her morning check-in: pills taken",
+                  "es": "Mamá contestó el aviso de la mañana: pastillas tomadas"
+                },
+                "source": {
+                  "kind": "scan",
+                  "ref": "ev_1016_0811_dose_morning"
+                }
+              },
+              {
+                "at": "2026-10-16T11:30:00-04:00",
+                "text": {
+                  "en": "Mamá asked you to call her tonight",
+                  "es": "Mamá pidió que la llames esta noche"
+                },
+                "source": {
+                  "kind": "call",
+                  "ref": "conv_1016_1130"
+                }
+              },
+              {
+                "at": "2026-10-15T20:02:00-04:00",
+                "text": {
+                  "en": "Thursday night covered; evening pills taken",
+                  "es": "Jueves cubierto; pastillas de la noche tomadas"
+                },
+                "source": {
+                  "kind": "system",
+                  "ref": "watcher"
+                }
+              }
+            ]
           },
           "now": "2026-10-16T14:01:40-04:00",
           "identity": {

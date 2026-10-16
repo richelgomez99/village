@@ -138,20 +138,28 @@
       "theme": "dashboard",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Mamá today", "subtitle": "Reyes family" }, "children": ["al", "prop", "areas", "inc", "vp", "dose", "refill", "org", "rota", "tl", "chat"] },
-        "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No alerts right now", "show_escalation_status": true, "show_countdown": true } },
-        "prop": { "type": "Proposal", "props": { "bind": "proposals:pending", "title": "Village proposes a change · needs your yes", "allow_approve": true, "show_evidence": true, "show_release_status": true } },
-        "areas": { "type": "LifeAreas", "props": { "title": "Mamá's village", "bind": "blueprint:life_areas", "areas": ["health", "money", "people"], "show_rules": true, "show_contacts": true } },
-        "inc": { "type": "IncidentCard", "props": { "title": "Needs your attention", "bind": "incidents:open", "subject": "m_carmen", "show_red_flags": true, "show_verification": true, "show_provenance": true, "allow_ack": true, "limit": 3 } },
-        "vp": { "type": "VerificationPrompt", "props": { "bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true } },
-        "dose": { "type": "DoseTracker", "props": { "title": "Mamá's pills today", "subject": "m_carmen", "slots": ["morning", "evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=today", "show_med_names": true, "allow_log": true, "big": false } },
-        "refill": { "type": "RefillCard", "props": { "title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true } },
-        "org": { "type": "PillOrganizer", "props": { "title": "Her pill organizer", "subject": "m_carmen", "slots": ["morning", "evening"], "lid_colors": ["#E8B12F", "#2F5FA7"], "labels": ["Morning", "Evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=week", "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "show_today_only": false } },
-        "rota": { "type": "CareRota", "props": { "title": "Who's on this week", "bind": "rota:week", "period": "week", "highlight_current_user": true, "allow_swap": true, "show_backup": true } },
-        "tl": { "type": "Timeline", "props": { "title": "What happened", "bind": "timeline:subject=m_carmen", "subject": "m_carmen", "event_kinds": ["dose", "dose_repeat_scan", "dose_repeat", "reminder", "escalation", "ack", "symptom", "shift", "med_change", "money_request", "verification", "incident"], "show_superseded": true, "show_provenance": true, "limit": 20 } },
-        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": true, "limit": 50 } }
+        "s": {"type": "Screen", "props": {"title": "Mamá today", "subtitle": "Reyes family"}, "children": ["rn", "wvd", "al", "prop", "areas", "inc", "vp", "pills", "rota", "tl", "chat"]},
+        "rn": {"type": "RightNow", "props": {"bind": "rounds:latest", "title": "Right now", "show_asks": true}},
+        "wvd": {"type": "WhatVillageDid", "props": {"bind": "rounds:latest", "title": "What Village did", "max_rows": 6}},
+        "al": {"type": "Alert", "props": {"source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No alerts right now", "show_escalation_status": true, "show_countdown": true}},
+        "prop": {"type": "Proposal", "props": {"bind": "proposals:pending", "title": "Village proposes a change · needs your yes", "allow_approve": true, "show_evidence": true, "show_release_status": true}},
+        "areas": {"type": "LifeAreas", "props": {"title": "Mamá's village", "bind": "blueprint:life_areas", "areas": ["health", "money", "people"], "show_rules": true, "show_contacts": true}},
+        "inc": {"type": "IncidentCard", "props": {"title": "Needs your attention", "bind": "incidents:open", "subject": "m_carmen", "show_red_flags": true, "show_verification": true, "show_provenance": true, "allow_ack": true, "limit": 3}},
+        "vp": {"type": "VerificationPrompt", "props": {"bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true}},
+        "pills": {"type": "Stack", "props": {"title": "Mamá's pills", "direction": "vertical", "gap": "m"}, "children": ["dose", "org", "refill", "fact"]},
+        "dose": {"type": "DoseTracker", "props": {"title": "Mamá's pills today", "subject": "m_carmen", "slots": ["morning", "evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=today", "show_med_names": true, "allow_log": true, "big": false}},
+        "refill": {"type": "RefillCard", "props": {"title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true}},
+        "org": {"type": "PillOrganizer", "props": {"title": "Her pill organizer", "subject": "m_carmen", "slots": ["morning", "evening"], "lid_colors": ["#E8B12F", "#2F5FA7"], "labels": ["Morning", "Evening"], "bind": "facts:dose_event?subject=m_carmen&valid_at=week", "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "show_today_only": false}},
+        "rota": {"type": "CareRota", "props": {"title": "Who's on this week", "bind": "rota:week", "period": "week", "highlight_current_user": true, "allow_swap": true, "show_backup": true}},
+        "tl": {"type": "Timeline", "props": {"title": "What happened", "bind": "timeline:subject=m_carmen", "subject": "m_carmen", "event_kinds": ["dose", "dose_repeat_scan", "dose_repeat", "reminder", "escalation", "ack", "symptom", "shift", "med_change", "money_request", "verification", "incident"], "show_superseded": true, "show_provenance": true, "limit": 20}},
+        "chat": {"type": "VillageChat", "props": {"bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": true, "limit": 50}},
+        "fact": {"type": "FactCard", "props": {"bind": "facts:history?subject=m_carmen&key=lisinopril_dose", "title": "How Village knows: lisinopril", "show_as_of": true}}
       },
       "needs_served": {
+        "rn": ["n_turns", "n_evening_pills", "n_scam_calls"],
+        "wvd": ["n_scam_calls", "n_turns", "n_evening_pills"],
+        "pills": ["n_evening_pills", "n_dose_change", "n_refills"],
+        "fact": ["n_dose_change"],
         "al": ["n_safety", "n_evening_pills"],
         "areas": ["n_evening_pills", "n_scam_calls", "n_turns"],
         "inc": ["n_scam_calls"],
@@ -170,13 +178,14 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Is it my turn?", "subtitle": "Reyes family" }, "children": ["al", "vp", "ans", "refill", "b_mom", "chat"] },
-        "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "Nothing needs you right now", "show_escalation_status": true } },
-        "vp": { "type": "VerificationPrompt", "props": { "bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true } },
-        "ans": { "type": "HelperAnswer", "props": { "question": "Is it my turn?", "bind": "rota:current?member=me", "subject": "m_carmen", "show_status": true, "show_next_shift": true } },
-        "refill": { "type": "RefillCard", "props": { "title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true } },
-        "b_mom": { "type": "BigButton", "props": { "label": "Call Mamá", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_carmen", "confirm": false } },
-        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } }
+        "s": {"type": "Screen", "props": {"title": "Is it my turn?", "subtitle": "Reyes family"}, "children": ["al", "vp", "ans", "since", "refill", "b_mom", "chat"]},
+        "al": {"type": "Alert", "props": {"source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "Nothing needs you right now", "show_escalation_status": true}},
+        "vp": {"type": "VerificationPrompt", "props": {"bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true}},
+        "ans": {"type": "HelperAnswer", "props": {"question": "Is it my turn?", "bind": "rota:current?member=me", "subject": "m_carmen", "show_status": true, "show_next_shift": true}},
+        "since": {"type": "SinceYourTurn", "props": {"bind": "events:since_last_turn?member=me", "title": "Since your last turn", "max_rows": 3}},
+        "refill": {"type": "RefillCard", "props": {"title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true}},
+        "b_mom": {"type": "BigButton", "props": {"label": "Call Mamá", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_carmen", "confirm": false}},
+        "chat": {"type": "VillageChat", "props": {"bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": false, "limit": 50}}
       },
       "needs_served": {
         "al": ["n_safety"],
@@ -184,7 +193,8 @@
         "ans": ["n_turns", "n_evening_pills"],
         "refill": ["n_dose_change", "n_refills"],
         "b_mom": ["n_turns"],
-        "chat": ["n_safety"]
+        "chat": ["n_safety"],
+        "since": ["n_turns", "n_scam_calls", "n_evening_pills"]
       }
     }
   },

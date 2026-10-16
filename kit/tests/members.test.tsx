@@ -32,7 +32,7 @@ describe("tabs from life areas (generic)", () => {
     const p = planTabs(view(R, "coordinator"), areasData(R), "en");
     expect(p.areas.map((a) => a.id)).toEqual(["health", "people"]);
     expect(p.areas.map((a) => a.label)).toEqual(["Health", "People"]);
-    expect(p.headline).toBe("areas");
+    expect(p.headline).toBe("rn");
     expect(p.chat).toBe("chat");
     expect(p.attention).toEqual(["al", "prop", "inc", "vp"]);
   });

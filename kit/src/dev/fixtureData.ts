@@ -69,13 +69,6 @@ export function chatAfter(nowIso = SNAPSHOT_NOW) {
   return SEED_MESSAGES.filter((m) => Date.parse(m.at) > Date.parse(nowIso));
 }
 
-/** MOCK (LD-M3): what core-glue's events:since_last_turn?member=me is expected to carry: rows in words, newest first. */
-export const SINCE_LAST_TURN = [
-  { event_id: "ev_1016_0811_dose_morning", kind: "dose", at: "2026-10-16T08:11:04-04:00", text: { en: "Mamá answered her morning check-in: pills taken" } },
-  { event_id: "ev_1016_1130_ask", kind: "reminder", at: "2026-10-16T11:30:00-04:00", text: { en: "Mamá asked you to call her tonight" } },
-  { event_id: "ev_1015_2002_round", kind: "shift", at: "2026-10-15T20:02:00-04:00", text: { en: "Ana covered Thursday night; evening pills taken" } }
-];
-
 /** need_ids per life area, straight from the fixture blueprint: the field the kit asks Core to add to bv_life_area (LD-M1). */
 const NEED_IDS = new Map<string, string[]>(((reyesSpec as any).blueprint.life_areas as { id: string; need_ids: string[] }[]).map((a) => [a.id, a.need_ids]));
 
@@ -115,10 +108,6 @@ export function baseData(client: FakeClient): Record<string, unknown> {
     case "lucia": {
       const snap = connectSnapshot();
       const data = { ...(snap?.data ?? {}), ...memberRecords(), "chat:village": chatAt() } as Record<string, unknown>;
-      if (client === "marco") {
-        // MOCK of core-glue's events:since_last_turn?member=me (three rows in words since his last night)
-        data["events:since_last_turn?member=me"] = SINCE_LAST_TURN;
-      }
       if (client === "lucia") {
         // Lucía is not a money contact (consent ai_calls false): Core never sends her a prompt
         delete data["verifications:pending?member=me"];

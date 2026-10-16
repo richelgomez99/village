@@ -5,9 +5,9 @@ import { text, type View } from "../renderer/view";
 export const ATTENTION_TYPES = new Set(["Alert", "Proposal", "VerificationPrompt", "IncidentCard"]);
 const LAYOUT = new Set(["Screen", "Header", "Text", "Stack"]);
 /** one-tap actions (Call Mamá, 911) never move off Home */
-const PINNED = new Set(["BigButton", "ContactCard"]);
+const PINNED = new Set(["BigButton", "ContactCard", "RightNow", "WhatVillageDid", "SinceYourTurn", "LifeAreas"]);
 /** below this many tab-able elements one screen is enough (Marco: Home · Chat) */
-const MIN_FOR_TABS = 4;
+const MIN_FOR_TABS = 3;
 
 export interface Tab { id: string; label: string; elements: string[] }
 export interface TabPlan {
