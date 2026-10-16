@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/get_today",
+    "url": "${TUNNEL_URL}/tools/get_today",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

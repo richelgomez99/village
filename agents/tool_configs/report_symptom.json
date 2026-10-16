@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/report_symptom",
+    "url": "${TUNNEL_URL}/tools/report_symptom",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

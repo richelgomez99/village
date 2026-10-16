@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/report_money_request",
+    "url": "${TUNNEL_URL}/tools/report_money_request",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

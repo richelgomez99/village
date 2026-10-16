@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/log_dose",
+    "url": "${TUNNEL_URL}/tools/log_dose",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

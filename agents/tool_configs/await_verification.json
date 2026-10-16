@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/await_verification",
+    "url": "${TUNNEL_URL}/tools/await_verification",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

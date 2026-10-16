@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/create_village",
+    "url": "${TUNNEL_URL}/tools/create_village",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

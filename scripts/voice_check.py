@@ -197,15 +197,77 @@ def _answer_no(core: str, verification_id: str | None) -> dict[str, Any]:
     return {"verification_id": verification_id, "status": r.status_code}
 
 
+WELCOME_PROMPT = """Eres Village, el asistente automático de {family_label}. Llamas a {recipient_name} por primera vez, en español, despacio, frases cortas, una pregunta a la vez.
+1. Preséntate: eres un asistente automático (inteligencia artificial) que su familia ({coordinator_name}) configuró para ayudarla. Village nunca pide dinero ni datos del banco.
+2. Pregunta si está de acuerdo con que Village la llame de vez en cuando. Si dice que no, agradece y termina con cariño.
+3. Pregunta si quiere una llamada corta por la noche para ver cómo está y si tomó sus pastillas.
+4. Pregunta cómo le gusta que la llamen.
+5. Pregunta a qué horas NO quiere llamadas (por ejemplo, de noche o temprano). Repite lo que entendiste con sus palabras.
+6. Despídete: dile que ella puede cambiar todo esto cuando quiera, y que {coordinator_name} lo verá en la app.
+Nunca des consejos médicos ni de dosis. Si hay una emergencia, dile que llame al 911."""
+
+
+def welcome_payload(member_id: str | None = None, to_number: str | None = None) -> dict[str, Any]:
+    """Village Caller -> the care recipient: the welcome call (D24 #5). Post-call data_collection (welcome_consent,
+    preferred_name, evening_checkin, quiet_hours, quiet_hours_words) feeds core.builder.founding.confirm_quiet_hours."""
+    from core import village
+
+    vid = village.default_village_id()
+    member_id = member_id or village.care_recipient_id(vid)
+    person = village.person(vid, member_id) or {}
+    first = str(person.get("name") or "").split()[0] if person.get("name") else "señora"
+    coordinator = village.first_name(vid, village.coordinator_id(vid))
+    variables = {
+        "call_purpose": "welcome",
+        "village_id": vid,
+        "member_id": member_id,
+        "recipient_name": first,
+        "family_label": village.village_name(vid),
+        "coordinator_name": coordinator,
+        "family_word": "",
+        "care_recipient_rel": "",
+        "amount_spoken": "",
+        "method_spoken": "",
+        "verification_id": "",
+    }
+    return {
+        "agent_id": os.getenv("ELEVENLABS_AGENT_CALLER_ID") or os.getenv("ELEVENLABS_CALLER_AGENT_ID", ""),
+        "agent_phone_number_id": os.getenv("ELEVENLABS_PHONE_NUMBER_ID", ""),
+        "to_number": to_number or os.getenv("TEST_CALL_TO", ""),
+        "conversation_initiation_client_data": {
+            "dynamic_variables": variables,
+            "conversation_config_override": {"agent": {
+                "language": "es",
+                "first_message": f"Hola, {first}. Soy Village, un asistente automático que su familia configuró para ayudarla. ¿Tiene un minutito?",
+                "prompt": {"prompt": WELCOME_PROMPT.format(**variables)},
+            }},
+        },
+        "telephony_call_config": {"ringing_timeout_secs": 30},
+    }
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description="Check the Village voice path without placing calls by default.")
     parser.add_argument("--core", default="http://127.0.0.1:8787")
     parser.add_argument("--call", action="store_true", help="Place a real outbound verification call to TEST_CALL_TO. Do not use until Twilio geo-permissions are fixed.")
     parser.add_argument("--simulate", metavar="TUNNEL", help="ElevenLabs simulate-conversation: scripted Carmen says the Marco $2,000 line to a throwaway copy of the mom line whose tools hit TUNNEL (your own Core); asserts the tool call reached Core and the say was spoken verbatim.")
     parser.add_argument("--keep", action="store_true", help="keep the throwaway sim agent/tools")
+    parser.add_argument("--welcome", action="store_true", help="Place the Spanish welcome call (Village Caller) to TEST_CALL_TO. The operator runs this, not an agent.")
+    parser.add_argument("--dry-run", action="store_true", help="with --welcome: print the payload (phone masked) instead of calling")
     args = parser.parse_args()
 
     load_env()
+    if args.welcome:
+        payload = welcome_payload()
+        if args.dry_run:
+            shown = {**payload, "to_number": (payload["to_number"][:2] + "…" + payload["to_number"][-2:]) if payload["to_number"] else ""}
+            print(json.dumps(shown, indent=2, ensure_ascii=False))
+            return 0
+        if not payload["to_number"] or not payload["agent_id"]:
+            raise SystemExit("TEST_CALL_TO / ELEVENLABS_AGENT_CALLER_ID missing")
+        result = await ElevenLabsDialer().outbound_call(payload)
+        print(json.dumps({"conversation_id": result.get("conversation_id"), "call_sid": result.get("callSid"), "success": result.get("success", True)}, indent=2))
+        return 0
     if args.simulate:
         result = await asyncio.to_thread(simulate, args.simulate.rstrip("/"), args.core.rstrip("/"), args.keep)
         print(json.dumps(result, indent=2, ensure_ascii=False))

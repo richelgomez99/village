@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/submit_answer",
+    "url": "${TUNNEL_URL}/tools/submit_answer",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",

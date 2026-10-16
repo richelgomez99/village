@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/ask_family",
+    "url": "${TUNNEL_URL}/tools/ask_family",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
