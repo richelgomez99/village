@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException, Request
 
 from core import village
+from core.voice.secret import require_secret
 
 INIT_VAR_KEYS = (
     "village_id",
@@ -15,7 +16,27 @@ INIT_VAR_KEYS = (
     "coordinator_name",
     "language",
     "today_summary",
+    "receptionist",
+    "caller_known",
 )
+
+
+def receptionist_mode(village_id: str | None = None) -> str:
+    """D19: "on" only after the receptionist proposal is approved (spec voice.receptionist) or forced by env."""
+    env = os.getenv("VILLAGE_RECEPTIONIST", "").strip().lower()
+    if env in {"on", "off"}:
+        return env
+    try:
+        spec = village.spec(village_id) or {}
+    except Exception:
+        return "off"
+    flag = (spec.get("voice") or {}).get("receptionist")
+    if flag in {True, "on"}:
+        return "on"
+    for pol in spec.get("policies") or []:
+        if pol.get("rule_id") == "P-RECEPTIONIST" and pol.get("enabled", True) and (pol.get("params") or {}).get("status") != "off":
+            return "on"
+    return "off"
 
 VOICE_CALLS: list[dict[str, Any]] = []
 
@@ -69,6 +90,8 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
             "coordinator_name": coordinator,
             "language": village_lang,
             "today_summary": "Guest caller. Do not share private family details. Money requests still go through the gate.",
+            "receptionist": receptionist_mode(village_id),
+            "caller_known": "false",
         }
     else:
         is_recipient = person["id"] == village.care_recipient_id(village_id)
@@ -87,6 +110,8 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
             "coordinator_name": coordinator,
             "language": lang,
             "today_summary": summary,
+            "receptionist": receptionist_mode(village_id),
+            "caller_known": "true",
         }
     return {key: values[key] for key in INIT_VAR_KEYS}
 
@@ -112,12 +137,22 @@ async def init_hook(
     request: Request,
     x_village_secret: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    expected = os.getenv("VILLAGE_SECRET")
-    if expected and x_village_secret != expected:
-        raise HTTPException(status_code=401, detail="bad voice secret")
+    require_secret(x_village_secret)
 
     payload = await request.json()
     variables = dynamic_vars(payload.get("caller_id", ""), payload.get("village_id") or village.default_village_id())
     record_voice_call(payload, variables)
+    try:  # D18: caption the live inbound call on the Control Room (no-op in tests / without an API key)
+        from core.voice.captions import watch_inbound
+
+        watch_inbound(payload, variables)
+    except Exception:
+        pass
     return {"dynamic_variables": variables}
 
+
+
+# Setup-agent tools, receptionist screening, /voice/token and caption control ride the same graft (core/app.py grafts /hooks/).
+from core.voice.voice_routes import router as _voice_router  # noqa: E402
+
+app.router.routes.extend(_voice_router.routes)  # flat routes: core/app.py's graft reads route.path

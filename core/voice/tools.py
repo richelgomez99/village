@@ -10,6 +10,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model, model_validator
 
 from core import village
+from core.voice.secret import require_secret
 
 COMMON_REQUIRED = {
     "log_dose": ["conversation_id", "caller_id", "call_secs", "utterance", "confidence"],
@@ -22,6 +23,8 @@ COMMON_REQUIRED = {
     "submit_verification_answer": ["verification_id", "verification_answer"],
     "create_village": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
     "answer_proposal": ["conversation_id", "caller_id", "call_secs", "utterance", "proposal_id", "answer"],
+    "submit_answer": ["village_id", "text"],
+    "screen_caller": ["conversation_id", "caller_id", "call_secs", "utterance", "claimed_identity"],
 }
 
 OPTIONAL_FIELDS = {
@@ -63,6 +66,8 @@ OPTIONAL_FIELDS = {
     "listener_quote",
     "call_sid",
     "member_id",
+    "text",
+    "asks_money",
 }
 
 SENSITIVE_DIGITS = re.compile(r"(?<!\d)\d[\d\s-]{3,}\d(?!\d)")
@@ -191,6 +196,9 @@ class ToolHandler:
         return response
 
     async def delegate(self, tool_name: str, body: dict[str, Any], variant: str | None = None) -> dict[str, Any]:
+        local = LOCAL_TOOLS.get(tool_name)
+        if local is not None:
+            return await local(body)
         if hasattr(self.services, "handle_voice_tool"):
             return await self.services.handle_voice_tool(tool_name, body, variant=variant)
 
@@ -239,6 +247,55 @@ class ToolHandler:
         return await fixture_services.handle_voice_tool(tool_name, body, variant=variant)
 
 
+# ---- D19 receptionist: screen_caller (contract in LANE-REPORT.md ## voice2; evolve lane owns the real handler) ----
+SCREEN_DEFAULT_SAY = "I can't put you through right now. I'll let the family know you called."
+
+
+async def screen_caller(body: dict[str, Any]) -> dict[str, Any]:
+    """Default until the evolve lane lands its handler: Core services win if they implement `screen_caller`;
+    otherwise a known caller id passes through and anyone else is held back (never put through unverified)."""
+    services = load_services()
+    if hasattr(services, "screen_caller"):
+        return await services.screen_caller(body)
+    vid = body.get("village_id") or village.default_village_id()
+    caller = str(body.get("caller_id") or "")
+    known = next((p for p in village.people(vid) if caller and p.get("phone") == caller), None)
+    if known is not None and not body.get("asks_money"):
+        return {
+            "decision": "allow",
+            "say": "",
+            "rule_id": "R-NOOP",
+            "lang": "en",
+            "data": {"screen": "pass_through", "claimed_member_id": known["id"]},
+        }
+    return {
+        "decision": "mark_unverified",
+        "say": SCREEN_DEFAULT_SAY,
+        "rule_id": "R-MONEY-UNKNOWN",
+        "lang": "en",
+        "data": {"screen": "refuse"},
+    }
+
+
+async def _create_village(body: dict[str, Any]) -> dict[str, Any]:
+    from core.voice.setup_tools import create_village
+
+    return await create_village(body)
+
+
+async def _submit_answer(body: dict[str, Any]) -> dict[str, Any]:
+    from core.voice.setup_tools import submit_answer
+
+    return await submit_answer(body)
+
+
+LOCAL_TOOLS: dict[str, Any] = {
+    "create_village": _create_village,
+    "submit_answer": _submit_answer,
+    "screen_caller": lambda body: screen_caller(body),
+}
+
+
 app = FastAPI(title="Village voice tools")
 handler = ToolHandler()
 
@@ -250,7 +307,5 @@ async def voice_tool(
     x_village_secret: str | None = Header(default=None),
     x_village_variant: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    expected = os.getenv("VILLAGE_SECRET")
-    if expected and x_village_secret != expected:
-        raise HTTPException(status_code=401, detail="bad voice secret")
+    require_secret(x_village_secret)
     return await handler.handle(tool_name, await request.json(), variant=x_village_variant)
