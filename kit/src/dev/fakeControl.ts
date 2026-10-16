@@ -21,7 +21,7 @@ const TOPICS = [
   "The person at the center", "Who is in the village", "Availability", "Health: medications", "Health: routine",
   "Money", "Home and day", "Emergencies", "Channels and language", "Consent and her own rules"
 ];
-const BLOCK_TOPICS = ["What happened", "Who needs help", "Who can help", "Rumors", "Phones and languages"];
+const BLOCK_TOPICS = ["What happened, where", "Who lives here", "Medical needs", "Phones and the block line", "Power and resources", "Emergencies"];
 
 /** A ledger row started by this answer; `result` lands `doneAfter` ms later, or at turn `doneInTurn` (+1.2 s). */
 interface Row { id: string; what: string; doneWhat?: string; result: string; doneAfter?: number; doneInTurn?: number }
@@ -90,34 +90,55 @@ const REYES_TURNS: FoundingTurn[] = [
 ];
 
 const BLOCK_TURNS: FoundingTurn[] = [
-  { said: "Power's out on our whole block and it's ninety-seven degrees. Mrs. Alvarez on five needs her oxygen machine, Mr. Chen's insulin is warming up, and everybody's group chat is full of rumors. Darnell's got a generator, Priya's got a car. Help me.",
-    know: "blackout at 97° · oxygen and insulin at risk · rumors · a generator and a car.", ask: "Who needs to be checked on first?", covered: 1, people: ["b_tanya", "b_alvarez", "b_chen", "b_darnell", "b_priya"], areas: true,
-    build: [{ person: "Tanya Brooks", component: "Official alerts", reason: "a heat emergency with no power", role: "coordinator", el: "al" }] },
-  { said: "Mrs. Alvarez first, her oxygen. Then Mr. Chen's insulin, then the Okafors' newborn, then Mr. James in his wheelchair; the elevator's out.",
-    know: "priority: oxygen → insulin → newborn → wheelchair.", ask: "Who can help, and with what?", covered: 2, people: ["b_tanya", "b_alvarez", "b_chen", "b_okafor", "b_james", "b_darnell", "b_priya"],
-    rows: [{ id: "match", what: "Matching needs to what neighbors offered", result: "generator → Alvarez (outdoors only) · car → Okafors", doneAfter: 1600 }],
+  { said: "Power's out on our whole block and it's ninety-seven degrees. Mrs. Alvarez on five needs her oxygen machine, and Mr. Chen's insulin is warming up. Darnell's got a generator, Priya's got a car. Help me.",
+    know: "blackout at 97° · oxygen (Alvarez) and insulin (Chen) at risk · a generator and a car.", ask: "Got it. A block outage in the heat, and two medical needs. Who on the block should I know about, and which floor are they on?", covered: 1,
+    people: ["b_tanya", "b_alvarez", "b_chen", "b_darnell", "b_priya"], areas: true,
+    rows: [{ id: "official", what: "Checking the NYC Cooling Center Finder and the Con Edison outage map", result: "library: not listed · restoration time: none posted", doneAfter: 2600 }],
     build: [
-      { person: "Tanya Brooks", component: "Needs by priority", reason: "oxygen first, then insulin", role: "coordinator", el: "nb" },
-      { person: "Darnell Price", component: "Who needs help first", reason: "he has the generator", role: "volunteer", el: "nb" }
+      { person: "Tanya Brooks", component: "Official alerts", reason: "a heat emergency with no power", role: "coordinator", el: "al" },
+      { person: "Darnell Price", component: "Official alerts", reason: "he is out on the block with the generator", role: "volunteer", el: "al" }
     ] },
-  { said: "The bodega on the corner has ice. Darnell's generator has to stay outside. Priya can drive two people.",
-    know: "ice at the bodega · generator outdoors only · 2 seats in Priya's car.", ask: "What's going around in the group chat?", covered: 3, people: ["b_tanya", "b_alvarez", "b_chen", "b_okafor", "b_james", "b_darnell", "b_priya", "b_bodega"],
+  { said: "Mrs. Alvarez is on five in a walk-up. She's eighty-one, on home oxygen. The Okafors on three have a three-week-old. Mr. James on two is in a power wheelchair, and the elevator's out.",
+    know: "5 households by floor · priority: oxygen → insulin → newborn → wheelchair.", ask: "Who only has a landline? And where do people go to make calls?", covered: 3,
+    people: ["b_tanya", "b_alvarez", "b_chen", "b_okafor", "b_james", "b_darnell", "b_priya"],
+    rows: [{ id: "order", what: "Putting needs in priority order", result: "oxygen → Alvarez · insulin → Chen · newborn → Okafors · wheelchair → James", doneAfter: 1800 }],
     build: [
-      { person: "Tanya Brooks", component: "Offered by neighbors", reason: "generator, car, ice", role: "coordinator", el: "rb" },
-      { person: "Priya Raman", component: "What neighbors offered", reason: "she can drive two people", role: "volunteer", el: "rb" }
+      { person: "Tanya Brooks", component: "Needs by priority", reason: "oxygen first, then insulin, newborn, wheelchair", role: "coordinator", el: "nb" },
+      { person: "Tanya Brooks", component: "Households", reason: "five households, by floor", role: "coordinator", el: "st" },
+      { person: "The Okafor family (Ngozi & Daniel)", component: "Are you OK? check-in", reason: "a three-week-old in a hot apartment", role: "resident", el: "ci" }
     ] },
-  { said: "People say the library cooling center is open and that the power's back at six.",
-    know: "2 rumors to check before they spread.", ask: "Who can only be reached by phone?", covered: 4,
-    rows: [{ id: "rumors", what: "Checking NYC cooling centers and the Con Edison outage map", result: "library: not listed · power at six: not confirmed", doneAfter: 2000 }],
+  { said: "Mrs. Alvarez only has her landline. Ramírez Deli on the corner has its own generator and ice. People call there.",
+    know: "Alvarez by phone line only · the deli is the phone point, with a generator and ice.", ask: "Who can help, with what?", covered: 4,
+    people: ["b_tanya", "b_alvarez", "b_chen", "b_okafor", "b_james", "b_darnell", "b_priya", "b_bodega"],
+    rows: [{ id: "line", what: "Setting up the block line for phone-only neighbors", result: "Alvarez: landline · calls to the deli reach Village", doneAfter: 2000 }],
     build: [
-      { person: "Tanya Brooks", component: "Rumor check", reason: "two rumors in the group chat", role: "coordinator", el: "vf" },
+      { person: "Mrs. Gloria Alvarez", component: "Block line (phone)", reason: "she only has a landline; she calls and Village answers", role: "resident", el: "e911" },
+      { person: "Tanya Brooks", component: "Check-ins", reason: "who hasn't answered, including phone-line neighbors", role: "coordinator", el: "ci" },
+      { person: "Tanya Brooks", component: "Offered by neighbors", reason: "the deli's generator and ice", role: "coordinator", el: "rb" }
+    ] },
+  { said: "Darnell's generator is a two-thousand-watt inverter, about six hours of fuel, outdoors only. Priya's car has A/C and fits three.",
+    know: "generator: 2,000 W, ~6 h, outdoors only · car: A/C, 3 seats.", ask: "If someone can't breathe or passes out, what's the rule?", covered: 5,
+    rows: [
+      { id: "match", what: "Matching needs to what neighbors offered", result: "generator → Mrs. Alvarez (outdoors only) · ice → Mr. Chen · car → Okafors", doneAfter: 1800 },
+      { id: "consent", what: "Asking Darnell if Village may call him", result: "yes to calls", doneAfter: 3200 }
+    ],
+    build: [
+      { person: "Darnell Price", component: "Who needs help first", reason: "he has the generator, outdoors only", role: "volunteer", el: "nb" },
+      { person: "Priya Raman", component: "What neighbors offered", reason: "her car fits three", role: "volunteer", el: "rb" },
+      { person: "Tanya Brooks", component: "Offered by neighbors", reason: "generator, ice, car in one list", role: "coordinator", el: "rb" }
+    ] },
+  { said: "Nine one one first, then me. Nobody waits for me.",
+    know: "911 first, then Tanya · medical needs go first when matching.", ask: "Here's the draft: five households, two volunteers, the deli as the phone point, and nine one one first. Anything wrong?", covered: 6, rules: 2,
+    build: [
+      { person: "Mrs. Gloria Alvarez", component: "911 button", reason: "911 first, always", role: "resident", el: "e911" },
+      { person: "Tanya Brooks", component: "911 first", reason: "she is second, never first", role: "coordinator", el: "e911" },
+      { person: "Darnell Price", component: "911 first", reason: "no one waits for Tanya", role: "volunteer", el: "e911" }
+    ] },
+  { said: "Looks right. Send it.", know: "approved · all five block rules on.", covered: 6, rules: 5,
+    rows: [{ id: "draft", what: "Drafting the coordinator, volunteer and resident apps and the block phone line", doneWhat: "Drafted the coordinator, volunteer and resident apps and the block phone line", result: "five households · two volunteers · the deli as phone point", doneAfter: 2400 }],
+    build: [
+      { person: "Tanya Brooks", component: "Rumor check", reason: "only official sources count", role: "coordinator", el: "vf" },
       { person: "The Okafor family (Ngozi & Daniel)", component: "Checked facts", reason: "a newborn in the heat", role: "resident", el: "vf" }
-    ] },
-  { said: "Mrs. Alvarez and Mr. Chen only on their landlines. Everyone else has the app.",
-    know: "2 neighbors by phone line · everyone else in the app.", covered: 5,
-    build: [
-      { person: "The Okafor family (Ngozi & Daniel)", component: "Are you OK? check-in", reason: "Village checks on them every hour", role: "resident", el: "ci" },
-      { person: "Tanya Brooks", component: "Check-ins", reason: "who hasn't answered", role: "coordinator", el: "ci" }
     ] }
 ];
 
