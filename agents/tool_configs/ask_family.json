@@ -1,0 +1,34 @@
+{
+  "type": "webhook",
+  "name": "ask_family",
+  "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
+  "response_timeout_secs": 10,
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://{{system_env__core_host}}/tools/ask_family",
+    "method": "POST",
+    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "to", "message", "urgency"],
+      "properties": {
+        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
+        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
+        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
+        "utterance": { "type": "string" },
+        "tool_call_id": { "type": "string" },
+        "village_id": { "type": "string", "dynamic_variable": "village_id" },
+        "to": { "type": "string" },
+        "message": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["now", "today", "fyi"] },
+        "reason": { "type": "string", "enum": ["dose_uncertain", "possible_double_dose", "missed_dose", "symptom", "emergency", "refill", "question", "wants_to_talk", "money_request"] }
+      }
+    }
+  },
+  "assignments": [
+    { "dynamic_variable": "gate_decision", "value_path": "decision" },
+    { "dynamic_variable": "say_text", "value_path": "say" }
+  ]
+}
+
