@@ -44,7 +44,7 @@ describe("fixture roles via the fake server", () => {
     expect(labels).toEqual(["Llamar a Village", "Llamar a Ana", "Necesito ayuda"]);
     expect(container.querySelector("[data-test='contact-card'][data-kind='emergency']")?.getAttribute("href")).toBe("tel:911");
     expect(container.querySelector("[data-test='tonight-card']")?.textContent).toContain("Esta noche cuida Marco");
-    expect(container.querySelector("[data-test='identity-chip']")?.textContent).toBe("Eres Carmen · familia Reyes");
+    expect(container.querySelector("[data-test='identity-chip']")?.textContent).toBe("Eres Carmen · Familia Reyes");
   });
 
   it("refill card shows lisinopril 10 mg with the superseded 5 mg struck through", async () => {
@@ -52,8 +52,10 @@ describe("fixture roles via the fake server", () => {
     const { container } = mount("marco");
     await act(async () => { vi.advanceTimersByTime(10); });
     const card = container.querySelector("[data-test='refill-card']")!;
-    expect(card.textContent).toContain("Sunday refill · Marco");
+    expect(card.textContent).toContain("Refill checklist");
+    expect(card.textContent).toContain("Friday refill · Marco");
     expect(card.textContent).toContain("lisinopril 10 mg (changed Oct 3, Dr. Lee; was 5 mg)");
+    expect(card.querySelectorAll("[data-test='refill-item']")).toHaveLength(4);
     expect(card.querySelector("s[data-test='refill-superseded']")?.textContent).toBe("5 mg");
   });
 

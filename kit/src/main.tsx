@@ -9,4 +9,4 @@ const params = new URLSearchParams(window.location.search);
 const socket = makeSocket(liveConfig("kit"));
 socket.connect();
 (window as any).__village = socket;
-createRoot(document.getElementById("root")!).render(<MemberApp socket={socket} demo={params.get("demo")} />);
+createRoot(document.getElementById("root")!).render(<MemberApp socket={socket} captions={params.get("captions") === "1"} />);

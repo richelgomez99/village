@@ -8,7 +8,7 @@
 | 03 | Daytona preview | not run | |
 || 04 | Daytona snapshot (10:30) | FAIL | `DaytonaForbiddenError: Failed to create snapshot: Access denied` (account tier). Fallback under test: sandbox from a public image / default image + npm install at runtime |
 || 05 | Anchor (10:30) | PASS | session, live view, NWS, cooling centers, web unlocker, agent.task all PASS; coned outage map WARN |
-| 06 | SurrealDB memory | not run | no context yet |
+| 06 | SurrealDB Agent Memory (11:05) | PASS | context id `06gk9fu5…` (name `village`): whoami 445 ms; scopes registered; remember 5mg→10mg supersession PASS; query hybrid ~3.8–4.0 s; asOf 2026-09-15 returns 5 mg |
 | 06b | SurrealDB Cloud LIVE (10:40) | PASS | instance `…aws-use1.surreal.cloud`, user `village` (ROOT OWNER). live() 110 ms; 10/10 notifications, **p50 22 ms, p95 77 ms, max 103 ms** insert→notify |
 | 07 | Arize (10:42) | PASS (exporter) | register project=village; traced Bedrock haiku-4-5 call 1825 ms; CHAIN>AGENT>GUARDRAIL/TOOL spans; force_flush 326 ms. UI confirmation pending (operator) |
 | 08 | tool server | RUNNING on :8787 | Funnel URL https://richel-macbook.tail8feae0.ts.net preset in .env; enable click pending |
@@ -16,3 +16,28 @@
 
 ## Spine (core lane, 10:37)
 - 3 WS clients (elder/coordinator/helper snapshots from the Reyes fixture) → `POST /tools/log_dose` → gate → SurrealDB Cloud write → change feed → `event` frame on all 3 clients in **~130 ms** (tool call to last frame). Decision row written. `uv run pytest -q` 16 core tests + 49 gate tests green offline.
+
+## Public URL (10:52–11:10)
+- Funnel enabled; `https://richel-macbook.tail8feae0.ts.net/health` → 200 from Anchor's browser (external); Carmen's view opens on the operator's phone. The Mac itself cannot resolve `*.ts.net` (userspace tailscaled); test from outside only. Funnel verified → Core :8790.
+
+## Release pipeline (release lane, 11:45; real Daytona + Anchor + Bedrock Haiku)
+| Step (ms) | Cold, caught-and-fixed | Warm, caught-and-fixed | Warm, rev 5 |
+|---|---|---|---|
+| Sandbox create / reuse | 3444 | 149 | 108 |
+| npm install | 2044 | — | — |
+| Upload | 374 | 276 | 299 |
+| vite build | 2192 / 2254 | 2103 / 2088 | 2083 |
+| vitest (floor tests) | 1392 / 1461 | 1254 / 1160 | 1315 |
+| dist download | 208 | 184 | 285 |
+| Preview start | 1299 | 1420 | 1602 |
+| Anchor QA (390×844) | 9101 | 5211 | 5359 |
+| Evals | 3776 | 3249 | 3096 |
+| **Total** | **29731** | **19908** | **14957** |
+- Caught-and-fixed: r3 blocked "contrast 4.1:1 on elder Text (needs 7:1)" → model changed #4C80B4 → #2D5A8C → r4 live. Trace AGENT → TOOL daytona_build ✗ → LLM → TOOL daytona_build ✓.
+- Second family (West 147th block): released in 13409 ms, 33 floor tests passing. 27 release tests offline.
+- Anchor reached the build via the Daytona signed preview (Core's candidate route not yet mounted at run time); tunnel path is tried first once mounted.
+
+## Agent Memory + nightly rounds (memory lane, 11:50; real context `village`)
+- Writes p50 630 ms, p90 686 ms (n=31 Reyes facts; outbox drained in 20.8 s). History p50 248 ms; Fact view 303 ms; as-of 517 ms. Query 3.7 s (10 mg); asOf 2026-09-15 2.9 s (5 mg). Recall is never on a request path.
+- Lisinopril Fact view: current 10 mg since Oct 3 (source call:conv_setup_0003 @88 s, quote, event ev_1003_1740_med_change); superseded 5 mg since Sep 1.
+- Nightly round (seeded data, budget 3): **3 acted alone · 1 asked a person · 1 refused**. Refused: evening check-in at 9:40 PM, "Blocked by code: Carmen's rule, no calls after 9:30 PM" (P-QH-01, source welcome_call @108 s). Asked: "Ana has taken 9 of the last 12 nights. Ask Lucía to take the Sunday call?" Round through the core app: 519 ms. 37 memory/watcher tests offline.
