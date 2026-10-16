@@ -303,3 +303,15 @@ html, body { background: #100D0A; margin: 0; }
 .cr-live .region { grid-column: auto; grid-row: auto; }
 .cr-main .r-phones { grid-column: 1 / -1; }
 @media (max-width: 1100px) { .cr-live, .cr-main { grid-template-columns: 1fr; } }
+
+/* ROOM-5: presenter transport for offline replays */
+.transport-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 20px; background: #0B0907; border-top: 1px solid var(--line); font-size: 13px; }
+.transport-bar button { font: 600 13px var(--mono); color: var(--text); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; min-height: 0; }
+.transport-bar button:disabled { opacity: 0.4; cursor: default; }
+.transport-bar button.active { border-color: var(--amber); color: var(--amber); }
+.transport-bar input[type="range"] { flex: 1; min-width: 120px; accent-color: var(--amber); }
+.transport-bar select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font: inherit; }
+.tr-speeds { display: flex; gap: 4px; }
+.tr-beat { color: var(--amber); min-width: 6em; text-align: center; }
+.tr-pos { color: var(--muted); white-space: nowrap; }
+.has-transport .captions-layer { bottom: 49px; }

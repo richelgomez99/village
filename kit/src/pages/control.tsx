@@ -11,6 +11,8 @@ import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, Blu
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
+import { TransportBar } from "../control/transport";
+import type { Transport } from "../dev/transport";
 import { liveConfig, makeSocket, type LiveConfig } from "../live/useLive";
 import type { VillageSocket } from "../live/ws";
 import "../theme/fonts.css";
@@ -32,6 +34,17 @@ export function useSceneWithDispatch(socket: VillageSocket, village: string) {
       }),
     [socket]
   );
+  // offline replays: stepping back rebuilds the scene from frame 0 (reset → hello snapshot → prefix); the reducer is pure
+  useEffect(() => {
+    const tr = typeof window !== "undefined" ? ((window as any).__fake?.transport as Transport | null | undefined) : null;
+    if (!tr) return;
+    return tr.subscribe((e) => {
+      if (e.type !== "rewind" || (tr.village && tr.village !== village)) return;
+      dispatch({ type: "reset", village });
+      if (e.initial) dispatch(e.initial);
+      e.frames.forEach((f) => dispatch(f));
+    });
+  }, [village]);
   return [scene, dispatch] as const;
 }
 
@@ -181,6 +194,8 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const state = useSocketState(socket);
   const [scene, dispatch] = useSceneWithDispatch(socket, village);
   const founding = isFounding(scene);
+  const beat: ArcBeat = anyone ? "anyone" : founding ? "build" : scene.beat ?? "run";
+  const transport = typeof window !== "undefined" ? ((window as any).__fake?.transport as Transport | null | undefined) ?? null : null;
   // decisions log backfill from Core (then control{gate|reasoning} frames keep it live)
   useEffect(() => {
     let live = true;
@@ -254,9 +269,9 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const coordP = people.find((p: any) => p.role === "coordinator");
   const coordinator = coordP ? displayName(coordP, nameCtx(scene)) : "Coordinator";
   return (
-    <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32}px` }}>
+    <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}${transport && !HERO ? " has-transport" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32 + (transport && !HERO ? 56 : 0)}px` }}>
       <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} />
-      <ArcStrip beat={anyone ? "anyone" : founding ? "build" : scene.beat ?? "run"} onJump={(b) => onJump?.(b)} />
+      <ArcStrip beat={beat} onJump={(b) => onJump?.(b)} />
       {state.status !== "live" && state.status !== "idle" ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}
@@ -289,6 +304,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
           </aside>
         </div>
       )}
+      {transport && !HERO ? <TransportBar transport={transport} beat={beat} villages={tabs} /> : null}
       <CaptionsLayer ref={capRef} captions={scene.captions} />
     </main>
   );
