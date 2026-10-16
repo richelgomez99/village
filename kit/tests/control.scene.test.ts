@@ -96,7 +96,7 @@ describe("scene reducer", () => {
     expect(s.proposal.status).toBe("applied");
   });
 
-  it("1.2.1: ledger rows update in place by id (contract role/at/mode), caption speaker, reasoning + gate mode", () => {
+  it("1.2.2: ledger rows update in place by id (contract role/at/mode), caption speaker, reasoning + gate mode", () => {
     const s = run([
       ctl("ledger", { id: "x", at: T, status: "running", what: "Looking up", role: "watcher" }),
       ctl("ledger", { id: "x", at: T, status: "done", what: "Looked up", result: "ok", role: "watcher", mode: "acted_alone", elapsed_ms: 1200 }),

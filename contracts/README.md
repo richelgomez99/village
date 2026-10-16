@@ -107,6 +107,10 @@ Keys are the exact `bind` strings used in the role's view; shapes are enforced b
 
 ## CHANGELOG
 
+### 1.2.2 (Oct 16, 13:00; orchestrator; additive)
+- `ws_messages`: `control{kind: blueprint}.stage` += `questions` (gap list) and `will_build` (items `{person, display_name, component, reason}`: what each answer builds, D33).
+- `voice_tools`: `req_submit_answer` (Setup agent intake answers), `req_screen_caller` (D19 receptionist), optional `lang` on every request.
+
 ### 1.2.1 (Oct 16, 11:58; orchestrator; additive)
 - `decision.schema.json`: optional `mode: acted_alone | asked_human | refused` (D23 autonomy ledger; core previously carried it in `refs`).
 - `ws_messages.schema.json`: `control.kind` += `caption` (`{es, en, speaker?, final?}`: live call turn for the projector, D18) and `ledger` (`{id, at, status: queued|running|done|retrying|fallback|refused, what, result?, role?, mode?, decision_id?, trace_id?, elapsed_ms?}`: agent work rows, D20/D23); `reasoning.payload.source` += `watcher | founder | verifier | explainer`; `reasoning.payload.mode` optional.

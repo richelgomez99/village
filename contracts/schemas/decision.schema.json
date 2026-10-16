@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/decision.schema.json",
   "title": "Decision log entry",
   "description": "One row of the SurrealDB `decision` table (contracts 1.1.0; FS-1 owns the table, builder / evolve / voice:setup / release emit rows, gate rows are written by core from each Decision). Plain-words record of a choice the software made and why, with refs to the objects it was about. Material for POST /villages/{id}/ask (citations) and the Control Room DecisionsLog (control{reasoning kind: decision}). Read with GET /villages/{id}/decisions. Ids share the dc_* namespace with gate.schema.json Decision.id: a gate row carries the full Decision under `gate`.",
-  "x-contract-version": "1.2.1",
+  "x-contract-version": "1.2.2",
   "type": "object",
   "additionalProperties": false,
   "required": [

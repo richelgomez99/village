@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/lid_scan.schema.json",
   "title": "Lid scan result",
   "description": "What GET /s/{slot_token} decided (D3). The route renders this as a one-screen HTML page (LidStatus card) by default, or returns it as JSON when the request has Accept: application/json (tests, Anchor QA, smoke). No LLM in the path. A repeat of the same token within 10 s is collapsed (deduped: true, same decision, no new ledger row) so link prefetch or a double tap never reads as a second dose.",
-  "x-contract-version": "1.2.1",
+  "x-contract-version": "1.2.2",
   "type": "object",
   "additionalProperties": false,
   "required": ["village", "subject", "slot", "token_ref", "scanned_at", "deduped", "decision", "event", "page"],

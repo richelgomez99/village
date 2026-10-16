@@ -16,7 +16,7 @@ class MockSocket extends EventTarget {
 }
 
 const view = { lang: "en", theme: "family", root: "s", elements: { s: { type: "Screen", props: { title: "x" }, children: [] } } };
-const snapshot = (rev: number) => ({ type: "snapshot", contract_version: "1.2.1", rev, village: "v_reyes", role: "helper", member_id: "m_marco", spec: view, data: { a: 1 }, now: "2026-10-16T14:00:00-04:00" });
+const snapshot = (rev: number) => ({ type: "snapshot", contract_version: "1.2.2", rev, village: "v_reyes", role: "helper", member_id: "m_marco", spec: view, data: { a: 1 }, now: "2026-10-16T14:00:00-04:00" });
 
 function client() {
   MockSocket.instances = [];
@@ -32,7 +32,7 @@ describe("VillageSocket", () => {
     c.connect();
     const first = MockSocket.instances[0];
     first.open();
-    expect(first.sent[0]).toEqual({ type: "hello", contract_version: "1.2.1", village: "v_reyes", member_token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test" });
+    expect(first.sent[0]).toEqual({ type: "hello", contract_version: "1.2.2", village: "v_reyes", member_token: "mt_marco_9Qe2vLx7Rk3pZ0aB", client: "test" });
     first.message(snapshot(4));
     expect(c.state.status).toBe("live");
     first.close();
