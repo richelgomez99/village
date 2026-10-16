@@ -268,8 +268,8 @@ def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
         data["rota:current.on_duty"] = on_duty_person()
     if role != "elder" and ("*" in binds or "prescriptions:current" in binds):
         data["prescriptions:current"] = prescriptions_current("m_carmen")
-    if role != "elder" and ("*" in binds or "chat:village" in binds):
-        data["chat:village"] = [m for m in db.messages][-50:]
+    if role != "elder":  # chat:village for every non-elder socket, bound or not (VillageChat lands with V2 views)
+        data["chat:village"] = [m for m in db.messages if m.get("village", "v_reyes") == "v_reyes"][-50:]
     return data
 
 
