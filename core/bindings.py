@@ -442,7 +442,7 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
             data[week_key] = dose_week(subject, show_med_names=role != "elder", village_id=vid)
     if member_id and ("*" in binds or "rota:current?member=me" in binds):
         data["rota:current?member=me"] = rota_me(member_id, vid)
-    if "*" in binds or "blueprint:life_areas" in binds:
+    if "*" in binds or "blueprint:life_areas" in binds or role != "elder":  # every non-elder app derives its tabs from the areas (UX-UPGRADE)
         data["blueprint:life_areas"] = life_areas(vid)
     if "*" in binds or "rota:week" in binds:
         data["rota:week"] = rota_week(vid)
