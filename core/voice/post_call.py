@@ -209,8 +209,20 @@ _SCREEN_STATUS = {"pass_through": "passed_through", "passed_through": "passed_th
                   "refused": "refused", "held": "held", "ask_purpose": "hung_up", "message_taken": "message_taken"}
 
 
-def log_screened_call(payload: dict[str, Any]) -> dict[str, Any] | None:
-    """Receptionist call (receptionist=on, unknown caller): one calls:screened row per call, even with no money claim."""
+def _clock_label(iso: str, village_id: str) -> str:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    try:
+        dt = datetime.fromisoformat(iso).astimezone(ZoneInfo(village.timezone(village_id) or "America/New_York"))
+        return dt.strftime("%I:%M %p").lstrip("0")
+    except Exception:
+        return ""
+
+
+async def log_screened_call(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Receptionist call (receptionist=on, unknown caller): one calls:screened row per call, even with no money claim.
+    A refused or held call also posts a plain Village chat message to the family (message_taken already did, via relay)."""
     dv = payload.get("dynamic_variables") or {}
     if dv.get("receptionist") != "on" or dv.get("caller_known") != "false":
         return None
@@ -221,16 +233,54 @@ def log_screened_call(payload: dict[str, Any]) -> dict[str, Any] | None:
     existing = screened.get(conv)
     if existing and existing.get("outcome") == "message_taken":
         return existing
-    outcome = "hung_up"
+    outcome, screen_data = "hung_up", {}
     for key in (f"{conv}:screen:await", f"{conv}:screen"):  # Core's cached screen_caller answers (core.evolve.receptionist)
         resp = ((db.idem.get(key) or {}).get("response") or {})
         status = (resp.get("data") or {}).get("status")
         if status in _SCREEN_STATUS:
-            outcome = _SCREEN_STATUS[status]
+            outcome, screen_data = _SCREEN_STATUS[status], resp.get("data") or {}
             break
     results = payload.get("data_collection_results") or {}
     claimed = _dc_value(results, "claimed_identity") or None
-    return screened.record(vid, conv, outcome, at=_call_iso(payload), claimed=claimed)
+    at = _call_iso(payload)
+    row = screened.record(vid, conv, outcome, at=at, claimed=claimed)
+    if outcome in {"refused", "held"} and not row.get("family_told"):
+        await _tell_family(vid, conv, row, results, screen_data, at)
+    return row
+
+
+async def _tell_family(vid: str, conv: str, row: dict[str, Any], results: dict[str, Any], screen_data: dict[str, Any], at: str) -> None:
+    try:
+        from core import services
+
+        recipient = village.person(vid, village.care_recipient_id(vid)) or {}
+        short = recipient.get("short_name") or village.first_name(vid, recipient.get("id")) or "the family"
+        claimed = row.get("claimed")
+        amount = _dc_value(results, "amount")
+        try:
+            money = float(amount or 0) > 0
+        except ValueError:
+            money = bool(amount)
+        money = money or bool(screen_data.get("verification_id")) or bool(claimed)
+        who = f"A caller who said they were {claimed}" if claimed else "A caller who wouldn't say who they were"
+        who_es = f"Alguien que dijo ser {claimed}" if claimed else "Alguien que no quiso decir quién era"
+        ask = f"asked for money for {short}" if money else f"called for {short}"
+        ask_es = f"pidió dinero para {short}" if money else f"llamó para {short}"
+        if row["outcome"] == "refused":
+            did, did_es = "Village didn't put them through", "Village no le pasó la llamada"
+        else:
+            did, did_es = "Village held the call while it checked with the family", "Village retuvo la llamada mientras confirmaba con la familia"
+        when = _clock_label(at, vid)
+        en = f"{who} {ask}. {did}" + (f" · {when}" if when else "")
+        es = f"{who_es} {ask_es}. {did_es}" + (f" · {when}" if when else "")
+        refs: list[dict[str, Any]] = [{"kind": "trace", "id": conv[:128] or "screened_call", "label": "screened call"}]
+        if screen_data.get("verification_id"):
+            refs.insert(0, {"kind": "verification", "id": screen_data["verification_id"], "label": "family check"})
+        message = await services.post_message(vid, author="village", kind="chat", text=en, text_i18n={"en": en, "es": es}, refs=refs,
+                                              source={"kind": "call", "ref": conv or "conv_unknown", "secs": 0, "quote": ""})
+        row["family_told"] = message.get("id")
+    except Exception:
+        return
 
 
 async def _flush_captions(payload: dict[str, Any]) -> None:
@@ -264,7 +314,7 @@ async def handle_payload(payload: dict[str, Any]) -> None:
 
     if event_type in {"post_call", "conversation_ended", "data_collection"}:
         await apply_verification_answer(clean)
-        log_screened_call(payload)
+        await log_screened_call(payload)
         await apply_welcome(payload)  # her words, unredacted digits: "9" in "9 de la noche" is an hour, not an account
         if os.getenv("VILLAGE_CAPTIONS", "on").lower() != "off" and clean.get("transcript"):
             import asyncio
