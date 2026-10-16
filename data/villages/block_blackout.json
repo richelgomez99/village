@@ -544,5 +544,61 @@
         }
       ]
     }
-  }
+  },
+  "institutions": [
+    {
+      "id": "inst_cooling_finder",
+      "name": "NYC Cooling Center (nearest listed site)",
+      "kind": "cooling_center",
+      "url": "https://finder.nyc.gov/coolingcenters/",
+      "questions": [
+        "Do you have power right now?",
+        "Are you open, until when?",
+        "Can you take someone on home oxygen?"
+      ],
+      "demo_result": {
+        "has_power": "yes",
+        "open_until": "8 PM",
+        "takes_oxygen": "unknown",
+        "note": "Demo answer; check the official finder for the actual nearest open site.",
+        "duration_s": 1.5
+      }
+    },
+    {
+      "id": "inst_harlem_hospital",
+      "name": "Harlem Hospital Center",
+      "kind": "hospital",
+      "url": "https://www.nychealthandhospitals.org/harlem/",
+      "questions": [
+        "Do you have power right now?",
+        "Are you open, until when?",
+        "Can you take someone on home oxygen?"
+      ],
+      "demo_result": {
+        "has_power": "yes",
+        "open_until": "24 hours",
+        "takes_oxygen": "yes",
+        "note": "Demo answer; emergency department, backup power.",
+        "duration_s": 2.0
+      }
+    },
+    {
+      "id": "inst_hamilton_grange",
+      "name": "Hamilton Grange Library (NYPL)",
+      "kind": "library",
+      "url": "https://www.nypl.org/locations/hamilton-grange",
+      "questions": [
+        "Do you have power right now?",
+        "Are you open, until when?",
+        "Can you take someone on home oxygen?"
+      ],
+      "demo_result": {
+        "has_power": "no",
+        "open_until": "closed",
+        "takes_oxygen": "no",
+        "note": "Demo answer; branch without power.",
+        "duration_s": 1.0
+      }
+    }
+  ]
 }
