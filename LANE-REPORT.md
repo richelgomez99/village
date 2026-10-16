@@ -58,6 +58,11 @@ LD-5: Member tokens: `mt_<firstname>_<anything>` (QR/fixture form), the bare mem
 LD-6: `changed_by` for the lisinopril change follows `ws_sequence_scam.json` ("Dr. Lee"); the seed ledger row says "Dr. Elena Park" and reyes_family.json says p_park; flagged for contracts.
 LD-7: Event frames are not tagged `contract_version` (schema forbids it); control sockets get events without `data`; `mode` rides on `control{gate}` payloads as an extra field (kit asked; contract to follow).
 LD-8: Voice tools reach real services via `services.handle_voice_tool` (the ToolHandler prefers it), so `core/voice/tools.py` keeps its stub branch only for import failure; I did not edit core/voice (voice lane owns it).
+P008 · done · PITCH-3: merged main (D31, D32, RESULTS platform + evolve); README + DEVPOST sponsor sections (Daytona, SurrealDB, Arize, Anchor, ElevenLabs, AWS: 3 bullets, code paths, measured number); "What Village knows" hero slot + caption; D30 sweep now stated as verified (RESULTS 12:30); founding 65.8 s (builder report, Sonnet 5.5) and rebuild 7705 ms (RESULTS evolve) filled; 249 tests; CHECKPOINTS first live call 12:23
+LD-9: LD-8 superseded: the builder lane measured Sonnet 5.5 direct (founding 65.8 s), so the pages say the intake ran on Sonnet 5.5 and release/evals/repair on Bedrock Haiku 4.5.
+LD-10: AWS TTFT is "about 520–600 ms" (RESULTS 01); the brief's "~550 ms" sits inside that range but isn't the recorded figure.
+LD-11: The ElevenLabs "first live call 12:23" facts come from the orchestrator's message, not RESULTS.md; add a RESULTS row so the Devpost claim has a source.
+LD-12: Merge note: `.specify/feature.json` (worktree-local spec-kit pointer to 007) blocked `git merge main`; copied it aside, checked out main's version, merged, restored the local value (no stash). Still uncommitted, not ours.
 T019 · done · `uv run pytest core/tests/test_messages.py -q` · `message` rows with `msg_<MMDD>_<HHMM>_<n>` ids (memory mirror + Surreal `message` table via db.create_message); reset_demo seeds the pre-14:02 rows of `messages_reyes_seed.json`
 T020 · done · same · LIVE on message → hub `chat{village, message}` to every non-elder socket + control; `services.post_message`; `chat:village` (last 50) on non-elder snapshots
 T021 · done · same · `POST /villages/{id}/messages` (Bearer member token; elder/control 403) + `GET …/messages?after=&limit=&kind=`; `@Village…` → `core.builder.ask(village, question)` when importable, else fixed fallback text with `refs` = last decisions from the log; answer posted as `kind answer, reply_to` · mocked: builder ask absent in this branch → fallback answer
@@ -74,6 +79,7 @@ LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VI
 LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
+READY FOR MERGE PITCH-3
 READY FOR MERGE PITCH-2
 READY FOR MERGE V0
 P001 · done · README.md (identity, arc, architecture, run, sponsors, safety rules with test names, real vs mocked, measured numbers, D25 pointer, team) · numbers only from RESULTS.md; 3 [MEASURE] rows

@@ -54,7 +54,9 @@ Filled by the pitch lane at 11:59 from `RESULTS.md`, `LANE-REPORT.md` and `scrip
 
 **Works on real phones** (who held which phone, what they saw):
 - Carmen's view opens on the operator's phone through the public Funnel URL; `/health` answers from Anchor's browser outside the Mac (RESULTS "Public URL").
-- [PENDING: orchestrator, did a real call to Carmen's line reach Core and did Marco's phone show the prompt?]
+- **First live call, 12:23** (orchestrator): a real call to Carmen's line (+1 848 257 9221). Init webhook 200 → `report_money_request` → verification opened → `await_verification` → **denied** by Marco's tap on his phone → the refusal spoken word for word. The Watcher proposed the receptionist 7 s later.
+  - Gap found: the agent called `ask_family` (Carmen asked for Marco to call tonight) and Core returned 404, so nobody got the message. Fixed since (D31 rule 4: every tool the agent can call has a Core handler).
+  - Also from the call (D31): usted throughout, AI disclosure first, and the ElevenLabs prompt guardrail must never block Village's own "No mande dinero" lines.
 
 **Mocked or faked** (what, and how the pitch words it honestly):
 - Outbound call to Marco: fake dialer; Twilio geo permissions block live calls. Pitch: "Marco's phone gets the check in the app; the call is the second channel."
