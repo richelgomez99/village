@@ -25,6 +25,16 @@ def _on_duty(village_id: str | None = None) -> str | None:
     return (shift["payload"].get("on_duty") if shift else None) or villages.default_on_duty(_v(village_id))
 
 
+def all_view_binds(village_id: str | None = None) -> set[str]:
+    """Every bind any view of the village uses (the Control Room renders all of them)."""
+    vid = _v(village_id)
+    roles = set(db.specs.get(vid, {}).get("views", {})) | {r for (v, r) in db.views if v == vid}
+    out: set[str] = set()
+    for r in roles:
+        out |= view_binds(r, vid)
+    return out
+
+
 def view_binds(role: str, village_id: str | None = None) -> set[str]:
     if role == "control":
         return {"*"}
@@ -364,6 +374,9 @@ def snapshot_data(role: str, member_id: str | None, village_id: str | None = Non
             if author and f"member:{author}" not in data and villages.person(vid, author):
                 data[f"member:{author}"] = member_record(author, vid)
     from core import bindings_live as live
+    from core import bindings_v3
+
+    data.update(bindings_v3.resolve_all(all_view_binds(vid) if role == "control" else binds, vid))
 
     if role in {"coordinator", "control"}:
         data["rounds:latest"] = live.rounds_latest(vid)
@@ -407,6 +420,11 @@ def changed(event: dict[str, Any], role: str, member_id: str | None = None, vill
             data["verifications:pending?member=me"] = pending_verification_prompt(member_id)
             data["verifications:mine"] = my_verification(member_id)
         binds = view_binds(role, vid)
+        if verification and verification.get("origin") == "screen_caller":  # a screened call moved: held -> passed/refused
+            from core.bindings_v3 import screened_calls
+
+            if "*" in binds or "calls:screened" in binds:
+                data["calls:screened"] = screened_calls(vid)
         if event["kind"] in {"verification_denied", "verification_timeout"}:
             if "*" in binds or "incidents:open" in binds:
                 data["incidents:open"] = open_incidents(vid)
