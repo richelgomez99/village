@@ -100,6 +100,33 @@ class Hub:
             for derived_kind, derived in founding_frames(village):
                 await self.control(village, derived_kind, derived)
 
+    async def push_proposals(self, village: str, proposal: dict[str, Any] | None = None) -> None:
+        """Proposal create / approve / reject / apply -> refresh proposals:pending on every socket that binds it
+        (Ana's Proposal card, Control Room), as an `event` frame carrying a non-persisted spec_patch_proposed row."""
+        from core.bindings import proposals_pending, view_binds
+
+        targets = [c for c in list(self.clients) if c.village == village and c.role != "elder"
+                   and ("*" in (b := view_binds(c.role, village)) or "proposals:pending" in b)]
+        if not targets:
+            return
+        pending = proposals_pending(village)
+        p = proposal or {}
+        pid = p.get("id") or (pending[0]["proposal_id"] if pending else None)
+        if not pid:
+            return
+        event = {
+            "id": f"ev_{pid}_{p.get('status', 'pending')}"[:67],
+            "village": village,
+            "kind": "spec_patch_proposed",
+            "payload": {"proposal_id": pid, "roles": sorted(p.get("ops") or {}) or ["coordinator"],
+                        "detected_by": p.get("detected_by") if p.get("detected_by") in {"arize_eval", "memory_pattern"} else "memory_pattern"},
+            "actor": "evolve",
+            "source": {"kind": "system", "ref": "evolve"},
+            "at": clock.now().isoformat(),
+        }
+        for client in targets:
+            await self._send(client, {"type": "event", "event": event, "data": {"proposals:pending": pending}})
+
     async def broadcast_chat(self, message: dict[str, Any]) -> None:
         for client in list(self.clients):
             if client.village != message.get("village"):

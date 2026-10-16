@@ -292,6 +292,10 @@ async def _announce(village_id: str, rec: dict[str, Any]) -> None:
     from core import services
 
     await services.control(village_id, "proposal", {"proposal": copy.deepcopy(rec["proposal"])})
+    try:  # Ana's Proposal card (proposals:pending) appears / updates live
+        await services.hub.push_proposals(village_id, copy.deepcopy(rec["proposal"]))
+    except Exception:  # noqa: BLE001 - a card refresh must never break the proposal pipeline
+        log.exception("push proposals:pending failed")
 
 
 async def _decision(village_id: str, pid: str, step: str, text: str, mode: str, rev: int | None = None,

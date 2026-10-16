@@ -177,3 +177,59 @@ def test_ws_action_approve_and_blocked_release(evolve_env, monkeypatch):
         assert st == "failed"
         assert villages.spec("v_reyes")["rev"] == base
         assert any(m["kind"] == "receipt" and m["text"].startswith("Not published") for m in db.messages)
+
+
+def test_ana_proposal_card_live_and_ws_approve(evolve_env):
+    """Ana's coordinator view binds proposals:pending: empty at hello, the card arrives on trigger, WS approve -> applied."""
+    import json
+    from pathlib import Path
+
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+
+    from core.app import app
+
+    sdir = Path(__file__).resolve().parents[3] / "contracts" / "schemas"
+    reg = Registry()
+    for f in sdir.glob("*.json"):
+        doc = json.loads(f.read_text(encoding="utf-8"))
+        reg = reg.with_resource(f.name, Resource.from_contents(doc)).with_resource(doc.get("$id", f.name), Resource.from_contents(doc))
+    ws_schema = json.loads((sdir / "ws_messages.schema.json").read_text(encoding="utf-8"))
+    server = Draft202012Validator({"$ref": "ws_messages.schema.json#/$defs/server_message"}, registry=reg)
+
+    with TestClient(app) as c:
+        with c.websocket_connect("/ws?village=v_reyes&m=m_ana") as ana, \
+             c.websocket_connect("/ws?village=v_reyes&m=m_marco") as marco:
+            snap = _hello(ana, "m_ana")
+            assert snap["role"] == "coordinator"
+            assert snap["data"]["proposals:pending"] == []
+            assert {"prop", "chat"} <= set(snap["spec"]["elements"])
+            base = snap["rev"]
+            msnap = _hello(marco, "m_marco")
+            assert "proposals:pending" not in msnap["data"]
+            r = c.post("/villages/v_reyes/evolve/trigger", headers=CTRL)
+            assert r.status_code == 200, r.text
+            pid = r.json()["proposal"]["id"]
+            f = _until(ana, "event")
+            while "proposals:pending" not in (f.get("data") or {}):
+                f = _until(ana, "event")
+            assert list(server.iter_errors(f)) == []
+            card = f["data"]["proposals:pending"]
+            assert [p["proposal_id"] for p in card] == [pid] and card[0]["status"] == "proposed"
+            assert card[0]["title"]["es"] and card[0]["changes"] and card[0]["evidence_labels"]
+            ana.send_json({"type": "action", "req_id": "rq_approve_1", "name": "approve_proposal", "arg": pid})
+            res = _until(ana, "result")
+            assert res["ok"] is True and res["decision"]["data"]["proposal_id"] == pid, res
+            p = _until(marco, "patch")
+            assert p["base_rev"] == base and p["rev"] == base + 1 and p["role"] == "helper"
+            statuses, patched = [], None
+            for _ in range(60):
+                f = ana.receive_json()
+                if f.get("type") == "event" and "proposals:pending" in (f.get("data") or {}):
+                    statuses.append([x["status"] for x in f["data"]["proposals:pending"]])
+                if f.get("type") == "patch":
+                    patched = f
+                if patched and statuses and statuses[-1] == []:
+                    break
+            assert patched and patched["role"] == "coordinator"
+            assert statuses[-1] == []  # card cleared once applied
