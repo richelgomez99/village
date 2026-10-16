@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, createVillage, warpClock, type ApiConfig } from "../control/api";
-import { AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
+import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
@@ -69,6 +69,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
   const home = useRef(socket.state.village || cfg?.village || "").current;
   const [list, setList] = useState<string[]>(() => villages ?? defaultVillages(home, cfg));
   const [tab, setTab] = useState(home || NEW_VILLAGE);
+  const [details, setDetails] = useState(false);
   // one control socket per village, opened up front (names for the switcher) and kept: switching never reconnects
   const [sockets, setSockets] = useState<Record<string, VillageSocket>>(() => (home ? { [home]: socket } : {}));
   useEffect(() => {
@@ -107,7 +108,21 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
       </main>
     );
   }
-  return <VillageRoom key={tab} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} />;
+  // arc strip: offline it jumps between the fake scenes; "Anyone" switches to the next village either way
+  const jump = (b: ArcBeat) => {
+    if (b === "anyone") {
+      const next = list.find((v) => v !== tab) ?? tab;
+      setTab(next);
+      return;
+    }
+    if (!cfg?.fake || typeof window === "undefined") return;
+    const seq = b === "build" ? "founding" : b === "run" ? "scam" : "evolve";
+    const p = new URLSearchParams(window.location.search);
+    p.set("seq", seq);
+    if (b !== "build") p.delete("village");
+    window.location.search = p.toString();
+  };
+  return <VillageRoom key={tab} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!home && tab !== home} />;
 }
 
 /** village.name from each socket's control snapshot (spec), for the switcher pills. */
@@ -125,9 +140,10 @@ function useVillageNames(sockets: Record<string, VillageSocket>): Record<string,
   return names;
 }
 
-function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
+function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false }: {
   village: string; socket: VillageSocket; tabs: VillageTab[]; onTab: (v: string) => void; onNew: () => void;
   make: (o: { village: string; viewAs?: string }) => VillageSocket; api: ApiConfig;
+  details?: boolean; onDetails?: (on: boolean) => void; onJump?: (b: ArcBeat) => void; anyone?: boolean;
 }) {
   const state = useSocketState(socket);
   const scene = useScene(socket, village);
@@ -198,7 +214,8 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
   const coordinator = coordP ? displayName(coordP, nameCtx(scene)) : "Coordinator";
   return (
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32}px` }}>
-      <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} />
+      <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} />
+      <ArcStrip beat={anyone ? "anyone" : founding ? "build" : scene.beat} onJump={(b) => onJump?.(b)} />
       {state.status !== "live" && state.status !== "idle" ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
       ) : null}
@@ -212,12 +229,14 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
       ) : (
         <div className="cr-grid">
           <BlueprintRegion spec={spec} scene={scene} />
-          <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} />
+          <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} details={details} />
+          <AutonomyHeadline rounds={scene.rounds} />
           {scene.live ? <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} /> : null}
-          {scene.proposal ? <ProposalRegion proposal={scene.proposal} release={scene.release} spec={spec} /> : null}
+          <ChatMirror chat={scene.chat} data={scene.data} />
+          {scene.proposal ? <ProposalRegion proposal={scene.proposal} release={scene.release} spec={spec} details={details} /> : null}
           <KnowsRegion api={api} village={village} data={scene.data} spec={spec} />
           <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={viewAs} onViewAs={setViewAs} live={liveView} cfg={api} />
-          <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} />
+          <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} details={details} />
           <AskWhyRegion cfg={api} village={village} />
         </div>
       )}

@@ -1,7 +1,12 @@
 """Evolve lane: consider_options -> propose -> approve -> fake release -> patch frames -> receptionist screening."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))  # evals/ is a top-level package
 from fastapi.testclient import TestClient
 
 from core.settings import CONTRACT_VERSION
@@ -18,8 +23,12 @@ def evolve_env(tmp_path, monkeypatch):
     from core.release.serve import LocalPublisher
     import evals.incident_to_test as itt
 
+    from core.settings import get_settings
+
     monkeypatch.setenv("VILLAGE_EVOLVE_RELEASE", "fake")
     monkeypatch.setenv("VILLAGE_EVOLVE_AUTO", "off")
+    monkeypatch.setenv("VILLAGE_LLM", "off")  # a local .env may turn the model on; tests run model-off
+    get_settings.cache_clear()
     monkeypatch.setattr(itt, "SETS", tmp_path / "sets")
     monkeypatch.setattr(itt.on_verification_resolved, "__defaults__", (tmp_path / "sets",))
     monkeypatch.setattr(itt.sync_from_events, "__defaults__", (tmp_path / "sets",))
@@ -31,6 +40,7 @@ def evolve_env(tmp_path, monkeypatch):
     yield
     service.set_service(None)
     proposals.reset()
+    get_settings.cache_clear()
 
 
 def _hello(ws, member):
@@ -102,11 +112,22 @@ def test_trigger_approve_patch_and_screen(evolve_env):
             for ws, role in ((carmen, "elder"), (ana, "coordinator"), (marco, "helper")):
                 f = _until(ws, "patch")
                 assert f["base_rev"] == base and f["rev"] == base + 1 and f["role"] == role
-                assert f["proposal_id"] == p["id"] and "receptionist" in f["highlight"]
+                assert f["proposal_id"] == p["id"] and f["highlight"] == (["screened"] if role == "coordinator" else ["receptionist"])
             assert villages.receptionist_mode("v_reyes") is True
             assert villages.spec("v_reyes")["printables"][0]["family_word_first"] is True
             assert "receptionist" in db.views[("v_reyes", "elder")]["elements"]
             assert "b_village" in db.views[("v_reyes", "elder")]["elements"]
+            # D35: each change sits in the right place of that app, never loose under the Alert
+            kids = {r: db.views[("v_reyes", r)]["elements"]["s"]["children"] for r in ("elder", "coordinator", "helper")}
+            assert kids["elder"][kids["elder"].index("tonight") + 1] == "receptionist"
+            assert db.views[("v_reyes", "elder")]["elements"]["receptionist"]["props"]["tone"] == "muted"
+            assert kids["coordinator"][kids["coordinator"].index("areas") + 1] == "screened"
+            assert "receptionist" not in db.views[("v_reyes", "coordinator")]["elements"]
+            assert kids["helper"][kids["helper"].index("ans") + 1] == "receptionist"
+            assert all(len(k) <= 12 for k in kids.values())
+            from core import bindings
+            money = next(a for a in bindings.life_areas("v_reyes") if a["id"] == "money")["status"]["en"]
+            assert money.startswith("Village answers unknown calls first · ")
             receipt = next(m for m in db.messages if m["kind"] == "receipt")
             assert "Scored on" in receipt["text"]
             assert any(d["id"] == f"dc_{p['id']}_applied" and d["mode"] == "acted_alone" for d in db.decisions)
@@ -233,3 +254,37 @@ def test_ana_proposal_card_live_and_ws_approve(evolve_env):
                     break
             assert patched and patched["role"] == "coordinator"
             assert statuses[-1] == []  # card cleared once applied
+
+
+def test_plain_words_card_chat_and_life_areas(evolve_env):
+    import re
+
+    from core import bindings
+    from core.app import app
+    from core.db import db
+
+    with TestClient(app) as c:
+        r = c.post("/tools/report_money_request", json={"conversation_id": "conv_copy_1", "caller_id": "+18482579221", "call_secs": 9,
+                                                       "utterance": "Marco necesita dinero", "claimed_member": "m_marco", "amount": 2000, "urgency": "now"}).json()
+        v = r["data"]["verification_id"]
+        c.post(f"/verifications/{v}/answer", json={"verification_answer": "no", "member_id": "m_marco"})
+        assert c.post("/villages/v_reyes/evolve/trigger", headers=CTRL).status_code == 200
+        row = bindings.proposals_pending("v_reyes")[0]
+        lines = [x["en"] for x in row["changes"]]
+        assert lines[0].startswith("Two calls in 7 days asked Mamá for money in Marco's name: Oct 9 ($1,500 in gift cards) and today ($2,000).")
+        assert "Both were stopped." in lines[0]
+        assert lines[1].startswith("Mamá: unknown callers reach Village first")
+        assert lines[2] == "Marco: when a caller claims to be him, he gets one question on his phone."
+        assert lines[3] == "Ana: the Money area says Village answers unknown calls first, with a card of every screened call."
+        assert lines[4] == "Nothing moves money. Mamá can turn this off by saying so. Her rules still apply."
+        assert row["evidence_labels"][0] == "Oct 9, 7:21 PM · caller said he was Marco · asked for $1,500 in gift cards"
+        assert row["evidence_labels"][1].startswith("Today, ") and row["evidence_labels"][1].endswith("asked for $2,000")
+        blob = " ".join(lines + row["evidence_labels"])
+        assert not re.search(r"\b(m_|conv_|fact:|coordinator|helper|elder)\w*", blob)
+        chat = next(m for m in db.messages if m["kind"] == "proposal")["text"]
+        assert chat.count(". ") == 0 and chat.endswith("nothing changes until you approve.")
+        areas = {a["id"]: a["label"].split(":")[0] + ": " + a["status"]["en"] for a in bindings.life_areas("v_reyes")}
+        assert areas["money"] == "Money: 1 scam stopped today · Marco checks money calls"
+        assert areas["people"] == "People: Marco on duty tonight"
+        assert areas["health"].startswith("Pills: ") and "lids" not in areas["health"] and "refill" in areas["health"]
+        assert bindings.scams_stopped_today("v_reyes") == 1

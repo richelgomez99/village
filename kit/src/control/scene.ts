@@ -21,8 +21,11 @@ export type LedgerStatus = "queued" | "running" | "done" | "retrying" | "fallbac
 export type BlueprintStage = "people" | "needs" | "life_areas" | "rules" | "kind" | "questions" | "done";
 
 export interface LedgerRow { id: string; at: string; status: LedgerStatus; what: string; result?: string; role: AgentRole; attempt?: number; rule_id?: string; mode?: Mode; elapsed_ms?: number; ended?: string }
-export interface GateRow { id: string; at: string; rule_id: string; decision: string; say: { es?: string; en?: string } | null; mode: Mode; input_kind: string; verification_state?: string }
-export interface DecisionRow { id: string; at: string; text: string; role: AgentRole; mode: Mode; source: string }
+export interface GateRow { id: string; at: string; rule_id: string; decision: string; say: { es?: string; en?: string } | null; mode: Mode; input_kind: string; verification_state?: string; sentence: string; trace_id?: string }
+export type Beat = "build" | "run" | "rebuild";
+export interface RoundRow { id: string; at: string; text: string; mode: Mode; role: AgentRole; rule_id?: string }
+export interface ChatLine { id: string; at: string; kind: string; author: string; text: string; title?: string }
+export interface DecisionRow { id: string; at: string; text: string; role: AgentRole; mode: Mode; source: string; trace_id?: string }
 export interface CaptionLine { id: string; at: string; es: string; en: string; speaker?: string }
 export interface TranscriptLine { id: string; at: string; who: "ana" | "village" | string; text: string }
 export interface WillBuild { person: string; component: string; reason: string; role?: string }
@@ -64,6 +67,13 @@ export interface SceneState {
   villageName: string | null;
   /** founding intake (docs/FOUNDING-INTAKE.md): transcript, coverage meter, gap list */
   transcript: TranscriptLine[];
+  /** the arc beat the last cause belongs to (Build → Run → Rebuild); "Anyone" is the village switch, decided by the room */
+  beat: Beat | null;
+  /** Watcher rounds (rounds:latest / control{counter rounds_*} / reasoning "[rounds · mode] …") */
+  rounds: { counts: Record<Mode, number> | null; rows: RoundRow[] };
+  chat: ChatLine[];
+  /** verification id → when Village started checking (for "said no in 12 s") */
+  verifyStart: Record<string, string>;
   blocks: AnswerBlock[];
   /** founding: per-role draft views built from control `patch` frames (phones gain cards as capabilities are decided) */
   drafts: Record<string, any>;
@@ -77,7 +87,7 @@ export function initialScene(village = ""): SceneState {
   return {
     village, spec: null, data: {}, rev: 0, blueprint: { stages: {}, done: false }, ledger: [], gate: [], decisions: [],
     autonomy: { acted_alone: 0, asked_human: 0, refused: 0 }, live: null, counters: {}, phones: null, clock: null, captions: [],
-    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], blocks: [], drafts: {}, draftNew: {}, coverage: null, gaps: [], frames: 0
+    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], beat: null, rounds: { counts: null, rows: [] }, chat: [], verifyStart: {}, blocks: [], drafts: {}, draftNew: {}, coverage: null, gaps: [], frames: 0
   };
 }
 
@@ -203,7 +213,8 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
     case "snapshot": {
       if (f.role !== "control") return { ...s, frames };
       const villageName = (f.spec as any)?.village?.name ?? (f as any).identity?.village_name ?? s.villageName;
-      return { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev, villageName };
+      const next = { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev, villageName };
+      return withRoundsAndChat(next, f.data);
     }
     case "patch": {
       // control socket during founding: a role's draft view gains cards as each capability is decided
@@ -218,8 +229,16 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
         return { ...s, frames };
       }
     }
-    case "event":
-      return eventStep({ ...s, frames, data: { ...s.data, ...(f.data ?? {}) } }, f.event as any);
+    case "event": {
+      const e = eventStep({ ...s, frames, data: { ...s.data, ...(f.data ?? {}) } }, f.event as any);
+      const runKinds = ["money_request", "verification_pending", "verification_denied", "verification_confirmed", "verification_timeout", "incident"];
+      return withRoundsAndChat(runKinds.includes((f.event as any).kind) ? { ...e, beat: "run" } : e, f.data ?? {});
+    }
+    case "chat": {
+      const m = (f as any).message ?? {};
+      if (!m.id || s.chat.some((c) => c.id === m.id)) return { ...s, frames };
+      return { ...s, frames, chat: [...s.chat, chatLine(m)].slice(-30) };
+    }
     case "control":
       return controlStep({ ...s, frames }, f.kind, f.payload as any, f.at);
     default:
@@ -227,10 +246,65 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
   }
 }
 
+function chatLine(m: any): ChatLine {
+  return { id: String(m.id), at: String(m.at ?? ""), kind: String(m.kind ?? "member"), author: String(m.author ?? "village"), text: String(m.text_i18n?.en ?? m.text ?? ""), title: m.title ? String(m.title?.en ?? m.title) : undefined };
+}
+
+const ROUND_PREFIX = /^\[rounds · (acted_alone|asked_human|refused)\]\s*/;
+
+/** rounds:latest (Watcher round result) and chat:village from snapshot/event data. */
+function withRoundsAndChat(s: SceneState, data: Record<string, unknown>): SceneState {
+  let next = s;
+  const r = data["rounds:latest"] as { counts?: Record<Mode, number>; rows?: any[] } | null | undefined;
+  if (r && typeof r === "object") {
+    const rows: RoundRow[] = (r.rows ?? []).map((x: any, i: number) => ({ id: String(x.id ?? `rr_${i}`), at: String(x.at ?? ""), text: String(x.text ?? "").replace(ROUND_PREFIX, ""), mode: (x.mode ?? "acted_alone") as Mode, role: "Watcher", rule_id: x.rule_id }));
+    next = { ...next, rounds: { counts: r.counts ?? next.rounds.counts, rows: rows.length ? rows : next.rounds.rows } };
+  }
+  const chat = data["chat:village"];
+  if (Array.isArray(chat)) {
+    const known = new Set(next.chat.map((c) => c.id));
+    const add = chat.filter((m: any) => m?.id && !known.has(m.id)).map(chatLine);
+    if (add.length) next = { ...next, chat: [...next.chat, ...add].slice(-30) };
+  }
+  return next;
+}
+
+const DECISION_WORDS: Record<string, string> = {
+  record: "recorded it",
+  remind: "sent a reminder",
+  report_already_logged: "dose already recorded · told the on-duty person",
+  refuse_medical_advice: "didn't give medical advice · pointed to her doctor",
+  escalate_family: "called the family",
+  advise_911: "told her to call 911 first",
+  verify_with_member: "asked {who}",
+  advise_do_not_send: "told her not to send money",
+  advise_talk_to_coordinator: "told her to talk to the family first",
+  mark_unverified: "marked it as not confirmed",
+  verify_with_source: "checked an official source",
+  require_approval: "asked for a yes first",
+  allow: "let it through",
+  deny: "refused"
+};
+
+/** A gate decision as a sentence with actor + result ("Verifier · asked Ana · said no in 12 s · told her not to send money"). */
+export function gateSentence(d: any, who: string, startedAt: string | undefined, at: string): string {
+  const action = (DECISION_WORDS[d.decision] ?? String(d.decision ?? "").replace(/_/g, " ")).replace("{who}", who || "the family");
+  const st = d.verification?.state;
+  const secs = startedAt ? Math.max(0, Math.round((Date.parse(at) - Date.parse(startedAt)) / 1000)) : null;
+  const took = secs != null ? ` in ${secs} s` : "";
+  if (st === "denied") return `Verifier · asked ${who} · said no${took} · ${action}`;
+  if (st === "confirmed") return `Verifier · asked ${who} · said it was them${took} · Village never sends money`;
+  if (st === "default_spoken") return `Verifier · asked ${who} · no answer${took} · ${action}`;
+  if (st === "timed_out") return `Verifier · asked ${who} · the window closed${took}`;
+  if (st === "pending") return `Verifier · ${action} · waiting for an answer`;
+  return `Verifier · ${action}`;
+}
+
 /** The village a frame names, if any (snapshot.village, event.village, control payload.village / receipt / proposal). */
 export function frameVillage(f: any): string | null {
   if (f.type === "snapshot") return f.village ?? null;
   if (f.type === "event") return f.event?.village ?? null;
+  if (f.type === "chat") return f.village ?? f.message?.village ?? null;
   if (f.type === "control") {
     const p = f.payload ?? {};
     return p.village ?? p.receipt?.village ?? p.proposal?.village ?? null;
@@ -270,7 +344,18 @@ function eventStep(s: SceneState, ev: { id: string; kind: string; at: string; pa
   }
 }
 
-function controlStep(s: SceneState, kind: string, p: any, at: string): SceneState {
+function controlStep(s0: SceneState, kind: string, p: any, at: string): SceneState {
+  const s = controlStepInner(s0, kind, p, at);
+  if (s === s0) return s;
+  let beat = s.beat;
+  if (kind === "blueprint" || (kind === "ledger" && String(p?.role ?? "founder").toLowerCase() === "founder" && foundingNow(s0))) beat = "build";
+  else if (kind === "caption" && foundingNow(s0)) beat = "build";
+  else if (kind === "caption" || kind === "gate") beat = "run";
+  else if (kind === "proposal" || kind === "release" || kind === "qa" || kind === "build_log") beat = "rebuild";
+  return beat === s.beat ? s : { ...s, beat };
+}
+
+function controlStepInner(s: SceneState, kind: string, p: any, at: string): SceneState {
   switch (kind) {
     case "gate": {
       const d = p?.decision;
@@ -278,7 +363,10 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const explicit = d.mode ?? p.mode;
       const mode: Mode = explicit === "acted_alone" || explicit === "asked_human" || explicit === "refused" ? explicit : gateMode(d.decision);
       const say = d.say && (d.say.es || d.say.en) ? d.say : null;
-      const row: GateRow = { id: d.id, at, rule_id: d.rule_id, decision: d.decision, say, mode, input_kind: p.input_kind ?? "", verification_state: d.verification?.state };
+      const vid = d.verification?.id as string | undefined;
+      const verifyStart = vid && d.verification?.state === "pending" && !s.verifyStart[vid] ? { ...s.verifyStart, [vid]: at } : s.verifyStart;
+      const sentence = gateSentence(d, name(d.verification?.claimed_member, s.spec, s.data), vid ? verifyStart[vid] : undefined, at);
+      const row: GateRow = { id: d.id, at, rule_id: d.rule_id, decision: d.decision, say, mode, input_kind: p.input_kind ?? "", verification_state: d.verification?.state, sentence, trace_id: p.trace_id };
       const known = s.gate.some((g) => g.id === d.id);
       const gate = known ? s.gate.map((g) => (g.id === d.id ? row : g)) : [row, ...s.gate];
       // a timer tick that only closes the window (allow + empty say) is not an autonomy decision
@@ -314,7 +402,7 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       } else if (REFUSED.has(d.decision)) {
         ledger = upsertLedger(ledger, { id: `gate:${d.id}`, at, status: "refused", what: say?.en ?? d.decision.replace(/_/g, " "), result: `blocked by ${d.rule_id}`, role: "Verifier", rule_id: d.rule_id });
       }
-      return { ...s, gate: gate.slice(0, 100), autonomy: counts, ledger, live };
+      return { ...s, gate: gate.slice(0, 100), autonomy: counts, ledger, live, verifyStart, beat: "run" };
     }
     case "reasoning": {
       const text = String(p?.text ?? "");
@@ -322,8 +410,14 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const founding = !s.spec || (!s.blueprint.done && Object.keys(s.blueprint.stages).length > 0);
       const role = roleFor(String(p.source ?? ""), founding);
       if (p.kind === "decision") {
-        const mode = textMode(text, p.mode);
-        const row: DecisionRow = { id: `dr_${s.frames}`, at, text, role, mode, source: String(p.source ?? "") };
+        const rm = text.match(ROUND_PREFIX);
+        const clean = text.replace(ROUND_PREFIX, "");
+        const mode = rm ? (rm[1] as Mode) : textMode(clean, p.mode);
+        const row: DecisionRow = { id: `dr_${s.frames}`, at, text: clean, role: rm ? "Watcher" : role, mode, source: String(p.source ?? ""), trace_id: p.trace_id };
+        if (rm) {
+          const rr: RoundRow = { id: `rr_${s.frames}`, at, text: clean, mode, role: "Watcher" };
+          return { ...s, decisions: [row, ...s.decisions].slice(0, 100), autonomy: { ...s.autonomy, [mode]: s.autonomy[mode] + 1 }, rounds: { counts: s.rounds.counts, rows: [...s.rounds.rows, rr].slice(-50) } };
+        }
         // gate decisions are already counted from their control{gate} frame
         const counts = p.source === "gate" ? s.autonomy : { ...s.autonomy, [mode]: s.autonomy[mode] + 1 };
         return { ...s, decisions: [row, ...s.decisions].slice(0, 100), autonomy: counts };
@@ -368,7 +462,9 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       const counters = { ...s.counters, [p.name]: { value: Number(p.value) || 0, of: p.of, label: String(p.label ?? p.name) } };
       const phones = /^(phones|phones_live|sockets|phones_connected)$/.test(p.name) ? Number(p.value) || 0 : s.phones;
       const coverage = p.name === "intake_coverage" ? { value: Number(p.value) || 0, of: Number(p.of) || 10 } : s.coverage;
-      return { ...s, counters, phones, coverage };
+      const rm = String(p.name).match(/^rounds_(acted_alone|asked_human|refused)$/);
+      const rounds = rm ? { ...s.rounds, counts: { ...(s.rounds.counts ?? { acted_alone: 0, asked_human: 0, refused: 0 }), [rm[1]]: Number(p.value) || 0 } } : s.rounds;
+      return { ...s, counters, phones, coverage, rounds };
     }
     case "clock":
       return p?.now ? { ...s, clock: { now: p.now, offset_minutes: Number(p.offset_minutes) || 0 } } : s;

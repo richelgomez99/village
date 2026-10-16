@@ -69,10 +69,8 @@ async def test_life_area_status_computed_per_village() -> None:
     for vid in villages.village_ids():
         areas = life_areas(vid)
         assert areas and all(a["status"]["en"] and a["status"]["es"] for a in areas)
-        from core.bindings_live import area_word
-
-        spec_labels = [area_word(a) for a in villages.spec(vid)["blueprint"]["life_areas"]]
-        assert [a["status"]["en"].split(":")[0] for a in areas] == spec_labels
+        assert [a["id"] for a in areas] == [a["id"] for a in villages.spec(vid)["blueprint"]["life_areas"]]
+        assert all(":" in a["label"] or a["label"] for a in areas)
     vid = REG()
     before = {a["id"]: a["status"]["en"] for a in life_areas(vid)}
     if "money" in before:

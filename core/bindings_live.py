@@ -73,8 +73,9 @@ def stopped_verifications_today(village_id: str) -> list[dict[str, Any]]:
 
 
 def scams_stopped_today(village_id: str) -> int:
-    return len(stopped_verifications_today(village_id))
+    from core.bindings import scams_stopped_today as count
 
+    return count(village_id)
 
 def synthesized_incidents(village_id: str, have: set[str]) -> list[dict[str, Any]]:
     """Today's denied/timed-out verifications with no open incident row yet -> bv_incident."""
@@ -204,10 +205,12 @@ def life_area_status(village_id: str, area: dict[str, Any], spec: dict[str, Any]
         elif needs:
             parts_en.append(f"{len(needs)} {_plural(len(needs), 'need')}")
             parts_es.append(f"{len(needs)} {_plural(len(needs), 'necesidad', 'necesidades')}")
+    if aid == "money" and villages.receptionist_mode(village_id):  # Evolve D19/D35: the Money area says what changed
+        parts_en.insert(0, "Village answers unknown calls first")
+        parts_es.insert(0, "Village contesta primero a desconocidos")
     if not parts_en:
         return {"en": "ok", "es": "bien"}
-    label = area_word(area)
-    return {"en": f"{label}: {' · '.join(parts_en)}", "es": f"{label}: {' · '.join(parts_es)}"}
+    return {"en": " · ".join(parts_en), "es": " · ".join(parts_es)}
 
 
 # ---- (2) events since this member's last turn -----------------------------------------------------

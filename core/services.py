@@ -860,9 +860,10 @@ async def apply_verification_step(
         await reasoning(village, _terminal_reasoning(row), mode=_mode_for(decision))
         await ledger(village, f"ver:{row['id']}", "done", f"Verify money request with {_claimed_name(row)}", result=row.get("state"), decision_id=decision["id"], role="Verifier")
         if row.get("state") in {"denied", "late_denied", "timed_out"}:
-            from core.bindings_live import scams_stopped_today
+            from core.bindings import scams_stopped_today
 
-            _COUNTERS["scams_stopped"] = scams_stopped_today(village)  # per village, today's denied/timed-out verifications
+            # per village, today's denied/timed-out verifications (ws_hub re-sends it on every connect)
+            _COUNTERS["scams_stopped"] = scams_stopped_today(village)
             await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})
         _evolve_port(village, row)
     for ev in written:
