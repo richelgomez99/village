@@ -1,4 +1,4 @@
-"""Real Daytona adapter: one warm sandbox (default image; snapshots are denied on this account),
+"""Real Daytona adapter: one warm sandbox (from snapshot RELEASE_DAYTONA_SNAPSHOT when set, else an image),
 template + node_modules installed once, then per release: upload village files, vite build,
 vitest, tar + download dist. The sandbox never calls out (egress is blocked); Core pulls."""
 from __future__ import annotations
@@ -59,6 +59,9 @@ class DaytonaBuilder:
         self.keep = keep
         self.preview = preview if preview is not None else os.environ.get("RELEASE_PREVIEW_URL", "0") == "1"
         self.image = image or os.environ.get("RELEASE_DAYTONA_IMAGE") or None
+        self.snapshot = os.environ.get("RELEASE_DAYTONA_SNAPSHOT") or None
+        if self.snapshot:  # a snapshot wins over an image when both are configured
+            self.image = None
         self._client: Any = None
         self._sb: Any = None
         self._home: str = "/home/daytona"
@@ -105,7 +108,7 @@ class DaytonaBuilder:
             if self.image:
                 params: Any = CreateSandboxFromImageParams(image=self.image, auto_stop_interval=0, labels=labels)
             else:
-                params = CreateSandboxFromSnapshotParams(auto_stop_interval=0, labels=labels)
+                params = CreateSandboxFromSnapshotParams(snapshot=self.snapshot, auto_stop_interval=0, labels=labels) if self.snapshot else CreateSandboxFromSnapshotParams(auto_stop_interval=0, labels=labels)
             self._sb = await d.create(params, timeout=180)
         self.last_timings["create"] = _ms(t0)
         try:
@@ -155,7 +158,7 @@ class DaytonaBuilder:
 
     def image_label(self) -> str:
         sb = self._sb
-        return str(self.image or getattr(sb, "image", None) or getattr(sb, "snapshot", None) or "default image")[:60]
+        return str(self.image or self.snapshot or getattr(sb, "image", None) or getattr(sb, "snapshot", None) or "default image")[:60]
 
     async def build(self, files: dict[str, bytes], *, village_id: str, rev: int, log: LogFn | None = None) -> BuildResult:
         async with self._lock:

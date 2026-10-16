@@ -98,3 +98,8 @@
 
 ## Village as a chat participant (live, 13:46 and 14:02)
 - Ana (operator) posted "hey guys, will need someone to take care of mom tomorrow" → 0.3 s: Village "Tomorrow's Saturday, Marco's night. Marco, still good? Lucía, can you cover if not?" + asks to Marco and Lucía → 3.5 s: Lucía (demo actor) "Okay, Saturday is mine." → 3.8 s: Marco (demo actor) "I can't Saturday, sorry." → 3.9 s: Village "Saturday: Lucía covers for Marco. Mamá will be told at her check-in." (no leader approval; D39). Second run 14:02 ("cover for Marco tomorrow") exposed: Marco was still asked, three bubbles, asks not resolved, rota unchanged on phones → fixed in ASKS-2 + CORE-GLUE-6 + KIT-MEMBERS-3 (14:08).
+
+## Daytona snapshot (14:21, new API key with snapshot scope)
+- `snapshot.create(name="village-kit", image="node:22-bookworm-slim")` → ACTIVE in 4.2 s (the earlier key returned "Access denied"; key scope, not plan).
+- Cold sandbox from snapshot `village-kit`: 1,043 ms to STARTED (node v22.22.2). Image-based cold create earlier today: 2.9 s on the receipt.
+- Core: `RELEASE_DAYTONA_SNAPSHOT=village-kit` → `CreateSandboxFromSnapshotParams(snapshot=…)`; warm sandbox still reused by label.
