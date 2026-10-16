@@ -52,7 +52,7 @@ const rotaWeek = [
 ].map(([date, day, on_duty, backup]) => ({ date, day, on_duty, backup }));
 
 const timeline = [
-  { event_id: "ev_1016_0811_dose_morning", kind: "dose", at: "2026-10-16T08:11:04-04:00", text: { en: "Morning pills taken", es: "Pastillas de la mañana tomadas" }, source: { kind: "scan", ref: "st_reyes_morning" }, source_label: { en: "Organizer, morning" }, superseded: false },
+  { event_id: "ev_1016_0811_dose_morning", kind: "dose", at: "2026-10-16T08:11:04-04:00", text: { en: "Morning pills taken", es: "Pastillas de la mañana tomadas" }, source: { kind: "scan", ref: "st_reyes_morning" }, source_label: { en: "Check-in call, morning" }, superseded: false },
   { event_id: "ev_1012_0900_shift_1016", kind: "shift", at: "2026-10-12T09:00:00-04:00", text: { en: "Friday: Marco on duty, Ana backup" }, source: { kind: "system", ref: "seed" }, superseded: false },
   { event_id: "ev_1009_1922_incident", kind: "incident", at: "2026-10-09T19:22:15-04:00", text: { en: "Couldn't confirm a $1,500 gift-card request in Marco's name" }, source: { kind: "system", ref: "gate" }, rule_id: "R-MONEY-DEFAULT", superseded: false },
   { event_id: "ev_1003_1740_med_change", kind: "med_change", at: "2026-10-03T17:40:00-04:00", text: { en: "Lisinopril 10 mg (Dr. Park)" }, source: { kind: "call", ref: "conv_setup_0003", secs: 41 }, source_label: { en: "Ana's call, Oct 3 at 0:41" }, superseded: false },
@@ -60,9 +60,9 @@ const timeline = [
 ];
 
 const lifeAreas = [
-  { id: "health", label: "Health: pills", status: { en: "1/2 today", es: "1/2 hoy" } },
-  { id: "money", label: "Money: scam calls", status: { en: "Marco verifies money calls", es: "Marco confirma llamadas de dinero" }, rules: ["R-MONEY-VERIFY", "R-MONEY-DEFAULT"], trusted_contacts: ["m_marco", "m_ana"] },
-  { id: "people", label: "People: whose turn", status: { en: "Marco on duty", es: "Marco de turno" } }
+  { id: "health", label: "Pills", status: { en: "morning pills taken · refill Friday · Marco", es: "pastillas de la mañana tomadas · relleno el viernes · Marco" } },
+  { id: "money", label: "Money: scam calls", status: { en: "1 scam stopped · Marco checks money calls", es: "1 estafa detenida · Marco confirma llamadas de dinero" }, rules: ["R-MONEY-VERIFY", "R-MONEY-DEFAULT"], trusted_contacts: ["m_marco", "m_ana"] },
+  { id: "people", label: "People: whose turn", status: { en: "Marco on duty tonight", es: "Marco de turno esta noche" } }
 ];
 
 export function baseData(client: FakeClient): Record<string, unknown> {

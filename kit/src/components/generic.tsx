@@ -3,7 +3,7 @@ import type { CatalogProps } from "../renderer/catalog";
 import { useCtx } from "../renderer/context";
 import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
-import { Bi, Card } from "./shared";
+import { Bi, Card, memberName } from "./shared";
 
 /** V0 renderer for block-village boards (NeedBoard, ResourceBoard, …): title + bound rows. Full versions are T031. */
 export function GenericBoard({ id, props }: CatalogProps) {
@@ -45,6 +45,18 @@ export function Checklist({ props }: CatalogProps) {
   );
 }
 
+/** Chat author: "Village" for village/system posts, else the member's name from their record (never the raw id). */
+export function authorName(author: string, data: Record<string, unknown>): string {
+  if (!author || author === "village" || author === "system") return "Village";
+  return memberName(author, data);
+}
+
+/** First sentence, at most ~120 characters: a proposal post is a one-liner; the reasons live on the card's "why". */
+export function oneLine(t: string): string {
+  const first = (t.split(/(?<=[.!?])\s/)[0] ?? t).trim();
+  return first.length > 120 ? `${first.slice(0, 117).trimEnd()}…` : first;
+}
+
 interface ChatRow { id: string; kind: string; author: string; text: string; text_i18n?: Record<string, string>; refs?: { kind: string; id: string }[] }
 
 /** VillageChat (D16): the village group chat. Proposal posts carry inline Approve · Not now (approve_proposal /
@@ -54,6 +66,7 @@ export function VillageChat({ id, props }: CatalogProps) {
   const rows = Array.isArray(ctx.data[props.bind]) ? (ctx.data[props.bind] as ChatRow[]) : [];
   const pendingData = ctx.data["proposals:pending"];
   const pending = Array.isArray(pendingData) ? new Map((pendingData as { proposal_id: string; status: string }[]).map((p) => [p.proposal_id, p.status])) : null;
+  const titles = new Map(Array.isArray(pendingData) ? (pendingData as { proposal_id: string; title: unknown }[]).map((p) => [p.proposal_id, p.title]) : []);
   return (
     <Card test="village-chat" title={props.title ? <Bi value={props.title} /> : undefined}>
       <ol className="chat">
@@ -62,8 +75,16 @@ export function VillageChat({ id, props }: CatalogProps) {
           const status = pid && pending ? pending.get(pid) : undefined;
           const open = !!pid && (pending === null || status !== undefined);
           return (
-            <li key={m.id} data-kind={m.kind} data-author={m.author}>
-              <strong>{m.author === "village" ? "Village" : m.author}</strong> {m.text_i18n?.[ctx.lang] ?? m.text}
+            <li key={m.id} data-kind={m.kind} data-author={m.author} data-test="chat-row">
+              <strong data-test="chat-author">{authorName(m.author, ctx.data)}</strong>{" "}
+              {m.kind === "proposal" ? (
+                <span className="chat-proposal" data-test="chat-proposal">
+                  {pid && titles.get(pid) ? <span className="chat-proposal-title"><Bi value={titles.get(pid)} /></span> : null}
+                  <span className="chat-proposal-line">{oneLine(m.text_i18n?.[ctx.lang] ?? m.text)}</span>
+                </span>
+              ) : (
+                m.text_i18n?.[ctx.lang] ?? m.text
+              )}
               {props.allow_approve && pid && open ? (
                 <span className="row" data-test="chat-proposal-actions">
                   <button type="button" className="btn btn-primary" data-test="chat-proposal-approve" disabled={ctx.disabled || status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: id })}>{k("approve", ctx.lang)}</button>
