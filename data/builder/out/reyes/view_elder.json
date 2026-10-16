@@ -1,0 +1,117 @@
+{
+  "lang": "es",
+  "theme": "elder",
+  "root": "s",
+  "elements": {
+    "s": {
+      "type": "Screen",
+      "props": {
+        "title": "Hola, Carmen",
+        "read_aloud": true
+      },
+      "children": [
+        "al",
+        "hoy",
+        "b_pill",
+        "b_call",
+        "b_help",
+        "e911"
+      ]
+    },
+    "al": {
+      "type": "Alert",
+      "props": {
+        "source": "policy",
+        "bind": "alerts:active",
+        "severity_levels": [
+          "danger",
+          "warn"
+        ],
+        "dismissible": false,
+        "show_countdown": true
+      }
+    },
+    "hoy": {
+      "type": "DoseTracker",
+      "props": {
+        "title": "Pastillas de hoy",
+        "subject": "m_carmen",
+        "slots": [
+          "morning",
+          "evening"
+        ],
+        "bind": "facts:dose_event?subject=m_carmen&valid_at=today",
+        "show_med_names": false,
+        "allow_log": false,
+        "big": true
+      }
+    },
+    "b_pill": {
+      "type": "BigButton",
+      "props": {
+        "label": "Ya me la tomé",
+        "icon": "pill",
+        "tone": "ok",
+        "action": "log_dose",
+        "action_arg": "slot:current",
+        "confirm": false,
+        "speak": "Ya me la tomé"
+      }
+    },
+    "b_call": {
+      "type": "BigButton",
+      "props": {
+        "label": "Llamar a Ana",
+        "icon": "phone",
+        "tone": "info",
+        "action": "call_member",
+        "action_arg": "m_ana",
+        "confirm": false,
+        "speak": "Llamando a Ana"
+      }
+    },
+    "b_help": {
+      "type": "BigButton",
+      "props": {
+        "label": "Necesito ayuda",
+        "icon": "sos",
+        "tone": "danger",
+        "action": "need_help",
+        "confirm": true,
+        "confirm_text": "¿Aviso a su familia ahora?",
+        "speak": "Necesito ayuda"
+      }
+    },
+    "e911": {
+      "type": "ContactCard",
+      "props": {
+        "name": "911",
+        "label": "Emergencia: 911",
+        "phone": "911",
+        "kind": "emergency",
+        "big": true
+      }
+    }
+  },
+  "needs_served": {
+    "al": [
+      "n_safety",
+      "n_scam_calls"
+    ],
+    "hoy": [
+      "n_evening_pills"
+    ],
+    "b_pill": [
+      "n_evening_pills"
+    ],
+    "b_call": [
+      "n_safety"
+    ],
+    "b_help": [
+      "n_safety"
+    ],
+    "e911": [
+      "n_safety"
+    ]
+  }
+}

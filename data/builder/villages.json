@@ -1,0 +1,61 @@
+{
+ "care": {
+  "fixture": "reyes_spec.json",
+  "record": "data/villages/reyes_family.json",
+  "intake": "data/builder/reyes_intake.jsonl",
+  "plan": "data/intake/plan.json",
+  "village_id": "v_reyes",
+  "dialer_script": {
+   "m_marco": {
+    "availability_days": [
+     "Tue",
+     "Thu",
+     "Fri",
+     "Sat"
+    ],
+    "ai_calls": true,
+    "secs": 41
+   }
+  },
+  "need_quotes": {
+   "n_dose_change": [
+    "The old lisinopril bottle is still in her cabinet",
+    "doubled to ten milligrams"
+   ],
+   "n_refills": [
+    "she does the refills and the insurance calls",
+    "does the refills"
+   ]
+  }
+ },
+ "block": {
+  "fixture": "block_spec.json",
+  "record": "data/villages/block_blackout.json",
+  "intake": "data/builder/w147_intake.jsonl",
+  "plan": "data/intake/plan_block.json",
+  "village_id": "v_w147",
+  "dialer_script": {
+   "b_darnell": {
+    "availability_days": [
+     "Mon",
+     "Tue",
+     "Wed",
+     "Thu",
+     "Fri",
+     "Sat",
+     "Sun"
+    ],
+    "ai_calls": true,
+    "secs": 28
+   }
+  },
+  "need_quotes": {
+   "n_infant": [
+    "have a newborn, three weeks old"
+   ],
+   "n_mobility": [
+    "in a power wheelchair, the elevator's out"
+   ]
+  }
+ }
+}
