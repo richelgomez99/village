@@ -76,3 +76,6 @@
 | DailyMed, 4 medications | 0.22 s |
 | Whole 11-question intake | 65.8 s (~3.4 s per answer; earlier runs 59.4 s, 81.3 s) |
 - Bedrock Haiku 4.5: first finding 1.1 s, blueprint 8.8 s. `--resume 8` through the routes: starts at 8/10, A10, A11, review edit (RefillCard for Lucía), "Draft ready · rev 5". Block village born through the same intake (`w147_intake.jsonl`).
+
+## Live rebuild on the demo Core (13:00, operator tapped Approve on Ana's phone)
+- Proposal created 13:00:22 (auto options + proposal) → Ana approved 13:00:44 → "Released rev 6 and patched every phone" 13:00:56: **12 s from the yes to every phone**, six stages passed (spec, daytona_build, tests, anchor_qa, arize_evals, live). Receipt: "Scored on 51 calls (last night's included)".
