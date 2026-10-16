@@ -151,9 +151,39 @@ P006 · done · docs/SLIDES.md (6 slides, stage lines, fallbacks; [MEASURE] wher
 LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated: voice code merged, live ElevenLabs pushes dry-run, outbound via FakeDialer (Twilio geo permissions).
 
 ## builder
-T001 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · tool registry contains extract_blueprint/render_app/patch_app/cite_answer/classify_intent; fixed-shape schemas require `additionalProperties:false`
-T003 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · mapping covers care/block roles, builder→contract profile enums, D22 channels with no `lid_qr`, fridge-card-only printables, and idempotent non-elder `VillageChat`
-T004 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · template fallback loads full care/block fixtures, applies D22 normalization, and remaps village/member ids across structured references
+READY FOR MERGE V2
+T001 · done · `uv run pytest core/builder -q` · tool registry (extract_blueprint, render_app, patch_app, cite_answer, classify_intent; record_answer + critique_plan local) closed schemas
+T002 · done · `uv run pytest core/builder -q` · pydantic mirror + invariants; `contract_errors()` validates any contract $ref (frames tested against ws_messages control)
+T003 · done · `uv run python -m core.builder.prompts --probe --prompt local` · Prompt Hub path untested (arize SDK not installed) → local prompt
+T005 · done · `uv run pytest core/builder/tests/test_blueprint.py -q` · streamed extract_blueprint, partial-JSON (jiter) → one reasoning + blueprint frame per finding, invented people dropped; deltas recorded from a REAL Bedrock Haiku 4.5 stream (`core/builder/tests/data/reyes_blueprint_deltas.jsonl`)
+T006 · done · `uv run pytest core/builder/tests/test_mapping.py -q` · roles per kind, profile enums, channels without lid_qr, fridge card only, ensure_chat, D22 elder check (TonightCard + 3 BigButtons + 911)
+T007 · done · `uv run pytest core/builder/tests/test_render.py -q` · gather per role, 45 s/role, 60 s total, one repair, template fallback, per-role frames + ledger rows; fake LLM: valid / repaired / template / timeout
+T008 · done · `uv run pytest core/builder/tests/test_templates.py -q` · fixture per (kind, role) with id/name remap, `mode: fixture`, decision "template <role>: <reason>"
+T009 · done · `uv run pytest core/builder/tests/test_founding.py -q` · found(): listening → clarify (intake turns) → working → draft → review; BuilderRun; spans via tracer port (no-op until core.obs)
+T010 · done · `uv run python scripts/build_village.py --llm off --replay --time` · `--kind block`, `--resume 8` (stdin), `--llm on`, `--ask`; `scripts/validate_spec.py <file>`
+T011 · done · `uv run pytest core/builder/tests/test_routes.py -q` · `core/builder/routes.py` router (core already lists it in LANE_ROUTER_MODULES): POST /villages (202, `?resume=N`, `replay`, `mode: fixture`), GET (ETag, `builder` summary with question/meter/gaps), POST answers (meter + next_question preview), PATCH draft (allowed paths or word edit), POST activate, POST ask
+T013 · partial · test_routes · activate mints per-member invites (sha256 at rest, 24 h, 409 on repeat); QR SVG via `segno` only if installed (not in pyproject → `svg: null`); redeem lives at `POST /builder/auth/redeem` because core already owns `/auth/redeem`
+T014 · done · `uv run pytest core/builder/tests/test_ask.py -q` · material cap 60, cite_answer, hallucinated ids dropped, redaction (family word, phones, account numbers), family-word question refused; "why Marco and not Lucía" → 2+ citations model-off
+T015 · done · `uv run pytest core/builder/tests/test_patch.py -q` · RFC 6902 (add/remove/replace/move/copy/test) on a copy, needs_added merged, one repair, safety refusal; prompt Examples 4–6
+T016 · done · `uv run python scripts/build_village.py --llm off --replay` · `data/builder/reyes_intake.jsonl` = A0–A12 verbatim from docs/FOUNDING-INTAKE.md; replay runs REAL DailyMed (live) + the consent call through the Dialer port (scripted answer)
+T018 · done · `uv run python scripts/build_village.py --llm off --replay --kind block` · block village born through the same intake (`data/builder/w147_intake.jsonl`, `data/intake/plan_block.json`); names/roles/views match block_spec.json
+T021 · done · test_mapping / test_render · one VillageChat per non-elder view after merge and in templates
+T025 · done · `uv run pytest core/builder/tests/test_capabilities.py -q` · `core/agent/capabilities.yaml` 8 capabilities; Reyes Carmen → phone_line + check_in_call + fridge_card, Marco → is_it_my_turn + refill_day, Ana → dashboard + village_chat; block differs; decision rows with reasons
+T026 · done · `uv run pytest core/builder/tests/test_critique.py -q` · one critique call before render, diff applied (unsafe adds refused), EVALUATOR span
+T027 · done · test_founding · DailyMed per med (httpx, url provenance, live in scripts / recorded in tests) and the helper's availability+consent call via Dialer port, as 1.2.1 ledger rows updated in place
+T028 · done · test_founding · P-QH-01 21:30–07:00: `pending_her_words` + welcome call 13:30 after the intake (D29); confirmed form with `source{call, welcome_call, 108}` + her words when the welcome call is on record; `founding.confirm_quiet_hours()` for the voice lane
+D29 · done · `uv run pytest core/builder/tests/test_conversation.py -q` · `data/intake/plan.json` (10 topics), record_answer (rules model-off; model merged when on), meter "N of 10 covered · gaps" (A0→1 … A11→10 exactly as the doc), "I don't know" → unknown gap, review word edit → RefillCard in Lucía's (helper) view, family word never in frames/decisions/spec/summary
+D30 · done · `grep -ri -E "carmen|marco|lucia|reyes" core/builder --exclude-dir=tests` → empty · per-kind data in `data/builder/villages.json`
+LD-1: Sonnet 5.5 rejects forced `tool_choice` ("tool"/"any") and thinking `disabled`; the port sends `tool_choice: auto` + "respond only by calling <tool>" + `thinking: between_tools` on Anthropic, forced tool_choice on Bedrock.
+LD-2: decision rows carry top-level `mode` (1.2.1); questions/answers/review are `asked_human`, work is `acted_alone`.
+LD-3: the draft starts from the kind's template (fixture) and the intake overwrites what the conversation said (days, notes, contacts, consent, needs' spans, P-QH-01); views are rendered by the model when on, template when off. People not in the words are kept from the record with a decision note "confirm on review".
+LD-4: `blueprint.description.text` = opener + the founder's answers (family-word answer and review edit excluded), ≤ 2000 chars, so every need's source_span points at words the founder said.
+LD-5: contacts (neighbor, super) stay role labels in the center's notes, not people (D29 "four people").
+LD-6: the helper view starts without RefillCard so the review edit ("Lucía should see the refill list too") is a real patch; Marco and Lucía share the `helper` view key.
+LD-7: the family word stays in IntakeState/BuilderRun only (never in frames, decisions, the spec's printables, or `summary()`); core must fetch it from the run if it prints the fridge card.
+LD-8: `uv run pytest core` in ONE session errors in the gate's forbidden-import guard (httpx loaded by another suite); each suite passes alone (gate 110, core/tests 40, voice 31, builder 44).
+Mocked: consent-call ANSWER (ScriptedConsentDialer; real ElevenLabsDialer only with FOUNDER_LIVE_CALLS=1), tracer (no core.obs yet), Prompt Hub, services (MemoryServices / CoreServices write-through), segno.
+Timings (real, Sonnet 5.5 direct, `scripts/build_village.py --llm on --replay --time`, run 1): blueprint TTFT 5.7 s, blueprint 13.4 s, render elder 8.6 s / coordinator 10.3 s / helper 24.2 s (repaired), render 24.2 s, DailyMed 4 meds live 0.15 s, total 81.3 s for the full 11-question intake incl. 10 record_answer calls. Bedrock Haiku 4.5 blueprint stream: TTFT 1.1 s, 8.8 s total. Model-off replay: 0.27 s.
 ## gate
 READY FOR MERGE V1
 G008 · done · deadline-during-await closes TIMED_OUT; consent-revoked dial is no-op; T32/T33 and ignored terminal answer covered.
