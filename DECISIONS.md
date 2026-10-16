@@ -242,3 +242,6 @@ The Control Room founding view showed every row at once (all stamped 13:58), the
 - Middle: **Village thinking and doing**, one block per answer: Heard → Knows → Doing (ledger rows running → done with real timings) → **Will build** (notes with reasons: "Refill checklist for Marco · he fills the organizer on refill day").
 - Right: **the village taking shape**: coverage meter + gap list, people cards appearing one by one; below: **phone mirrors that gain cards as each capability is decided** (progressive patches), each new card sliding in with a NEW tag one second after its "will build" note.
 - Nothing appears before its cause; the LIVE call panel collapses when there is no call. Two stage modes: Reyes = Ana types (live model), block = recorded audio + synced transcript (voice2 generates the audio with ElevenLabs voices). `?fake` replays follow the same pacing.
+
+# D34. Reset must clear the whole demo state (Oct 16, 12:55)
+`POST /admin/reset` (and `scripts/reset_demo.sh`) clears events today, verifications, **proposals** (in-memory on the evolve lane), tokens, counters, and re-seeds both villages; the demo arc is run twice from a reset before the freeze. Restarting Core also clears proposals: re-trigger with `POST /villages/{id}/evolve/trigger` if a restart happens mid-rehearsal.
