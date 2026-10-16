@@ -112,33 +112,99 @@ def llm_enabled() -> bool:
         return os.getenv("VILLAGE_LLM", "off") != "off"
 
 
+@dataclass
+class SyncClientLLM:
+    """Adapts the sync client from `core.llm.llm(role)` (Anthropic direct or Bedrock Mantle) to the
+    async port: calls run in a worker thread; stream deltas cross back through an asyncio.Queue."""
+
+    client: Any
+    model: str
+    provider: str
+
+    def _kw(self, system: str, messages: list[dict[str, Any]], tool: dict[str, Any], max_tokens: int) -> dict[str, Any]:
+        kw = self._base(system, messages, tool, max_tokens)
+        if self.provider == "anthropic":
+            kw["thinking"] = {"type": "between_tools"}  # Sonnet 5.5: no thinking before the tool call (latency)
+        return kw
+
+    def _base(self, system: str, messages: list[dict[str, Any]], tool: dict[str, Any], max_tokens: int) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "system": [{"type": "text", "text": system + f"\n\nRespond only by calling the {tool['name']} tool, exactly once.", "cache_control": {"type": "ephemeral"}}],
+            "messages": messages,
+            "tools": [_tool_param(tool)],
+            # Sonnet 5.5 rejects forced tool_choice ("tool"/"any"); Bedrock Haiku 4.5 accepts it
+            "tool_choice": {"type": "tool", "name": tool["name"]} if self.provider == "bedrock" else {"type": "auto"},
+        }
+
+    async def tool_call(self, *, system: str, messages: list[dict[str, Any]], tool: dict[str, Any], max_tokens: int = 4096) -> dict[str, Any]:
+        resp = await asyncio.to_thread(self.client.messages.create, **self._kw(system, messages, tool, max_tokens))
+        for block in resp.content:
+            if getattr(block, "type", None) == "tool_use" and block.name == tool["name"]:
+                return dict(block.input)
+        raise ValueError(f"model did not call {tool['name']}")
+
+    async def stream_tool(self, *, system: str, messages: list[dict[str, Any]], tool: dict[str, Any], max_tokens: int = 4096) -> AsyncIterator[str]:
+        loop = asyncio.get_running_loop()
+        q: asyncio.Queue = asyncio.Queue()
+        done = object()
+
+        def worker() -> None:
+            try:
+                with self.client.messages.stream(**self._kw(system, messages, tool, max_tokens)) as stream:
+                    for event in stream:
+                        if getattr(event, "type", None) == "content_block_delta" and getattr(event.delta, "type", None) == "input_json_delta":
+                            loop.call_soon_threadsafe(q.put_nowait, event.delta.partial_json)
+            except Exception as exc:  # surfaced to the consumer
+                loop.call_soon_threadsafe(q.put_nowait, exc)
+            finally:
+                loop.call_soon_threadsafe(q.put_nowait, done)
+
+        fut = loop.run_in_executor(None, worker)
+        while True:
+            item = await q.get()
+            if item is done:
+                break
+            if isinstance(item, BaseException):
+                raise item
+            yield item
+        await fut
+
+
 def llm(role: str = "sonnet") -> BuilderLLM:
-    """Builder-facing factory over `core.llm` semantics (see module doc)."""
+    """Every real call goes through `core.llm.llm(role)` (Sonnet 5.5 direct with the workspace key;
+    Bedrock Haiku 4.5 fallback). VILLAGE_LLM=off → LLMUnavailable."""
     if not llm_enabled():
         raise LLMUnavailable("VILLAGE_LLM=off")
-    import anthropic
-
-    try:
-        from core.settings import get_settings
-
-        settings = get_settings()
-        api_key = settings.anthropic_api_key
-        haiku = settings.bedrock_haiku_model
-    except Exception:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        haiku = os.getenv("BEDROCK_HAIKU_MODEL", "anthropic.claude-haiku-4-5")
-    workspace = os.getenv("ANTHROPIC_WORKSPACE_ID", "")
-    if workspace and api_key:
-        client = anthropic.AsyncAnthropic(api_key=api_key, default_headers={"anthropic-workspace-id": workspace})
-        model = "claude-sonnet-5-5" if role != "haiku" else "claude-haiku-5-5"
-        return AnthropicLLM(client=client, model=model, provider="anthropic")
     _load_dotenv_aws()
-    client = anthropic.AsyncAnthropicBedrockMantle(aws_region=os.getenv("AWS_REGION", "us-west-2"))
-    return AnthropicLLM(client=client, model=haiku or "anthropic.claude-haiku-4-5", provider="bedrock")
+    from core.llm import llm as core_llm
+
+    client = core_llm(role)
+    if getattr(client, "provider", None) == "off" or not hasattr(client, "village_model"):
+        raise LLMUnavailable("core.llm returned the off client")
+    return SyncClientLLM(client=client, model=client.village_model, provider=getattr(client, "village_provider", "?"))
 
 
 def _load_dotenv_aws() -> None:
     """pydantic-settings reads .env into Settings only; boto-style creds must be in os.environ."""
+    from .paths import ROOT
+
+    _load_dotenv_env()
+    env = ROOT / ".env"
+    if not env.exists():
+        return
+    for line in env.read_text(encoding="utf-8").splitlines():
+        if "=" not in line or line.lstrip().startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key.startswith("AWS_") and value and key not in os.environ:
+            os.environ[key] = value
+
+
+def _load_dotenv_env() -> None:
+    """core.llm reads ANTHROPIC_WORKSPACE_ID from os.environ; pydantic-settings doesn't export it."""
     from .paths import ROOT
 
     env = ROOT / ".env"
@@ -148,9 +214,8 @@ def _load_dotenv_aws() -> None:
         if "=" not in line or line.lstrip().startswith("#"):
             continue
         key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key.startswith("AWS_") and value and key not in os.environ:
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key in ("ANTHROPIC_WORKSPACE_ID", "ANTHROPIC_SONNET_MODEL", "ANTHROPIC_HAIKU_MODEL") and value and key not in os.environ:
             os.environ[key] = value
 
 
