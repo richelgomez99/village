@@ -1,0 +1,17 @@
+{
+  "name": "dose_report",
+  "trigger": "The caller says she took, may have taken, or is unsure about a dose.",
+  "steps": [
+    {
+      "type": "tool_call",
+      "tool_name": "log_dose",
+      "on_failure": {
+        "fallback": [
+          { "type": "say", "message": "No pude anotarlo. Le aviso a su familia." }
+        ]
+      }
+    },
+    { "type": "say", "message": "{{say_text}}" }
+  ]
+}
+

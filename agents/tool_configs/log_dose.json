@@ -1,0 +1,35 @@
+{
+  "type": "webhook",
+  "name": "log_dose",
+  "description": "Record that the caller took or thinks she took pills for a dose slot. Call only after confirming the slot with her.",
+  "response_timeout_secs": 10,
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://{{system_env__core_host}}/tools/log_dose",
+    "method": "POST",
+    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "confidence"],
+      "properties": {
+        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
+        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
+        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
+        "utterance": { "type": "string" },
+        "tool_call_id": { "type": "string" },
+        "village_id": { "type": "string", "dynamic_variable": "village_id" },
+        "slot": { "type": "string", "enum": ["morning", "midday", "evening", "bedtime", "current"] },
+        "pill_description": { "type": "string" },
+        "taken_at": { "type": "string", "format": "date-time" },
+        "confidence": { "type": "string", "enum": ["confirmed_by_caller", "uncertain"] },
+        "possible_duplicate": { "type": "boolean" }
+      }
+    }
+  },
+  "assignments": [
+    { "dynamic_variable": "gate_decision", "value_path": "decision" },
+    { "dynamic_variable": "say_text", "value_path": "say" }
+  ]
+}
+

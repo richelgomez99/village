@@ -1,0 +1,13 @@
+{
+  "tools": [
+    { "name": "log_dose", "type": "webhook", "config": "tool_configs/log_dose.json" },
+    { "name": "report_symptom", "type": "webhook", "config": "tool_configs/report_symptom.json" },
+    { "name": "whats_my_schedule", "type": "webhook", "config": "tool_configs/whats_my_schedule.json" },
+    { "name": "get_today", "type": "webhook", "config": "tool_configs/get_today.json" },
+    { "name": "ask_family", "type": "webhook", "config": "tool_configs/ask_family.json" },
+    { "name": "report_money_request", "type": "webhook", "config": "tool_configs/report_money_request.json" },
+    { "name": "await_verification", "type": "webhook", "config": "tool_configs/await_verification.json" },
+    { "name": "submit_verification_answer", "type": "webhook", "config": "tool_configs/submit_verification_answer.json" },
+    { "name": "create_village", "type": "webhook", "config": "tool_configs/create_village.json" }
+  ]
+}

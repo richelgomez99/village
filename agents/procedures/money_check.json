@@ -1,0 +1,37 @@
+{
+  "name": "money_check",
+  "trigger": "The caller says someone asked her for money, gift cards, crypto, a transfer, cash pickup, or financial/personal numbers.",
+  "steps": [
+    {
+      "type": "tool_call",
+      "tool_name": "report_money_request",
+      "on_failure": {
+        "fallback": [
+          { "type": "say", "message": "No pude confirmar con su familia. No mande dinero. Le aviso a Ana." }
+        ]
+      }
+    },
+    { "type": "say", "message": "{{say_text}}" },
+    {
+      "type": "branch",
+      "branches": [
+        {
+          "condition": { "type": "expression", "expression": { "op": "eq", "var": "verification_status", "value": "pending" } },
+          "steps": [
+            {
+              "type": "tool_call",
+              "tool_name": "await_verification",
+              "on_failure": {
+                "fallback": [
+                  { "type": "say", "message": "No pude confirmar con su familia. No mande dinero. Le aviso a Ana." }
+                ]
+              }
+            },
+            { "type": "say", "message": "{{say_text}}" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

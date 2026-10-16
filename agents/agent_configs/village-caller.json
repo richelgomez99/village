@@ -1,0 +1,47 @@
+{
+  "name": "Village Caller",
+  "conversation_config": {
+    "agent": {
+      "language": "en",
+      "first_message": "Hi {{recipient_name}}, this is Village, an automated AI assistant for {{family_label}} {{family_word}}. Did you just call {{care_recipient_rel}} asking for {{amount_spoken}}{{method_spoken}}? Say yes or no.",
+      "prompt": {
+        "prompt": "# Personality\nYou are Village Caller: brief, direct, and calm.\n\n# Goal\nGet one answer to a money verification: yes, no, or unsure. Disclose that you are an automated AI assistant first. Never ask for or give account, card, PIN, Social Security, Medicare, or bank numbers. Never say the family word on voicemail. As soon as you have an answer, call submit_verification_answer at POST /verifications/{id}/answer, then close the call.\n\n# Outcomes\nNo means: Thank you. I'm telling her not to send anything, and {{coordinator_name}} will see it in the app now.\nYes means: Thanks. I'll tell her it was you. Village never sends money, and {{coordinator_name}} will see this too.\nUnsure means: Okay. I'll tell her not to send anything until you or {{coordinator_name}} talk to her.",
+        "llm": "claude-haiku-4-5",
+        "temperature": 0.2,
+        "tools": [
+          { "name": "submit_verification_answer" }
+        ],
+        "built_in_tools": {
+          "end_call": {},
+          "voicemail_detection": {}
+        }
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {
+          "recipient_name": "Marco",
+          "family_label": "the Reyes family",
+          "family_word": "[PALABRA]",
+          "care_recipient_rel": "your mom",
+          "amount_spoken": "$2,000",
+          "method_spoken": "",
+          "coordinator_name": "Ana",
+          "verification_id": "ver_1016_01",
+          "village_id": "v_reyes",
+          "member_id": "m_marco"
+        }
+      }
+    },
+    "tts": { "voice_id": "onwK4e9ZLuTAKqWW03F9" },
+    "conversation": { "max_duration_seconds": 60 }
+  },
+  "platform_settings": {
+    "data_collection": {
+      "verification_answer": {
+        "type": "string",
+        "enum": ["yes", "no", "unsure"],
+        "description": "Did the person confirm they asked for money? yes only if clearly confirmed; no if clearly denied; otherwise unsure."
+      }
+    }
+  }
+}
+
