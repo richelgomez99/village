@@ -1,0 +1,30 @@
+[project]
+name = "village"
+version = "0.1.0"
+description = "Village: software that builds itself around your people (Daytona HackSprint NYC, Oct 16 2026)"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "anthropic>=0.40",
+  "surrealdb>=1.0.4",
+  "jsonschema>=4.23",
+  "pyyaml>=6.0",
+  "python-dotenv>=1.0",
+  "arize-otel>=0.7",
+  "openinference-instrumentation-anthropic>=0.1.11",
+  "opentelemetry-sdk>=1.25",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "websockets>=13"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["core"]
+
+[tool.uv]
+package = false
