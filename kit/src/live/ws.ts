@@ -3,6 +3,9 @@ import { applyViewPatch, viewSchema, type View } from "../renderer/view";
 import type { ActionRequest, ResultInfo } from "../renderer/context";
 import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type Identity, type PromptFrame, type ServerFrame } from "./messages";
 
+/** role the kit gives a member with no app view (Core sends role null): they use the phone line. */
+export const PHONE_LINE = "phone_line";
+
 export interface AskPrompt { kind: "ask"; ask_id: string; question: unknown; options?: { id: string; label: unknown }[]; closed?: boolean }
 
 export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "updating" | "closed";
@@ -223,6 +226,11 @@ export class VillageSocket {
       if (!this.s.viewAs) this.set({ ask: a.closed ? null : a });
       return;
     }
+    // a phone-line member (spec person view: null) gets role null and an empty spec from Core: keep the frame, mark the role
+    if ((json as any)?.type === "snapshot" && (json as any).role == null) {
+      const j = json as any;
+      json = { ...j, role: PHONE_LINE, spec: j.spec ?? {}, identity: j.identity ? { ...j.identity, role: PHONE_LINE } : j.identity };
+    }
     const parsed = serverFrameSchema.safeParse(json);
     if (!parsed.success) {
       this.set({ lastError: `bad frame: ${(json as any)?.type ?? "?"}` });
@@ -242,7 +250,7 @@ export class VillageSocket {
         this.offset = Date.parse(f.now) - Date.now();
         let view: View | null = null;
         let lastError: string | null = null;
-        if (f.role !== "control") {
+        if (f.role !== "control" && f.role !== PHONE_LINE) {
           const v = viewSchema.safeParse(f.spec);
           if (v.success) view = v.data;
           else lastError = "snapshot view failed validation";

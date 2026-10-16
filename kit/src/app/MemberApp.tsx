@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IdentityChip, PromptOverlay, StatusStrip, ViewAs, ViewingAsBanner, type ViewAsOption } from "../components/chrome";
 import { memberName } from "../components/shared";
 import { k } from "../i18n/strings";
-import type { LiveState, VillageSocket } from "../live/ws";
+import { PHONE_LINE, type LiveState, type VillageSocket } from "../live/ws";
 import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import type { ApiConfig } from "../control/api";
 import { Renderer } from "../renderer/Renderer";
@@ -17,6 +17,14 @@ export function viewAsOptions(data: Record<string, unknown>): ViewAsOption[] {
   const rota = data["rota:week"];
   if (Array.isArray(rota)) for (const d of rota as { on_duty?: string; backup?: string }[]) for (const m of [d.on_duty, d.backup]) if (m && !out.has(m)) out.set(m, memberName(m, data));
   return [...out].map(([member_id, name]) => ({ member_id, name }));
+}
+
+/** Display name for a phone-line member: their member record, else identity.name unless it is only an honorific ("Mrs."), else from the id. */
+export function phoneLineName(id: string | null, idName: string | undefined, data: Record<string, unknown>): string {
+  const rec = (data[`member:${id}`] as { name?: string } | undefined)?.name;
+  if (rec) return rec;
+  if (idName && !idName.endsWith(".")) return idName;
+  return memberName(id);
 }
 
 export function useSocketState(socket: VillageSocket): LiveState {
@@ -68,8 +76,14 @@ export function MemberApp({ socket, captions = false, api }: { socket: VillageSo
       {state.viewAs ? <ViewingAsBanner name={viewOpts.find((o) => o.member_id === state.viewAs)?.name ?? memberName(state.viewAs, data)} onBack={() => socket.viewAs(null)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
       {ctx ? (
         ctx.view.theme === "elder" ? <Renderer ctx={ctx} /> : <TabbedApp ctx={ctx} blueprint={(state.spec as { blueprint?: { life_areas?: any[] } } | null)?.blueprint ?? null} />
+      ) : state.role === PHONE_LINE ? (
+        <section className="card" data-test="phone-line-card">
+          <h2 className="card-title">{k("phone_uses", lang, { who: phoneLineName(state.memberId, state.identity?.name, data) })}</h2>
+          <p>{state.identity?.village_number ? k("phone_call_n", lang, { n: state.identity.village_number }) : k("phone_call", lang)}</p>
+          <p className="muted">{k("phone_shows", lang)}</p>
+        </section>
       ) : (
-        <p className="skeleton" data-test="skeleton">{k("building", lang, { who: memberName(state.memberId) || "your" })}</p>
+        <p className="skeleton" data-test="skeleton">{memberName(state.memberId) ? k("building", lang, { who: memberName(state.memberId) }) : k("building_you", lang)}</p>
       )}
       {state.ask && !disabled ? (
         <div className="ask-sheet" data-test="ask-sheet" role="dialog" aria-label="Village asks">
