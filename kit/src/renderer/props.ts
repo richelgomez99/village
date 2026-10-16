@@ -1,4 +1,4 @@
-// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.1.0).
+// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.2.0).
 // Strict objects = additionalProperties:false. Keep in sync with the contract; tests parse both fixtures.
 import { z } from "zod";
 
@@ -22,7 +22,7 @@ export const actionName = z.enum([
   "approve_proposal", "reject_proposal"
 ]);
 const BIND_RE =
-  /^(facts:[a-z_]+(\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\.(on_duty|backup))?(\?member=me)?|alerts:active(\?count)?|needs:(open|matched)(\?count)?|resources:available(\?count)?|claims:(topic=[a-z_]+)(\?count)?|checkins:(village|overdue)(\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\?count)?|verifications:(mine|pending\?member=me)|proposals:pending(\?count)?|blueprint:life_areas|chat:village(\?count)?)$/;
+  /^(facts:[a-z_]+(\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\.(on_duty|backup))?(\?member=me)?|alerts:active(\?count)?|needs:(open|matched)(\?count)?|resources:available(\?count)?|claims:(topic=[a-z_]+)(\?count)?|checkins:(village|overdue)(\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\?count)?|verifications:(mine|pending\?member=me)|proposals:pending(\?count)?|blueprint:life_areas|chat:village(\?count)?|prescriptions:current)$/;
 const bind = z.string().regex(BIND_RE);
 const eventKind = z.string().regex(/^[a-z_]+$/);
 const s = z.strictObject;
@@ -116,13 +116,16 @@ export const propsByType = {
     bind: z.literal("chat:village"), composer: z.boolean(), title: label.optional(), mention_label: z.string().max(20).optional(),
     allow_approve: z.boolean().optional(), limit: z.number().int().min(1).max(50).optional()
   }),
-  // Kit extensions (not in contract 1.1.0; LD-3). Placed by the fake server's D22 overlay or ?demo=refill.
-  RefillCard: s({ bind: z.string().max(80), title: label.optional(), owner: label.optional(), day: label.optional() }),
-  TonightCard: s({ bind: z.string().max(80), title: label.optional() })
+  // 1.2.0 (D22)
+  RefillCard: s({
+    bind: z.literal("prescriptions:current"), title: label.optional(), owner: label.optional(), day: label.optional(),
+    show_superseded: z.boolean().optional(), show_schedule: z.boolean().optional(), show_source: z.boolean().optional()
+  }),
+  TonightCard: s({ bind: z.string().regex(/^rota:current\.(on_duty|backup)$/), title: label.optional(), template: z.string().max(60).optional() })
 } as const;
 
 export type CatalogType = keyof typeof propsByType;
-export const CONTRACT_TYPES = Object.keys(propsByType).filter((t) => t !== "RefillCard" && t !== "TonightCard") as CatalogType[];
+export const CONTRACT_TYPES = Object.keys(propsByType) as CatalogType[];
 
 export function isCatalogType(type: string): type is CatalogType {
   return Object.prototype.hasOwnProperty.call(propsByType, type);

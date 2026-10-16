@@ -1,8 +1,11 @@
 // In-browser fake Core: ?fake=carmen|ana|marco|lucia|control. Sends the role's snapshot (reyes_spec.json + fixture data,
 // D22 overlay), then replays ws_sequence_scam.json: `start` after ?start=<s> (default 2; "off" = wait for window.__fake.play),
 // then the tail: ?tail=denied|timeout_tail|confirmed_tail, or — without ?tail — whatever Marco answers (any tab, via
-// BroadcastChannel), else timeout_tail at the fixture's own times. ?speed=<x> scales time. Every sent frame is on window.__frames.
-import { FAKE_CLIENTS, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
+// BroadcastChannel), else timeout_tail at the fixture's own times. ?speed=<x> scales time. Every frame (sent and
+// received) is on window.__frames. Control Room: ?fake=control&seq=founding|scam|release|evolve replays that scene
+// (dev/fakeControl.ts); hello{village:"v_w147"} gets the block_spec control snapshot; window.__fake.warp(min) ticks the clock.
+import { FAKE_CLIENTS, blockControlSnapshot, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
+import { controlSequence, isControlSeq, type ControlSeq } from "./fakeControl";
 
 type Tail = "denied" | "timeout_tail" | "confirmed_tail";
 
@@ -10,6 +13,9 @@ export interface FakeOptions {
   start?: number | "off";
   tail?: Tail | null;
   speed?: number;
+  seq?: ControlSeq | null;
+  /** secondary socket (Control Room view-as / village tab): don't take over window.__fake. */
+  quiet?: boolean;
 }
 
 export function parseFakeOptions(search: string): FakeOptions {
@@ -21,7 +27,8 @@ export function parseFakeOptions(search: string): FakeOptions {
   return {
     start: startRaw === "off" ? "off" : startRaw != null && !Number.isNaN(Number(startRaw)) ? Number(startRaw) : 2,
     tail,
-    speed: Number(p.get("speed") ?? "1") || 1
+    speed: Number(p.get("speed") ?? "1") || 1,
+    seq: isControlSeq(p.get("seq")) ? (p.get("seq") as ControlSeq) : null
   };
 }
 
@@ -105,6 +112,30 @@ class FakeHub {
     }
   }
 
+  /** Control Room replay: contract-shaped control frames to control sockets only. */
+  playControl(seq: ControlSeq) {
+    if (this.played.has(`seq:${seq}`)) return;
+    this.played.add(`seq:${seq}`);
+    for (const t of controlSequence(seq)) {
+      const fire = () => this.sockets.forEach((s) => s.deliverControl(t.msg));
+      const delay = t.ms / this.speed;
+      if (delay <= 0) fire();
+      else this.timers.push(setTimeout(fire, delay));
+    }
+    // the scam scene also drives the member phones (and the control socket's own event frames)
+    if (seq === "scam") this.playStart();
+  }
+
+  offsetMinutes = 0;
+  warp(minutes: number) {
+    this.offsetMinutes += minutes;
+    const now = new Date(Date.parse("2026-10-16T20:50:00-04:00") + this.offsetMinutes * 60_000);
+    const iso = new Date(now.getTime() - 4 * 3600_000).toISOString().replace(/\.\d{3}Z$/, "-04:00");
+    const msg = { type: "control", kind: "clock", payload: { now: iso, offset_minutes: this.offsetMinutes }, at: iso };
+    this.sockets.forEach((s) => s.deliverControl(msg));
+    return { now: iso, offset_minutes: this.offsetMinutes };
+  }
+
   scheduleStart() {
     if (this.opts.start === "off" || this.played.has("start") || this.startScheduled) return;
     this.startScheduled = true;
@@ -151,8 +182,14 @@ class FakeSocket extends EventTarget {
       const viewAs: string | undefined = f.view_as;
       const asClient = viewAs ? clientForMember(viewAs) : null;
       this.target = asClient ?? this.me;
-      this.emit(fakeSnapshot(this.target));
-      this.hub.scheduleStart();
+      if (this.target === "control" && f.village === "v_w147") {
+        this.emit(blockControlSnapshot());
+        return;
+      }
+      this.emit(fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me }));
+      if (this.target === "control") this.emit({ type: "control", kind: "counter", payload: { name: "phones_live", value: Math.max(1, this.hub.sockets.size), label: "phones live" }, at: "2026-10-16T14:01:40-04:00" });
+      if (this.target === "control" && this.hub.opts.seq) this.hub.playControl(this.hub.opts.seq);
+      else this.hub.scheduleStart();
     } else if (f.type === "ping") {
       this.emit({ type: "pong", ts: f.ts });
     } else if (f.type === "ack") {
@@ -183,6 +220,10 @@ class FakeSocket extends EventTarget {
     this.emit(msg);
   }
 
+  deliverControl(msg: any) {
+    if (this.target === "control") this.emit(msg);
+  }
+
   close() {
     if (this.readyState === 3) return;
     this.readyState = 3;
@@ -192,6 +233,7 @@ class FakeSocket extends EventTarget {
 
   emit(msg: unknown) {
     if (this.readyState !== 1) return;
+    if (typeof window !== "undefined") ((window as any).__frames ??= []).push(msg);
     this.fire(new MessageEvent("message", { data: JSON.stringify(msg) }));
   }
 
@@ -209,7 +251,7 @@ export function isFakeClient(v: string | null): v is FakeClient {
 /** Returns a WebSocket-compatible constructor bound to one fake client; also exposes window.__fake for the presenter. */
 export function createFakeWebSocket(client: FakeClient, opts: FakeOptions): typeof WebSocket {
   const hub = new FakeHub(opts);
-  if (typeof window !== "undefined") (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), hub };
+  if (typeof window !== "undefined" && !opts.quiet) (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub };
   const Ctor = function (this: unknown, url: string) {
     return new FakeSocket(url, hub, client);
   } as unknown as typeof WebSocket;

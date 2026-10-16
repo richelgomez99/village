@@ -1,0 +1,26 @@
+{
+  "floor": {
+    "paper": "#FBF6EE",
+    "ink": "#1F1A15",
+    "tomato": "#A8331A",
+    "ok": "#2E6F42",
+    "sage": "#2F6B57",
+    "amber": "#7A4E00",
+    "surface": "#FFFFFF"
+  },
+  "safety": { "stopped": "#A8331A", "recorded": "#2E6F42", "needs_person": "#7A4E00" },
+  "themes": {
+    "elder": { "bg": "#FBF6EE", "text": "#1F1A15", "text_px": 28, "headline_px": 34, "min_px": 22, "button_px": 88, "tap_px": 48, "min_contrast": 7 },
+    "family": { "bg": "#FBF6EE", "text": "#1F1A15", "text_px": 18, "headline_px": 24, "min_px": 14, "button_px": 56, "tap_px": 48, "min_contrast": 4.5 },
+    "dashboard": { "bg": "#FBF6EE", "text": "#1F1A15", "text_px": 16, "headline_px": 22, "min_px": 13, "button_px": 48, "tap_px": 48, "min_contrast": 4.5 }
+  },
+  "tones": {
+    "neutral": { "fg": "#1F1A15", "bg": "#FFFFFF", "bar": "#1F1A15" },
+    "muted": { "fg": "#3D352D", "bg": "#FFFFFF", "bar": "#3D352D" },
+    "info": { "fg": "#1F1A15", "bg": "#FFFFFF", "bar": "#2F6B57" },
+    "ok": { "fg": "#1F1A15", "bg": "#FFFFFF", "bar": "#2E6F42" },
+    "warn": { "fg": "#1F1A15", "bg": "#FFFFFF", "bar": "#7A4E00" },
+    "danger": { "fg": "#1F1A15", "bg": "#FFFFFF", "bar": "#A8331A" }
+  },
+  "accent": "#2F6B57"
+}

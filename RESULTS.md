@@ -19,3 +19,20 @@
 
 ## Public URL (10:52–11:10)
 - Funnel enabled; `https://richel-macbook.tail8feae0.ts.net/health` → 200 from Anchor's browser (external); Carmen's view opens on the operator's phone. The Mac itself cannot resolve `*.ts.net` (userspace tailscaled); test from outside only. Funnel verified → Core :8790.
+
+## Release pipeline (release lane, 11:45; real Daytona + Anchor + Bedrock Haiku)
+| Step (ms) | Cold, caught-and-fixed | Warm, caught-and-fixed | Warm, rev 5 |
+|---|---|---|---|
+| Sandbox create / reuse | 3444 | 149 | 108 |
+| npm install | 2044 | — | — |
+| Upload | 374 | 276 | 299 |
+| vite build | 2192 / 2254 | 2103 / 2088 | 2083 |
+| vitest (floor tests) | 1392 / 1461 | 1254 / 1160 | 1315 |
+| dist download | 208 | 184 | 285 |
+| Preview start | 1299 | 1420 | 1602 |
+| Anchor QA (390×844) | 9101 | 5211 | 5359 |
+| Evals | 3776 | 3249 | 3096 |
+| **Total** | **29731** | **19908** | **14957** |
+- Caught-and-fixed: r3 blocked "contrast 4.1:1 on elder Text (needs 7:1)" → model changed #4C80B4 → #2D5A8C → r4 live. Trace AGENT → TOOL daytona_build ✗ → LLM → TOOL daytona_build ✓.
+- Second family (West 147th block): released in 13409 ms, 33 floor tests passing. 27 release tests offline.
+- Anchor reached the build via the Daytona signed preview (Core's candidate route not yet mounted at run time); tunnel path is tried first once mounted.

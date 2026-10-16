@@ -143,3 +143,69 @@ Audit · T01-T51 have gate test status; deferred to later lanes: T21-T26 rumor/r
 Verify · uv run pytest core/gate -q · 110 passed offline.
 LD-2: Scheduler-facing dose ticks use R-MISSED as the gate rule and policy IDs P-ME-01/P-ME-02 for reminder/escalation attribution.
 LD-3: T21-T26 are tracked but deferred because rumor verification/resource matching are not in G008-G010 and require non-gate source/matching services.
+
+## release
+READY FOR MERGE V3
+Offline: `uv run pytest core/release -q` → 27 passed (model OFF, fakes for Daytona/Anchor/evals). Real: `VILLAGE_LLM=on uv run --with daytona --with anchorbrowser --with playwright --with boto3 --with arize-otel python scripts/release_smoke.py [--break-contrast] [--cold] [--spec contracts/fixtures/block_spec.json]`, run 4× after the main merge (contract 1.2.0, Reyes rev 5), all real Daytona + real Anchor + Arize export on.
+T001 · done · `uv run pytest core/release -q` · ports.py + fakes.py (FakeDaytona/FakeAnchor/FakeEvals/FakeLLMClient)
+T003 · cut · — · snapshots denied on this account; default image + one warm sandbox (label `village-release=warm`, auto_stop 0, `npm ci` once, `.deps_key`) instead
+T005 · done · `uv run pytest core/release -k "floor or bundle" -q` + real r3 run · floor_tests.py generates `tests/floor/floor.test.ts` per village/rev (elder ≥28 px, nothing <22, buttons ≥88, contrast ≥7:1 computed, safety colors, catalog-only incl. RefillCard/TonightCard, ≤3 BigButtons, 911 ContactCard) · bundle = `sandbox/template/` (not kit, LD-1)
+T006 · done · smoke run · daytona_svc.py: upload_files → `vite build` → `vitest --reporter=json` → download vitest.json + dist.tgz; build logs as `control{build_log}` (exec output, not streamed session logs)
+T007 · done · `uv run pytest core/release -k routes -q` · serve.py LocalPublisher: candidate `/v/{id}/r/{rev}/`, `published.json` blue/green; core's `set_published_rev` not used (LD-3)
+T010/T011 · done · smoke run · anchor_qa.py: Anchor session 390×844 + recording, `connect_over_cdp`, measures buttons/911/font, screenshot + report.json + live view URL in evidence_urls; targets TUNNEL_URL candidate first, else Daytona signed preview, else local Playwright = `degraded` · flows A1–A4 (scan/scam taps) not run, only the static view assertions
+T015/T016 · partial · smoke run · evals.py: needs_coverage + no_medical_advice (code), translation_backcheck + elder judge (core.llm "verifier" → Haiku); EVALUATOR spans with `eval.*` attrs + `var/evals/releases/<rel>.json` mirror · `update_evaluations` not called; no vision judge
+T017 · partial · `uv run --with daytona python -m core.release.warm` · sandbox reused by label across processes; Anchor pre-warm exists but sessions are per-release (≈2 s); no 10-min hold test
+T018 · done · `uv run pytest core/release -k pipeline -q` · pipeline.py 6 stages, per-village lock, every frame validated against ws_messages `control{kind: release}`, blocked keeps last good rev, max 2 repairs
+T019/T025 · done · `release_smoke.py --break-contrast` · Builder repair: LLM proposes a token patch, code recomputes contrast, 1 retry with the measured ratio, then deterministic fallback; real run: r3 blocked "contrast 4.1:1 on elder Text (needs 7:1)" → LLM "#4C80B4→#2D5A8C" → r4 released; spans AGENT builder.release → TOOL daytona_build ✗ → LLM builder.repair_theme → TOOL daytona_build ✓ (`test_spans.py`)
+T020 · done · `uv run pytest core/release -k routes -q` · routes.py: `GET /v/{id}/r/{rev}/{path}`, `GET /v/{id}/`, `GET /releases/{rel}/qa/{file}`, `GET|POST /villages/{id}/releases` (202/404/409/422/503) via service.py · no control-token auth (core's middleware)
+T022 · done · `release_smoke.py --break-contrast` · script instead of caught_and_fixed.sh
+T023 · done · `release_smoke.py --spec contracts/fixtures/block_spec.json` · rel_w147_r2 released, 33 floor tests, Anchor on the coordinator view
+T024 · cut · — · acceptance/v3.sh not written; the smoke output + receipts are the evidence
+LD-1: Bundle = `sandbox/template/` (catalog renderer sharing `styleFor()` with the generated floor tests). kit/ needs WS + Core data to render and has no styleFor seam; `RELEASE_BUNDLE_SOURCE=kit` only switches once `kit/src/catalog.ts` exists.
+LD-2: Anchor reaches the candidate via the Daytona signed preview (`vite preview` in the sandbox, inbound only) because Core on :8790 does not mount the release router yet; once mounted, TUNNEL_URL is tried first automatically. Receipt summary says which ("via daytona preview|tunnel|local").
+LD-3: core.llm sends role "haiku" to the Sonnet model on Bedrock and prefers ANTHROPIC_API_KEY for Sonnet roles; that key returns 400 (needs anthropic-workspace-id). Release uses role "verifier" for the judge and repair falls back builder → verifier.
+LD-4: `daytona_build` TOOL span covers build + vitest in the sandbox (one tool call), so a floor failure marks it ✗.
+
+| Measured (ms) | cold `--cold --break-contrast` | warm `--break-contrast` | warm rev 5 | warm v_w147 r2 |
+|---|---|---|---|---|
+| sandbox create / get | 3444 | 149 | 108 | 75 |
+| npm install | 2044 | — | — | — |
+| upload template + village | 274 + 100 | 178 + 98 | 163 + 136 | 229 + 99 |
+| vite build (attempt 1 / 2) | 2192 / 2254 | 2103 / 2088 | 2083 | 2072 |
+| vitest (attempt 1 / 2) | 1392 / 1461 | 1254 / 1160 | 1315 | 1276 |
+| dist download | 208 | 184 | 285 | 211 |
+| signed preview start | 1299 | 1420 | 1602 | 1495 |
+| Anchor QA (session+CDP+flow) | 9101 | 5211 | 5359 | 5398 |
+| evals (Haiku judge) | 3776 | 3249 | 3096 | 1667 |
+| **total** | **29731** (r3 blocked + repair + r4 live) | **19908** | **14957** | **13409** |
+Warm live rebuild = 15.0 s (target ≤ 60 s). Anchor create alone 1.8–2.3 s (earlier runs).
+Core must mount: `from core.release.routes import router as release_router; app.include_router(release_router)`; optional in lifespan `await core.release.service.get_service().startup()`. Broadcast goes through `core.services.control(village, kind, payload)`; specs come from `core.db.db.specs` with fixture fallback.
+Open risks: Anchor-via-tunnel not exercised end to end (router not mounted on the live Core); `published_rev` is a local file, not core state; only static view assertions in QA (no scam/scan taps); ANTHROPIC_API_KEY 400 in core.llm (LD-3).
+## kit
+READY FOR MERGE V2
+Acceptance: `kit/scripts/acceptance_v2.sh` (npm test 57/57 + build + Control Room suites). Offline: `cd kit && npm run dev` → `/control.html?fake=control&seq=founding|scam|release|evolve` (`&tail=denied|timeout|confirmed`, `&speed=<x>`); real: `/control.html?t=<CONTROL_TOKEN>`. All frames (sent + received) on `window.__frames`; `window.__fake.warp(30)`.
+S1 · done · `cd kit && npm test` · contract 1.2.0: RefillCard/TonightCard are contract types (strict props per schema), `prescriptions:current` in the bind grammar, hello `contract_version:"1.2.0"` (+ optional `view_as`), identity chip reads `snapshot.identity`; D22 overlay, `withRefill` and `?demo=refill` removed — fake Core sends rev-5 views unchanged and the fixture's real `bv_prescriptions` · mocked: nothing new
+T020 · done · `npx vitest run tests/control.scene.test.ts tests/control.room.test.tsx` · `theme/a.css` Direction A tokens (phones light #FBF6EE in #2C2621 bezels), header (tabs Reyes/West 147th, phones-counter dots from `control{counter phones_live}`, demo clock from `control{clock}` + `+30m` → `POST /clock/warp`), 12-col grid, pure `control/scene.ts` reducer over every frame (snapshot/event/control reasoning|blueprint|gate|release|qa|build_log|counter|clock|proposal|caption|ledger) · warp mocked offline
+T021 · done · control.room "Blueprint region" (reyes + block fixtures) · quote with need `source_span` highlights by life area, area chips, people cards (channels from `spec.channels`, capability reasons from profile/consent), rules in plain words, group type from `village.kind`; founding stream (`control{blueprint}` stages) overrides snapshot · none
+T022 · done · control.room scam test · quote (es + English), 5-bar waveform, 45 s conic ring from `verification.deadline` on server clock, Village node + flow lines, collapses to the outcome on denied/confirmed/timeout; motion off under reduced-motion · none
+T023 · done · control.room phones test · three read-only Renderers (buttons disabled, captions on) from the control snapshot's whole spec under "village.app/v/reyes · one site · three people"; View as opens a second read-only `hello{view_as}` socket so the main stream keeps flowing, focused phone morphs to the live member snapshot, others dim · control snapshot `data` = merged fixture data offline
+T024 · done · control.room scam test · gate feed newest first with rule ids + Spanish say captioned; DecisionsLog with D23 role names (Founder/Watcher/Verifier/Builder/Explainer) and mode chips; running counts acted_alone/asked_human/refused · mode derived (LD-10)
+T025 · done · control.room ask tests · `POST /villages/{id}/ask {question, lang}` bearer control token → answer + citation chips; disabled in flight; empty ignored; failure = plain words · offline answers canned
+T026 · done · control.room QR test · `GET /villages/{id}/qr?kind=app&format=json` (svg if given, else `qrcode.react` from url); Be Marco first + sage; 409/failed → "Join codes appear once the village is live" · offline URLs point at `?fake=<member>`
+T042 · done · control.room captions test · every `[data-say]` on the elder mirror has an English caption sibling; glossary = live `control{caption}` pairs + kit es/en tables (reverse) + reviewed elder copy + patterns; captions layer at the bottom of the projector · live ASR captions need Core (LD-9)
+Founder ledger · done · control.scene tests · 6 states (queued/running+elapsed/done/retrying/fallback/refused), rows update in place, never vanish; derived from blueprint stages, reasoning plans/notes, verification lifecycle (pending→done/fallback), release/qa stages, proposals
+T027 · partial · roles test · RefillCard on bv_prescriptions (schedule, superseded struck through, source), TonightCard template; LifeAreas/PillOrganizer unchanged from V0 · none
+T028 · partial · `npm run build` · vite-plugin-pwa manifest + denylist from V0; no icons / offline last-snapshot shell yet
+T029 · done · `kit/scripts/acceptance_v2.sh` · PASS
+LD-9: Two control kinds the kit accepts that are NOT in contract 1.2.0: `caption {es, en, speaker?, final?}` (D18 live call captions) and `ledger {id, status, what, result?, role?, attempt?}` (explicit founder work-log rows). Unknown kinds are ignored, so Core can start sending them any time; contracts should add them (or core sends them anyway).
+LD-10: D23 `mode` isn't on `control{reasoning}` (payload is additionalProperties:false; core LD-2 stores it in decision `refs`). Kit uses `payload.mode` if present, else gate decision → mode (deny/advise_do_not_send/refuse_medical_advice/report_already_logged = refused; verify_with_member/escalate/require_approval/advise_talk_to_coordinator/verify_with_source = asked_human; rest acted_alone) and words for non-gate reasoning. Gate reasoning rows aren't double counted; the window-closing tick (allow + empty say) isn't counted.
+LD-11: Reasoning source → role: builder = Founder while a founding blueprint stream is open, else Builder; release = Builder; evolve/memory = Watcher; gate/voice = Verifier; Ask box = Explainer.
+LD-12: The West 147th tab opens its own control socket (`hello{village:"v_w147"}`) once and keeps it; switching tabs doesn't reconnect the main socket.
+LD-13: `VillageSocket.onFrame` replays the control socket's last 500 frames to late subscribers (the snapshot arrives before React mounts).
+Open risks / core asks:
+- Core: control snapshot `data` should carry every bind any view uses (elder `rota:current.on_duty`, coordinator binds, helper `rota:current?member=me` has no "me" for control) or the three phones show empty cards.
+- Core: send `control{counter name:"phones_live"}` on each socket connect/drop (one dot per socket); otherwise the counter shows 0.
+- Core: honour `hello.view_as` for the control token on a second socket and keep it read-only; send `snapshot.identity`.
+- Core/contracts: `mode` on reasoning payloads (LD-10) and the caption/ledger kinds (LD-9).
+- Core: `GET /villages/{id}/qr?format=json` with the control bearer, `POST /villages/{id}/ask`, `POST /clock/warp` — all coded against openapi, not run against a live Core.
+- Bundle: control entry 48 kB (17.5 kB gz) + shared chunk 243 kB (65 kB gz, includes fixtures for offline mode).

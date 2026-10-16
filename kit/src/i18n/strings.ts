@@ -15,10 +15,11 @@ const en = {
   viewing_as: "Viewing as {name} · you can't answer for them",
   back_to_me: "Back to me",
   tonight: "Tonight: {name}",
-  tonight_nobody: "Tonight: nobody yet · Ana knows",
+  tonight_nobody: "Nobody assigned tonight",
   refill_title: "{day} refill · {owner}",
   changed: "changed {when}, {who}; was {was}",
   was: "was",
+  changed_short: "changed",
   taken: "Taken",
   uncertain: "Not sure",
   missed: "Missed",
@@ -66,10 +67,11 @@ const es: Record<Key, string> = {
   viewing_as: "Viendo como {name} · no puede contestar por esa persona",
   back_to_me: "Volver a mí",
   tonight: "Esta noche cuida {name}",
-  tonight_nobody: "Esta noche: nadie todavía · Ana lo sabe",
+  tonight_nobody: "Nadie asignado esta noche",
   refill_title: "Relleno del {day} · {owner}",
   changed: "cambió {when}, {who}; antes {was}",
   was: "antes",
+  changed_short: "cambió",
   taken: "Tomada",
   uncertain: "No seguro",
   missed: "Faltó",
@@ -107,3 +109,7 @@ export function k(key: Key, lang: string, vars: Record<string, string | number> 
   return (table[key] ?? en[key]).replace(/\{(\w+)\}/g, (_, v) => String(vars[v] ?? ""));
 }
 export type StringKey = Key;
+/** Both tables (caption glossary builds its es→en reverse map from these). */
+export function tablesFor(): { en: Record<Key, string>; es: Record<Key, string> } {
+  return { en, es };
+}

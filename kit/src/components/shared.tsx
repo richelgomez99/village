@@ -2,6 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { useCtx } from "../renderer/context";
 import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
+import { captionFor } from "../i18n/captions";
 
 const PATHS: Record<string, string> = {
   phone: "M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z",
@@ -34,6 +35,9 @@ export function Bi({ value, className, say = true }: { value: unknown; className
   if (ctx.captions && value && typeof value === "object") {
     const v = value as Record<string, string>;
     if (v.es && primary === v.es && v.en && v.en !== v.es) caption = v.en;
+    else if (v.es && primary === v.es) caption = captionFor(v.es) ?? "";
+  } else if (ctx.captions && typeof value === "string" && ctx.lang === "es") {
+    caption = captionFor(value) ?? "";
   }
   return (
     <>
@@ -72,7 +76,7 @@ export function ReadAloud({ target }: { target: React.RefObject<HTMLElement | nu
   return (
     <button type="button" className="read-aloud" data-test="read-aloud" data-speaking={speaking} aria-pressed={speaking} onClick={onClick}>
       <Icon name="speaker" />
-      <span>{speaking ? k("stop_reading", lang) : k("read_aloud", lang)}</span>
+      <span><Bi value={speaking ? k("stop_reading", lang) : k("read_aloud", lang)} say={false} /></span>
     </button>
   );
 }
@@ -82,7 +86,7 @@ export function ConfirmSheet({ text: question, onYes, onNo }: { text: string; on
   return (
     <div className="sheet-backdrop" data-test="confirm-sheet" role="dialog" aria-modal="true" aria-label={question}>
       <div className="sheet">
-        <p className="sheet-q" data-say="">{question}</p>
+        <p className="sheet-q"><Bi value={question} /></p>
         <button type="button" className="btn btn-danger" data-test="confirm-yes" onClick={onYes}>{k("confirm_yes", lang)}</button>
         <button type="button" className="btn btn-soft" data-test="confirm-no" onClick={onNo}>{k("confirm_no", lang)}</button>
       </div>

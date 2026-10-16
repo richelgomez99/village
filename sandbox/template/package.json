@@ -1,0 +1,18 @@
+{
+  "name": "village-bundle",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
+  },
+  "devDependencies": {
+    "vite": "7.3.7",
+    "vitest": "4.1.12"
+  }
+}
