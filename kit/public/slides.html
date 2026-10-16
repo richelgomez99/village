@@ -32,9 +32,10 @@
   .shot { max-width:100%; max-height:84vh; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.55); display:block; margin-inline:auto; }
   .phones { display:flex; gap:1.6vw; justify-content:center; align-items:flex-end; }
   .phones figure { margin:0; text-align:center; min-width:0; }
-  .phones img { height:min(72vh, 820px); width:auto; max-width:100%; border-radius:26px; box-shadow:0 24px 60px rgba(0,0,0,.55); display:block; }
+  .phones img { height:min(74vh, 820px); aspect-ratio: 390 / 844; width:auto; max-width:100%; object-fit:cover; object-position:top; border-radius:26px; box-shadow:0 24px 60px rgba(0,0,0,.55); display:block; background:#fff; }
   figcaption { margin-top:1vh; font-size:clamp(13px,1.1vw,18px); color:var(--muted); }
-  .two { display:grid; grid-template-columns: 1fr 1fr; gap:1.6vw; align-items:start; }
+  .two { display:grid; grid-template-columns: 1fr; gap:1.2vh; align-items:start; }
+  .two figure:nth-child(2) { max-width:46%; justify-self:end; }
   .two img { width:100%; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,.5); display:block; }
   .two figure { margin:0; min-width:0; }
   .pipe { display:flex; flex-wrap:wrap; gap:.8vw; margin:1vh 0 2vh; }
@@ -120,9 +121,9 @@
       <li>It remembers with history: lisinopril is 10 mg since Oct 3, and "as of Oct 2" still answers 5 mg.</li>
     </ul>
   </div>
-  <div class="two">
+  <div class="phones">
     <figure><img src="hero/phone-ana-did.png" alt="What Village did: on its own, asked a person, refused itself"><figcaption>Ana · What Village did</figcaption></figure>
-    <figure><img src="hero/phone-ana-fact.png" alt="Fact card: lisinopril 10 mg since Oct 3, 5 mg kept as history"><figcaption>What it knows, and how it knows</figcaption></figure>
+    <figure style="align-self:center"><img style="aspect-ratio:auto; height:auto; width:min(30vw,520px); border-radius:14px" src="hero/phone-ana-fact.png" alt="Fact card: lisinopril 10 mg since Oct 3, 5 mg kept as history"><figcaption>What it knows, and how it knows</figcaption></figure>
   </div>
 </section>
 
@@ -235,6 +236,7 @@
     document.getElementById('pos').textContent=(n+1)+' / '+slides.length; [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===n)); }
   addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault(); show(Math.min(i+1,slides.length-1));} else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault(); show(Math.max(i-1,0));} else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); });
   document.querySelector('.deck').addEventListener('click',e=>{ if(e.target.closest('a')) return; if(e.clientX>innerWidth/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
+  addEventListener('hashchange',()=>{ const n=parseInt(location.hash.slice(1)||'0',10)||0; if(n!==i && n>=0 && n<slides.length) show(n); });
   show(i);
 </script>
 </body>
