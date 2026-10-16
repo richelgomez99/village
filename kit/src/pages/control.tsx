@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, createVillage, warpClock, type ApiConfig } from "../control/api";
-import { AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
+import { AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
@@ -214,6 +214,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api }: {
           <BlueprintRegion spec={spec} scene={scene} />
           <LedgerRegion rows={scene.ledger} nowMs={socket.nowMs} />
           {scene.live ? <LiveMomentRegion live={scene.live} nowMs={socket.nowMs} spec={spec} data={scene.data} /> : null}
+          {scene.proposal ? <ProposalRegion proposal={scene.proposal} release={scene.release} spec={spec} /> : null}
           <KnowsRegion api={api} village={village} data={scene.data} spec={spec} />
           <PhonesRegion spec={spec} data={scene.data} village={village} nowMs={socket.nowMs} viewAs={viewAs} onViewAs={setViewAs} live={liveView} cfg={api} />
           <GateRegion gate={scene.gate} decisions={scene.decisions} autonomy={scene.autonomy} />

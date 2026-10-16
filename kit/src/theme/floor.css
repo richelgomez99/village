@@ -237,3 +237,16 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .fact-card .fact-asof { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
 .fact-card .fact-asof button { border: 1px solid #E5DACB; border-radius: 999px; background: #fff; padding: 4px 10px; }
 .fact-card .fact-asof button.active { border-color: var(--sage, #2F6B57); font-weight: 700; }
+/* Proposal (INTERACTIONS §3 Options): four labelled blocks, release stepper, done + undo */
+.proposal-blocks { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+.pb h4 { margin: 0 0 4px; font-size: 0.8em; letter-spacing: 0.06em; text-transform: uppercase; color: #5B5249; }
+.pb p, .pb ul { margin: 0; }
+.pb ul { padding-left: 18px; }
+.pb-checked { list-style: none; padding-left: 0 !important; }
+.pb-checked li { display: flex; gap: 6px; align-items: center; }
+.proposal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.release-stepper { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.release-stepper .done { color: #2F6B57; }
+.release-stepper .active { font-weight: 700; }
+.release-stepper .todo { color: #8A7F74; }
+.proposal-done { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #E3EFE8; font-weight: 700; }

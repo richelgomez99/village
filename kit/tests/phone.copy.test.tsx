@@ -26,16 +26,13 @@ describe("family-phone copy (DEMO-NOTES)", () => {
     expect(authorName("m_lucia", {})).toBe("Lucia");
   });
 
-  it("a proposal post is title + one line + Approve · Not now; options and reasons sit behind the card's Why", () => {
+  it("a proposal post is title + one line + Approve · Not now; the details live on the Proposal card", () => {
     const { container } = renderView((reyes as any).views.coordinator, { "chat:village": chat, "proposals:pending": [card] });
     const post = container.querySelector("[data-test='chat-proposal']")!;
     expect(post.textContent).toBe("Village answers unknown callers for MamáVillage proposes answering unknown callers for Mamá first.");
     expect(post.textContent).not.toContain("Options weighed");
     expect(container.querySelector("[data-test='chat-proposal-approve']")).not.toBeNull();
-    const why = container.querySelector<HTMLDetailsElement>("[data-test='proposal'] [data-test='proposal-why']")!;
-    expect(why.open).toBe(false);
-    expect(why.querySelector("summary")?.textContent).toBe("Why");
-    expect(why.textContent).toContain("+ Village answers unknown callers first");
+    expect(container.querySelector("[data-test='proposal'] [data-test='pb-changes']")?.textContent).toContain("Village answers unknown callers first");
     expect(oneLine("x".repeat(200))).toHaveLength(118);
   });
 
