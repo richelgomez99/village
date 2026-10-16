@@ -48,12 +48,69 @@ One pipeline, keyed by village id:
 | Release, cold sandbox, with a caught-and-fixed build | 29731 ms | — |
 | Floor tests | [MEASURE: Reyes floor test count] | 33 passing |
 
-Same code, no Reyes-specific code outside `data/`. [PENDING: the platform sweep is being verified; until the orchestrator confirms, say "being verified".]
+Same code, no Reyes-specific code outside `data/`: verified at 12:30, searching Core for the family's names returns nothing outside test fixtures (it was 231 hits in 35 files). One Core serves both villages, and one gate test runs the same rules against both specs: Carmen's quiet hours (21:30–07:00) suppress a 21:50 reminder for Reyes and not for the block.
+
+### Hero screenshots (gallery order)
+1. **The scammer never reached her** (V4 GIF, below) or the V1 clip until then.
+2. **What Village knows.** Screenshot slot: the fact-history card on the Control Room for Carmen's lisinopril. [PENDING: screenshot file]
+   Caption: *"What Village knows, and how it knows it. Lisinopril is 10 mg since Oct 3, from a call (conv_setup_0003, 88 seconds in: "The doctor changed her lisinopril from five to ten on October third."). The old 5 mg isn't overwritten; it's kept as history, and asking "as of Oct 2" still answers 5 mg. Every fact is typed, time-aware and traced to its source, and the voice line, the ledger and the nightly rounds share it. SurrealDB Agent Memory."*
+3. **The caught-and-fixed build:** the release receipt showing rev 3 blocked at contrast 4.1:1, rev 4 live, with the Anchor screenshot and live-view link.
+4. **Two villages, one pipeline:** the switcher on Reyes and on West 147th St, with both release times.
+
+### Sponsor tools (three bullets, one measured number, the code)
+
+#### Daytona: build and test every version before anyone sees it
+- Every version of a village's software is built in a Daytona sandbox: upload → `vite build` → floor tests generated for that village (elder text at least 28 px, contrast at least 7:1, buttons at least 88 px, a 911 contact) → `dist` download. Sandboxes start from an image, because snapshot creation is denied on our tier; one warm sandbox is reused by label.
+- The Builder fixed its own failing build: rev 3 was blocked with "contrast 4.1:1 on elder Text (needs 7:1)", the model changed #4C80B4 to #2D5A8C, Daytona rebuilt and rev 4 went live.
+- Sandbox egress is blocked by design: code an AI wrote for a family can't reach the internet; Core pulls the results out.
+
+**Measured:** Reyes release 14957 ms warm; West 147th block 13409 ms with 33 floor tests.  
+**Code:** `core/release/pipeline.py`, `core/release/floor_tests.py`, `core/release/daytona_svc.py`, `scripts/release_smoke.py`
+
+#### SurrealDB: shared, time-aware memory, pushed live to every phone
+- SurrealDB Cloud LIVE queries fan every change out to every phone: a check-in reaches all three family phones in about 130 ms.
+- Agent Memory facts are typed, time-aware, supersede rather than overwrite, and are traced to their source: lisinopril is 10 mg since Oct 3 (source: call conv_setup_0003 at 88 s, "The doctor changed her lisinopril from five to ten on October third."), the 5 mg fact is kept as history, and asking "as of Oct 2" returns 5 mg.
+- The memory is shared across agents: the voice line's post-call transcripts, the ledger and the Watcher's nightly rounds write and read the same facts, scoped per village and per member.
+
+**Measured:** Agent Memory writes p50 630 ms; LIVE fan-out to three phones about 130 ms.  
+**Code:** `core/db.py`, `core/live.py`, `core/memory/`
+
+#### Arize: the agent's senses, and what decides a release ships
+- Every agent step is a span with `session.id=village-<id>`; every gate decision is a GUARDRAIL span; every release eval is an EVALUATOR span.
+- The scam eval set runs as an Arize experiment (dataset `village-scam-eval`, experiment `scam-model-20261016T153959Z`).
+- The Watcher reads its own evals and traces to propose changes: a session eval flagged the Oct 9 call as possible fraud (0.95), and that pattern is the evidence behind the receptionist proposal.
+
+**Measured:** 30/30 scam calls caught, 0/20 false alarms on our 50-case eval set.  
+**Code:** `core/obs/tracing.py`, `evals/`, `core/release/evals.py`
+
+#### Anchor Browser: a real phone-sized browser checks every build
+- Every candidate build is opened in an Anchor browser at phone size (390×844) and clicked through before release.
+- The receipt carries a screenshot and the live-view URL as evidence.
+- A build Anchor hasn't checked doesn't reach anyone's phone.
+
+**Measured:** 5.2 s per check, warm (5211 ms).  
+**Code:** `core/release/anchor_qa.py`
+
+#### ElevenLabs: the whole product, for the person who won't use apps
+- Carmen's Village line is a real number, +1 848 257 9221, in Spanish, formal (usted), and it says it's a program before anything else.
+- Mid-call tools `report_money_request` and `await_verification` call Core; the gate's lines are spoken word for word ("Ese no era Marco. No mande dinero.").
+- First live call at 12:23, end to end: init webhook → `report_money_request` → Marco's tap on his own phone → the refusal spoken to the caller.
+
+**Measured:** text to speech 656 ms for a 50 KB clip.  
+**Code:** `agents/`, `core/voice/`
+
+#### AWS: the reasoning fallback that kept the day running
+- Claude Haiku 4.5 on Bedrock (Mantle) is the fallback model; in the morning, before the Anthropic key worked, it ran every role, and it ran the scam extraction, the release evals and the Builder's repair.
+- The primary path is the direct Anthropic API with Claude Sonnet 5.5 and Haiku 5.5 (the founding intake ran on Sonnet 5.5), through one `llm()` factory that falls back to Bedrock.
+- The scam eval set's model-on run (30/30, 0/20) used Bedrock Haiku 4.5 for extraction; a Bedrock Haiku 4.5 blueprint stream starts in 1.1 s.
+
+**Measured:** time to first token about 520–600 ms on Bedrock Haiku 4.5.  
+**Code:** `core/llm.py`
 
 ### How we built it
 - **Core:** Python 3.13, FastAPI, one process. The gate (`core/gate/`) is pure Python with no model calls and no network: 110 tests, all passing with the model off.
 - **The agent:** a hand-written tool-use loop over Claude with five roles: Founder (the intake), Watcher (nightly rounds, pattern detection), Verifier (the money checks), Builder (changes and releases), Explainer ("Ask Village why"). Every tool call that changes something is a proposal the gate decides.
-- **Claude:** Sonnet 5.5 and Haiku 5.5 through the Anthropic API, with Claude Haiku 4.5 on AWS Bedrock as the fallback. Every measured run on this page used Bedrock Haiku 4.5.
+- **Claude:** Sonnet 5.5 and Haiku 5.5 through the Anthropic API, with Claude Haiku 4.5 on AWS Bedrock as the fallback. The founding intake was measured on Sonnet 5.5; the release pipeline, scam evals and repair on Bedrock Haiku 4.5.
 - **SurrealDB Cloud** holds villages, members, events, decisions and verifications; LIVE queries feed a WebSocket hub that pushes each change to every phone (p50 22 ms insert to notification). **SurrealDB Agent Memory** keeps facts with their sources: lisinopril 10 mg since Oct 3 supersedes 5 mg, and an as-of-Sep-15 query still returns 5 mg.
 - **Daytona** builds and tests every version in a sandbox that can't reach the internet; Core pulls the results out. **Anchor** opens each build at phone size with a recording. **Arize** traces every step (gate decisions as guardrail spans), scores each release, and ran the scam eval set as an experiment.
 - **ElevenLabs** is Carmen's Spanish phone line, with safety sentences spoken word for word, and the call that checks with Marco. **Twilio** carries the calls.
@@ -63,7 +120,7 @@ Same code, no Reyes-specific code outside `data/`. [PENDING: the platform sweep 
 
 ### Challenges we ran into
 - **Rate limits while running five implementation lanes at once.** Five Codex sessions shared one OpenAI limit of 1M tokens per minute and kept dropping turns; one lane had zero commits after 20 minutes. We moved lanes to Claude in two steps (D26 at 10:30, D28 at 11:30) and kept Codex as the implementer of record for the early work.
-- **Model access.** On the AWS Bedrock lab account only Claude Haiku 4.5 answered; every Sonnet and Opus id returned 404. All measured runs used Haiku 4.5.
+- **Model access.** On the AWS Bedrock lab account only Claude Haiku 4.5 answered; every Sonnet and Opus id returned 404. Haiku 4.5 carried every role until the Anthropic key worked.
 - **API key scoped to a workspace.** Our Anthropic API key returned 400 until requests carried the workspace id, so the direct Anthropic path only turns on when that id is set.
 - **Daytona snapshot creation was denied** on our account tier, so we keep one warm sandbox from the default image (install once, reuse by label) instead of a prepared snapshot. Cold release: 29.7 s; warm: 15.0 s.
 - **Sandbox egress is blocked**, by design: a Daytona sandbox can't reach any outside host. That is what we want for code an AI wrote for a real family, so sandboxes only build and test, and Core pulls the results out.
@@ -74,7 +131,8 @@ Same code, no Reyes-specific code outside `data/`. [PENDING: the platform sweep 
 - **A build that failed was fixed by the agent itself.** Rev 3 was blocked with "contrast 4.1:1 on elder Text (needs 7:1)"; the Builder changed #4C80B4 to #2D5A8C, the build re-ran in Daytona and rev 4 went live. Trace: AGENT → TOOL daytona_build ✗ → LLM → TOOL daytona_build ✓.
 - **Two villages, one pipeline:** Reyes released in 14957 ms warm; the West 147th block in 13409 ms with 33 floor tests passing.
 - **Village did things on its own last night, and stopped itself once.** One nightly round on seeded data: 3 things done alone, 1 question to a person ("Ana has taken 9 of the last 12 nights. Ask Lucía to take the Sunday call?"), 1 refused: "Blocked by code: Carmen's rule, no calls after 9:30 PM."
-- **245 Python tests and 57 kit tests**, all passing offline with the model off.
+- **249 Python tests and 57 kit tests**, all passing offline with the model off.
+- **The rebuild runs for real:** a resolved scam check triggers the proposal in 2.2 s; Ana's yes runs Daytona, Anchor and evals and patches every phone in 7.7 s (7705 ms; first run 13381 ms).
 
 ### What we learned
 - Putting the rules in code made the AI parts easier to build, not harder: every lane could test against the gate without a model.
@@ -111,7 +169,7 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 
 ---
 
-## V1 · [PENDING V1: V1-green is tagged; confirm the call works on real phones] · "When a scammer calls Mom as her son, Village checks with the real son before she sends a dollar"
+## V1 · READY (first live call 12:23, verified end to end; clip URL pending) · "When a scammer calls Mom as her son, Village checks with the real son before she sends a dollar"
 
 **Headline:** When a scammer calls Mom as her son, Village checks with the real son before she sends a dollar.
 
@@ -128,7 +186,7 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 
 ---
 
-## V2 · [PENDING V2: founding intake not in main yet] · "Describe your people. Village builds what each of them needs."
+## V2 · [PENDING V2: confirm the intake on the Control Room] · "Describe your people. Village builds what each of them needs."
 
 **Headline:** Describe your people. Village builds what each of them needs.
 
@@ -139,7 +197,7 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 - "Ask Village why": type "Why did you call Marco and not Lucía?" and it answers from its decision log, citing sources.
 - Carmen's own rules: "after 9:30, no calls," in her words, enforced by code.
 
-**Numbers:** intake to three apps: [MEASURE: seconds]. Phones joined during the demo: [MEASURE: count].
+**Numbers:** full 11-question intake to a valid spec, Sonnet 5.5: 65.8 s (who's-who draft 11.5 s, three apps rendered in 16.9 s). Phones joined during the demo: [MEASURE: count].
 
 ---
 
@@ -153,7 +211,7 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 
 ---
 
-## V4 · [PENDING V4: live rebuild on stage not yet run] · "Learns from every attempt"
+## V4 · [PENDING V4: rebuild beat run live on the Control Room] · "Learns from every attempt"
 
 **Headline adds:** It learns from every attempt: 30/30 scams caught, 0/20 false alarms on our 50-case eval set.
 
@@ -166,7 +224,7 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 - **Every incident becomes a test:** last night's call joins the eval set the next change must pass (rules only: 29/31 caught, 0/20 false alarms with the Reyes incident added).
 - **Carer load:** "Ana has taken 9 of the last 12 nights. Ask Lucía to take the Sunday call?" Asked, never done on its own.
 
-**Numbers:** live rebuild on stage, Ana's yes to every phone changed: [MEASURE: seconds] (pipeline alone, warm: 14957 ms).
+**Numbers:** Ana's yes → every phone patched in 7705 ms with the real pipeline (first run 13381 ms); proposal appears 2166 ms after the scam check resolves. Receipt: "Scored on 52 calls (last night's included)."
 
 ---
 
@@ -184,11 +242,12 @@ Deterministic gate, 110 tests with the model off · verification through a chann
 | Agent Memory write / history / recall | p50 630 ms / p50 248 ms / 3.7 s | RESULTS.md |
 | Claude Haiku 4.5 on Bedrock, time to first token | about 520–600 ms | RESULTS.md 01 |
 | ElevenLabs text to speech, 50 KB mp3 | 656 ms | RESULTS.md 09 |
-| Tests offline, model off | 245 Python (110 gate), 57 kit | gate + kit lane reports; `uv run pytest -q` at merge |
+| Tests offline, model off | 249 Python (110 gate), 57 kit | RESULTS.md platform; gate + kit lane reports |
 | Carmen's report to Marco's prompt | [MEASURE: seconds] | V1 |
-| Intake to three apps | [MEASURE: seconds] | V2 |
+| Founding intake, 11 questions → spec + three apps (Sonnet 5.5) | 65.8 s (draft 11.5 s, render 16.9 s) | LANE-REPORT builder |
+| Rebuild: scam check resolved → proposal / Ana's yes → every phone patched | 2166 ms / 7705 ms (first run 13381 ms) | RESULTS.md evolve |
 | Reyes floor test count | [MEASURE] | V3 receipt |
-| Live rebuild on stage | [MEASURE: seconds] | V4 |
+| Rebuild timed live on stage | [MEASURE: seconds, at the pitch] | V4 |
 | Cost per village per month | [MEASURE: dollars, from real usage] | not measured |
 
 ---
