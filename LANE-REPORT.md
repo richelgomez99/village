@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE4
+READY FOR MERGE VOICE5
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -648,3 +648,10 @@ READY FOR MERGE KIT-MEMBERS
 - LD-M3 · `events:since_last_turn?member=me` in helper snapshots (core-glue G2-2 says done; shape `{at, text{en,es}, source?}` matches).
 - LD-M4 · builder/core support for a `supporter` view (CARE_ROLES, templates channel remap, S2 lint) so Lucía can get her own app; the kit already handles any view key.
 - Open risks: the full vitest run sometimes logs "window is not defined" from `tests/hero.test.tsx` (Control Room timers after teardown; it passes alone and is not from this lane); the evolve receptionist patch targets coordinator/helper children by position, so it should be re-checked against the new 11/7-child views on the live Core after reset_demo.
+
+### voice5 (receptionist follow-ups, 13:3x)
+- AI disclosure · done · the init hook's receptionist first_message is now "<Name>'s phone, this is Village, a program that answers for <her|him|them>. Who's calling?" Name and pronoun come from the spec. Test: `pytest -k receptionist_override`.
+- relay_message · done · new tool `relay_message{conversation_id, caller_id, utterance, from_name, text, callback_number?, callback_requested?, call_secs?, village_id?, lang?}`, additionalProperties false. It posts a Village `chat` message, e.g. "Richard, from church, asked Mamá to call back at the same number: "…" · screened call, 13:28" (es in text_i18n; "Mamá" is the recipient's spec `short_name`). It adds a `message_taken` row to `calls:screened` and says thank-you in the caller's language. Contract addition requested: `req_relay_message` in voice_tools (additive).
+- Screened log · done · the post-call webhook, for receptionist calls (receptionist=on, caller_known=false), writes one row per call. The outcome comes from Core's cached screen_caller answer (passed_through | held | refused); otherwise message_taken (from relay) or hung_up. Rows live in `core/voice/screened.py`, and `core/bindings_v3.screened_calls` merges them (a 6-line additive seam in a core file). Test: `pytest -k "relay_message or receptionist_call"`.
+- Prompt · done and pushed · in receptionist mode: ask name, relationship and purpose first; never put an unknown caller through (only screen_caller pass_through or confirmed); in Spanish always usted; take a message and call relay_message. Live push of the mom line + relay_message tool: invariants re-verified (static first message, no missing defaults, narrowed guardrail, init flag true).
+- Dependency · relay_message, the disclosure greeting and the screened log are Core-side. Live calls get them after this branch is merged and the Core restarted. Until then the live relay_message tool gets no handler (KeyError at /tools/relay_message).
