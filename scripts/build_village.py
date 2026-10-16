@@ -65,6 +65,7 @@ async def amain() -> int:
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--ask", help="ask the Explainer a question after the draft")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--spans", action="store_true", help="record builder spans and print the LLM spans' prompt-template attributes")
     args = ap.parse_args()
 
     if args.replay or args.resume:
@@ -90,6 +91,12 @@ async def amain() -> int:
                 answer(vid, line)
             await asyncio.sleep(0.05)
 
+    recorder = None
+    if args.spans:
+        from core.builder.spans import RecordingTracer, set_tracer
+
+        recorder = RecordingTracer()
+        set_tracer(recorder)
     t0 = time.perf_counter()
     feeder = asyncio.create_task(stdin_feeder()) if args.resume else None
     run = await found(inp, village_id=vid, services=svc, options=opts)
@@ -110,6 +117,10 @@ async def amain() -> int:
     if args.time:
         t = run.timings
         print(f"timings: blueprint_ttft_ms={t.get('blueprint_ttft_ms')} blueprint_ms={t.get('blueprint_ms')} render_role_ms={t.get('render_role_ms')} render_ms={t.get('render_ms')} dailymed_ms={t.get('dailymed_ms')} total_ms={t.get('total_ms')} wall_s={total:.1f}")
+    if recorder is not None:
+        for sp in recorder.spans:
+            if sp.kind == "LLM":
+                print(f"span {sp.name} role={sp.attrs.get('role')} llm.prompt_template.name={sp.attrs.get('llm.prompt_template.name')} llm.prompt_template.version={sp.attrs.get('llm.prompt_template.version')} source={sp.attrs.get('llm.prompt_template.source')} status={sp.attrs.get('status')}")
     if args.ask:
         res = await ask(vid, args.ask, services=svc, llm=llm_client)
         print(f"\nask: {args.ask}\n→ {res.answer}\n  citations={[c['id'] for c in res.citations]} dropped={res.dropped_citations}")

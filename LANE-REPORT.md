@@ -167,6 +167,10 @@ LD-7: Spine is "about 130 ms" (RESULTS); the brief's "100–130 ms" has no sourc
 LD-8: "Sonnet 5.5 + Haiku 5.5 via the Anthropic API" has no measured run in RESULTS/LANE-REPORT (release LD-3: key 400 without workspace id). Pages say Core uses them with Bedrock Haiku 4.5 fallback, and that every measured run used Haiku 4.5.
 
 ## builder
+READY PROMPT-HUB
+PH-1 · done · arize SDK 8.59.1 (`uv run --with arize`; ax CLI has no profile) · Prompt Hub `village-builder`: v1 `UHJvbXB0VmVyc2lvbjoxMDk0MDA6cnl0cQ==` (builder_system.md SYSTEM PROMPT), v2 `UHJvbXB0VmVyc2lvbjoxMDk0MDE6dFZIMw==` (v1 + the v2 delta rules/checklist) labelled `production`
+PH-2 · done · `uv run pytest core/builder/tests/test_prompts.py -q` (SDK mocked: hub up, hub down → local, span attrs) · `core/builder/prompts.py` fetches `village-builder@production` (10 s TTL, local fallback; `BUILDER_PROMPT_SOURCE=local` forces the file, tests default to it); render_app spans carry `llm.prompt_template.name` / `.version` / `.source`; a reasoning note "Builder prompt: village-builder · hub · <version>" per render. Real run: see RESULTS.md (all 3 roles validated on the Hub v2 prompt, version on every span).
+LD-18: `arize` is not in pyproject → core must add `arize>=8.59` (the import is lazy; without it the builder silently uses the local prompt).
 READY FOR MERGE ASKS-2
 A2-1 · done · test_cover_for_marco_does_not_ask_marco… · intent honored: "I need someone to cover for Marco tomorrow" → Marco is out → only eligible others are asked (not on duty, not the asker, available that day per profile.availability; leader last) → "Tomorrow's Saturday, Marco's night. Lucía, can you cover?"; "need someone tomorrow" still asks the on-duty person + one cover.
 A2-2 · done · test_need_someone… · ONE Village message (`kind: answer`, reply_to the asker) with facts + question(s); asks attached as refs `{kind: "ask", id: <member ask id>, member, label, answered: null|yes|no, answered_at}`; no nudge bubbles; per-member `prompt{kind: ask, ask_id, question, options yes/no}` still sent to each asked phone.

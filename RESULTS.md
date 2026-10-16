@@ -103,3 +103,6 @@
 - `snapshot.create(name="village-kit", image="node:22-bookworm-slim")` → ACTIVE in 4.2 s (the earlier key returned "Access denied"; key scope, not plan).
 - Cold sandbox from snapshot `village-kit`: 1,043 ms to STARTED (node v22.22.2). Image-based cold create earlier today: 2.9 s on the receipt.
 - Core: `RELEASE_DAYTONA_SNAPSHOT=village-kit` → `CreateSandboxFromSnapshotParams(snapshot=…)`; warm sandbox still reused by label.
+||||||| 7dba766
+## Builder prompt on Arize Prompt Hub (14:17)
+- `village-builder` pushed with the arize SDK v8.59.1 (`ArizeClient.prompts.create` / `create_version` / `set_labels`): v1 `UHJvbXB0VmVyc2lvbjoxMDk0MDA6cnl0cQ==`, v2 `UHJvbXB0VmVyc2lvbjoxMDk0MDE6dFZIMw==` labelled `production`. Real founding replay (Sonnet 5.5, `scripts/build_village.py --llm on --replay --spans`): all 3 render_app spans carry `llm.prompt_template.name=village-builder`, `llm.prompt_template.version=UHJvbXB0VmVyc2lvbjoxMDk0MDE6dFZIMw==` (source hub); elder/coordinator/helper validated first try (7.1 / 11.1 / 10.3 s), total 58.6 s, spec valid.

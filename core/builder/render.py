@@ -45,16 +45,20 @@ class RoleResult:
     plan: str = ""
 
 
-_SYSTEM_CACHE: str | None = None
+def prompt_template() -> Any:
+    """Prompt Hub `village-builder@production` (10 s TTL) with the local file as fallback."""
+    import os
+
+    return get_builder_prompt(os.getenv("BUILDER_PROMPT_SOURCE", "hub"))
 
 
 def system_prompt() -> str:
-    global _SYSTEM_CACHE
-    if _SYSTEM_CACHE is None:
-        text = get_builder_prompt("local").text
+    tpl = prompt_template()
+    text = tpl.text
+    if tpl.source == "local":
         m = re.search(r"## SYSTEM PROMPT\s*```\n(.*?)\n```", text, re.S)
-        _SYSTEM_CACHE = (m.group(1) if m else text) + ADDENDUM
-    return _SYSTEM_CACHE
+        text = m.group(1) if m else text
+    return text + ADDENDUM
 
 
 def role_input(spec: dict[str, Any], role: str, plan: CapabilityPlan | None, primary: bool) -> dict[str, Any]:
@@ -160,12 +164,16 @@ async def render_views(
         await services.broadcast_control(village_id, frames.reasoning(village_id, f"{role} view: rendering", "note", trace_id))
 
     async def one(role: str) -> tuple[str, dict[str, Any] | None, RoleResult]:
-        with span("builder.render_app", "LLM", **{"session.id": f"village-{village_id}", "graph.node.id": f"render_{role}", "graph.node.parent_id": "found", "role": role}) as sp:
+        tpl = prompt_template()
+        with span("builder.render_app", "LLM", **{"session.id": f"village-{village_id}", "graph.node.id": f"render_{role}", "graph.node.parent_id": "found", "role": role,
+                                                  "llm.prompt_template.name": tpl.name, "llm.prompt_template.version": tpl.version_id, "llm.prompt_template.source": tpl.source}) as sp:
             view, res = await render_role(spec, role, llm=llm, plan=plan, primary=role == primary, timeout_s=min(per_role_s, deadline - time.perf_counter()))
             sp.set("status", res.status)
             sp.set("ms", res.ms)
         return role, view, res
 
+    tpl = prompt_template()
+    await services.broadcast_control(village_id, frames.reasoning(village_id, f"Builder prompt: {tpl.name} · {tpl.source} · {tpl.version_id}", "note", trace_id))
     done = await asyncio.gather(*(one(r) for r in roles))
     for role, view, res in done:
         if view is not None:
