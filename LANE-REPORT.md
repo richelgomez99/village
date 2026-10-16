@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE5
+READY FOR MERGE VOICE6
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -711,3 +711,6 @@ Dev against a live Core: `CORE_PROXY=http://localhost:8790 VITE_CORE_WS=ws://loc
 - Screened log · done · the post-call webhook, for receptionist calls (receptionist=on, caller_known=false), writes one row per call. The outcome comes from Core's cached screen_caller answer (passed_through | held | refused); otherwise message_taken (from relay) or hung_up. Rows live in `core/voice/screened.py`, and `core/bindings_v3.screened_calls` merges them (a 6-line additive seam in a core file). Test: `pytest -k "relay_message or receptionist_call"`.
 - Prompt · done and pushed · in receptionist mode: ask name, relationship and purpose first; never put an unknown caller through (only screen_caller pass_through or confirmed); in Spanish always usted; take a message and call relay_message. Live push of the mom line + relay_message tool: invariants re-verified (static first message, no missing defaults, narrowed guardrail, init flag true).
 - Dependency · relay_message, the disclosure greeting and the screened log are Core-side. Live calls get them after this branch is merged and the Core restarted. Until then the live relay_message tool gets no handler (KeyError at /tools/relay_message).
+
+### voice6 (D37, graduated receptionist)
+- done and pushed · Receptionist prompt: (1) ask name and relationship, then purpose, one question per turn; (2) one honest line, "{{recipient_name}} asked Village to answer unknown numbers first."; (3) a plausible caller with no money ask hears "I'll tell {{recipient_name}} you called, and {{recipient_obj}} decides whether to call back." and the agent calls relay_message; (4) money or a family claim goes to screen_caller; turns stay at two sentences or fewer. The init hook adds `recipient_name`/`recipient_obj` (from the spec). Known numbers (members, plus consented `contacts` in the spec) get `caller_known=true`, skip screening, and are greeted by name ("Hi Marco, this is Luz…"). The live mom line still passes the four invariants after the push. Test: `pytest -k known_numbers`.

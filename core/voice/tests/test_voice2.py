@@ -322,3 +322,11 @@ def test_post_call_logs_every_receptionist_call(client: TestClient, tmp_path: Pa
     assert client.post("/hooks/elevenlabs/post-call", json=payload("conv_off", "off", "false")).status_code == 200
     rows = screened_calls("v_reyes")
     assert [r["outcome"] for r in rows if r.get("claimed") == "a man selling solar"] == ["hung_up"]
+
+
+def test_known_numbers_greeted_by_name_and_recipient_vars(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VILLAGE_RECEPTIONIST", "on")
+    body = client.post("/hooks/elevenlabs/init", json={"caller_id": "+15555550103"}).json()
+    dv = body["dynamic_variables"]
+    assert dv["caller_known"] == "true" and dv["recipient_name"] == "Carmen" and dv["recipient_obj"] == "her"
+    assert body["conversation_config_override"]["agent"]["first_message"].startswith("Hi Marco, this is Luz")
