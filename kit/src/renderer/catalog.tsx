@@ -18,8 +18,8 @@ export const CATALOG: Record<string, ComponentType<CatalogProps>> = {
   SourceCard: GenericBoard, SymptomLog: GenericBoard, CallLog: GenericBoard, NeedBoard: GenericBoard,
   ResourceBoard: GenericBoard, VerifiedInfoFeed: GenericBoard, CheckIn: GenericBoard,
   Checklist, VillageChat,
-  // 1.3.2 (D22)
+  // 1.3.3 (D22)
   RefillCard, TonightCard,
-  // 1.3.2 (UX-UPGRADE)
+  // 1.3.3 (UX-UPGRADE)
   RightNow, WhatVillageDid: WhatVillageDidEl, SinceYourTurn, PlanBoard, ScreenedCalls, FactCard
 };

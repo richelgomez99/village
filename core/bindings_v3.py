@@ -1,4 +1,4 @@
-"""Contract 1.3.2 binds (core-glue 3), resolved generically from the bind strings a view uses:
+"""Contract 1.3.3 binds (core-glue 3), resolved generically from the bind strings a view uses:
 
 plan:<id>                               bv_plan        evolve/builder proposal record plan data (empty items if none)
 calls:screened                          bv_screened_calls  receptionist screen_caller verifications + cached tool answers

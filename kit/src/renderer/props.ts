@@ -1,4 +1,4 @@
-// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.3.2).
+// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.3.3).
 // Strict objects = additionalProperties:false. Keep in sync with the contract; tests parse both fixtures.
 import { z } from "zod";
 
@@ -116,13 +116,13 @@ export const propsByType = {
     bind: z.literal("chat:village"), composer: z.boolean(), title: label.optional(), mention_label: z.string().max(20).optional(),
     allow_approve: z.boolean().optional(), limit: z.number().int().min(1).max(50).optional()
   }),
-  // 1.3.2 (D22)
+  // 1.3.3 (D22)
   RefillCard: s({
     bind: z.literal("prescriptions:current"), title: label.optional(), owner: label.optional(), day: label.optional(),
     show_superseded: z.boolean().optional(), show_schedule: z.boolean().optional(), show_source: z.boolean().optional()
   }),
   TonightCard: s({ bind: z.string().regex(/^rota:current\.(on_duty|backup)$/), title: label.optional(), template: z.string().max(60).optional() }),
-  // 1.3.2 (UX-UPGRADE)
+  // 1.3.3 (UX-UPGRADE)
   RightNow: s({ bind, title: label.optional(), show_asks: z.boolean().optional() }),
   WhatVillageDid: s({ bind, title: label.optional(), max_rows: z.number().int().min(1).max(12).optional() }),
   SinceYourTurn: s({ bind, title: label.optional(), max_rows: z.number().int().min(1).max(6).optional() }),

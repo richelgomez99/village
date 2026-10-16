@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.3.2",
+  "contract_version": "1.3.3",
   "village": "v_reyes",
   "description": "Headline scam flow (D13), exact voice tool requests/responses in order per variant. Carmen calls the Mom line at 14:02:00; report_money_request at call second 9; the agent speaks the hold line, then calls await_verification at second 14 (blocks ≤ 30 s, ElevenLabs timeout 35 s). verification deadline = created + 45 s. Responses are what the agent speaks verbatim (say) and assigns (decision, data.verification_id).",
   "call": {

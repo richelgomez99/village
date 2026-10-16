@@ -1,4 +1,4 @@
-"""core-glue 3 (contract 1.3.2): plan:<id>, calls:screened, facts:history binds in snapshots and changed(),
+"""core-glue 3 (contract 1.3.3): plan:<id>, calls:screened, facts:history binds in snapshots and changed(),
 picked up generically from element props; pushes on plan item change and screened-call resolution."""
 from __future__ import annotations
 

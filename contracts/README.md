@@ -107,6 +107,9 @@ Keys are the exact `bind` strings used in the role's view; shapes are enforced b
 
 ## CHANGELOG
 
+### 1.3.3 (Oct 16, 13:48; orchestrator; additive patch)
+- `ws_messages`: actions `answer_ask`, `claim_plan_item`, `ask_proposal_other`; `prompt` frames may carry `kind: ask` with `ask{ask_id, question, options, deadline}` (D39). `proposal.detected_by` += `chat_request` (D36/D39).
+
 ### 1.3.2 (Oct 16, 13:40; orchestrator; additive patch)
 - `voice_tools` `req_relay_message` (receptionist takes a message → family chat + screened-call log).
 
