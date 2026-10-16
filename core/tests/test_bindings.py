@@ -2,11 +2,12 @@ from core.bindings import changed, snapshot_data
 from core.fixtures import reset_demo
 
 
-async def test_elder_dose_binding_hides_med_names() -> None:
+async def test_elder_snapshot_has_no_med_names() -> None:
+    # D22 / contract 1.2.0 rev 5: the elder view has no dose tracker; whatever it binds must never carry med names
     await reset_demo("v_reyes")
     data = snapshot_data("elder", "m_carmen")
-    dose = data["facts:dose_event?subject=m_carmen&valid_at=today"]
-    assert "meds" not in dose
+    for value in data.values():
+        assert "meds" not in (value if isinstance(value, dict) else {})
 
 
 async def test_coordinator_dose_binding_includes_med_history() -> None:
