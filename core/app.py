@@ -4,9 +4,11 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path as _Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from core.auth import resolve_token
 from core.fixtures import reset_demo
 from core.live import start_live, stop_live
 from core.routes.actions import router as actions_router
@@ -14,6 +16,7 @@ from core.routes.admin import router as admin_router
 from core.routes.clock import router as clock_router
 from core.routes.decisions import router as decisions_router
 from core.routes.health import router as health_router
+from core.routes.join import router as join_router
 from core.routes.messages import router as messages_router
 from core.routes.tools import router as tools_router
 from core.routes.verifications import router as verifications_router
@@ -43,9 +46,23 @@ async def lifespan(app: FastAPI):
     await start_live()
     app.state.recovery = await recover()
     ticker = asyncio.create_task(_ticker())
+    warm = asyncio.create_task(_warm_release())
     yield
     ticker.cancel()
+    warm.cancel()
     await stop_live()
+
+
+async def _warm_release() -> None:
+    """Pre-warm the release lane's Daytona sandbox without blocking boot (never raises)."""
+    try:
+        from core.release.service import get_service
+    except ImportError:
+        return
+    try:
+        await get_service().startup()
+    except Exception:
+        log.exception("release warm failed")
 
 
 async def _ticker(every_s: float = 1.0) -> None:
@@ -59,6 +76,17 @@ async def _ticker(every_s: float = 1.0) -> None:
 
 
 app = FastAPI(title="Village Core", version=CONTRACT_VERSION, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def control_token_guard(request: Request, call_next):
+    """Operator endpoints need the control token: release starts (release lane left them open)."""
+    path = request.url.path
+    if request.method == "POST" and path.startswith("/villages/") and path.rstrip("/").endswith("/releases"):
+        if resolve_token(request.headers.get("authorization")) != "control":
+            return JSONResponse(status_code=401, content={"detail": "control token required"})
+    return await call_next(request)
+
 for _router in (
     health_router,
     tools_router,
@@ -68,6 +96,7 @@ for _router in (
     decisions_router,
     verifications_router,
     messages_router,
+    join_router,
     admin_router,
 ):
     app.include_router(_router)
@@ -75,8 +104,10 @@ for _router in (
 for _module in LANE_ROUTER_MODULES:
     try:
         _mod = importlib.import_module(_module)
-    except ImportError:
+    except ImportError as _exc:
         LANE_ROUTERS[_module] = "absent"
+        if not _module.startswith(str(getattr(_exc, "name", "") or "~")):
+            log.warning("lane router %s failed to import: %s", _module, _exc)
         continue
     _lane_router = getattr(_mod, "router", None)
     if _lane_router is None:

@@ -200,8 +200,49 @@ def on_duty_person() -> dict[str, Any]:
     return {"member_id": on_duty, "name": str(db.members.get(on_duty, {}).get("name", on_duty)).split()[0]}
 
 
+def rota_week() -> list[dict[str, Any]]:
+    week = _family().get("care_rota", {}).get("week_of_2026-10-12", [])
+    days = {day["date"]: dict(day) for day in week}
+    for ev in db.events:  # ledger shift rows override the planned rota
+        if ev["kind"] == "shift" and ev["payload"].get("date") in days:
+            days[ev["payload"]["date"]].update({k: ev["payload"][k] for k in ("on_duty", "backup") if ev["payload"].get(k)})
+    return [{"date": d["date"], "day": d["day"], "on_duty": d["on_duty"], "backup": d["backup"]} for d in days.values()]
+
+
+_TIMELINE_TEXT = {
+    "med_change": lambda p: {"en": f"{p.get('med', 'med')} changed {p.get('from', {}).get('dose', '')} → {p.get('to', {}).get('dose', '')}", "es": f"{p.get('med', 'med')} cambió {p.get('from', {}).get('dose', '')} → {p.get('to', {}).get('dose', '')}"},
+    "dose": lambda p: {"en": f"{p.get('slot', '')} pills taken", "es": f"pastillas de la {('mañana' if p.get('slot') == 'morning' else 'noche')} tomadas"},
+    "money_request": lambda p: {"en": f"Money request in {p.get('claimed_identity', 'someone')}'s name", "es": f"Pedido de dinero a nombre de {p.get('claimed_identity', 'alguien')}"},
+    "incident": lambda p: p.get("title") or {"en": "Incident", "es": "Incidente"},
+    "verification_denied": lambda p: {"en": "Real contact said it wasn't them", "es": "El contacto real dijo que no fue"},
+    "verification_timeout": lambda p: {"en": "Could not confirm in time", "es": "No se pudo confirmar a tiempo"},
+    "verification_confirmed": lambda p: {"en": "Real contact confirmed", "es": "El contacto real confirmó"},
+}
+
+
+def timeline(subject: str = "m_carmen", limit: int = 30) -> list[dict[str, Any]]:
+    superseded_meds = {ev["payload"].get("from", {}).get("med_id") for ev in db.events if ev["kind"] == "med_change"}
+    items = []
+    for ev in db.events:
+        text_fn = _TIMELINE_TEXT.get(ev["kind"])
+        payload = ev.get("payload", {})
+        if text_fn is None or payload.get("subject", subject) != subject or not ev.get("source"):
+            continue
+        items.append({
+            "event_id": ev["id"],
+            "kind": ev["kind"],
+            "at": ev["at"],
+            "text": text_fn(payload),
+            "source": ev["source"],
+            "superseded": ev["kind"] == "med_change" and payload.get("to", {}).get("med_id") in superseded_meds,
+        })
+    return items[-limit:]
+
+
 def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
     binds = view_binds(role)
+    if role == "control":
+        member_id = member_id or "m_marco"  # Control Room three-phones region renders Marco's per-member cards
     data: dict[str, Any] = {}
     if "*" in binds or "alerts:active" in binds:
         data["alerts:active"] = active_alerts(role)
@@ -219,6 +260,10 @@ def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
         data["rota:current?member=me"] = rota_me(member_id)
     if "*" in binds or "blueprint:life_areas" in binds:
         data["blueprint:life_areas"] = life_areas()
+    if "*" in binds or "rota:week" in binds:
+        data["rota:week"] = rota_week()
+    if "*" in binds or "timeline:subject=m_carmen" in binds:
+        data["timeline:subject=m_carmen"] = timeline("m_carmen")
     if "*" in binds or "rota:current.on_duty" in binds:
         data["rota:current.on_duty"] = on_duty_person()
     if role != "elder" and ("*" in binds or "prescriptions:current" in binds):

@@ -279,6 +279,7 @@ async def decide(
     await db.create_decision(decision_row)
     public = {k: v for k, v in decision.items() if not k.startswith("_")}
     await control(village_id, "gate", {"decision": public, "input_kind": candidate.get("kind", "tick"), "mode": _mode_for(public)})
+    await reasoning(village_id, _reasoning_text(public, candidate), mode=_mode_for(public))
     # row exists before the ledger writes (bindings read it); its LIVE publish (-> prompt) waits until after them
     if decision.get("verification"):
         verification = decision["verification"]
@@ -354,6 +355,36 @@ async def record_event(
 
 
 async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
+    idem_key = None
+    if request.get("conversation_id"):
+        cached_probe = await db.get_idem(f"{request.get('conversation_id')}:{request.get('tool_call_id', name)}")
+        if not (cached_probe and cached_probe.get("response")):
+            village = request.get("village_id", "v_reyes")
+            if request.get("utterance"):
+                await caption(village, str(request["utterance"])[:300], speaker=_speaker(request))
+    response = await _handle_tool(name, request)
+    if request.get("conversation_id") and isinstance(response, dict):
+        await ledger(
+            request.get("village_id", "v_reyes"),
+            f"tool:{request.get('conversation_id')}:{request.get('tool_call_id', name)}",
+            "done",
+            f"Phone line · {name.replace('_', ' ')}",
+            result=str(response.get("say_key") or response.get("decision") or "ok"),
+            decision_id=response.get("decision_id"),
+            role="Verifier" if "verification" in name or "money" in name else "Explainer",
+        )
+    return response
+
+
+def _speaker(request: dict[str, Any]) -> str:
+    caller = str(request.get("caller_id") or request.get("member_id") or "")
+    for member_id, person in db.members.items():
+        if caller in {member_id, person.get("phone")}:
+            return str(person.get("name", member_id)).split()[0]
+    return "Carmen"
+
+
+async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
     idem_key = None
     if request.get("conversation_id"):
         idem_key = f"{request.get('conversation_id')}:{request.get('tool_call_id', name)}"
@@ -767,6 +798,8 @@ async def apply_verification_step(
         if verification_event:
             gate_payload["event_id"] = verification_event["id"]
         await control(village, "gate", gate_payload)
+        await reasoning(village, _terminal_reasoning(row), mode=_mode_for(decision))
+        await ledger(village, f"ver:{row['id']}", "done", f"Verify money request with {_claimed_name(row)}", result=row.get("state"), decision_id=decision["id"], role="Verifier")
         if row.get("state") in {"denied", "late_denied"}:
             _COUNTERS["scams_stopped"] = _COUNTERS.get("scams_stopped", 0) + 1
             await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})
@@ -849,6 +882,53 @@ async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> d
 
 async def broadcast(village_id: str, msg: dict[str, Any], *, to: str = "all") -> None:
     _BROADCAST_LOG.append({"village_id": village_id, "to": to, "msg": copy.deepcopy(msg)})
+
+
+def _reasoning_text(decision: dict[str, Any], candidate: dict[str, Any]) -> str:
+    verification = decision.get("verification")
+    if verification:
+        name = str(db.members.get(verification.get("claimed_member", ""), {}).get("name", "the family member")).split()[0]
+        by = " and phone" if "outbound_call" in verification.get("channels", []) else ""
+        consent = " (he consented)" if by else ""
+        return f"Money request in {name}'s name → check with the real {name} by app{by}{consent} → hold Carmen on the line."
+    say_en = (decision.get("say") or {}).get("en", "")
+    text = f"{candidate.get('kind', 'input')} → {decision.get('rule_id')}: {decision.get('decision')}"
+    return f"{text} · “{say_en}”"[:400] if say_en else text[:400]
+
+
+def _terminal_reasoning(row: dict[str, Any]) -> str:
+    name = _claimed_name(row)
+    state = row.get("state")
+    if state in {"denied", "late_denied"}:
+        return f"{name} said it wasn't him → tell Mamá not to send any money → incident to Ana."
+    if state in {"confirmed", "late_confirmed"}:
+        return f"{name} confirmed it was him → Village still never sends money → Mamá talks to Ana first."
+    return f"No answer from {name} by the deadline → default is don't send → incident to Ana."
+
+
+async def reasoning(village_id: str, text: str, *, source: str = "gate", kind: str = "decision", mode: str | None = None) -> None:
+    payload: dict[str, Any] = {"source": source, "kind": kind, "text": text[:400], "village": village_id}
+    if mode:
+        payload["mode"] = mode
+    await control(village_id, "reasoning", payload)
+
+
+async def ledger(village_id: str, row_id: str, status: str, what: str, *, result: str | None = None,
+                 decision_id: str | None = None, role: str = "Verifier") -> None:
+    """Control Room work log row (kit V2; contract to follow): {id, status, what, result?, decision_id?, role, time}."""
+    payload: dict[str, Any] = {"id": row_id, "status": status, "what": what, "role": role, "time": clock.now().isoformat()}
+    if result is not None:
+        payload["result"] = result
+    if decision_id:
+        payload["decision_id"] = decision_id
+    await control(village_id, "ledger", payload)
+
+
+async def caption(village_id: str, es: str, en: str = "", *, speaker: str | None = None) -> None:
+    payload: dict[str, Any] = {"es": es, "en": en}
+    if speaker:
+        payload["speaker"] = speaker
+    await control(village_id, "caption", payload)
 
 
 async def control(village_id: str, kind: str, payload: dict[str, Any]) -> None:

@@ -25,7 +25,7 @@ VERSION = (ROOT / "contracts" / "VERSION").read_text().strip()
 TOKENS = {"carmen": "mt_carmen_accept_v1_0001", "ana": "mt_ana_accept_v1_00001", "marco": "mt_marco_accept_v1_0001", "control": "control"}
 # Fixture frames Core does not produce yet (documented in LANE-REPORT LD-n): narrative reasoning lines,
 # the gate's possible_fraud_pattern event, and the c2s/result pair (this flow answers over HTTP).
-SKIP = {("control", "reasoning")}
+SKIP = {("control", "reasoning")}  # Core emits one reasoning line per gate decision; the fixture narrates two
 
 
 def sig(msg: dict) -> tuple:

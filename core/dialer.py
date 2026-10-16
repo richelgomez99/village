@@ -112,13 +112,30 @@ async def dial_verification(verification_id: str) -> dict[str, Any]:
     if dialer is None:
         return {"placed": False, "status": "dialer_off"}
     try:
+        import core.voice.outbound as outbound
         from core.voice.outbound import OutboundRequest, OutboundService
     except Exception:
         return {"placed": False, "status": "no_outbound_module"}
+    if getattr(outbound.member, "__name__", "") != "_live_member":
+        file_member = outbound.member
+
+        def _live_member(mid: str):
+            # prefer the live member row: /auth/redeem may have set the judge's phone + consent (D11)
+            return db.members.get(mid) or file_member(mid)
+
+        outbound.member = _live_member
+    from core import services
+
+    name = str(db.members.get(member_id, {}).get("name", member_id)).split()[0]
+    village = row.get("village", "v_reyes")
     try:
-        return await OutboundService(dialer).place(OutboundRequest(member_id=member_id, verification_id=verification_id))
+        await services.ledger(village, f"dial:{verification_id}", "running", f"Calling {name} to verify", role="Verifier")
+        result = await OutboundService(dialer).place(OutboundRequest(member_id=member_id, verification_id=verification_id))
     except Exception as exc:  # a failed dial must never break the money flow; the deadline still closes the row
-        return {"placed": False, "status": "dial_failed", "error": type(exc).__name__}
+        result = {"placed": False, "status": "dial_failed", "error": type(exc).__name__}
+    status = "done" if result.get("placed") else ("fallback" if result.get("status") == "dial_failed" else "refused")
+    await services.ledger(village, f"dial:{verification_id}", status, f"Calling {name} to verify", result=str(result.get("status")), role="Verifier")
+    return result
 
 
 def dial_in_background(verification_id: str) -> None:

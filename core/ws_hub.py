@@ -40,10 +40,26 @@ class Hub:
         client = Client(ws=ws, village=village, member_id=member_id, role=role, view_as=view_as, viewer=viewer)
         self.clients.append(client)
         await ws.send_json(snapshot(village, role, member_id, view_as=view_as))
+        await self.phones_live(village)
         return client
 
     def disconnect(self, ws: WebSocket) -> None:
+        before = len(self.clients)
+        gone = [client for client in self.clients if client.ws is ws]
         self.clients = [client for client in self.clients if client.ws is not ws]
+        if len(self.clients) != before and any(c.role != "control" for c in gone):
+            import asyncio
+
+            try:
+                asyncio.get_running_loop().create_task(self.phones_live(gone[0].village))
+            except RuntimeError:
+                pass
+
+    def live_phone_count(self, village: str) -> int:
+        return len({id(c.ws) for c in self.clients if c.village == village and c.role != "control" and not c.view_as})
+
+    async def phones_live(self, village: str) -> None:
+        await self.control(village, "counter", {"name": "phones_live", "value": self.live_phone_count(village), "label": "phones live"})
 
     async def _send(self, client: Client, frame: dict[str, Any]) -> None:
         try:
@@ -56,10 +72,9 @@ class Hub:
             if client.village != event.get("village"):
                 continue
             frame: dict[str, Any] = {"type": "event", "event": event}
-            if client.role != "control":
-                data = changed(event, client.role, client.member_id)
-                if data:
-                    frame["data"] = data
+            data = changed(event, client.role, client.member_id or ("m_marco" if client.role == "control" else None))
+            if data:
+                frame["data"] = data
             await self._send(client, frame)
 
     async def control(self, village: str, kind: str, payload: dict[str, Any]) -> None:
