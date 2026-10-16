@@ -306,7 +306,11 @@ export class VillageSocket {
         return;
       case "chat": {
         const rows = Array.isArray(this.s.data["chat:village"]) ? (this.s.data["chat:village"] as { id: string }[]) : [];
-        if (rows.some((r) => r.id === f.message.id)) return;
+        // the builder re-sends an ask message (same id) as answers arrive: replace it in place
+        if (rows.some((r) => r.id === f.message.id)) {
+          this.set({ data: { ...this.s.data, "chat:village": rows.map((r) => (r.id === f.message.id ? f.message : r)) } });
+          return;
+        }
         this.set({ data: { ...this.s.data, "chat:village": [...rows, f.message].slice(-50) } });
         return;
       }

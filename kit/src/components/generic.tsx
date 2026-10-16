@@ -59,6 +59,12 @@ export function oneLine(t: string): string {
   return clip(first, 140);
 }
 
+/** The first whole sentence(s): a proposal post is never cut mid-sentence (the reasons live on the card). */
+export function sentences(t: string, n = 1): string {
+  const parts = t.split(/(?<=[.!?])\s+/);
+  return parts.slice(0, n).join(" ").trim();
+}
+
 export function clip(t: string, max = 140): string {
   if (t.length <= max) return t;
   const cut = t.slice(0, max + 1);
@@ -80,9 +86,18 @@ const REF_WORDS: Record<string, string> = {
   event: "what happened", decision: "Village's reasoning", fact: "what Village knows", rule: "the family's rule", member: "their choice",
   incident: "why", verification: "the check", release: "receipt", proposal: "the proposal", trace: "details"
 };
-export function chipLabel(ref: { kind: string; label?: string }): string {
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export function chipLabel(ref: { kind: string; id?: string; label?: string }, todayMMDD?: string): string {
   const l = (ref.label ?? "").trim();
   if (l && !ID_RE.test(l)) return l;
+  // ledger ids carry their date: ev_1009_1921_money → "her call · Oct 9" / "today's call"
+  const m = /^ev_(\d{2})(\d{2})_\d{4}_([a-z_]+)/.exec(ref.id ?? "");
+  if (ref.kind === "event" && m) {
+    const callish = /money|call|ver|pattern|incident|ask/.test(m[3]);
+    if (todayMMDD && `${m[1]}${m[2]}` === todayMMDD) return callish ? "today's call" : "today";
+    const when = `${MON[Number(m[1]) - 1] ?? ""} ${Number(m[2])}`.trim();
+    return callish ? `her call · ${when}` : `what happened · ${when}`;
+  }
   return REF_WORDS[ref.kind] ?? "source";
 }
 
@@ -96,6 +111,33 @@ export function demoOf(m: ChatRow): { demo: boolean; text: string } {
   return { demo: tagged, text: t };
 }
 const stripDemo = (t: string) => t.replace(/^\s*\[demo\]\s*/i, "");
+
+interface AskRef { kind: string; id: string; member?: string; label?: string; answered?: string | null; answer?: string; status?: string }
+/** Each asked member's answer: the ref's own answer/status, else Village's later reply naming them ("X's still on", "covers"). */
+export function askChips(m: ChatRow, rows: ChatRow[], data: Record<string, unknown>): { member: string; text: string; answer: "yes" | "no" | null }[] {
+  const refs = (m.refs ?? []).filter((r) => r.kind === "ask" && (r as AskRef).member) as AskRef[];
+  const later = rows.filter((r) => r.author === "village" && r.at && m.at && Date.parse(r.at) > Date.parse(m.at));
+  return refs.map((r) => {
+    const name = memberName(r.member!, data);
+    const own = (r.answered ?? r.answer ?? r.status ?? "").toLowerCase();
+    let ans: "yes" | "no" | null = own === "yes" ? "yes" : own === "no" ? "no" : null;
+    if (!ans) {
+      for (const x of later) {
+        const names = (x.refs ?? []).some((y) => y.kind === "member" && y.id === r.member);
+        if (names && /covers|still on|can do/i.test(x.text)) { ans = "yes"; break; }
+        if (new RegExp(`${name}[^.]*can'?t|can'?t[^.]*${name}`, "i").test(x.text)) { ans = "no"; break; }
+      }
+    }
+    return { member: r.member!, answer: ans, text: ans ? `${name}: ${ans === "yes" ? "can do" : "can't"}` : `asked ${name}` };
+  });
+}
+/** Nudges that only repeat a parent message's ask refs are not shown as their own bubbles. */
+export function coveredNudge(m: ChatRow, rows: ChatRow[]): boolean {
+  if (m.kind !== "nudge") return false;
+  const who = m.refs?.find((r) => r.kind === "member")?.id;
+  if (!who || !m.at) return false;
+  return rows.some((p) => p !== m && p.at && Date.parse(p.at) <= Date.parse(m.at!) + 60_000 && Date.parse(p.at) >= Date.parse(m.at!) - 120_000 && (p.refs ?? []).some((r) => r.kind === "ask" && (r as AskRef).member === who));
+}
 
 /** D39: a Village nudge addressed to a member (refs {kind: member}) is an ask with Yes · Can't on that member's phone. */
 export function askOf(m: ChatRow): { addressee: string; askId: string } | null {
@@ -137,14 +179,17 @@ function Chips({ m }: { m: ChatRow }) {
   const ctx = useCtx();
   const names = new Set(Object.entries(ctx.data).filter(([k]) => k.startsWith("member:")).flatMap(([, v]) => { const n = (v as { name?: string } | null)?.name; return n ? [n, n.split(" ")[0]] : []; }));
   // D39: no evidence chips that are just a name; no demo flags as chips (they get their own tag)
-  const refs = (m.refs ?? []).filter((r) => !(m.kind === "proposal" && r.kind === "proposal") && r.kind !== "member" && !names.has((r.label ?? "").trim()) && !isDemoRef(r));
+  const refs = (m.refs ?? []).filter((r) => !(m.kind === "proposal" && r.kind === "proposal") && r.kind !== "member" && r.kind !== "ask" && !names.has((r.label ?? "").trim()) && !isDemoRef(r));
+  const today = new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit", timeZone: "America/New_York" }).format(new Date(ctx.nowMs())).replace("/", "");
+  const seen = new Set<string>();
+  const chips = refs.map((r) => ({ r, label: chipLabel(r, today) })).filter(({ label }) => (seen.has(label) ? false : (seen.add(label), true)));
   const srcLabel = m.source_label ? text(m.source_label, ctx.lang) : m.author === "village" && m.source && CALL_KINDS.has(m.source.kind) ? "from her check-in call" : "";
-  if (!refs.length && !srcLabel) return null;
+  if (!chips.length && !srcLabel) return null;
   return (
     <span className="chat-chips" data-test="chat-chips">
       {srcLabel && !RAW.test(srcLabel) ? <span className="chat-chip" data-test="chat-chip" data-ref-kind="source">{srcLabel}</span> : null}
-      {refs.slice(0, 4).map((r, i) => (
-        <span key={`${r.kind}-${i}`} className="chat-chip" data-test="chat-chip" data-ref-kind={r.kind}>{chipLabel(r)}</span>
+      {chips.filter(({ label }) => label !== srcLabel).slice(0, 4).map(({ r, label }, i) => (
+        <span key={`${r.kind}-${i}`} className="chat-chip" data-test="chat-chip" data-ref-kind={r.kind}>{label}</span>
       ))}
     </span>
   );
@@ -198,7 +243,7 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false, rows 
         ) : m.kind === "proposal" ? (
           <span className="chat-proposal" data-test="chat-proposal">
             {prop?.title ? <span className="chat-proposal-title"><Bi value={prop.title} /></span> : null}
-            <span className="chat-proposal-line">{oneLine(body)}</span>
+            <span className="chat-proposal-line">{sentences(body)}</span>
           </span>
         ) : m.kind === "receipt" ? (
           <span className="chat-receipt" data-test="chat-receipt">✓ {body}</span>
@@ -206,6 +251,11 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false, rows 
           <span className="chat-text">{body}</span>
         )}
         {!compact ? <Chips m={m} /> : null}
+        {(m.refs ?? []).some((r) => r.kind === "ask") ? (
+          <span className="chat-ask-chips" data-test="ask-chips">
+            {askChips(m, rows, ctx.data).map((c) => <span key={c.member} className="chat-chip" data-test="ask-chip" data-answer={c.answer ?? "waiting"}>{c.text}</span>)}
+          </span>
+        ) : null}
         {ask ? (() => {
           const ans = localAnswer ?? askAnswer(m, ask.addressee, rows);
           const name = memberName(ask.addressee, ctx.data);
@@ -300,7 +350,7 @@ export function VillageChat({ id, props }: CatalogProps) {
   return (
     <Card test="village-chat" title={props.title ? <Bi value={props.title} /> : undefined} extra={{ "data-full": ctx.chatFull ? "true" : undefined }}>
       <ol className="chat">
-        {shown.map((m) => <ChatMessage key={m.id} m={m} elementId={id} allowApprove={!!props.allow_approve} rows={shown} />)}
+        {shown.filter((m) => !coveredNudge(m, shown)).map((m) => <ChatMessage key={m.id} m={m} elementId={id} allowApprove={!!props.allow_approve} rows={shown} />)}
       </ol>
       {shown.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
       {props.composer ? (
