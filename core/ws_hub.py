@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from core.bindings import changed, snapshot_data
+from core.bindings import changed, snapshot_data, verification_prompt_frame
 from core.db import db
 from core.settings import CONTRACT_VERSION
 
@@ -56,11 +56,13 @@ class Hub:
 
     async def broadcast_verification(self, verification: dict[str, Any]) -> None:
         claimed = verification.get("claimed_member_id") or verification.get("claimed_member")
+        closed = verification.get("state") not in {"pending", "default_spoken"}
+        frame = verification_prompt_frame(verification, closed=closed)
         for client in list(self.clients):
             if client.village != verification.get("village"):
                 continue
             if client.member_id == claimed:
-                await client.ws.send_json({"type": "prompt", "contract_version": CONTRACT_VERSION, "verification": verification})
+                await client.ws.send_json(frame)
 
 
 def role_for_member(member_id: str | None) -> str:

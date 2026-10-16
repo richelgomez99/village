@@ -9,6 +9,7 @@ from typing import Any
 
 from core.clock import clock
 from core.db import db
+from core.gate import step_verification
 from core.gate_fallback import decide as fallback_decide
 from core.settings import ROOT
 from core.ws_hub import hub
@@ -386,24 +387,25 @@ async def answer_verification(
     current = db.verifications.get(verification_id)
     if current is None:
         raise KeyError(verification_id)
-    if current["state"] != "pending":
-        return {**current, "outcome": "ignored"}
-    state = "denied" if answer == "no" else "confirmed" if answer == "yes" else "unsure"
-    status = "denied" if answer == "no" else "confirmed" if answer == "yes" else "timeout"
-    answers = [
-        *current.get("answers", []),
-        {"answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid, "outcome": "applied", "at": clock.now().isoformat()},
-    ]
-    updated = await db.cas_update(
-        "verification",
-        verification_id,
-        current.get("version", 0),
-        {"state": state, "status": status, "answers": answers, "resolved_at": clock.now().isoformat()},
+    next_row, emits = step_verification(
+        current,
+        {"type": "answer", "answer": answer, "via": via, "member_id": member_id, "quote": quote, "call_sid": call_sid},
+        clock.now(),
     )
+    updated = await db.cas_update("verification", verification_id, current.get("version", 0), next_row)
     if not updated:
         latest = db.verifications[verification_id]
         return {**latest, "outcome": "conflict"}
-    return {**updated[0], "outcome": "applied"}
+    for draft in emits:
+        await record_event(
+            current["village"],
+            draft,
+            actor="gate",
+            source={"kind": "app" if via == "app_prompt" else "call", "ref": member_id},
+            decision_id=None,
+        )
+    outcome = next_row.get("answers", [{}])[-1].get("outcome", "applied")
+    return {**updated[0], "outcome": outcome}
 
 
 async def await_verification(verification_id: str, *, max_wait_s: int = 30) -> dict[str, Any]:

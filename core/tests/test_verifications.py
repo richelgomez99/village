@@ -44,13 +44,17 @@ async def test_answer_verification_uses_cas() -> None:
         "state": "pending",
         "status": "pending",
         "answers": [],
+        "created_at": clock.now().isoformat(),
+        "deadline": "2099-01-01T00:00:00-05:00",
         "version": 0,
+        "transitions": [],
     })
     first = await services.answer_verification("ver_cas", "no", via="app_prompt", member_id="m_marco")
     second = await services.answer_verification("ver_cas", "yes", via="app_prompt", member_id="m_marco")
     assert first["outcome"] == "applied"
-    assert second["outcome"] == "ignored"
-    assert db.verifications["ver_cas"]["version"] == 1
+    assert second["outcome"] == "conflict"
+    assert db.verifications["ver_cas"]["version"] == 2
+    assert any(ev["kind"] == "verification_denied" for ev in db.events)
 
 
 async def test_duplicate_money_tool_returns_cached_body() -> None:
