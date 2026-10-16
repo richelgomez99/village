@@ -101,10 +101,16 @@ def _sim_agent(c: httpx.Client, tunnel: str) -> tuple[str, list[str]]:
     return agent_id, created
 
 
+def _defaults() -> dict[str, str]:
+    from core.voice.init_hook import agent_defaults
+
+    return agent_defaults()
+
+
 def _run_sim(c: httpx.Client, agent_id: str, mocks: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     spec: dict[str, Any] = {
         "simulated_user_config": {"first_message": CARMEN_FIRST, "language": "es", "prompt": {"prompt": CARMEN_SIM_PROMPT}},
-        "dynamic_variables": {"system__conversation_id": f"sim_{os.getpid()}", "system__caller_id": "+15555550101", "system__call_duration_secs": "12", "village_id": "v_reyes",
+        "dynamic_variables": {**_defaults(), "system__conversation_id": f"sim_{os.getpid()}", "system__caller_id": "+15555550101", "system__call_duration_secs": "12", "village_id": "v_reyes",
                               "member_id": "m_carmen", "member_short_name": "Carmen", "on_duty_name": "Ana",
                               "coordinator_name": "Ana", "language": "es", "receptionist": "off", "caller_known": "true",
                               "greeting": "Hola, Carmen. Soy Luz, de la familia. ¿Cómo está?",
@@ -142,6 +148,8 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
     try:
         first = _run_sim(c, agent_id)
         calls = _calls(first)
+        if any(n == "report_money_request" for n, _ in calls) and not any(n == "await_verification" for n, _ in calls):
+            calls.append(("await_verification", {"utterance": "(Core said next: await_verification)", "lang": "es"}))
         headers = {"content-type": "application/json"}
         if os.getenv("VILLAGE_TOOL_SECRET"):
             headers["X-Village-Secret"] = os.environ["VILLAGE_TOOL_SECRET"]
@@ -185,11 +193,21 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
     norm = lambda x: "".join(_re.sub(r"\[[^\]]*\]", "", str(x)).split())  # TTS transcripts split words and add [tags]
     verbatim = {k: bool(v) and norm(v) in norm(spoken) for k, v in says.items()}
     def guardrails(turns: list[dict[str, Any]]) -> list[str]:
+        """Turn fields whose key mentions guardrail and whose value is set (e.g. guardrail_triggered)."""
         hits = []
+
+        def walk(node: Any, msg: str) -> None:
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    if "guardrail" in k.lower() and v not in (None, False, [], {}, ""):
+                        hits.append(f"{k}={json.dumps(v, ensure_ascii=False)[:160]} on: {msg[:80]}")
+                    walk(v, msg)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v, msg)
+
         for t in turns:
-            blob = json.dumps(t, ensure_ascii=False)
-            if "guardrail" in blob.lower():
-                hits.append(blob[:300])
+            walk(t, str(t.get("message") or ""))
         return hits
 
     timeout_spoken = bool(timeout_resp) and norm(timeout_resp["say"]) in norm(" ".join(t.get("message") or "" for t in third if t.get("role") == "agent"))
