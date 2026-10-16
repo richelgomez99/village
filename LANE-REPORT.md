@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE6
+READY FOR MERGE VOICE7
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -721,3 +721,7 @@ ROOM-5 (presenter transport) · `cd kit && npm test` 119/119 + build · tests/ro
 Transport · done · every `?fake=control&seq=…` replay is driven by one `Transport` (dev/transport.ts) instead of loose timers: the scene's frames as one timeline (scam = room extras + the fixture's control frames + seeded chat + the tail; a live answer from another tab replaces the default tail from that moment); bar at the bottom (hidden with `?hero=1`): ◀ step back · ▶/⏸ · ▶| step forward · scrubber (frame index, seconds) · 0.5× 1× 2× 4× · current beat · "Jump to…" (founding / scam / release / evolve; Familia Reyes / West 147th / New village); keyboard space = play/pause, ←/→ = step; stepping back or scrubbing left emits a rewind and the room rebuilds its scene from frame 0 (reset → hello snapshot → the prefix through the pure reducer); the block founding's recorded call follows pause/seek/speed
 LD-20: the transport only exists in offline replays (`?fake=control&seq=`); live rooms never get the bar.
 
+
+### voice7
+- done · When a screened call is refused or held, the post-call webhook (`core/voice/post_call.log_screened_call`, where `screened.record` stores the outcome) posts one Village `chat` message through `core.services.post_message`, e.g. "A caller who wouldn't say who they were asked for money for Mamá. Village didn't put them through · 2:00 PM". Spanish goes in text_i18n. Names come from the spec (`short_name`). The caller is "they", because Village doesn't know their gender. Refs: the verification (when held) and the screened call (`trace` with the conversation id). It posts once per call (a duplicate webhook posts nothing new); message_taken calls keep the relay_message post. Test: `pytest -k tell_the_family`.
+- done and pushed · Receptionist prompt: no filler turns (no "nice to meet you", no repeating the name); the purpose question comes right after the relationship; one question and at most two sentences per turn. The live mom line still passes the four invariants after the push.
