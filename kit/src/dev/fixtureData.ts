@@ -25,7 +25,7 @@ export const SNAPSHOT_NOW = "2026-10-16T14:01:40-04:00";
 const marcoPerson = { member_id: "m_marco", name: "Marco" };
 const anaPerson = { member_id: "m_ana", name: "Ana" };
 
-/** bv_prescriptions straight from the fixture's connect snapshot (contract 1.2.2, D22). */
+/** bv_prescriptions straight from the fixture's connect snapshot (contract 1.3.0, D22). */
 export const PRESCRIPTIONS = (connectSnapshot()?.data?.["prescriptions:current"] ?? null) as unknown;
 
 const doseToday = (withMeds: boolean) => ({
@@ -142,7 +142,7 @@ function connectSnapshot(): any {
 
 export const VILLAGE_NAME = "Familia Reyes";
 
-/** snapshot.identity (contract 1.2.2, D21). */
+/** snapshot.identity (contract 1.3.0, D21). */
 /** The Village line (identity.village_number); the fixture's printables still say [NÚMERO]. */
 export const FAKE_VILLAGE_NUMBER = "+18482579221";
 
@@ -165,10 +165,10 @@ export function fakeSnapshot(client: FakeClient, opts: { viewAs?: boolean; rev?:
   const rev = opts.rev ?? (reyesSpec as any).rev ?? 5;
   const identity = fakeIdentity(client, opts.viewAs);
   if (client === "control") {
-    return { type: "snapshot", contract_version: "1.2.2", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: controlData(), now: SNAPSHOT_NOW, identity };
+    return { type: "snapshot", contract_version: "1.3.0", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: controlData(), now: SNAPSHOT_NOW, identity };
   }
   const view = (reyesSpec as any).views[meta.role] as View;
-  return { type: "snapshot", contract_version: "1.2.2", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW, identity };
+  return { type: "snapshot", contract_version: "1.3.0", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW, identity };
 }
 
 /** Control Room snapshot data: every bind any view uses, so the three-phone mirror renders the whole spec. */
@@ -203,7 +203,7 @@ export function sequence(name: string): SeqFrame[] {
 /** West 147th (block_spec.json) control snapshot: no live data offline, the regions show the blueprint and empty phones. */
 export function blockControlSnapshot() {
   const identity = { member_id: null, name: "Control Room", role: "control", village_name: (blockSpec as any).village.name, lang: "en" };
-  return { type: "snapshot", contract_version: "1.2.2", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
+  return { type: "snapshot", contract_version: "1.3.0", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
 }
 
 /** Villages the offline fake knows (Control Room switcher). */

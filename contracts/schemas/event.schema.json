@@ -3,7 +3,7 @@
   "$id": "https://village.contracts/v1/event.schema.json",
   "title": "Ledger event",
   "description": "One row of the SurrealDB `event` table, the append-only ledger. Written only by core (via services.record_event) after the gate decides; fanned out to clients as WS `event` messages. payload is typed per kind. Incident rows are upserts keyed by payload.incident_id (latest row wins).",
-  "x-contract-version": "1.2.2",
+  "x-contract-version": "1.3.0",
   "$ref": "#/$defs/event_body",
   "required": ["id"],
 

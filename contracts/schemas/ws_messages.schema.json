@@ -3,305 +3,2279 @@
   "$id": "https://village.contracts/v1/ws_messages.schema.json",
   "title": "WebSocket messages",
   "description": "The ONE realtime protocol (D4): GET /ws?village=<id>&m=<member_token>, one socket per client, JSON text frames, one message per frame, discriminated by `type`. Client → server: hello (first frame, required), ack, action, ping. Server → client: snapshot (always first reply to hello and after any rev gap), patch, event, control (Control Room only), prompt, result, pong, error. Reconnect with backoff 0.5 s → 8 s and send hello with last_rev; server answers with a fresh snapshot. Clients apply patch only if patch.base_rev == local rev, otherwise send hello again.",
-  "x-contract-version": "1.2.2",
-  "oneOf": [ { "$ref": "#/$defs/client_message" }, { "$ref": "#/$defs/server_message" } ],
-
+  "x-contract-version": "1.3.0",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/client_message"
+    },
+    {
+      "$ref": "#/$defs/server_message"
+    }
+  ],
   "$defs": {
     "client_message": {
-      "oneOf": [ { "$ref": "#/$defs/hello" }, { "$ref": "#/$defs/ack" }, { "$ref": "#/$defs/action" }, { "$ref": "#/$defs/ping" } ]
+      "oneOf": [
+        {
+          "$ref": "#/$defs/hello"
+        },
+        {
+          "$ref": "#/$defs/ack"
+        },
+        {
+          "$ref": "#/$defs/action"
+        },
+        {
+          "$ref": "#/$defs/ping"
+        }
+      ]
     },
     "server_message": {
-      "oneOf": [ { "$ref": "#/$defs/snapshot" }, { "$ref": "#/$defs/patch" }, { "$ref": "#/$defs/event" }, { "$ref": "#/$defs/control" }, { "$ref": "#/$defs/prompt" }, { "$ref": "#/$defs/result" }, { "$ref": "#/$defs/pong" }, { "$ref": "#/$defs/error" }, { "$ref": "#/$defs/chat" } ]
+      "oneOf": [
+        {
+          "$ref": "#/$defs/snapshot"
+        },
+        {
+          "$ref": "#/$defs/patch"
+        },
+        {
+          "$ref": "#/$defs/event"
+        },
+        {
+          "$ref": "#/$defs/control"
+        },
+        {
+          "$ref": "#/$defs/prompt"
+        },
+        {
+          "$ref": "#/$defs/result"
+        },
+        {
+          "$ref": "#/$defs/pong"
+        },
+        {
+          "$ref": "#/$defs/error"
+        },
+        {
+          "$ref": "#/$defs/chat"
+        }
+      ]
     },
-
     "hello": {
-      "type": "object", "additionalProperties": false, "required": ["type", "contract_version", "village", "member_token"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "contract_version",
+        "village",
+        "member_token"
+      ],
       "properties": {
-        "type": { "const": "hello" },
-        "contract_version": { "$ref": "common.schema.json#/$defs/contract_version" },
-        "village": { "$ref": "common.schema.json#/$defs/village_id" },
-        "member_token": { "type": "string", "minLength": 16, "maxLength": 2048, "description": "Member token from POST /auth/redeem or the QR (?m=), or the control token for the Control Room." },
-        "last_rev": { "$ref": "common.schema.json#/$defs/rev" },
-        "client": { "enum": ["kit", "control", "scan_page", "test"] },
-        "view_as": { "$ref": "common.schema.json#/$defs/member_id", "description": "1.2.2 (D21 'View as'). Render this member's view on this socket: the server answers with the snapshot that member would get (role, member_id, spec = views[their view], data resolved for them, identity with view_as: true) and keeps streaming as them. Only honored for the control token (Control Room) or a coordinator's member token for a member of the same village; any other caller gets error{code: not_allowed} and the socket stays as itself. Actions sent on a view_as socket are refused (not_allowed): View as is read-only. Send a new hello (no view_as) to go back." }
+        "type": {
+          "const": "hello"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/contract_version"
+        },
+        "village": {
+          "$ref": "common.schema.json#/$defs/village_id"
+        },
+        "member_token": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 2048,
+          "description": "Member token from POST /auth/redeem or the QR (?m=), or the control token for the Control Room."
+        },
+        "last_rev": {
+          "$ref": "common.schema.json#/$defs/rev"
+        },
+        "client": {
+          "enum": [
+            "kit",
+            "control",
+            "scan_page",
+            "test"
+          ]
+        },
+        "view_as": {
+          "$ref": "common.schema.json#/$defs/member_id",
+          "description": "1.3.0 (D21 'View as'). Render this member's view on this socket: the server answers with the snapshot that member would get (role, member_id, spec = views[their view], data resolved for them, identity with view_as: true) and keeps streaming as them. Only honored for the control token (Control Room) or a coordinator's member token for a member of the same village; any other caller gets error{code: not_allowed} and the socket stays as itself. Actions sent on a view_as socket are refused (not_allowed): View as is read-only. Send a new hello (no view_as) to go back."
+        }
       }
     },
     "ack": {
-      "type": "object", "additionalProperties": false, "required": ["type", "event_id", "status"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "event_id",
+        "status"
+      ],
       "description": "Acknowledge an escalation / incident / banner ('I've got it'). Core writes an ack ledger row.",
       "properties": {
-        "type": { "const": "ack" },
-        "event_id": { "$ref": "common.schema.json#/$defs/event_id" },
-        "status": { "enum": ["got_it", "accepted", "declined", "not_needed"] },
-        "req_id": { "$ref": "#/$defs/req_id" }
+        "type": {
+          "const": "ack"
+        },
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/event_id"
+        },
+        "status": {
+          "enum": [
+            "got_it",
+            "accepted",
+            "declined",
+            "not_needed"
+          ]
+        },
+        "req_id": {
+          "$ref": "#/$defs/req_id"
+        }
       }
     },
-    "req_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+    "req_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{4,64}$"
+    },
     "action": {
-      "type": "object", "additionalProperties": false, "required": ["type", "req_id", "name"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "req_id",
+        "name"
+      ],
       "description": "Same semantics as POST /v/{id}/actions/{name}. Always gated; the server replies with result{req_id}.",
       "properties": {
-        "type": { "const": "action" },
-        "req_id": { "$ref": "#/$defs/req_id" },
-        "name": { "$ref": "common.schema.json#/$defs/action_name" },
-        "arg": { "type": "string", "maxLength": 80, "description": "BigButton action_arg (slot:current, m_ana, …)." },
-        "element_id": { "$ref": "common.schema.json#/$defs/element_id" },
-        "payload": { "$ref": "common.schema.json#/$defs/props" },
-        "client_ts": { "$ref": "common.schema.json#/$defs/datetime" }
+        "type": {
+          "const": "action"
+        },
+        "req_id": {
+          "$ref": "#/$defs/req_id"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/action_name"
+        },
+        "arg": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "BigButton action_arg (slot:current, m_ana, …)."
+        },
+        "element_id": {
+          "$ref": "common.schema.json#/$defs/element_id"
+        },
+        "payload": {
+          "$ref": "common.schema.json#/$defs/props"
+        },
+        "client_ts": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        }
       },
       "allOf": [
-        { "if": { "properties": { "name": { "const": "answer_verification" } } }, "then": { "required": ["payload"], "properties": { "payload": { "type": "object", "required": ["verification_id", "answer"], "properties": { "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" }, "answer": { "$ref": "common.schema.json#/$defs/verification_answer" } } } } } },
-        { "if": { "properties": { "name": { "const": "start_verification" } } }, "then": { "required": ["arg"], "properties": { "arg": { "pattern": "^([a-z]_[a-z0-9_]{1,40}|other)$" } } } },
-        { "if": { "properties": { "name": { "enum": ["approve_proposal", "reject_proposal"] } } }, "then": { "required": ["arg"], "properties": { "arg": { "$ref": "common.schema.json#/$defs/proposal_id" } } } },
-        { "if": { "properties": { "name": { "const": "ack_incident" } } }, "then": { "required": ["arg"], "properties": { "arg": { "$ref": "common.schema.json#/$defs/incident_id" } } } }
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "answer_verification"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "payload"
+            ],
+            "properties": {
+              "payload": {
+                "type": "object",
+                "required": [
+                  "verification_id",
+                  "answer"
+                ],
+                "properties": {
+                  "verification_id": {
+                    "$ref": "common.schema.json#/$defs/verification_id"
+                  },
+                  "answer": {
+                    "$ref": "common.schema.json#/$defs/verification_answer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "start_verification"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "arg"
+            ],
+            "properties": {
+              "arg": {
+                "pattern": "^([a-z]_[a-z0-9_]{1,40}|other)$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "enum": [
+                  "approve_proposal",
+                  "reject_proposal"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "arg"
+            ],
+            "properties": {
+              "arg": {
+                "$ref": "common.schema.json#/$defs/proposal_id"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "ack_incident"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "arg"
+            ],
+            "properties": {
+              "arg": {
+                "$ref": "common.schema.json#/$defs/incident_id"
+              }
+            }
+          }
+        }
       ]
     },
-    "ping": { "type": "object", "additionalProperties": false, "required": ["type", "ts"], "properties": { "type": { "const": "ping" }, "ts": { "type": "number" } } },
-
-    "snapshot": {
-      "type": "object", "additionalProperties": false,
-      "required": ["type", "contract_version", "rev", "village", "role", "member_id", "spec", "data", "now"],
-      "description": "1.2.2 adds optional identity (D21 identity chip). Clients fall back to deriving it from role/member_id when absent.",
+    "ping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "ts"
+      ],
       "properties": {
-        "type": { "const": "snapshot" },
-        "contract_version": { "$ref": "common.schema.json#/$defs/contract_version" },
-        "rev": { "$ref": "common.schema.json#/$defs/rev" },
-        "village": { "$ref": "common.schema.json#/$defs/village_id" },
-        "role": { "anyOf": [ { "$ref": "common.schema.json#/$defs/role_key" }, { "const": "control" } ] },
-        "member_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/member_id" }, { "type": "null" } ] },
-        "spec": { "description": "Member clients: views[role] only. Control Room: the whole VillageSpec." },
-        "data": { "$ref": "#/$defs/data" },
-        "now": { "$ref": "common.schema.json#/$defs/datetime", "description": "Server clock incl. time-warp; clients render countdowns against it." },
-        "identity": { "$ref": "#/$defs/identity" }
+        "type": {
+          "const": "ping"
+        },
+        "ts": {
+          "type": "number"
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "contract_version",
+        "rev",
+        "village",
+        "role",
+        "member_id",
+        "spec",
+        "data",
+        "now"
+      ],
+      "description": "1.3.0 adds optional identity (D21 identity chip). Clients fall back to deriving it from role/member_id when absent.",
+      "properties": {
+        "type": {
+          "const": "snapshot"
+        },
+        "contract_version": {
+          "$ref": "common.schema.json#/$defs/contract_version"
+        },
+        "rev": {
+          "$ref": "common.schema.json#/$defs/rev"
+        },
+        "village": {
+          "$ref": "common.schema.json#/$defs/village_id"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/role_key"
+            },
+            {
+              "const": "control"
+            }
+          ]
+        },
+        "member_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/member_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spec": {
+          "description": "Member clients: views[role] only. Control Room: the whole VillageSpec."
+        },
+        "data": {
+          "$ref": "#/$defs/data"
+        },
+        "now": {
+          "$ref": "common.schema.json#/$defs/datetime",
+          "description": "Server clock incl. time-warp; clients render countdowns against it."
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        }
       },
       "allOf": [
-        { "if": { "properties": { "role": { "const": "control" } } }, "then": { "properties": { "spec": { "$ref": "village_spec.schema.json" }, "member_id": { "type": "null" } } }, "else": { "properties": { "spec": { "$ref": "village_spec.schema.json#/$defs/view" }, "member_id": { "type": "string" } } } }
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "control"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "village_spec.schema.json"
+              },
+              "member_id": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "spec": {
+                "$ref": "village_spec.schema.json#/$defs/view"
+              },
+              "member_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
       ]
     },
     "data": {
       "type": "object",
       "description": "Resolved bindings keyed by the exact bind string used in the view (e.g. 'alerts:active', 'rota:current?member=me'). Value shapes below (patternProperties); keys with ?count carry a number; null clears a key.",
-      "propertyNames": { "type": "string", "maxLength": 200 },
+      "propertyNames": {
+        "type": "string",
+        "maxLength": 200
+      },
       "patternProperties": {
-        "\\?count$": { "type": ["number", "null"] },
-        "^alerts:active$": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_alert" } }, { "type": "null" } ] },
-        "^verifications:pending\\?member=me$": { "anyOf": [ { "$ref": "#/$defs/bv_pending_prompt" }, { "type": "null" } ] },
-        "^verifications:mine$": { "anyOf": [ { "$ref": "#/$defs/bv_my_verification" }, { "type": "null" } ] },
-        "^incidents:(open|all|subject=[a-z]_[a-z0-9_]+)$": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_incident" } }, { "type": "null" } ] },
-        "^facts:dose_event\\?": { "anyOf": [ { "$ref": "#/$defs/bv_dose_day" }, { "$ref": "#/$defs/bv_dose_week" }, { "type": "null" } ] },
-        "^rota:current\\?member=me$": { "anyOf": [ { "$ref": "#/$defs/bv_rota_me" }, { "type": "null" } ] },
-        "^rota:current\\.(on_duty|backup)$": { "anyOf": [ { "$ref": "#/$defs/bv_person" }, { "type": "null" } ] },
-        "^rota:(current|week)$": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_rota_day" } }, { "type": "null" } ] },
-        "^timeline:": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_timeline_item" } }, { "type": "null" } ] },
-        "^blueprint:life_areas$": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_life_area" } }, { "type": "null" } ] },
-        "^proposals:pending$": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/bv_proposal" } }, { "type": "null" } ] },
-        "^prescriptions:current$": { "anyOf": [ { "$ref": "#/$defs/bv_prescriptions" }, { "type": "null" } ], "description": "1.2.2 (D22). RefillCard. Never sent to elder views." },
-        "^chat:village$": { "anyOf": [ { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/bv_message" } }, { "type": "null" } ], "description": "1.1.0 (D16): the last 50 chat rows, oldest first. Never sent to elder views." }
+        "\\?count$": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "^alerts:active$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_alert"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^verifications:pending\\?member=me$": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_pending_prompt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^verifications:mine$": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_my_verification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^incidents:(open|all|subject=[a-z]_[a-z0-9_]+)$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_incident"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^facts:dose_event\\?": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_dose_day"
+            },
+            {
+              "$ref": "#/$defs/bv_dose_week"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^rota:current\\?member=me$": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_rota_me"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^rota:current\\.(on_duty|backup)$": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_person"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^rota:(current|week)$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_rota_day"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^timeline:": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_timeline_item"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^blueprint:life_areas$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_life_area"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^proposals:pending$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/bv_proposal"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "^prescriptions:current$": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bv_prescriptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1.3.0 (D22). RefillCard. Never sent to elder views."
+        },
+        "^chat:village$": {
+          "anyOf": [
+            {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "$ref": "#/$defs/bv_message"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "1.1.0 (D16): the last 50 chat rows, oldest first. Never sent to elder views."
+        },
+        "^rounds:latest$": {
+          "$ref": "#/$defs/bv_rounds"
+        },
+        "^events:since_last_turn\\?member=me$": {
+          "$ref": "#/$defs/bv_since_turn"
+        },
+        "^plan:[a-z0-9_]+$": {
+          "$ref": "#/$defs/bv_plan"
+        },
+        "^calls:screened$": {
+          "$ref": "#/$defs/bv_screened_calls"
+        },
+        "^facts:history\\?": {
+          "$ref": "#/$defs/bv_fact_history"
+        }
       }
     },
     "identity": {
-      "type": "object", "additionalProperties": false, "required": ["member_id", "name", "role", "village_name"],
-      "description": "1.2.2 (D21). Who this socket is rendering, for the identity chip ('You're Marco · Familia Reyes'). Control Room without view_as: member_id null, name 'Control Room', role control. A judge on the shared family QR gets the helper role with name 'Family'.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "name",
+        "role",
+        "village_name"
+      ],
+      "description": "1.3.0 (D21). Who this socket is rendering, for the identity chip ('You're Marco · Familia Reyes'). Control Room without view_as: member_id null, name 'Control Room', role control. A judge on the shared family QR gets the helper role with name 'Family'.",
       "properties": {
-        "member_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/member_id" }, { "type": "null" } ] },
-        "name": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Short display name: the first word of person.name, e.g. 'Marco', 'Carmen'." },
-        "role": { "anyOf": [ { "$ref": "common.schema.json#/$defs/role_key" }, { "const": "control" } ] },
-        "village_name": { "type": "string", "minLength": 1, "maxLength": 80, "description": "village.name, e.g. 'Familia Reyes'." },
-        "village_number": { "$ref": "common.schema.json#/$defs/e164", "description": "The Village line (village.village_number); target of BigButton call_number with action_arg 'village'. Absent until the number is provisioned." },
-        "lang": { "$ref": "common.schema.json#/$defs/lang" },
-        "view_as": { "type": "boolean", "description": "true = this snapshot answers a hello.view_as (the viewer is the Control Room / coordinator, not this member)." }
+        "member_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/member_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short display name: the first word of person.name, e.g. 'Marco', 'Carmen'."
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/role_key"
+            },
+            {
+              "const": "control"
+            }
+          ]
+        },
+        "village_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "village.name, e.g. 'Familia Reyes'."
+        },
+        "village_number": {
+          "$ref": "common.schema.json#/$defs/e164",
+          "description": "The Village line (village.village_number); target of BigButton call_number with action_arg 'village'. Absent until the number is provisioned."
+        },
+        "lang": {
+          "$ref": "common.schema.json#/$defs/lang"
+        },
+        "view_as": {
+          "type": "boolean",
+          "description": "true = this snapshot answers a hello.view_as (the viewer is the Control Room / coordinator, not this member)."
+        }
       }
     },
     "bv_prescriptions": {
-      "type": "object", "additionalProperties": false, "required": ["refill_day", "owner_member_id", "items"],
-      "description": "1.2.2 (D22). Value of prescriptions:current: the current prescription record for the care recipient with supersession where a dose changed (from med_change ledger rows / Agent Memory fact history). Never sent to elder views (no med names on the elder view).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "refill_day",
+        "owner_member_id",
+        "items"
+      ],
+      "description": "1.3.0 (D22). Value of prescriptions:current: the current prescription record for the care recipient with supersession where a dose changed (from med_change ledger rows / Agent Memory fact history). Never sent to elder views (no med names on the elder view).",
       "properties": {
-        "subject": { "$ref": "common.schema.json#/$defs/member_id" },
-        "refill_day": { "$ref": "common.schema.json#/$defs/weekday", "description": "Weekday the organizer is refilled." },
-        "next_refill": { "$ref": "common.schema.json#/$defs/date" },
-        "owner_member_id": { "$ref": "common.schema.json#/$defs/member_id", "description": "Who does the refill (on duty that day)." },
-        "owner_name": { "type": "string", "maxLength": 80 },
+        "subject": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        },
+        "refill_day": {
+          "$ref": "common.schema.json#/$defs/weekday",
+          "description": "Weekday the organizer is refilled."
+        },
+        "next_refill": {
+          "$ref": "common.schema.json#/$defs/date"
+        },
+        "owner_member_id": {
+          "$ref": "common.schema.json#/$defs/member_id",
+          "description": "Who does the refill (on duty that day)."
+        },
+        "owner_name": {
+          "type": "string",
+          "maxLength": 80
+        },
         "items": {
-          "type": "array", "maxItems": 24,
+          "type": "array",
+          "maxItems": 24,
           "items": {
-            "type": "object", "additionalProperties": false, "required": ["name", "schedule", "valid_from"],
-            "anyOf": [ { "required": ["dose_mg"] }, { "required": ["dose_text"] } ],
-            "properties": {
-              "med_id": { "type": "string", "pattern": "^med_[a-z0-9_]{2,60}$" },
-              "name": { "type": "string", "minLength": 1, "maxLength": 60, "description": "Generic name, e.g. lisinopril." },
-              "dose_mg": { "type": "number", "exclusiveMinimum": 0 },
-              "dose_text": { "type": "string", "maxLength": 40, "description": "Display dose, e.g. '10 mg'. Use when the dose isn't a plain mg number." },
-              "schedule": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "common.schema.json#/$defs/slot" }, "description": "Organizer slots, e.g. [morning, evening]." },
-              "valid_from": { "$ref": "common.schema.json#/$defs/date" },
-              "changed_by": { "type": "string", "maxLength": 80, "description": "Prescriber of the change, e.g. 'Dr. Lee'." },
-              "superseded": {
-                "type": "object", "additionalProperties": false, "required": ["dose_text", "valid_until"],
-                "description": "The previous dose, shown struck through ('was 5 mg').",
-                "properties": { "dose_text": { "type": "string", "maxLength": 40 }, "valid_until": { "$ref": "common.schema.json#/$defs/date" } }
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "schedule",
+              "valid_from"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "dose_mg"
+                ]
               },
-              "source": { "$ref": "common.schema.json#/$defs/source" },
-              "source_label": { "$ref": "common.schema.json#/$defs/localized" }
+              {
+                "required": [
+                  "dose_text"
+                ]
+              }
+            ],
+            "properties": {
+              "med_id": {
+                "type": "string",
+                "pattern": "^med_[a-z0-9_]{2,60}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Generic name, e.g. lisinopril."
+              },
+              "dose_mg": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "dose_text": {
+                "type": "string",
+                "maxLength": 40,
+                "description": "Display dose, e.g. '10 mg'. Use when the dose isn't a plain mg number."
+              },
+              "schedule": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 6,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/slot"
+                },
+                "description": "Organizer slots, e.g. [morning, evening]."
+              },
+              "valid_from": {
+                "$ref": "common.schema.json#/$defs/date"
+              },
+              "changed_by": {
+                "type": "string",
+                "maxLength": 80,
+                "description": "Prescriber of the change, e.g. 'Dr. Lee'."
+              },
+              "superseded": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "dose_text",
+                  "valid_until"
+                ],
+                "description": "The previous dose, shown struck through ('was 5 mg').",
+                "properties": {
+                  "dose_text": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "valid_until": {
+                    "$ref": "common.schema.json#/$defs/date"
+                  }
+                }
+              },
+              "source": {
+                "$ref": "common.schema.json#/$defs/source"
+              },
+              "source_label": {
+                "$ref": "common.schema.json#/$defs/localized"
+              }
             }
           }
         }
       }
     },
-    "bv_message": { "$ref": "message.schema.json", "description": "A village chat row (message.schema.json) as bound to chat:village and carried by chat frames." },
-    "bv_person": { "type": "object", "additionalProperties": false, "required": ["member_id", "name"], "properties": { "member_id": { "$ref": "common.schema.json#/$defs/member_id" }, "name": { "type": "string" }, "phone": { "$ref": "common.schema.json#/$defs/e164" } } },
-    "bv_alert": {
-      "type": "object", "additionalProperties": false, "required": ["id", "severity", "title", "body", "at"],
+    "bv_message": {
+      "$ref": "message.schema.json",
+      "description": "A village chat row (message.schema.json) as bound to chat:village and carried by chat frames."
+    },
+    "bv_person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "name"
+      ],
       "properties": {
-        "id": { "type": "string" }, "severity": { "enum": ["danger", "warn", "info"] },
-        "title": { "$ref": "common.schema.json#/$defs/localized" }, "body": { "$ref": "common.schema.json#/$defs/localized" },
-        "event_id": { "$ref": "common.schema.json#/$defs/event_id" },
-        "verification": { "type": "object", "additionalProperties": false, "required": ["id", "claimed_member_id", "deadline", "status"], "properties": { "id": { "$ref": "common.schema.json#/$defs/verification_id" }, "claimed_member_id": { "$ref": "common.schema.json#/$defs/member_id" }, "deadline": { "$ref": "common.schema.json#/$defs/datetime" }, "status": { "$ref": "verification.schema.json#/$defs/status" } } },
-        "escalation": { "type": "object", "additionalProperties": false, "required": ["to", "channel", "status"], "properties": { "to": { "$ref": "common.schema.json#/$defs/member_id" }, "channel": { "enum": ["outbound_call", "app_banner", "both"] }, "status": { "type": "string" } } },
-        "at": { "$ref": "common.schema.json#/$defs/datetime" }
+        "member_id": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "$ref": "common.schema.json#/$defs/e164"
+        }
+      }
+    },
+    "bv_alert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity",
+        "title",
+        "body",
+        "at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "danger",
+            "warn",
+            "info"
+          ]
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "body": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/event_id"
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "claimed_member_id",
+            "deadline",
+            "status"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/verification_id"
+            },
+            "claimed_member_id": {
+              "$ref": "common.schema.json#/$defs/member_id"
+            },
+            "deadline": {
+              "$ref": "common.schema.json#/$defs/datetime"
+            },
+            "status": {
+              "$ref": "verification.schema.json#/$defs/status"
+            }
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "to",
+            "channel",
+            "status"
+          ],
+          "properties": {
+            "to": {
+              "$ref": "common.schema.json#/$defs/member_id"
+            },
+            "channel": {
+              "enum": [
+                "outbound_call",
+                "app_banner",
+                "both"
+              ]
+            },
+            "status": {
+              "type": "string"
+            }
+          }
+        },
+        "at": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        }
       }
     },
     "bv_pending_prompt": {
-      "type": "object", "additionalProperties": false, "required": ["verification_id", "question", "detail", "deadline", "subject"],
-      "properties": { "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" }, "question": { "$ref": "common.schema.json#/$defs/localized" }, "detail": { "$ref": "common.schema.json#/$defs/localized" }, "deadline": { "$ref": "common.schema.json#/$defs/datetime" }, "subject": { "$ref": "common.schema.json#/$defs/member_id" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_id",
+        "question",
+        "detail",
+        "deadline",
+        "subject"
+      ],
+      "properties": {
+        "verification_id": {
+          "$ref": "common.schema.json#/$defs/verification_id"
+        },
+        "question": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "detail": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "deadline": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        },
+        "subject": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        }
+      }
     },
     "bv_my_verification": {
-      "type": "object", "additionalProperties": false, "required": ["verification_id", "claimed_member_id", "claimed_name", "status", "state", "deadline", "say"],
-      "properties": { "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" }, "claimed_member_id": { "$ref": "common.schema.json#/$defs/member_id" }, "claimed_name": { "type": "string" }, "status": { "$ref": "verification.schema.json#/$defs/status" }, "state": { "$ref": "verification.schema.json#/$defs/state" }, "deadline": { "$ref": "common.schema.json#/$defs/datetime" }, "say": { "anyOf": [ { "$ref": "common.schema.json#/$defs/say" }, { "type": "null" } ] } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_id",
+        "claimed_member_id",
+        "claimed_name",
+        "status",
+        "state",
+        "deadline",
+        "say"
+      ],
+      "properties": {
+        "verification_id": {
+          "$ref": "common.schema.json#/$defs/verification_id"
+        },
+        "claimed_member_id": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        },
+        "claimed_name": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "verification.schema.json#/$defs/status"
+        },
+        "state": {
+          "$ref": "verification.schema.json#/$defs/state"
+        },
+        "deadline": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        },
+        "say": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/say"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     },
     "bv_incident": {
-      "type": "object", "additionalProperties": false, "required": ["incident_id", "type", "severity", "status", "title", "summary", "at", "provenance"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "type",
+        "severity",
+        "status",
+        "title",
+        "summary",
+        "at",
+        "provenance"
+      ],
       "properties": {
-        "incident_id": { "$ref": "common.schema.json#/$defs/incident_id" }, "type": { "$ref": "event.schema.json#/$defs/incident_type" }, "severity": { "enum": ["info", "warn", "high"] }, "status": { "enum": ["open", "acked", "closed"] },
-        "title": { "$ref": "common.schema.json#/$defs/localized" }, "summary": { "$ref": "common.schema.json#/$defs/localized" },
-        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" }, "verification_status": { "$ref": "verification.schema.json#/$defs/status" },
-        "claimed_identity": { "type": "string" }, "amount": { "type": ["number", "null"] }, "method": { "$ref": "common.schema.json#/$defs/money_method" },
-        "red_flags": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/money_red_flag" } }, "pattern_flag": { "const": "possible_fraud_pattern" },
-        "provenance": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["label", "source"], "properties": { "label": { "type": "string" }, "source": { "$ref": "common.schema.json#/$defs/source" } } } },
-        "at": { "$ref": "common.schema.json#/$defs/datetime" }
+        "incident_id": {
+          "$ref": "common.schema.json#/$defs/incident_id"
+        },
+        "type": {
+          "$ref": "event.schema.json#/$defs/incident_type"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn",
+            "high"
+          ]
+        },
+        "status": {
+          "enum": [
+            "open",
+            "acked",
+            "closed"
+          ]
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "summary": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "verification_id": {
+          "$ref": "common.schema.json#/$defs/verification_id"
+        },
+        "verification_status": {
+          "$ref": "verification.schema.json#/$defs/status"
+        },
+        "claimed_identity": {
+          "type": "string"
+        },
+        "amount": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "method": {
+          "$ref": "common.schema.json#/$defs/money_method"
+        },
+        "red_flags": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/money_red_flag"
+          }
+        },
+        "pattern_flag": {
+          "const": "possible_fraud_pattern"
+        },
+        "provenance": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "source"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "source": {
+                "$ref": "common.schema.json#/$defs/source"
+              }
+            }
+          }
+        },
+        "at": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        }
       }
     },
     "bv_dose_slot": {
-      "type": "object", "additionalProperties": false, "required": ["slot", "status", "taken_at", "via"],
-      "properties": { "slot": { "$ref": "common.schema.json#/$defs/slot" }, "status": { "enum": ["taken", "uncertain", "missed", "due", "upcoming"] }, "taken_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] }, "via": { "anyOf": [ { "enum": ["lid_qr", "phone_line", "app"] }, { "type": "null" } ] }, "lid_color": { "$ref": "common.schema.json#/$defs/hex_color" }, "meds": { "type": "array", "items": { "type": "string" }, "description": "Only for views with show_med_names; never sent to elder views." } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "status",
+        "taken_at",
+        "via"
+      ],
+      "properties": {
+        "slot": {
+          "$ref": "common.schema.json#/$defs/slot"
+        },
+        "status": {
+          "enum": [
+            "taken",
+            "uncertain",
+            "missed",
+            "due",
+            "upcoming"
+          ]
+        },
+        "taken_at": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/datetime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "via": {
+          "anyOf": [
+            {
+              "enum": [
+                "lid_qr",
+                "phone_line",
+                "app"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lid_color": {
+          "$ref": "common.schema.json#/$defs/hex_color"
+        },
+        "meds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Only for views with show_med_names; never sent to elder views."
+        }
+      }
     },
-    "bv_dose_day": { "type": "object", "additionalProperties": false, "required": ["date", "slots"], "properties": { "date": { "$ref": "common.schema.json#/$defs/date" }, "slots": { "type": "array", "items": { "$ref": "#/$defs/bv_dose_slot" } } } },
-    "bv_dose_week": { "type": "object", "additionalProperties": false, "required": ["days"], "properties": { "days": { "type": "array", "maxItems": 7, "items": { "$ref": "#/$defs/bv_dose_day" } } } },
-    "bv_rota_day": { "type": "object", "additionalProperties": false, "required": ["date", "day", "on_duty", "backup"], "properties": { "date": { "$ref": "common.schema.json#/$defs/date" }, "day": { "$ref": "common.schema.json#/$defs/weekday" }, "on_duty": { "$ref": "common.schema.json#/$defs/member_id" }, "backup": { "$ref": "common.schema.json#/$defs/member_id" } } },
+    "bv_dose_day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "slots"
+      ],
+      "properties": {
+        "date": {
+          "$ref": "common.schema.json#/$defs/date"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bv_dose_slot"
+          }
+        }
+      }
+    },
+    "bv_dose_week": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "days"
+      ],
+      "properties": {
+        "days": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/bv_dose_day"
+          }
+        }
+      }
+    },
+    "bv_rota_day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "day",
+        "on_duty",
+        "backup"
+      ],
+      "properties": {
+        "date": {
+          "$ref": "common.schema.json#/$defs/date"
+        },
+        "day": {
+          "$ref": "common.schema.json#/$defs/weekday"
+        },
+        "on_duty": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        },
+        "backup": {
+          "$ref": "common.schema.json#/$defs/member_id"
+        }
+      }
+    },
     "bv_rota_me": {
-      "type": "object", "additionalProperties": false, "required": ["is_my_turn", "date", "on_duty", "backup", "until", "next_shift", "answer"],
-      "properties": { "is_my_turn": { "type": "boolean" }, "date": { "$ref": "common.schema.json#/$defs/date" }, "on_duty": { "$ref": "#/$defs/bv_person" }, "backup": { "$ref": "#/$defs/bv_person" }, "until": { "anyOf": [ { "$ref": "common.schema.json#/$defs/hhmm" }, { "type": "null" } ] }, "next_shift": { "anyOf": [ { "$ref": "common.schema.json#/$defs/date" }, { "type": "null" } ] }, "answer": { "$ref": "common.schema.json#/$defs/localized", "description": "e.g. 'Yes. Tonight until 9:30.' / 'No. Ana is on tonight; you're next on Saturday.'" }, "status_line": { "$ref": "common.schema.json#/$defs/localized" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_my_turn",
+        "date",
+        "on_duty",
+        "backup",
+        "until",
+        "next_shift",
+        "answer"
+      ],
+      "properties": {
+        "is_my_turn": {
+          "type": "boolean"
+        },
+        "date": {
+          "$ref": "common.schema.json#/$defs/date"
+        },
+        "on_duty": {
+          "$ref": "#/$defs/bv_person"
+        },
+        "backup": {
+          "$ref": "#/$defs/bv_person"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/hhmm"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_shift": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "answer": {
+          "$ref": "common.schema.json#/$defs/localized",
+          "description": "e.g. 'Yes. Tonight until 9:30.' / 'No. Ana is on tonight; you're next on Saturday.'"
+        },
+        "status_line": {
+          "$ref": "common.schema.json#/$defs/localized"
+        }
+      }
     },
     "bv_timeline_item": {
-      "type": "object", "additionalProperties": false, "required": ["event_id", "kind", "at", "text", "source", "superseded"],
-      "properties": { "event_id": { "$ref": "common.schema.json#/$defs/event_id" }, "kind": { "$ref": "event.schema.json#/$defs/kind" }, "at": { "$ref": "common.schema.json#/$defs/datetime" }, "text": { "$ref": "common.schema.json#/$defs/localized" }, "source": { "$ref": "common.schema.json#/$defs/source" }, "source_label": { "$ref": "common.schema.json#/$defs/localized" }, "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" }, "superseded": { "type": "boolean" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "at",
+        "text",
+        "source",
+        "superseded"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/event_id"
+        },
+        "kind": {
+          "$ref": "event.schema.json#/$defs/kind"
+        },
+        "at": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/source"
+        },
+        "source_label": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "rule_id": {
+          "$ref": "common.schema.json#/$defs/rule_id"
+        },
+        "superseded": {
+          "type": "boolean"
+        }
+      }
     },
     "bv_life_area": {
-      "type": "object", "additionalProperties": false, "required": ["id", "label", "status"],
-      "properties": { "id": { "$ref": "village_spec.schema.json#/$defs/life_area_id" }, "label": { "type": "string" }, "status": { "$ref": "common.schema.json#/$defs/localized", "description": "Live chip text: '2/2 lids today', '1 scam stopped', 'Marco on duty'." }, "rules": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/rule_id" } }, "trusted_contacts": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/member_id" } } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "village_spec.schema.json#/$defs/life_area_id"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "common.schema.json#/$defs/localized",
+          "description": "Live chip text: '2/2 lids today', '1 scam stopped', 'Marco on duty'."
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/rule_id"
+          }
+        },
+        "trusted_contacts": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/member_id"
+          }
+        }
+      }
     },
     "bv_proposal": {
-      "type": "object", "additionalProperties": false, "required": ["proposal_id", "title", "changes", "evidence_labels", "status"],
-      "properties": { "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" }, "title": { "$ref": "common.schema.json#/$defs/localized" }, "changes": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/localized" } }, "evidence_labels": { "type": "array", "items": { "type": "string" } }, "status": { "$ref": "proposal.schema.json#/$defs/status" }, "release_id": { "$ref": "common.schema.json#/$defs/release_id" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposal_id",
+        "title",
+        "changes",
+        "evidence_labels",
+        "status"
+      ],
+      "properties": {
+        "proposal_id": {
+          "$ref": "common.schema.json#/$defs/proposal_id"
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/localized"
+          }
+        },
+        "evidence_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "$ref": "proposal.schema.json#/$defs/status"
+        },
+        "release_id": {
+          "$ref": "common.schema.json#/$defs/release_id"
+        }
+      }
     },
     "patch": {
-      "type": "object", "additionalProperties": false, "required": ["type", "rev", "base_rev", "role", "ops"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "rev",
+        "base_rev",
+        "role",
+        "ops"
+      ],
       "properties": {
-        "type": { "const": "patch" },
-        "rev": { "$ref": "common.schema.json#/$defs/rev" },
-        "base_rev": { "$ref": "common.schema.json#/$defs/rev" },
-        "role": { "$ref": "common.schema.json#/$defs/role_key" },
-        "ops": { "type": "array", "minItems": 1, "maxItems": 24, "items": { "$ref": "common.schema.json#/$defs/view_patch_op" } },
-        "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" },
-        "highlight": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/element_id" }, "description": "Element ids to flash as NEW." }
+        "type": {
+          "const": "patch"
+        },
+        "rev": {
+          "$ref": "common.schema.json#/$defs/rev"
+        },
+        "base_rev": {
+          "$ref": "common.schema.json#/$defs/rev"
+        },
+        "role": {
+          "$ref": "common.schema.json#/$defs/role_key"
+        },
+        "ops": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "common.schema.json#/$defs/view_patch_op"
+          }
+        },
+        "proposal_id": {
+          "$ref": "common.schema.json#/$defs/proposal_id"
+        },
+        "highlight": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/element_id"
+          },
+          "description": "Element ids to flash as NEW."
+        }
       }
     },
     "event": {
-      "type": "object", "additionalProperties": false, "required": ["type", "event"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "event"
+      ],
       "properties": {
-        "type": { "const": "event" },
-        "event": { "$ref": "event.schema.json" },
-        "data": { "$ref": "#/$defs/data", "description": "Binding values that changed because of this row (same keys as snapshot.data)." }
+        "type": {
+          "const": "event"
+        },
+        "event": {
+          "$ref": "event.schema.json"
+        },
+        "data": {
+          "$ref": "#/$defs/data",
+          "description": "Binding values that changed because of this row (same keys as snapshot.data)."
+        }
       }
     },
     "prompt": {
-      "type": "object", "additionalProperties": false, "required": ["type", "verification_id", "question", "detail", "options", "deadline"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "verification_id",
+        "question",
+        "detail",
+        "options",
+        "deadline"
+      ],
       "description": "Sent only to the claimed member's sockets (in-app 'Village is calling you' verification). Answer with action answer_verification.",
       "properties": {
-        "type": { "const": "prompt" },
-        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
-        "question": { "$ref": "common.schema.json#/$defs/localized" },
-        "detail": { "$ref": "common.schema.json#/$defs/localized" },
-        "options": {
-          "type": "array", "minItems": 2, "maxItems": 3,
-          "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"], "properties": { "id": { "$ref": "common.schema.json#/$defs/verification_answer" }, "label": { "$ref": "common.schema.json#/$defs/localized" } } }
+        "type": {
+          "const": "prompt"
         },
-        "deadline": { "$ref": "common.schema.json#/$defs/datetime" },
-        "closed": { "type": "boolean", "description": "true = dismiss the prompt (answered elsewhere or deadline)." }
+        "verification_id": {
+          "$ref": "common.schema.json#/$defs/verification_id"
+        },
+        "question": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "detail": {
+          "$ref": "common.schema.json#/$defs/localized"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/verification_answer"
+              },
+              "label": {
+                "$ref": "common.schema.json#/$defs/localized"
+              }
+            }
+          }
+        },
+        "deadline": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        },
+        "closed": {
+          "type": "boolean",
+          "description": "true = dismiss the prompt (answered elsewhere or deadline)."
+        }
       }
     },
     "result": {
-      "type": "object", "additionalProperties": false, "required": ["type", "req_id", "ok"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "req_id",
+        "ok"
+      ],
       "properties": {
-        "type": { "const": "result" },
-        "req_id": { "$ref": "#/$defs/req_id" },
-        "ok": { "type": "boolean" },
-        "decision": { "$ref": "gate.schema.json#/$defs/decision" },
-        "event_id": { "$ref": "common.schema.json#/$defs/event_id" },
-        "error": { "type": "string", "maxLength": 300 }
+        "type": {
+          "const": "result"
+        },
+        "req_id": {
+          "$ref": "#/$defs/req_id"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "decision": {
+          "$ref": "gate.schema.json#/$defs/decision"
+        },
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/event_id"
+        },
+        "error": {
+          "type": "string",
+          "maxLength": 300
+        }
       }
     },
-    "pong": { "type": "object", "additionalProperties": false, "required": ["type", "ts"], "properties": { "type": { "const": "pong" }, "ts": { "type": "number" } } },
+    "pong": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "ts"
+      ],
+      "properties": {
+        "type": {
+          "const": "pong"
+        },
+        "ts": {
+          "type": "number"
+        }
+      }
+    },
     "chat": {
-      "type": "object", "additionalProperties": false, "required": ["type", "village", "message"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "village",
+        "message"
+      ],
       "description": "1.1.0 (D16). One new village chat row, fanned out to every member socket whose view is not elder, plus control. Clients append it to the chat:village binding (keep the last 50). A member's own POST /villages/{id}/messages is echoed back as a chat frame too (dedupe on message.id).",
       "properties": {
-        "type": { "const": "chat" },
-        "village": { "$ref": "common.schema.json#/$defs/village_id" },
-        "message": { "$ref": "message.schema.json" }
+        "type": {
+          "const": "chat"
+        },
+        "village": {
+          "$ref": "common.schema.json#/$defs/village_id"
+        },
+        "message": {
+          "$ref": "message.schema.json"
+        }
       }
     },
     "error": {
-      "type": "object", "additionalProperties": false, "required": ["type", "code", "message"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "code",
+        "message"
+      ],
       "description": "Sent before the server closes the socket (bad_token, contract_mismatch) or on a bad frame.",
-      "properties": { "type": { "const": "error" }, "code": { "enum": ["bad_token", "contract_mismatch", "bad_message", "not_allowed", "rate_limited"] }, "message": { "type": "string", "maxLength": 300 } }
+      "properties": {
+        "type": {
+          "const": "error"
+        },
+        "code": {
+          "enum": [
+            "bad_token",
+            "contract_mismatch",
+            "bad_message",
+            "not_allowed",
+            "rate_limited"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
     },
-
     "control": {
-      "type": "object", "additionalProperties": false, "required": ["type", "kind", "payload", "at"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "kind",
+        "payload",
+        "at"
+      ],
       "description": "Control Room only (role=control).",
       "properties": {
-        "type": { "const": "control" },
-        "kind": { "enum": ["reasoning", "build_log", "release", "qa", "gate", "counter", "clock", "proposal", "blueprint", "caption", "ledger"], "description": "1.1.0 added proposal and blueprint. 1.2.2 added caption (live call turn es/en for the projector, D18) and ledger (agent work rows: time · status · what · result, D20/D23)." },
-        "payload": { "type": "object" },
-        "at": { "$ref": "common.schema.json#/$defs/datetime" }
+        "type": {
+          "const": "control"
+        },
+        "kind": {
+          "enum": [
+            "reasoning",
+            "build_log",
+            "release",
+            "qa",
+            "gate",
+            "counter",
+            "clock",
+            "proposal",
+            "blueprint",
+            "caption",
+            "ledger"
+          ],
+          "description": "1.1.0 added proposal and blueprint. 1.3.0 added caption (live call turn es/en for the projector, D18) and ledger (agent work rows: time · status · what · result, D20/D23)."
+        },
+        "payload": {
+          "type": "object"
+        },
+        "at": {
+          "$ref": "common.schema.json#/$defs/datetime"
+        }
       },
       "allOf": [
-        { "if": { "properties": { "kind": { "const": "reasoning" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["source", "kind", "text"], "properties": { "source": { "enum": ["builder", "evolve", "gate", "voice", "release", "memory", "watcher", "founder", "verifier", "explainer"] }, "kind": { "enum": ["plan", "decision", "note"], "description": "decision = a row of the DecisionsLog (agent autonomy)." }, "text": { "type": "string", "maxLength": 400 }, "mode": { "enum": ["acted_alone", "asked_human", "refused"], "description": "1.2.2: autonomy mode of the row (D23)." }, "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" }, "village": { "$ref": "common.schema.json#/$defs/village_id" } } } } } },
-        { "if": { "properties": { "kind": { "const": "caption" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["es", "en"], "properties": { "es": { "type": "string", "maxLength": 600 }, "en": { "type": "string", "maxLength": 600 }, "speaker": { "enum": ["carmen", "village", "caller", "marco", "ana"] }, "final": { "type": "boolean" }, "village": { "$ref": "common.schema.json#/$defs/village_id" } } } } } },
-        { "if": { "properties": { "kind": { "const": "ledger" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["id", "at", "status", "what"], "properties": { "id": { "type": "string" }, "at": { "$ref": "common.schema.json#/$defs/datetime" }, "status": { "enum": ["queued", "running", "done", "retrying", "fallback", "refused"] }, "what": { "type": "string", "maxLength": 200 }, "result": { "type": "string", "maxLength": 400 }, "role": { "enum": ["founder", "watcher", "verifier", "builder", "explainer"] }, "mode": { "enum": ["acted_alone", "asked_human", "refused"] }, "decision_id": { "type": "string" }, "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" }, "elapsed_ms": { "type": "integer", "minimum": 0 }, "village": { "$ref": "common.schema.json#/$defs/village_id" } } } } } },
-        { "if": { "properties": { "kind": { "const": "build_log" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["release_id", "rev", "stage", "line", "level"], "properties": { "release_id": { "$ref": "common.schema.json#/$defs/release_id" }, "rev": { "$ref": "common.schema.json#/$defs/rev" }, "stage": { "$ref": "release.schema.json#/$defs/stage_name" }, "line": { "type": "string", "maxLength": 500 }, "level": { "enum": ["info", "warn", "error"] } } } } } },
-        { "if": { "properties": { "kind": { "const": "release" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["receipt"], "properties": { "receipt": { "$ref": "release.schema.json" } } } } } },
-        { "if": { "properties": { "kind": { "const": "qa" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["release_id", "rev", "stage", "status"], "properties": { "release_id": { "$ref": "common.schema.json#/$defs/release_id" }, "rev": { "$ref": "common.schema.json#/$defs/rev" }, "stage": { "enum": ["tests", "anchor_qa", "arize_evals"] }, "status": { "$ref": "release.schema.json#/$defs/stage_status" }, "summary": { "type": "string", "maxLength": 200 }, "evidence_url": { "$ref": "common.schema.json#/$defs/url" }, "live_view_url": { "$ref": "common.schema.json#/$defs/url" } } } } } },
-        { "if": { "properties": { "kind": { "const": "gate" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["decision", "input_kind"], "properties": { "decision": { "$ref": "gate.schema.json#/$defs/decision" }, "input_kind": { "$ref": "gate.schema.json#/$defs/candidate_kind" }, "event_id": { "$ref": "common.schema.json#/$defs/event_id" }, "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" } } } } } },
-        { "if": { "properties": { "kind": { "const": "counter" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["name", "value", "label"], "properties": { "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" }, "value": { "type": "number" }, "of": { "type": "number" }, "label": { "type": "string", "maxLength": 80 } } } } } },
-        { "if": { "properties": { "kind": { "const": "clock" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["now", "offset_minutes"], "properties": { "now": { "$ref": "common.schema.json#/$defs/datetime" }, "offset_minutes": { "type": "number" } } } } } },
-        { "if": { "properties": { "kind": { "const": "proposal" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["proposal"], "properties": { "proposal": { "$ref": "proposal.schema.json" }, "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" } } } } } },
-        { "if": { "properties": { "kind": { "const": "blueprint" } } }, "then": { "properties": { "payload": { "type": "object", "additionalProperties": false, "required": ["village", "stage", "items"], "properties": { "village": { "$ref": "common.schema.json#/$defs/village_id" }, "stage": { "enum": ["people", "needs", "life_areas", "rules", "kind", "questions", "done", "questions", "will_build"] }, "items": { "type": "array", "maxItems": 24, "items": { "type": "object", "description": "Contract-shaped objects for the stage: village_spec person / need / life_area for people | needs | life_areas; {rule} strings for rules; {kind} for kind; {question} for questions; {rev} for done." } }, "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" } } } } } }
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "reasoning"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "kind",
+                  "text"
+                ],
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "builder",
+                      "evolve",
+                      "gate",
+                      "voice",
+                      "release",
+                      "memory",
+                      "watcher",
+                      "founder",
+                      "verifier",
+                      "explainer"
+                    ]
+                  },
+                  "kind": {
+                    "enum": [
+                      "plan",
+                      "decision",
+                      "note"
+                    ],
+                    "description": "decision = a row of the DecisionsLog (agent autonomy)."
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 400
+                  },
+                  "mode": {
+                    "enum": [
+                      "acted_alone",
+                      "asked_human",
+                      "refused"
+                    ],
+                    "description": "1.3.0: autonomy mode of the row (D23)."
+                  },
+                  "trace_id": {
+                    "$ref": "common.schema.json#/$defs/trace_id"
+                  },
+                  "village": {
+                    "$ref": "common.schema.json#/$defs/village_id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "caption"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "es",
+                  "en"
+                ],
+                "properties": {
+                  "es": {
+                    "type": "string",
+                    "maxLength": 600
+                  },
+                  "en": {
+                    "type": "string",
+                    "maxLength": 600
+                  },
+                  "speaker": {
+                    "enum": [
+                      "carmen",
+                      "village",
+                      "caller",
+                      "marco",
+                      "ana"
+                    ]
+                  },
+                  "final": {
+                    "type": "boolean"
+                  },
+                  "village": {
+                    "$ref": "common.schema.json#/$defs/village_id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ledger"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "at",
+                  "status",
+                  "what"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "at": {
+                    "$ref": "common.schema.json#/$defs/datetime"
+                  },
+                  "status": {
+                    "enum": [
+                      "queued",
+                      "running",
+                      "done",
+                      "retrying",
+                      "fallback",
+                      "refused"
+                    ]
+                  },
+                  "what": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "result": {
+                    "type": "string",
+                    "maxLength": 400
+                  },
+                  "role": {
+                    "enum": [
+                      "founder",
+                      "watcher",
+                      "verifier",
+                      "builder",
+                      "explainer"
+                    ]
+                  },
+                  "mode": {
+                    "enum": [
+                      "acted_alone",
+                      "asked_human",
+                      "refused"
+                    ]
+                  },
+                  "decision_id": {
+                    "type": "string"
+                  },
+                  "trace_id": {
+                    "$ref": "common.schema.json#/$defs/trace_id"
+                  },
+                  "elapsed_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "village": {
+                    "$ref": "common.schema.json#/$defs/village_id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "build_log"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "release_id",
+                  "rev",
+                  "stage",
+                  "line",
+                  "level"
+                ],
+                "properties": {
+                  "release_id": {
+                    "$ref": "common.schema.json#/$defs/release_id"
+                  },
+                  "rev": {
+                    "$ref": "common.schema.json#/$defs/rev"
+                  },
+                  "stage": {
+                    "$ref": "release.schema.json#/$defs/stage_name"
+                  },
+                  "line": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "level": {
+                    "enum": [
+                      "info",
+                      "warn",
+                      "error"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "release"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "receipt"
+                ],
+                "properties": {
+                  "receipt": {
+                    "$ref": "release.schema.json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "qa"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "release_id",
+                  "rev",
+                  "stage",
+                  "status"
+                ],
+                "properties": {
+                  "release_id": {
+                    "$ref": "common.schema.json#/$defs/release_id"
+                  },
+                  "rev": {
+                    "$ref": "common.schema.json#/$defs/rev"
+                  },
+                  "stage": {
+                    "enum": [
+                      "tests",
+                      "anchor_qa",
+                      "arize_evals"
+                    ]
+                  },
+                  "status": {
+                    "$ref": "release.schema.json#/$defs/stage_status"
+                  },
+                  "summary": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "evidence_url": {
+                    "$ref": "common.schema.json#/$defs/url"
+                  },
+                  "live_view_url": {
+                    "$ref": "common.schema.json#/$defs/url"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "gate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "input_kind"
+                ],
+                "properties": {
+                  "decision": {
+                    "$ref": "gate.schema.json#/$defs/decision"
+                  },
+                  "input_kind": {
+                    "$ref": "gate.schema.json#/$defs/candidate_kind"
+                  },
+                  "event_id": {
+                    "$ref": "common.schema.json#/$defs/event_id"
+                  },
+                  "trace_id": {
+                    "$ref": "common.schema.json#/$defs/trace_id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "counter"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "value",
+                  "label"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{1,40}$"
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "of": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "clock"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "now",
+                  "offset_minutes"
+                ],
+                "properties": {
+                  "now": {
+                    "$ref": "common.schema.json#/$defs/datetime"
+                  },
+                  "offset_minutes": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "proposal"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "proposal"
+                ],
+                "properties": {
+                  "proposal": {
+                    "$ref": "proposal.schema.json"
+                  },
+                  "trace_id": {
+                    "$ref": "common.schema.json#/$defs/trace_id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "blueprint"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "village",
+                  "stage",
+                  "items"
+                ],
+                "properties": {
+                  "village": {
+                    "$ref": "common.schema.json#/$defs/village_id"
+                  },
+                  "stage": {
+                    "enum": [
+                      "people",
+                      "needs",
+                      "life_areas",
+                      "rules",
+                      "kind",
+                      "questions",
+                      "done",
+                      "questions",
+                      "will_build"
+                    ]
+                  },
+                  "items": {
+                    "type": "array",
+                    "maxItems": 24,
+                    "items": {
+                      "type": "object",
+                      "description": "Contract-shaped objects for the stage: village_spec person / need / life_area for people | needs | life_areas; {rule} strings for rules; {kind} for kind; {question} for questions; {rev} for done."
+                    }
+                  },
+                  "trace_id": {
+                    "$ref": "common.schema.json#/$defs/trace_id"
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
+    },
+    "bv_rounds": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "night": {
+          "type": "string"
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "acted_alone": {
+              "type": "integer"
+            },
+            "asked_human": {
+              "type": "integer"
+            },
+            "refused": {
+              "type": "integer"
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "text": {},
+              "mode": {
+                "enum": [
+                  "acted_alone",
+                  "asked_human",
+                  "refused"
+                ]
+              },
+              "decision_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "bv_since_turn": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "at",
+          "text"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "text": {},
+          "source": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "bv_plan": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "title": {},
+        "date": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "text"
+            ],
+            "properties": {
+              "text": {},
+              "owner": {
+                "type": "string"
+              },
+              "when": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "open",
+                  "claimed",
+                  "done"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "task",
+                  "need",
+                  "offer",
+                  "pickup",
+                  "rule"
+                ]
+              },
+              "note": {}
+            }
+          }
+        }
+      }
+    },
+    "bv_screened_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "at",
+          "outcome"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "claimed": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "passed_through",
+              "held",
+              "refused",
+              "unknown"
+            ]
+          },
+          "verified_by": {
+            "type": "string"
+          },
+          "say": {}
+        }
+      }
+    },
+    "bv_fact_history": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "versions"
+      ],
+      "properties": {
+        "entity": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
     }
   },
-
   "examples": [
-    { "type": "hello", "contract_version": "1.2.2", "village": "v_reyes", "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB", "last_rev": 5, "client": "kit" },
-    { "type": "hello", "contract_version": "1.2.2", "village": "v_reyes", "member_token": "ct_control_Zq81mWv3Lp0x", "client": "control", "view_as": "m_carmen" },
-    { "type": "prompt", "verification_id": "ver_1016_01",
-      "question": { "en": "Did you just call Mamá asking for $2,000?", "es": "¿Acaba de llamar a Mamá pidiendo $2,000?" },
-      "detail": { "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything." },
-      "options": [ { "id": "no", "label": { "en": "That wasn't me" } }, { "id": "yes", "label": { "en": "Yes, it was me" } } ],
-      "deadline": "2026-10-16T14:02:54-04:00" },
-    { "type": "chat", "village": "v_reyes",
-      "message": { "id": "msg_1016_1404_lucia", "village": "v_reyes", "author": "m_lucia", "kind": "chat", "text": "That’s the second time?? Calling her now.", "mention": null, "reply_to": null, "refs": [], "routed": "none",
-        "source": { "kind": "app", "ref": "m_lucia" }, "at": "2026-10-16T14:04:02-04:00" } },
-    { "type": "control", "kind": "blueprint", "at": "2026-10-16T12:40:05-04:00",
-      "payload": { "village": "v_reyes", "stage": "rules", "items": [ { "rule": "money_verify_with_member" }, { "rule": "double_dose_guard" } ] } }
+    {
+      "type": "hello",
+      "contract_version": "1.3.0",
+      "village": "v_reyes",
+      "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB",
+      "last_rev": 5,
+      "client": "kit"
+    },
+    {
+      "type": "hello",
+      "contract_version": "1.3.0",
+      "village": "v_reyes",
+      "member_token": "ct_control_Zq81mWv3Lp0x",
+      "client": "control",
+      "view_as": "m_carmen"
+    },
+    {
+      "type": "prompt",
+      "verification_id": "ver_1016_01",
+      "question": {
+        "en": "Did you just call Mamá asking for $2,000?",
+        "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+      },
+      "detail": {
+        "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+      },
+      "options": [
+        {
+          "id": "no",
+          "label": {
+            "en": "That wasn't me"
+          }
+        },
+        {
+          "id": "yes",
+          "label": {
+            "en": "Yes, it was me"
+          }
+        }
+      ],
+      "deadline": "2026-10-16T14:02:54-04:00"
+    },
+    {
+      "type": "chat",
+      "village": "v_reyes",
+      "message": {
+        "id": "msg_1016_1404_lucia",
+        "village": "v_reyes",
+        "author": "m_lucia",
+        "kind": "chat",
+        "text": "That’s the second time?? Calling her now.",
+        "mention": null,
+        "reply_to": null,
+        "refs": [],
+        "routed": "none",
+        "source": {
+          "kind": "app",
+          "ref": "m_lucia"
+        },
+        "at": "2026-10-16T14:04:02-04:00"
+      }
+    },
+    {
+      "type": "control",
+      "kind": "blueprint",
+      "at": "2026-10-16T12:40:05-04:00",
+      "payload": {
+        "village": "v_reyes",
+        "stage": "rules",
+        "items": [
+          {
+            "rule": "money_verify_with_member"
+          },
+          {
+            "rule": "double_dose_guard"
+          }
+        ]
+      }
+    }
   ]
 }
