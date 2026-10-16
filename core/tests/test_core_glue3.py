@@ -139,3 +139,31 @@ async def test_plan_from_builder_plan_data() -> None:
         assert p["title"] == {"en": "Feast plan"} and p["date"] == "Nov 26" and p["items"][0]["owner"] == _coord(vid)
     finally:
         chat_intent.PLANS.get(vid, {}).pop("feast", None)
+
+
+async def test_life_areas_carry_need_ids_from_spec() -> None:
+    from core.bindings import life_areas
+
+    await reset_demo()
+    for vid in villages.village_ids():
+        spec = villages.spec(vid)
+        for row in life_areas(vid):
+            expected = {n["id"] for n in spec["blueprint"]["needs"] if n.get("life_area") == row["id"]}
+            assert expected <= set(row["need_ids"]) and len(row["need_ids"]) == len(set(row["need_ids"]))
+
+
+async def test_coordinator_snapshot_has_rounds_and_fact_history() -> None:
+    from core.ws_hub import snapshot
+
+    await reset_demo()
+    vid = villages.default_village_id()
+    snap = snapshot(vid, "coordinator", villages.coordinator_id(vid))
+    assert "rounds:latest" in snap["data"]
+    hist = [k for k in snap["data"] if k.startswith("facts:history?")]
+    binds = [k for k in __import__("core.bindings", fromlist=["view_binds"]).view_binds("coordinator", vid) if k.startswith("facts:history?")]
+    assert set(binds) <= set(hist)
+    rx = (db.prescriptions.get(vid) or [{}])[0].get("name")
+    if rx:
+        from core.bindings_v3 import fact_history
+
+        assert fact_history(vid, villages.care_recipient_id(vid), f"{rx}_dose")["versions"]
