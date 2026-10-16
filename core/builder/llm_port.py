@@ -135,7 +135,7 @@ class SyncClientLLM:
             "messages": messages,
             "tools": [_tool_param(tool)],
             # Sonnet 5.5 rejects forced tool_choice ("tool"/"any"); Bedrock Haiku 4.5 accepts it
-            "tool_choice": {"type": "tool", "name": tool["name"]} if self.provider == "bedrock" else {"type": "auto"},
+            "tool_choice": {"type": "tool", "name": tool["name"]} if self.provider in ("bedrock", "openai") else {"type": "auto"},
         }
 
     async def tool_call(self, *, system: str, messages: list[dict[str, Any]], tool: dict[str, Any], max_tokens: int = 4096) -> dict[str, Any]:

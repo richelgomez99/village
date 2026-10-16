@@ -86,6 +86,12 @@ def init_tracing(project: str | None = None, *, force: bool = False) -> str:
                 AnthropicInstrumentor().instrument(tracer_provider=provider)
             except Exception:
                 pass
+            try:  # opt-in OpenAI provider (core.llm_openai): same llm.model_name / token attributes
+                from openinference.instrumentation.openai import OpenAIInstrumentor
+
+                OpenAIInstrumentor().instrument(tracer_provider=provider)
+            except Exception:
+                pass
         except Exception as exc:  # never break the app over tracing
             _state.update(provider=None, tracer=None, mode=f"noop:{type(exc).__name__}")
         return _state["mode"]

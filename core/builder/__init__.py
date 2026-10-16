@@ -9,7 +9,7 @@ async def ask(village_id: str, question: str, author: str | None = None):  # cor
     from .chat_intent import route_chat
     from .llm_port import get_llm
 
-    return await route_chat(village_id, question, author, llm=get_llm(None, "builder"))
+    return await route_chat(village_id, question, author, llm=get_llm(None, "chat.mention"))
 from .founding import BuilderRun, FoundingInput, FoundingOptions, found
 from .patch import PatchResult, patch
 
