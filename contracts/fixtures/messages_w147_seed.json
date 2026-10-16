@@ -1,0 +1,331 @@
+{
+  "contract_version": "1.3.4",
+  "village": "v_w147",
+  "description": "Village chat rows (D16, message.schema.json) for the West 147th block village, chronological, from the release receipt to the start of the demo (~14:00). Village is a participant (D39): it reports what it did with source chips, answers @Village questions with the official source and the time it was checked, asks the people concerned by name (one pending ask to Priya), and never repeats a rumor as fact. Volunteer and resident replies prefixed [demo] are played by demo actors (D38) and carry a visible demo tag. Load after events_w147_seed.json; core seeds rows before the contract clock's 14:02.",
+  "clients_that_see_it": [
+    "tanya",
+    "darnell",
+    "priya",
+    "okafor",
+    "james",
+    "control"
+  ],
+  "messages": [
+    {
+      "id": "msg_1016_1219_started",
+      "village": "v_w147",
+      "author": "system",
+      "kind": "chat",
+      "text": "Tanya started the West 147th block village. 7 neighbors and the corner deli invited.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "source": {
+        "kind": "system",
+        "ref": "builder"
+      },
+      "at": "2026-10-16T12:19:00-04:00"
+    },
+    {
+      "id": "msg_1016_1225_receipt",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "receipt",
+      "text": "Every phone on the block is live: Tanya's board, Darnell's and Priya's volunteer apps, the Okafors' and Mr. James's check-in apps, and the block line for Mrs. Alvarez, Mr. Chen and the deli. Built in a sandbox and tested first (33 floor tests · 13.4 s).",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "release",
+          "id": "rel_w147_r2",
+          "label": "receipt"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "release"
+      },
+      "at": "2026-10-16T12:25:30-04:00"
+    },
+    {
+      "id": "msg_1016_1227_shift",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "nudge",
+      "text": "Darnell, you're on this shift (until 5). Priya backs you up. Oxygen and insulin come first, then the newborn, then stairs.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "event",
+          "id": "ev_1016_1226_shift_1016",
+          "label": "Tanya set the shift"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "scheduler"
+      },
+      "at": "2026-10-16T12:27:10-04:00"
+    },
+    {
+      "id": "msg_1016_1232_alvarez",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "nudge",
+      "text": "Mrs. Alvarez (5th floor) called the block line: her oxygen concentrator is off and she's on a portable tank, no breathing trouble right now. I told her: 911 first if she gets short of breath. Darnell, you're matched — generator outdoors only, cord up the stairwell. Her apartment number is on your phone only.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "event",
+          "id": "ev_1016_1231_help_alvarez",
+          "label": "her call, 0:14"
+        },
+        {
+          "kind": "rule",
+          "id": "P-MP-01",
+          "label": "the rule: oxygen first"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "gate"
+      },
+      "at": "2026-10-16T12:32:20-04:00"
+    },
+    {
+      "id": "msg_1016_1233_darnell",
+      "village": "v_w147",
+      "author": "b_darnell",
+      "kind": "chat",
+      "text": "[demo] On it. Generator goes on the sidewalk, I'll run a cord up the stairwell. Twenty minutes.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "b_darnell"
+      },
+      "at": "2026-10-16T12:33:45-04:00"
+    },
+    {
+      "id": "msg_1016_1236_okafor",
+      "village": "v_w147",
+      "author": "b_okafor",
+      "kind": "chat",
+      "text": "Someone in the building WhatsApp says the tap water is unsafe because the pumps are off. Is that true? @Village",
+      "mention": "village",
+      "reply_to": null,
+      "refs": [],
+      "routed": "ask",
+      "source": {
+        "kind": "app",
+        "ref": "b_okafor"
+      },
+      "at": "2026-10-16T12:36:10-04:00"
+    },
+    {
+      "id": "msg_1016_1236_answer",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "answer",
+      "text": "I can't confirm that, and nobody should pass it on as fact. I checked the official NYC DEP drinking-water page at 12:36: no boil-water or do-not-drink advisory for this area. Upper floors can lose pressure when a building's pump has no power; that's pressure, not contamination.",
+      "mention": null,
+      "reply_to": "msg_1016_1236_okafor",
+      "refs": [
+        {
+          "kind": "fact",
+          "id": "rum_tap_water",
+          "label": "NYC DEP — Drinking Water, checked 12:36"
+        },
+        {
+          "kind": "rule",
+          "id": "P-RU-01",
+          "label": "the rule: rumors are never repeated as fact"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "builder"
+      },
+      "trace_id": "9d2f6a1b3c4e5f60718293a4b5c6d7e8",
+      "at": "2026-10-16T12:36:50-04:00"
+    },
+    {
+      "id": "msg_1016_1241_chen",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "nudge",
+      "text": "Mr. Chen's grandson wrote: insulin pens in a fridge that's been off since 12:10. Second in line after oxygen. Ramírez Deli has ice set aside for medical needs. Priya, can you pick up two bags and a cooler at the deli and bring them to Mr. Chen? Yes · Can't",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "event",
+          "id": "ev_1016_1240_help_chen",
+          "label": "his grandson's text"
+        },
+        {
+          "kind": "member",
+          "id": "b_priya"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "gate"
+      },
+      "at": "2026-10-16T12:41:05-04:00"
+    },
+    {
+      "id": "msg_1016_1243_priya",
+      "village": "v_w147",
+      "author": "b_priya",
+      "kind": "chat",
+      "text": "[demo] Yes. Grabbing the ice now, back by 1:15.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "b_priya"
+      },
+      "at": "2026-10-16T12:43:20-04:00"
+    },
+    {
+      "id": "msg_1016_1303_oxygen_ok",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "nudge",
+      "text": "Mrs. Alvarez's concentrator is running on Darnell's generator (outside, cord to 5). She confirmed on the phone at 1:02. I'll check on her every hour; if the generator runs low on fuel, Darnell hears first.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "event",
+          "id": "ev_1016_1302_ack_alvarez",
+          "label": "her call, 0:09"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "scheduler"
+      },
+      "at": "2026-10-16T13:03:10-04:00"
+    },
+    {
+      "id": "msg_1016_1326_ice_ok",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "nudge",
+      "text": "Ice and a cooler are with Mr. Chen (Priya, 1:25). I can't say whether the insulin is still good; his grandson is asking the pharmacist.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [
+        {
+          "kind": "event",
+          "id": "ev_1016_1325_ack_chen",
+          "label": "he tapped Got it"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "scheduler"
+      },
+      "at": "2026-10-16T13:26:00-04:00"
+    },
+    {
+      "id": "msg_1016_1340_tanya",
+      "village": "v_w147",
+      "author": "b_tanya",
+      "kind": "chat",
+      "text": "Is the library cooling center open? Three people told me it closed early. @Village",
+      "mention": "village",
+      "reply_to": null,
+      "refs": [],
+      "routed": "ask",
+      "source": {
+        "kind": "app",
+        "ref": "b_tanya"
+      },
+      "at": "2026-10-16T13:40:30-04:00"
+    },
+    {
+      "id": "msg_1016_1341_answer",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "answer",
+      "text": "Not confirmed either way yet. The NYC Cooling Center Finder is the official list; I checked it at 1:41 and the library isn't listed as a cooling center right now. I'll post the nearest listed open site next, with the time I read it. Until then, treat \"closed\" as unverified.",
+      "mention": null,
+      "reply_to": "msg_1016_1340_tanya",
+      "refs": [
+        {
+          "kind": "fact",
+          "id": "rum_library_closed",
+          "label": "NYC Cooling Center Finder, checked 1:41"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "builder"
+      },
+      "trace_id": "4e7a9c0b1d2e3f405162738495a6b7c8",
+      "at": "2026-10-16T13:41:20-04:00"
+    },
+    {
+      "id": "msg_1016_1348_tanya2",
+      "village": "v_w147",
+      "author": "b_tanya",
+      "kind": "chat",
+      "text": "Who can get Ngozi and the baby somewhere cool this afternoon? Their apartment is an oven.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "b_tanya"
+      },
+      "at": "2026-10-16T13:48:00-04:00"
+    },
+    {
+      "id": "msg_1016_1349_ask",
+      "village": "v_w147",
+      "author": "village",
+      "kind": "answer",
+      "text": "Priya has the car with A/C and is back from the deli. Priya, can you drive Ngozi and the baby to the nearest open cooling center at 2:30? Yes · Can't — Priya hasn't answered yet. Tanya, if there's no answer by 2:15 I'll ask you.",
+      "mention": null,
+      "reply_to": "msg_1016_1348_tanya2",
+      "refs": [
+        {
+          "kind": "member",
+          "id": "b_priya",
+          "label": "asked Priya · waiting"
+        }
+      ],
+      "source": {
+        "kind": "system",
+        "ref": "builder"
+      },
+      "at": "2026-10-16T13:49:10-04:00"
+    },
+    {
+      "id": "msg_1016_1355_james",
+      "village": "v_w147",
+      "author": "b_james",
+      "kind": "chat",
+      "text": "[demo] Chair's at 35%. I'm okay for now, just hot. Window's open.",
+      "mention": null,
+      "reply_to": null,
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "b_james"
+      },
+      "at": "2026-10-16T13:55:40-04:00"
+    }
+  ]
+}

@@ -81,10 +81,10 @@
     ],
     "rules": ["emergency_911_first", "medical_priority_matching", "rumor_check", "address_privacy", "consent_before_calls"],
     "life_areas": [
-      { "id": "health", "label": "Health: power-dependent needs", "need_ids": ["n_powered_medical_device", "n_refrigerated_medication"], "modules": ["coordinator:nb", "coordinator:ci", "volunteer:nb", "voice:block-line", "outbound:T2"], "rules": ["P-911-01", "P-MP-01", "P-MP-02", "P-MP-03"] },
-      { "id": "information", "label": "Information: rumors", "need_ids": ["n_rumors"], "modules": ["coordinator:vf", "resident:vf", "coordinator:src"], "rules": ["P-RU-01", "P-RU-02", "P-RU-03", "P-RU-04"] },
-      { "id": "home", "label": "Home: heat and the newborn", "need_ids": ["n_infant"], "modules": ["coordinator:rb", "volunteer:rb", "resident:ci"], "rules": ["P-MP-01"] },
-      { "id": "daily_living", "label": "Getting around: stairs", "need_ids": ["n_mobility"], "modules": ["coordinator:nb", "resident:ci"], "rules": ["P-MP-01", "P-PR-02"] }
+      { "id": "health", "label": "Health: oxygen, insulin, power", "need_ids": ["n_powered_medical_device", "n_refrigerated_medication"], "modules": ["coordinator:nb", "coordinator:ci", "volunteer:nb", "voice:block-line", "outbound:T2"], "rules": ["P-911-01", "P-MP-01", "P-MP-02", "P-MP-03"] },
+      { "id": "information", "label": "Rumors: what's true", "need_ids": ["n_rumors"], "modules": ["coordinator:vf", "resident:vf", "coordinator:src"], "rules": ["P-RU-01", "P-RU-02", "P-RU-03", "P-RU-04"] },
+      { "id": "home", "label": "Cooling: the newborn and the heat", "need_ids": ["n_infant"], "modules": ["coordinator:rb", "volunteer:rb", "resident:ci"], "rules": ["P-MP-01"] },
+      { "id": "daily_living", "label": "Stairs: wheelchair and walk-ups", "need_ids": ["n_mobility"], "modules": ["coordinator:nb", "resident:ci"], "rules": ["P-MP-01", "P-PR-02"] }
     ]
   },
   "channels": {

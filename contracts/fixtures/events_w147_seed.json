@@ -1,0 +1,168 @@
+{
+  "contract_version": "1.3.4",
+  "village": "v_w147",
+  "description": "Ledger state of the West 147th block village at the start of the demo (2026-10-16 ~14:00, demo clock), chronological. Load after block_spec.json. The village was founded on Tanya's call, released at 12:18 (rel_w147_r2: the real block release measured in RESULTS.md, 13409 ms, 33 floor tests), volunteers joined and consented in the app, Tanya assigned the afternoon shift, Mrs. Alvarez reported her oxygen need on the block line (matched to Darnell's generator by medical priority P-MP-01), Mr. Chen's grandson reported the insulin fridge, both were resolved and confirmed by the residents themselves (ack rows = check-ins). Rumor checks live in the chat (messages_w147_seed.json) and in the data file's rumor rows (finding + checked_at): the event schema has no rumor incident type, so none is invented here.",
+  "events": [
+    {
+      "id": "ev_1016_1218_release_r2",
+      "village": "v_w147",
+      "kind": "release",
+      "payload": {
+        "rev": 2,
+        "release_id": "rel_w147_r2",
+        "result": "released",
+        "live_rev": 2
+      },
+      "actor": "release",
+      "source": {
+        "kind": "system",
+        "ref": "release"
+      },
+      "at": "2026-10-16T12:18:13-04:00"
+    },
+    {
+      "id": "ev_1016_1221_consent_darnell",
+      "village": "v_w147",
+      "kind": "consent",
+      "payload": {
+        "member_id": "b_darnell",
+        "scopes": {
+          "ai_calls": true,
+          "app_prompts": true
+        },
+        "text_version": "join_v1"
+      },
+      "actor": "b_darnell",
+      "source": {
+        "kind": "app",
+        "ref": "b_darnell"
+      },
+      "at": "2026-10-16T12:21:40-04:00"
+    },
+    {
+      "id": "ev_1016_1223_consent_priya",
+      "village": "v_w147",
+      "kind": "consent",
+      "payload": {
+        "member_id": "b_priya",
+        "scopes": {
+          "ai_calls": false,
+          "app_prompts": true
+        },
+        "text_version": "join_v1"
+      },
+      "actor": "b_priya",
+      "source": {
+        "kind": "app",
+        "ref": "b_priya"
+      },
+      "at": "2026-10-16T12:23:05-04:00"
+    },
+    {
+      "id": "ev_1016_1226_shift_1016",
+      "village": "v_w147",
+      "kind": "shift",
+      "payload": {
+        "date": "2026-10-16",
+        "on_duty": "b_darnell",
+        "backup": "b_priya",
+        "change": "assigned"
+      },
+      "actor": "b_tanya",
+      "source": {
+        "kind": "app",
+        "ref": "b_tanya",
+        "quote": "Darnell takes the afternoon shift, Priya backs him up."
+      },
+      "at": "2026-10-16T12:26:00-04:00"
+    },
+    {
+      "id": "ev_1016_1231_help_alvarez",
+      "village": "v_w147",
+      "kind": "help_request",
+      "payload": {
+        "subject": "b_alvarez",
+        "utterance": "Se fue la luz y mi máquina de oxígeno no prende. Tengo un tanquecito, pero no sé cuánto dura."
+      },
+      "actor": "b_alvarez",
+      "source": {
+        "kind": "call",
+        "ref": "conv_block_alvarez_1016",
+        "secs": 14,
+        "quote": "Se fue la luz y mi máquina de oxígeno no prende. Tengo un tanquecito, pero no sé cuánto dura."
+      },
+      "at": "2026-10-16T12:31:40-04:00"
+    },
+    {
+      "id": "ev_1016_1232_escalation_oxygen",
+      "village": "v_w147",
+      "kind": "escalation",
+      "payload": {
+        "to": "b_darnell",
+        "channel": "both",
+        "reason": "help_request",
+        "rule_id": "P-MP-01",
+        "related_event_id": "ev_1016_1231_help_alvarez",
+        "level": 1,
+        "status": "answered"
+      },
+      "actor": "gate",
+      "source": {
+        "kind": "system",
+        "ref": "gate"
+      },
+      "at": "2026-10-16T12:32:05-04:00"
+    },
+    {
+      "id": "ev_1016_1240_help_chen",
+      "village": "v_w147",
+      "kind": "help_request",
+      "payload": {
+        "subject": "b_chen",
+        "utterance": "Grandpa's insulin pens are in the fridge and the fridge has been off since 12:10. (texted by his grandson)"
+      },
+      "actor": "b_chen",
+      "source": {
+        "kind": "app",
+        "ref": "b_chen",
+        "quote": "Grandpa's insulin pens are in the fridge and the fridge has been off since 12:10."
+      },
+      "at": "2026-10-16T12:40:12-04:00"
+    },
+    {
+      "id": "ev_1016_1302_ack_alvarez",
+      "village": "v_w147",
+      "kind": "ack",
+      "payload": {
+        "of_event_id": "ev_1016_1231_help_alvarez",
+        "status": "got_it",
+        "channel": "outbound_call"
+      },
+      "actor": "b_alvarez",
+      "source": {
+        "kind": "call",
+        "ref": "conv_block_alvarez_check_1016",
+        "secs": 9,
+        "quote": "Ya prende la máquina. Gracias, mijo."
+      },
+      "at": "2026-10-16T13:02:30-04:00"
+    },
+    {
+      "id": "ev_1016_1325_ack_chen",
+      "village": "v_w147",
+      "kind": "ack",
+      "payload": {
+        "of_event_id": "ev_1016_1240_help_chen",
+        "status": "got_it",
+        "channel": "app"
+      },
+      "actor": "b_chen",
+      "source": {
+        "kind": "app",
+        "ref": "b_chen",
+        "quote": "Ice and cooler here. Thank you Priya."
+      },
+      "at": "2026-10-16T13:25:20-04:00"
+    }
+  ]
+}

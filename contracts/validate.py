@@ -167,30 +167,36 @@ for f in ("reyes_spec.json", "block_spec.json"):
     if not errors or all(not e.startswith(f) for e in errors):
         spec_invariants(f, spec)
 
-seed = fx("events_reyes_seed.json")
-ids = set()
-for i, ev in enumerate(seed["events"]):
-    check(f"events_reyes_seed.json events[{i}]", "event.schema.json", ev)
-    if ev["id"] in ids:
-        errors.append(f"events_reyes_seed.json: duplicate id {ev['id']}")
-    ids.add(ev["id"])
-ats = [ev["at"] for ev in seed["events"]]
+for seed_path in sorted(FIX.glob("events_*_seed.json")):  # every registered village's seed (D30: same checks for every village)
+    sname = seed_path.name
+    seed = fx(sname)
+    ids = set()
+    for i, ev in enumerate(seed["events"]):
+        check(f"{sname} events[{i}]", "event.schema.json", ev)
+        if ev["id"] in ids:
+            errors.append(f"{sname}: duplicate id {ev['id']}")
+        ids.add(ev["id"])
+    ats = [ev["at"] for ev in seed["events"]]
+    if ats != sorted(ats):
+        errors.append(f"{sname}: events out of chronological order")
 
-msgs = fx("messages_reyes_seed.json")
-mids: set[str] = set()
-last_at = ""
-for i, m in enumerate(msgs["messages"]):
-    check(f"messages_reyes_seed.json messages[{i}]", "message.schema.json", m)
-    if m["id"] in mids:
-        errors.append(f"messages_reyes_seed.json: duplicate id {m['id']}")
-    mids.add(m["id"])
-    if m["at"] < last_at:
-        errors.append(f"messages_reyes_seed.json: messages[{i}] out of order ({m['at']} < {last_at})")
-    last_at = m["at"]
-    if m.get("reply_to") and m["reply_to"] not in mids:
-        errors.append(f"messages_reyes_seed.json: messages[{i}] reply_to {m['reply_to']} not an earlier message")
-    if m["author"] == "village" and not m["refs"]:
-        errors.append(f"messages_reyes_seed.json: messages[{i}] village post without refs")
+for msgs_path in sorted(FIX.glob("messages_*_seed.json")):
+    mname = msgs_path.name
+    msgs = fx(mname)
+    mids: set[str] = set()
+    last_at = ""
+    for i, m in enumerate(msgs["messages"]):
+        check(f"{mname} messages[{i}]", "message.schema.json", m)
+        if m["id"] in mids:
+            errors.append(f"{mname}: duplicate id {m['id']}")
+        mids.add(m["id"])
+        if m["at"] < last_at:
+            errors.append(f"{mname}: messages[{i}] out of order ({m['at']} < {last_at})")
+        last_at = m["at"]
+        if m.get("reply_to") and m["reply_to"] not in mids:
+            errors.append(f"{mname}: messages[{i}] reply_to {m['reply_to']} not an earlier message")
+        if m["author"] == "village" and not m["refs"]:
+            errors.append(f"{mname}: messages[{i}] village post without refs")
 
 scam = fx("scam_call_tool_requests.json")
 for variant, body in scam["variants"].items():

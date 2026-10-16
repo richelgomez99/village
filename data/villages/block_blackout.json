@@ -22,86 +22,265 @@
     "verified_volunteer": "Reported by a coordinator-approved volunteer who saw it in person within the last 2 hours. Broadcast with name + time + 'volunteer report'.",
     "unverified_neighbor": "Anything else (hearsay, social media, radio paraphrase). Never broadcast as fact; shown only as 'checking…' until an official or verified source confirms or refutes."
   },
-
   "coordinator_id": "b_tanya",
   "members": [
     {
-      "id": "b_tanya", "name": "Tanya Brooks", "role": "coordinator", "relationship": "block association president",
-      "language": { "primary": "en" }, "phone": "+15555550201", "channel": "app", "view_preference": "dashboard",
-      "trust": "verified_volunteer", "notes": "Has a list of who on the block needs checking. Spending the afternoon door-knocking."
+      "id": "b_tanya",
+      "name": "Tanya Brooks",
+      "role": "coordinator",
+      "relationship": "block association president",
+      "language": {
+        "primary": "en"
+      },
+      "phone": "+15555550201",
+      "channel": "app",
+      "view_preference": "dashboard",
+      "trust": "verified_volunteer",
+      "notes": "Has a list of who on the block needs checking. Spending the afternoon door-knocking."
     },
     {
-      "id": "b_alvarez", "name": "Mrs. Gloria Alvarez", "role": "resident", "relationship": "neighbor",
-      "age": 81, "language": { "primary": "es" }, "phone": "+15555550202", "channel": "voice", "view_preference": "elder", "uses_smartphone": false,
+      "id": "b_alvarez",
+      "name": "Mrs. Gloria Alvarez",
+      "role": "resident",
+      "relationship": "neighbor",
+      "age": 81,
+      "language": {
+        "primary": "es"
+      },
+      "phone": "+15555550202",
+      "channel": "voice",
+      "view_preference": "elder",
+      "uses_smartphone": false,
       "address_scope": "5th floor walk-up (unit visible to coordinator + matched volunteer only)",
       "needs": [
-        { "type": "powered_medical_device", "detail": "Home oxygen concentrator needs power; has one portable tank (~2-3 h left, her estimate — uncertain)", "priority": 1 },
-        { "type": "mobility", "detail": "Cannot manage 5 flights of stairs alone in heat", "priority": 4 }
+        {
+          "type": "powered_medical_device",
+          "detail": "Home oxygen concentrator needs power; has one portable tank (~2-3 h left, her estimate — uncertain)",
+          "priority": 1
+        },
+        {
+          "type": "mobility",
+          "detail": "Cannot manage 5 flights of stairs alone in heat",
+          "priority": 4
+        }
       ],
       "notes": "Calls the block voice line from her landline. Lives alone; daughter in the Bronx."
     },
     {
-      "id": "b_chen", "name": "Mr. Wei Chen", "role": "resident", "relationship": "neighbor",
-      "age": 67, "language": { "primary": "zh-Mandarin", "secondary": "en (limited)" }, "phone": "+15555550203", "channel": "voice", "view_preference": "elder",
-      "needs": [{ "type": "refrigerated_medication", "detail": "Insulin pens (unopened supply) in a fridge that has been off since ~14:10", "priority": 2 }],
+      "id": "b_chen",
+      "name": "Mr. Wei Chen",
+      "role": "resident",
+      "relationship": "neighbor",
+      "age": 67,
+      "language": {
+        "primary": "zh-Mandarin",
+        "secondary": "en (limited)"
+      },
+      "phone": "+15555550203",
+      "channel": "voice",
+      "view_preference": "elder",
+      "needs": [
+        {
+          "type": "refrigerated_medication",
+          "detail": "Insulin pens (unopened supply) in a fridge that has been off since ~14:10",
+          "priority": 2
+        }
+      ],
       "notes": "Grandson helps with English texts after school."
     },
     {
-      "id": "b_okafor", "name": "The Okafor family (Ngozi & Daniel)", "role": "resident", "relationship": "neighbor",
-      "language": { "primary": "en" }, "phone": "+15555550204", "channel": "app", "view_preference": "simple",
-      "needs": [{ "type": "infant", "detail": "Newborn (3 weeks). Apartment is hot; need a cool place and ice for formula storage/bottles.", "priority": 3 }]
+      "id": "b_okafor",
+      "name": "The Okafor family (Ngozi & Daniel)",
+      "role": "resident",
+      "relationship": "neighbor",
+      "language": {
+        "primary": "en"
+      },
+      "phone": "+15555550204",
+      "channel": "app",
+      "view_preference": "simple",
+      "needs": [
+        {
+          "type": "infant",
+          "detail": "Newborn (3 weeks). Apartment is hot; need a cool place and ice for formula storage/bottles.",
+          "priority": 3
+        }
+      ]
     },
     {
-      "id": "b_james", "name": "Mr. Louis James", "role": "resident", "relationship": "neighbor",
-      "language": { "primary": "en" }, "phone": "+15555550205", "channel": "voice_and_sms", "view_preference": "simple",
-      "needs": [{ "type": "mobility", "detail": "Power wheelchair; 2nd floor; building elevator out; chair battery at ~40%", "priority": 4 }]
+      "id": "b_james",
+      "name": "Mr. Louis James",
+      "role": "resident",
+      "relationship": "neighbor",
+      "language": {
+        "primary": "en"
+      },
+      "phone": "+15555550205",
+      "channel": "voice_and_sms",
+      "view_preference": "simple",
+      "needs": [
+        {
+          "type": "mobility",
+          "detail": "Power wheelchair; 2nd floor; building elevator out; chair battery at ~40%",
+          "priority": 4
+        }
+      ]
     },
     {
-      "id": "b_darnell", "name": "Darnell Price", "role": "volunteer", "relationship": "neighbor",
-      "language": { "primary": "en" }, "phone": "+15555550206", "channel": "voice_and_sms", "view_preference": "simple", "trust": "verified_volunteer",
-      "resources": [{ "id": "res_generator", "type": "generator", "detail": "Portable inverter generator, ~2000W, gas for ~6 h. Must run OUTSIDE (never indoors/hallway).", "available": true }]
+      "id": "b_darnell",
+      "name": "Darnell Price",
+      "role": "volunteer",
+      "relationship": "neighbor",
+      "language": {
+        "primary": "en"
+      },
+      "phone": "+15555550206",
+      "channel": "voice_and_sms",
+      "view_preference": "simple",
+      "trust": "verified_volunteer",
+      "resources": [
+        {
+          "id": "res_generator",
+          "type": "generator",
+          "detail": "Portable inverter generator, ~2000W, gas for ~6 h. Must run OUTSIDE (never indoors/hallway).",
+          "available": true
+        }
+      ]
     },
     {
-      "id": "b_priya", "name": "Priya Raman", "role": "volunteer", "relationship": "neighbor",
-      "language": { "primary": "en", "secondary": "ta" }, "phone": "+15555550207", "channel": "app", "view_preference": "simple", "trust": "verified_volunteer",
-      "resources": [{ "id": "res_car", "type": "vehicle", "detail": "Car with A/C, 4 seats, can fold a manual wheelchair (not a power chair)", "available": true }]
+      "id": "b_priya",
+      "name": "Priya Raman",
+      "role": "volunteer",
+      "relationship": "neighbor",
+      "language": {
+        "primary": "en",
+        "secondary": "ta"
+      },
+      "phone": "+15555550207",
+      "channel": "app",
+      "view_preference": "simple",
+      "trust": "verified_volunteer",
+      "resources": [
+        {
+          "id": "res_car",
+          "type": "vehicle",
+          "detail": "Car with A/C, 4 seats, can fold a manual wheelchair (not a power chair)",
+          "available": true
+        }
+      ]
     },
     {
-      "id": "b_bodega", "name": "Ramírez Deli & Grocery (fictional)", "role": "business", "relationship": "corner bodega (Amsterdam side)",
-      "language": { "primary": "es", "secondary": "en" }, "phone": "+15555550208", "channel": "voice", "view_preference": "simple", "trust": "verified_volunteer",
-      "resources": [{ "id": "res_ice", "type": "ice", "detail": "~40 bags of ice (own generator for freezers); setting aside bags for medical needs", "available": true }]
+      "id": "b_bodega",
+      "name": "Ramírez Deli & Grocery (fictional)",
+      "role": "business",
+      "relationship": "corner bodega (Amsterdam side)",
+      "language": {
+        "primary": "es",
+        "secondary": "en"
+      },
+      "phone": "+15555550208",
+      "channel": "voice",
+      "view_preference": "simple",
+      "trust": "verified_volunteer",
+      "resources": [
+        {
+          "id": "res_ice",
+          "type": "ice",
+          "detail": "~40 bags of ice (own generator for freezers); setting aside bags for medical needs",
+          "available": true
+        }
+      ]
     }
   ],
-
   "resources": [
-    { "id": "res_generator", "owner": "b_darnell", "type": "generator", "capacity": "~2000W, ~6h fuel", "constraints": ["outdoor use only (carbon monoxide)", "extension cord run needed for upper floors"] },
-    { "id": "res_car", "owner": "b_priya", "type": "vehicle", "capacity": "3 passengers", "constraints": ["no power-wheelchair transport"] },
-    { "id": "res_ice", "owner": "b_bodega", "type": "ice", "capacity": "~40 bags", "constraints": ["medical needs first"] },
-    { "id": "res_cooling_center", "owner": "official", "type": "cooling_center", "detail": "Look up nearest open site at the NYC Cooling Center Finder; do not assume a specific site is open.", "source_url": "https://finder.nyc.gov/coolingcenters/" }
+    {
+      "id": "res_generator",
+      "owner": "b_darnell",
+      "type": "generator",
+      "capacity": "~2000W, ~6h fuel",
+      "constraints": [
+        "outdoor use only (carbon monoxide)",
+        "extension cord run needed for upper floors"
+      ]
+    },
+    {
+      "id": "res_car",
+      "owner": "b_priya",
+      "type": "vehicle",
+      "capacity": "3 passengers",
+      "constraints": [
+        "no power-wheelchair transport"
+      ]
+    },
+    {
+      "id": "res_ice",
+      "owner": "b_bodega",
+      "type": "ice",
+      "capacity": "~40 bags",
+      "constraints": [
+        "medical needs first"
+      ]
+    },
+    {
+      "id": "res_cooling_center",
+      "owner": "official",
+      "type": "cooling_center",
+      "detail": "Look up nearest open site at the NYC Cooling Center Finder; do not assume a specific site is open.",
+      "source_url": "https://finder.nyc.gov/coolingcenters/"
+    }
   ],
-
   "expected_matches": [
-    { "need": "b_alvarez/powered_medical_device", "resource": "res_generator", "rank": 1, "rationale": "Oxygen is top priority. But FIRST: if she has any breathing trouble, call 911; also advise calling her oxygen supplier's 24h line. Generator runs outside; cord to unit or bring concentrator down — coordinator decides.", "also": "res_car to cooling center if she can get down safely (needs help on stairs)." },
-    { "need": "b_chen/refrigerated_medication", "resource": "res_ice", "rank": 2, "rationale": "Insulin second priority. Ice + cooler bag; agent does not say whether insulin is still usable — advise asking a pharmacist (label storage guidance via DailyMed)." },
-    { "need": "b_okafor/infant", "resource": "res_car", "rank": 3, "rationale": "Infant to air-conditioned space (cooling center via finder). Ice second." },
-    { "need": "b_james/mobility", "resource": "res_generator", "rank": 4, "rationale": "Chair charging after oxygen needs are met; check-in every hour." }
+    {
+      "need": "b_alvarez/powered_medical_device",
+      "resource": "res_generator",
+      "rank": 1,
+      "rationale": "Oxygen is top priority. But FIRST: if she has any breathing trouble, call 911; also advise calling her oxygen supplier's 24h line. Generator runs outside; cord to unit or bring concentrator down — coordinator decides.",
+      "also": "res_car to cooling center if she can get down safely (needs help on stairs)."
+    },
+    {
+      "need": "b_chen/refrigerated_medication",
+      "resource": "res_ice",
+      "rank": 2,
+      "rationale": "Insulin second priority. Ice + cooler bag; agent does not say whether insulin is still usable — advise asking a pharmacist (label storage guidance via DailyMed)."
+    },
+    {
+      "need": "b_okafor/infant",
+      "resource": "res_car",
+      "rank": 3,
+      "rationale": "Infant to air-conditioned space (cooling center via finder). Ice second."
+    },
+    {
+      "need": "b_james/mobility",
+      "resource": "res_generator",
+      "rank": 4,
+      "rationale": "Chair charging after oxygen needs are met; check-in every hour."
+    }
   ],
-
   "rumors": [
     {
       "id": "rum_library_closed",
       "claim": "The cooling center at the library is closed.",
       "heard_from": "unverified_neighbor (WhatsApp forward)",
-      "official_source": { "name": "NYC Cooling Center Finder", "url": "https://finder.nyc.gov/coolingcenters/", "agency": "NYC Emergency Management" },
+      "official_source": {
+        "name": "NYC Cooling Center Finder",
+        "url": "https://finder.nyc.gov/coolingcenters/",
+        "agency": "NYC Emergency Management"
+      },
       "check": "Look up the specific site + hours on the finder; read status and hours as published.",
       "expected_verdict": "verify_with_source → report whatever the finder says with timestamp; if site not listed, say 'not listed as a cooling center right now' and give the nearest listed open site.",
-      "agent_line_if_unconfirmed": "I can't confirm that yet. The city's cooling-center finder is the official list — I'm checking it now."
+      "agent_line_if_unconfirmed": "I can't confirm that yet. The city's cooling-center finder is the official list — I'm checking it now.",
+      "finding": "library not listed as a cooling center right now",
+      "checked_at": "13:41"
     },
     {
       "id": "rum_power_6pm",
       "claim": "Power will be back by 6pm.",
       "heard_from": "unverified_neighbor",
-      "official_source": { "name": "Con Edison Outage Map", "url": "https://outagemap.coned.com/", "agency": "Con Edison" },
+      "official_source": {
+        "name": "Con Edison Outage Map",
+        "url": "https://outagemap.coned.com/",
+        "agency": "Con Edison"
+      },
       "check": "Read the estimated restoration time (ETR) for the affected area, if any.",
       "expected_verdict": "mark_unverified unless Con Ed shows an ETR; if it does, quote it as an ESTIMATE with time checked. Never promise a restoration time.",
       "report_outage_url": "https://www.coned.com/en/services-and-outages/report-track-service-issue"
@@ -110,17 +289,32 @@
       "id": "rum_tap_water",
       "claim": "The tap water is unsafe / poisoned because pumps are off.",
       "heard_from": "unverified_neighbor (paraphrasing the radio)",
-      "official_source": { "name": "NYC DEP — Drinking Water", "url": "https://www.nyc.gov/site/dep/water/drinking-water.page", "agency": "NYC Department of Environmental Protection" },
-      "secondary_sources": [{ "name": "Notify NYC", "url": "https://a858-nycnotify.nyc.gov/" }],
+      "official_source": {
+        "name": "NYC DEP — Drinking Water",
+        "url": "https://www.nyc.gov/site/dep/water/drinking-water.page",
+        "agency": "NYC Department of Environmental Protection"
+      },
+      "secondary_sources": [
+        {
+          "name": "Notify NYC",
+          "url": "https://a858-nycnotify.nyc.gov/"
+        }
+      ],
       "check": "Look for any boil-water or do-not-drink advisory from DEP / Notify NYC for this area.",
       "expected_verdict": "mark_unverified; no official advisory found → say 'there is no official water advisory as of <time>'. Note: upper floors may lose water pressure if the building's pump is electric — that's pressure, not contamination.",
-      "agent_line_if_unconfirmed": "I haven't found any official water warning. I'm checking the city's water department page and Notify NYC — please don't share that as fact yet."
+      "agent_line_if_unconfirmed": "I haven't found any official water warning. I'm checking the city's water department page and Notify NYC — please don't share that as fact yet.",
+      "finding": "no boil-water or do-not-drink advisory for this area",
+      "checked_at": "12:36"
     },
     {
       "id": "rum_heat_over",
       "claim": "The heat advisory ended this afternoon.",
       "heard_from": "unverified_neighbor",
-      "official_source": { "name": "National Weather Service active alerts (NY)", "url": "https://api.weather.gov/alerts/active?area=NY", "agency": "NOAA / NWS" },
+      "official_source": {
+        "name": "National Weather Service active alerts (NY)",
+        "url": "https://api.weather.gov/alerts/active?area=NY",
+        "agency": "NOAA / NWS"
+      },
       "check": "Query active alerts; look for Heat Advisory / Excessive Heat Warning covering New York (Manhattan) County with expiration time.",
       "expected_verdict": "verify_with_source → report alert name + expiry exactly as NWS lists."
     },
@@ -128,34 +322,83 @@
       "id": "rum_go_to_hospital_for_ac",
       "claim": "Everyone should go to the hospital ER to cool off.",
       "heard_from": "unverified_neighbor",
-      "official_source": { "name": "NYC Emergency Management — Extreme Heat", "url": "https://www.nyc.gov/site/em/ready/extreme-heat.page", "agency": "NYC Emergency Management" },
+      "official_source": {
+        "name": "NYC Emergency Management — Extreme Heat",
+        "url": "https://www.nyc.gov/site/em/ready/extreme-heat.page",
+        "agency": "NYC Emergency Management"
+      },
       "check": "Official heat guidance: cooling centers for cooling; 911 / ER for heat illness symptoms.",
       "expected_verdict": "mark_unverified + redirect: cooling centers for cooling; 911 for emergencies (heat stroke signs)."
     }
   ],
-
   "official_sources": [
-    { "name": "NYC Cooling Center Finder", "url": "https://finder.nyc.gov/coolingcenters/", "http_status_checked": 200 },
-    { "name": "Con Edison Outage Map", "url": "https://outagemap.coned.com/", "http_status_checked": 200 },
-    { "name": "Con Edison — Report/track an outage", "url": "https://www.coned.com/en/services-and-outages/report-track-service-issue", "http_status_checked": 200 },
-    { "name": "NWS active alerts API (NY)", "url": "https://api.weather.gov/alerts/active?area=NY", "http_status_checked": 200 },
-    { "name": "NYC Emergency Management", "url": "https://www.nyc.gov/site/em/index.page", "http_status_checked": 200 },
-    { "name": "NYC EM — Extreme Heat", "url": "https://www.nyc.gov/site/em/ready/extreme-heat.page", "http_status_checked": 200 },
-    { "name": "NYC EM — Utility Disruptions", "url": "https://www.nyc.gov/site/em/ready/utility-disruptions.page", "http_status_checked": 200 },
-    { "name": "Notify NYC", "url": "https://a858-nycnotify.nyc.gov/", "http_status_checked": 200 },
-    { "name": "NYC DEP", "url": "https://www.nyc.gov/site/dep/index.page", "http_status_checked": 200 },
-    { "name": "NYC DEP — Drinking Water", "url": "https://www.nyc.gov/site/dep/water/drinking-water.page", "http_status_checked": 200 },
-    { "name": "NYC Health — Extreme heat", "url": "https://www.nyc.gov/site/doh/health/emergency-preparedness/emergencies-extreme-weather-heat.page", "http_status_checked": 200 },
-    { "name": "NYC 311", "url": "https://portal.311.nyc.gov/", "http_status_checked": 200 }
+    {
+      "name": "NYC Cooling Center Finder",
+      "url": "https://finder.nyc.gov/coolingcenters/",
+      "http_status_checked": 200
+    },
+    {
+      "name": "Con Edison Outage Map",
+      "url": "https://outagemap.coned.com/",
+      "http_status_checked": 200
+    },
+    {
+      "name": "Con Edison — Report/track an outage",
+      "url": "https://www.coned.com/en/services-and-outages/report-track-service-issue",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NWS active alerts API (NY)",
+      "url": "https://api.weather.gov/alerts/active?area=NY",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC Emergency Management",
+      "url": "https://www.nyc.gov/site/em/index.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC EM — Extreme Heat",
+      "url": "https://www.nyc.gov/site/em/ready/extreme-heat.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC EM — Utility Disruptions",
+      "url": "https://www.nyc.gov/site/em/ready/utility-disruptions.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "Notify NYC",
+      "url": "https://a858-nycnotify.nyc.gov/",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC DEP",
+      "url": "https://www.nyc.gov/site/dep/index.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC DEP — Drinking Water",
+      "url": "https://www.nyc.gov/site/dep/water/drinking-water.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC Health — Extreme heat",
+      "url": "https://www.nyc.gov/site/doh/health/emergency-preparedness/emergencies-extreme-weather-heat.page",
+      "http_status_checked": 200
+    },
+    {
+      "name": "NYC 311",
+      "url": "https://portal.311.nyc.gov/",
+      "http_status_checked": 200
+    }
   ],
-
   "demo_spoken_description": {
     "speaker": "b_tanya",
     "language": "en",
     "approx_words": 43,
     "text": "Power's out on our whole block and it's ninety-seven degrees. Mrs. Alvarez on five needs her oxygen machine, Mr. Chen's insulin is warming up, and everybody's group chat is full of rumors. Darnell's got a generator, Priya's got a car. Help me."
   },
-
   "demo_calls": [
     {
       "id": "call_alvarez",
@@ -164,20 +407,142 @@
       "time": "2027-07-21T16:31:00-04:00",
       "purpose": "Spanish-only resident without a smartphone reports an oxygen-device need by phone; agent screens for emergency first, records the need with priority 1, triggers a match to Darnell's generator, and corrects a rumor.",
       "turns": [
-        { "speaker": "agent", "lang": "es", "text": "Hola, habla la línea de la cuadra de la calle 147. ¿En qué le ayudo?", "gloss": "Hello, this is the West 147th block line. How can I help?" },
-        { "speaker": "alvarez", "lang": "es", "text": "Mire, soy Gloria Alvarez, del quinto piso. Se fue la luz y mi máquina de oxígeno no prende. Tengo un tanquecito, pero no sé cuánto dura.", "gloss": "Look, I'm Gloria Alvarez, fifth floor. The power went out and my oxygen machine won't turn on. I have a little tank, but I don't know how long it lasts." },
-        { "speaker": "agent", "lang": "es", "text": "Gracias, señora Alvarez. Primero: ¿le cuesta respirar ahora mismo, o siente dolor en el pecho?", "gloss": "Thank you, Mrs. Alvarez. First: is it hard to breathe right now, or do you have chest pain?" },
-        { "speaker": "alvarez", "lang": "es", "text": "No, ahorita estoy bien con el tanque. Pero tengo miedo.", "gloss": "No, right now I'm fine with the tank. But I'm scared." },
-        { "speaker": "agent", "lang": "es", "text": "Entiendo. Si en algún momento le falta el aire, cuelgue y llame al nueve-uno-uno primero. ¿Me entiende?", "gloss": "I understand. If at any moment you're short of breath, hang up and call 911 first. Do you understand?" },
-        { "speaker": "alvarez", "lang": "es", "text": "Sí, el nueve-uno-uno.", "gloss": "Yes, 911." },
-        { "speaker": "tool_call", "name": "report_need", "args": { "member_id": "b_alvarez", "need_type": "powered_medical_device", "detail": "Oxygen concentrator without power; on portable tank, duration unknown (caller estimate 2-3h, uncertain); 5th floor walk-up; no breathing trouble at 16:32.", "language": "es", "life_threatening_now": false } },
-        { "speaker": "tool_result", "result": { "status": "recorded", "need_id": "need_017", "priority": 1, "match": { "resource_id": "res_generator", "volunteer": "b_darnell", "action": "outbound_call_queued" }, "coordinator_notified": "b_tanya" } },
-        { "speaker": "agent", "lang": "es", "text": "Listo. Usted es la primera en la lista. Darnell, un vecino con generador, y Tanya, de la asociación, van a ir a verla. También llame a su compañía de oxígeno; tienen línea de veinticuatro horas.", "gloss": "Done. You're first on the list. Darnell, a neighbor with a generator, and Tanya from the association will come see you. Also call your oxygen company; they have a 24-hour line." },
-        { "speaker": "alvarez", "lang": "es", "text": "Gracias, mijo. Oiga, ¿y es verdad que el agua está envenenada? Lo dijeron en el radio.", "gloss": "Thank you, dear. Listen, is it true the water is poisoned? They said it on the radio." },
-        { "speaker": "tool_call", "name": "check_rumor", "args": { "claim": "tap water is poisoned/unsafe", "heard_from": "radio (caller paraphrase)", "language": "es" } },
-        { "speaker": "tool_result", "result": { "verdict": "unverified", "official_source": "NYC DEP — Drinking Water", "url": "https://www.nyc.gov/site/dep/water/drinking-water.page", "finding": "No boil-water or do-not-drink advisory found for this area", "checked_at": "16:33" } },
-        { "speaker": "agent", "lang": "es", "text": "Revisé la página oficial del Departamento de Agua de la ciudad a las cuatro y treinta y tres: no hay ningún aviso sobre el agua. Si sale algo oficial, se lo avisamos. Tome agua y quédese en el cuarto más fresco.", "gloss": "I checked the city's official water department page at 4:33: there's no water advisory. If anything official comes out, we'll tell you. Drink water and stay in the coolest room." }
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Hola, habla la línea de la cuadra de la calle 147. ¿En qué le ayudo?",
+          "gloss": "Hello, this is the West 147th block line. How can I help?"
+        },
+        {
+          "speaker": "alvarez",
+          "lang": "es",
+          "text": "Mire, soy Gloria Alvarez, del quinto piso. Se fue la luz y mi máquina de oxígeno no prende. Tengo un tanquecito, pero no sé cuánto dura.",
+          "gloss": "Look, I'm Gloria Alvarez, fifth floor. The power went out and my oxygen machine won't turn on. I have a little tank, but I don't know how long it lasts."
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Gracias, señora Alvarez. Primero: ¿le cuesta respirar ahora mismo, o siente dolor en el pecho?",
+          "gloss": "Thank you, Mrs. Alvarez. First: is it hard to breathe right now, or do you have chest pain?"
+        },
+        {
+          "speaker": "alvarez",
+          "lang": "es",
+          "text": "No, ahorita estoy bien con el tanque. Pero tengo miedo.",
+          "gloss": "No, right now I'm fine with the tank. But I'm scared."
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Entiendo. Si en algún momento le falta el aire, cuelgue y llame al nueve-uno-uno primero. ¿Me entiende?",
+          "gloss": "I understand. If at any moment you're short of breath, hang up and call 911 first. Do you understand?"
+        },
+        {
+          "speaker": "alvarez",
+          "lang": "es",
+          "text": "Sí, el nueve-uno-uno.",
+          "gloss": "Yes, 911."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "report_need",
+          "args": {
+            "member_id": "b_alvarez",
+            "need_type": "powered_medical_device",
+            "detail": "Oxygen concentrator without power; on portable tank, duration unknown (caller estimate 2-3h, uncertain); 5th floor walk-up; no breathing trouble at 16:32.",
+            "language": "es",
+            "life_threatening_now": false
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "status": "recorded",
+            "need_id": "need_017",
+            "priority": 1,
+            "match": {
+              "resource_id": "res_generator",
+              "volunteer": "b_darnell",
+              "action": "outbound_call_queued"
+            },
+            "coordinator_notified": "b_tanya"
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Listo. Usted es la primera en la lista. Darnell, un vecino con generador, y Tanya, de la asociación, van a ir a verla. También llame a su compañía de oxígeno; tienen línea de veinticuatro horas.",
+          "gloss": "Done. You're first on the list. Darnell, a neighbor with a generator, and Tanya from the association will come see you. Also call your oxygen company; they have a 24-hour line."
+        },
+        {
+          "speaker": "alvarez",
+          "lang": "es",
+          "text": "Gracias, mijo. Oiga, ¿y es verdad que el agua está envenenada? Lo dijeron en el radio.",
+          "gloss": "Thank you, dear. Listen, is it true the water is poisoned? They said it on the radio."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "check_rumor",
+          "args": {
+            "claim": "tap water is poisoned/unsafe",
+            "heard_from": "radio (caller paraphrase)",
+            "language": "es"
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "verdict": "unverified",
+            "official_source": "NYC DEP — Drinking Water",
+            "url": "https://www.nyc.gov/site/dep/water/drinking-water.page",
+            "finding": "No boil-water or do-not-drink advisory found for this area",
+            "checked_at": "16:33"
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Revisé la página oficial del Departamento de Agua de la ciudad a las cuatro y treinta y tres: no hay ningún aviso sobre el agua. Si sale algo oficial, se lo avisamos. Tome agua y quédese en el cuarto más fresco.",
+          "gloss": "I checked the city's official water department page at 4:33: there's no water advisory. If anything official comes out, we'll tell you. Drink water and stay in the coolest room."
+        }
       ]
     }
-  ]
+  ],
+  "plans": {
+    "shift_today": {
+      "title": "This shift · 1–5 PM",
+      "date": "2026-10-16",
+      "items": [
+        {
+          "text": "Generator to Mrs. Alvarez (5th fl) — outdoors only, cord up the stairwell",
+          "owner": "b_darnell",
+          "status": "done"
+        },
+        {
+          "text": "Ice + cooler from Ramírez Deli to Mr. Chen",
+          "owner": "b_priya",
+          "status": "done"
+        },
+        {
+          "text": "Okafors (newborn) to the nearest open cooling center, 2:30",
+          "status": "open"
+        },
+        {
+          "text": "Mr. James: charge the wheelchair after the oxygen needs are covered",
+          "owner": "b_darnell",
+          "status": "open"
+        },
+        {
+          "text": "Hourly check-ins: Mrs. Alvarez, Mr. Chen, Mr. James, the Okafors",
+          "owner": "b_tanya",
+          "status": "open"
+        },
+        {
+          "text": "Library cooling center: post what the city finder says, with the time",
+          "owner": "b_tanya",
+          "status": "open"
+        }
+      ]
+    }
+  }
 }

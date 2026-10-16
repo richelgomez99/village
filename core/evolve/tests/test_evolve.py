@@ -128,7 +128,7 @@ def test_trigger_approve_patch_and_screen(evolve_env):
             from core import bindings
             money = next(a for a in bindings.life_areas("v_reyes") if a["id"] == "money")["status"]["en"]
             assert money.startswith("Village answers unknown calls first · ")
-            receipt = next(m for m in db.messages if m["kind"] == "receipt")
+            receipt = next(m for m in db.messages if m["kind"] == "receipt" and m.get("village") == "v_reyes")
             assert "Scored on" in receipt["text"]
             assert any(d["id"] == f"dc_{p['id']}_applied" and d["mode"] == "acted_alone" for d in db.decisions)
             # receptionist screening: unknown caller claiming Marco -> held -> Marco says no -> refused

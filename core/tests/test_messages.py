@@ -18,7 +18,7 @@ def _hello(ws, token):
 
 async def test_reset_seeds_first_two_chat_rows_and_ids() -> None:
     await reset_demo("v_reyes")
-    assert [m["id"] for m in db.messages] == ["msg_1016_0811_nudge", "msg_1016_1355_marco"]
+    assert [m["id"] for m in db.messages if m.get("village") == "v_reyes"] == ["msg_1016_0811_nudge", "msg_1016_1355_marco"]
     msg = await services.post_message("v_reyes", author="village", kind="nudge", text="hi", refs=["ev_1012_0900_shift_1016"], source={"kind": "system", "ref": "scheduler"})
     assert msg["id"].startswith("msg_") and msg["refs"] == [{"kind": "event", "id": "ev_1012_0900_shift_1016"}]
 
