@@ -27,6 +27,7 @@ from .decisions import builder_decision
 from .dialer import ScriptedConsentDialer, consent_call_payload, default_dialer, demo_script
 from .llm_port import get_llm
 from .mapping import ensure_chat
+from .progressive import DraftBuilder
 from .registry import kind_config, record as kind_record
 from .render import RoleResult, render_views
 from .services_stub import MemoryServices
@@ -118,6 +119,7 @@ class FoundingSession:
     answers: asyncio.Queue = field(default_factory=asyncio.Queue)
     intake: IntakeState | None = None
     question: Any = None
+    draft: Any = None
     waiting: bool = False  # True only while Village waits for a live answer (not during replay)
 
 
@@ -459,10 +461,28 @@ async def found(
             speaker = next((p["name"].split()[0] for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("coordinator_id")), "Founder")
             intake = IntakeState(opener=input.description, kind=kind, speaker=speaker)
             session.intake = intake
+            draft = DraftBuilder(templates.spec(kind, village_id=village_id, status="draft"), kind, village_id, svc, run.trace_id)
+            session.draft = draft
+            await draft.start()
+            center_p = next((p for p in spec["blueprint"]["people"] if p["id"] == center_id), None)
+            speaker_id = spec["village"].get("coordinator_id")
+
+            def build_vars() -> dict[str, Any]:
+                f = intake.fields
+                mem = f.get("members", {}).get("members")
+                helper_ = next((m["name"] for m in mem if isinstance(m, dict) and m.get("relation") != "self" and not m.get("remote")), None) if isinstance(mem, list) else None
+                meds_ = f.get("meds", {}).get("meds") if isinstance(f.get("meds", {}).get("meds"), list) else []
+                ch = next((m for m in meds_ if isinstance(m, dict) and m.get("change")), None)
+                hd = f.get("availability", {}).get("helper_days")
+                return {"center": (center_p or {}).get("short_name") or ((center_p or {}).get("name", "her").split()[0]), "speaker": speaker, "helper": helper_ or "the helper",
+                        "handler": f.get("money", {}).get("handler") or helper_ or "the verifier", "reminder": (hd or {}).get("reminder", "reminder") if isinstance(hd, dict) else "reminder",
+                        "change": f"{ch['name']} changed to {ch['change']['to']} mg" if ch else "a dose changed", "n_people": len(spec["blueprint"]["people"]), "n_meds": len(meds_) or "the"}
+
             found0 = await record_answer(input.description, None, intake, None)
             merge(intake, found0)
             q: Question | Review = next_question(intake)
-            await _emit(svc, run, f"{now_i_know(intake, found0, None)} · {intake.meter()} · gaps: {', '.join(intake.gaps()[:4])}{'…' if len(intake.gaps()) > 4 else ''}")
+            await _emit(svc, run, f"{now_i_know(intake, found0, None)} · {intake.meter()} · gaps: {', '.join(intake.gaps()[:4])}{'…' if len(intake.gaps()) > 4 else ''}" + (f" · next: {q.text}" if isinstance(q, Question) else ""))
+            await draft.on_answer(intake, build_vars(), speaker_id=speaker_id, helper=None)
             await svc.broadcast_control(village_id, frames.counter("intake_covered", len(intake.covered()), "topics covered", of=10))
             # ---- intake turns (care villages; block villages go straight to the draft)
             while isinstance(q, Question):
@@ -519,6 +539,7 @@ async def found(
                 turn.update({"answer": shown, "now_i_know": know, "meter": intake.meter(), "gaps": intake.gaps(), "next": nxt})
                 run.turns.append(turn)
                 await _emit(svc, run, f"{know} · {intake.meter()}" + (f" · gaps: {', '.join(intake.gaps()[:3])}" if intake.gaps() else "") + f" · next: {nxt}"[:160])
+                turn["will_build"] = await draft.on_answer(intake, build_vars(), speaker_id=speaker_id, helper=helper)
                 await svc.broadcast_control(village_id, frames.counter("intake_covered", len(intake.covered()), "topics covered", of=10))
                 await asyncio.sleep(0)  # let the Founder's background work land between questions
             session.question = None
@@ -558,7 +579,7 @@ async def found(
             run.capabilities = plan.as_dict()
             for row in capability_rows(village_id, plan, people, trace_id=run.trace_id):
                 await svc.record_decision(row)
-                await _emit(svc, run, row["text"], "decision", mode="acted_alone")
+                await _emit(svc, run, row["text"], "decision", source="builder", mode="acted_alone")
             if "meds" not in tasks:
                 meds = input.medications
                 if meds is None:
@@ -586,9 +607,9 @@ async def found(
                 await svc.record_decision(templates.template_decision(village_id, "all", report.errors[0][:200]))
                 spec = templates.spec(kind, village_id=village_id, status="draft")
             run.spec = spec
+            draft.store = False
             await svc.store_spec(village_id, spec, status="draft")
             _set_state(run, "draft")
-            await svc.broadcast_control(village_id, frames.blueprint(village_id, "done", [{"rev": spec.get("rev", 1)}], run.trace_id))
             # ---- review turn: the founder edits in words, Village patches
             run.closing = closing_summary(spec, run, intake)
             await _emit(svc, run, f"Village: {run.closing}", "plan", mode="asked_human")
@@ -606,11 +627,21 @@ async def found(
                         run.spec = spec
                         await svc.store_spec(village_id, spec, status="draft")
                         await ledger.row("done", "Patch from your words", what)
+                        who = next((p for p in spec["blueprint"]["people"] if p["name"].split()[0] in edit), None)
+                        role_ = (who or {}).get("view")
+                        if who and role_ and "refill" in spec["views"].get(role_, {}).get("elements", {}):
+                            el = spec["views"][role_]["elements"]["refill"]
+                            await draft.add_element(role_, "refill", el, f"{who['name'].split()[0]} does the ordering (your words)", who, spec["views"][role_].get("needs_served", {}).get("refill", ["n_safety"]))
                         await svc.record_decision(builder_decision(village_id, f"Review edit: \"{edit[:120]}\" → {what}.", mode="asked_human", trace_id=run.trace_id))
                         run.review["patch"] = what
                     else:
                         await _emit(svc, run, "I couldn't turn that into a change yet; it stays a note on the draft.")
                 await _emit(svc, run, "Send the invites.", "plan", mode="asked_human")
+            rev = spec.get("rev", 1)
+            await ledger.row("done", f"Draft ready · rev {rev}", f"{len(spec['views'])} apps · {len(spec['blueprint']['people'])} people")
+            await svc.broadcast_control(village_id, frames.blueprint(village_id, "done", [{"rev": rev}], run.trace_id))
+            if hasattr(svc, "push_snapshot"):
+                await svc.push_snapshot(village_id)
         except Exception as exc:
             run.error = f"{type(exc).__name__}: {exc}"
             root.set("error", run.error)

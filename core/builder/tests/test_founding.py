@@ -54,8 +54,11 @@ def test_found_model_off_opener_only() -> None:
     assert all(d.get("mode") in ("acted_alone", "asked_human", "refused") for d in svc.decisions)
     assert set(run.capabilities["m_carmen"]) == {"phone_line", "check_in_call", "fridge_card"}
     for f in svc.frames:
-        assert not contract_errors(f, "ws_messages.schema.json#/$defs/control"), f
-    ledger_ids = [f["payload"]["id"] for f in svc.frames if f["kind"] == "ledger"]
+        if f["type"] == "patch":
+            assert not contract_errors(f, "ws_messages.schema.json#/$defs/patch"), f
+        elif not (f["kind"] == "blueprint" and f["payload"]["stage"] == "will_build"):  # stage pending in the contract
+            assert not contract_errors(f, "ws_messages.schema.json#/$defs/control"), f
+    ledger_ids = [f["payload"]["id"] for f in svc.frames if f.get("kind") == "ledger"]
     assert len(ledger_ids) > len(set(ledger_ids))  # rows updated in place
     assert {r.status for r in run.roles.values()} == {"template"}
 
@@ -95,7 +98,7 @@ def test_full_intake_replay_matches_the_spec_of_record() -> None:
     marco = next(p for p in spec["blueprint"]["people"] if p["id"] == "m_marco")
     assert marco["profile"]["availability"][0]["days"] == ["Tue", "Thu", "Fri", "Sat"]
     assert run.states[-1] == "review"
-    notes = [f["payload"]["text"] for f in svc.frames if f["kind"] == "reasoning" and f["payload"]["text"].startswith("Now I know")]
+    notes = [f["payload"]["text"] for f in svc.frames if f.get("kind") == "reasoning" and f["payload"]["text"].startswith("Now I know")]
     assert any("10 of 10 covered" in n for n in notes)
 
 
@@ -153,3 +156,54 @@ def test_block_village_born_through_the_same_intake() -> None:
     assert any("Darnell confirmed" in l for l in run.ledger)
     needs = {n["id"]: n for n in spec["blueprint"]["needs"]}
     assert needs["n_infant"]["source_span"] and needs["n_mobility"]["source_span"]
+
+
+def _timeline(svc):
+    out = []
+    for i, f in enumerate(svc.frames):
+        if f["type"] == "patch":
+            out.append(("patch", f["role"], f["highlight"], i))
+        elif f["kind"] == "reasoning" and f["payload"]["source"] == "founder" and f["payload"]["text"].startswith(("Ana: ", "Tanya: ")):
+            out.append(("answer", f["payload"]["text"][:40], None, i))
+        elif f["kind"] == "blueprint" and f["payload"]["stage"] == "will_build":
+            out.append(("will_build", [(x["person"], x["component"]) for x in f["payload"]["items"]], None, i))
+    return out
+
+
+def test_d33_cause_then_effect_frame_order_per_answer() -> None:
+    run, svc = _replay()
+    tl = _timeline(svc)
+    answers = [i for i, x in enumerate(tl) if x[0] == "answer"]
+    # A2 (Marco's week) → HelperAnswer for Marco, announced after A2 and before A3, then patched into helper
+    a2, a3 = answers[1], answers[2]
+    wb = [i for i in range(a2, a3) if tl[i][0] == "will_build" and ("m_marco", "HelperAnswer") in tl[i][1]]
+    assert wb, tl[a2:a3]
+    assert any(tl[i][0] == "patch" and tl[i][1] == "helper" and "ans" in tl[i][2] for i in range(wb[0], a3))
+    # A6 (money) → VerificationPrompt for Marco
+    a6, a7 = answers[5], answers[6]
+    assert any(tl[i][0] == "will_build" and ("m_marco", "VerificationPrompt") in tl[i][1] for i in range(a6, a7))
+    # every patch follows a will_build with no answer in between
+    last = None
+    for x in tl:
+        if x[0] in ("will_build", "answer"):
+            last = x[0]
+        if x[0] == "patch":
+            assert last == "will_build"
+    # nothing for routine before A5
+    a5 = answers[4]
+    assert not any(x[0] == "will_build" and any(c == "TonightCard" for _, c in x[1]) for x in tl[:a5])
+    # review edit → RefillCard for Lucía, and "Draft ready" only after the review
+    assert any(x[0] == "will_build" and ("m_lucia", "RefillCard") in x[1] for x in tl)
+    done = [i for i, f in enumerate(svc.frames) if f.get("kind") == "blueprint" and f["payload"]["stage"] == "done"]
+    review_i = max(i for i, f in enumerate(svc.frames) if f.get("kind") == "reasoning" and f["payload"]["text"].startswith("Ana: Lucía should"))
+    assert done and done[0] > review_i
+    assert any("· done · Draft ready · rev" in l for l in run.ledger)
+
+
+def test_d33_block_emits_the_same_frames() -> None:
+    inp, answers = replay_input(kind="block")
+    svc = MemoryServices()
+    asyncio.run(found(inp, services=svc, options=demo_options("block", llm="off", replay=answers)))
+    tl = _timeline(svc)
+    assert any(x[0] == "will_build" and ("b_tanya", "CheckIn") in x[1] for x in tl)
+    assert any(x[0] == "patch" and x[1] == "resident" for x in tl)

@@ -32,6 +32,10 @@ class MemoryServices:
     async def broadcast_control(self, village_id: str, frame: dict[str, Any]) -> None:
         self.frames.append(deepcopy(frame))
 
+    async def broadcast_patch(self, village_id: str, frame: dict[str, Any]) -> None:
+        """Draft-view patch for one role (D33 progressive draft); core sends it to that role's sockets."""
+        self.frames.append(deepcopy(frame))
+
     async def record_decision(self, row: dict[str, Any]) -> dict[str, Any]:
         row = deepcopy(row)
         row.setdefault("id", f"dc_{len(self.decisions) + 1:04d}")

@@ -162,6 +162,10 @@ LD-7: Spine is "about 130 ms" (RESULTS); the brief's "100–130 ms" has no sourc
 LD-8: "Sonnet 5.5 + Haiku 5.5 via the Anthropic API" has no measured run in RESULTS/LANE-REPORT (release LD-3: key 400 without workspace id). Pages say Core uses them with Bedrock Haiku 4.5 fallback, and that every measured run used Haiku 4.5.
 
 ## builder
+READY FOR MERGE V2-FX
+D33 · done · `uv run pytest core/builder/tests/test_founding.py -q` (frame order per answer: answer → "Now I know · meter · next" → will_build → patch; nothing before its cause; block same) · after each answer: `control{blueprint, stage: will_build, items:[{person, display_name, role, component, element, reason}]}` from `builds` in data/intake/plan*.json, then `patch{base_rev, rev, role, ops, highlight}` on that role's progressive DRAFT view (stored as the village spec, so a joining phone/mirror snapshot shows the cards so far); review edit → will_build + patch (RefillCard for Lucía); "Draft ready · rev N" ledger row + `blueprint done` only after the review; `--pace 5` default for `--replay` (`pace` in POST /villages body), `--pace 0` in tests
+LD-9: `stage: "will_build"` is NOT in contract 1.2.1 (`blueprint.stage` enum) → orchestrator must add it; my frame-schema tests skip that one stage.
+LD-10: core delivery of draft patches is `CoreServices.broadcast_patch` (routes.py): the patch to sockets of that role, a fresh snapshot to every other socket (incl. Control Room) so all track one draft rev; `push_snapshot()` at Draft ready. Founding with `village_id` v_reyes/v_w147 (registry default) overwrites that village's stored spec with the draft; pass `village_id` in POST /villages to found into a fresh id.
 READY FOR MERGE V2
 T001 · done · `uv run pytest core/builder -q` · tool registry (extract_blueprint, render_app, patch_app, cite_answer, classify_intent; record_answer + critique_plan local) closed schemas
 T002 · done · `uv run pytest core/builder -q` · pydantic mirror + invariants; `contract_errors()` validates any contract $ref (frames tested against ws_messages control)

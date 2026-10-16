@@ -185,5 +185,143 @@
  ],
  "review": {
   "text": "Here is the draft: four people, three life areas, five needs, ten rules on, one thing pending your mom. What is wrong?"
+ },
+ "builds": {
+  "center": [
+   {
+    "role": "elder",
+    "element": "e911",
+    "reason": "911 first, always, on {center}'s phone"
+   },
+   {
+    "role": "elder",
+    "element": "al",
+    "reason": "one alert line {center} can read in her language"
+   },
+   {
+    "role": "coordinator",
+    "element": "areas",
+    "reason": "health, money and people came up in your first sentence"
+   },
+   {
+    "role": "coordinator",
+    "element": "al",
+    "reason": "anything urgent about {center} shows here first"
+   }
+  ],
+  "members": [
+   {
+    "role": "coordinator",
+    "element": "rota",
+    "reason": "{n_people} people share the turns; last Thursday nobody went"
+   },
+   {
+    "role": "coordinator",
+    "element": "chat",
+    "reason": "the family and Village talk here"
+   },
+   {
+    "role": "helper",
+    "element": "chat",
+    "reason": "the family and Village talk here"
+   },
+   {
+    "role": "helper",
+    "element": "al",
+    "reason": "anything urgent about {center} shows here first"
+   }
+  ],
+  "availability.helper_days": [
+   {
+    "role": "helper",
+    "element": "ans",
+    "who": "helper",
+    "reason": "{helper} works nights and asked for a {reminder}: one answer, 'is it my turn?'"
+   }
+  ],
+  "availability.speaker_days": [
+   {
+    "role": "coordinator",
+    "element": "org",
+    "who": "speaker",
+    "reason": "you fill her organizer on Sunday"
+   }
+  ],
+  "meds": [
+   {
+    "role": "coordinator",
+    "element": "refill",
+    "who": "speaker",
+    "reason": "{change}; the refill list shows the old dose struck through"
+   },
+   {
+    "role": "coordinator",
+    "element": "dose",
+    "who": "speaker",
+    "reason": "{n_meds} medications, morning and evening"
+   }
+  ],
+  "routine": [
+   {
+    "role": "elder",
+    "element": "tonight",
+    "reason": "she asks 'did I take them?' 2-3 nights a week: tonight's pills, read aloud"
+   }
+  ],
+  "money": [
+   {
+    "role": "helper",
+    "element": "vp",
+    "who": "helper",
+    "reason": "{handler} is the verifier: money asked in his name is checked with him first"
+   },
+   {
+    "role": "coordinator",
+    "element": "vp",
+    "who": "speaker",
+    "reason": "you are the second verifier"
+   },
+   {
+    "role": "coordinator",
+    "element": "inc",
+    "who": "speaker",
+    "reason": "every money incident reaches you"
+   }
+  ],
+  "home": [
+   {
+    "role": "elder",
+    "element": "b_help",
+    "reason": "a neighbor and the super are close by"
+   }
+  ],
+  "emergencies": [
+   {
+    "role": "elder",
+    "element": "b_call",
+    "reason": "after 911, {speaker} is first"
+   },
+   {
+    "role": "helper",
+    "element": "b_mom",
+    "who": "helper",
+    "reason": "{helper} is next in the ladder"
+   }
+  ],
+  "channels": [
+   {
+    "role": "elder",
+    "element": "b_village",
+    "reason": "phone only, Spanish: big buttons that call, no reading"
+   }
+  ],
+  "consent": [
+   {
+    "role": "coordinator",
+    "element": "tl",
+    "who": "speaker",
+    "reason": "every decision with its source, including her own rules when she says them"
+   }
+  ]
  }
 }
