@@ -265,6 +265,9 @@ def life_areas(village_id: str | None = None) -> list[dict[str, Any]]:
     else:
         money_en = f"no scam calls today · {vname} checks money calls"
         money_es = f"ninguna estafa hoy · {vname} confirma llamadas de dinero"
+    if villages.receptionist_mode(vid):  # Evolve D19/D35: the Money area says what changed
+        money_en = f"Village answers unknown calls first · {money_en}"
+        money_es = f"Village contesta primero a desconocidos · {money_es}"
     status = {
         "health": {"en": f"{pills_en} · refill {'today' if is_today else _DAY_EN[refill]} · {name}",
                    "es": f"{pills_es} · reponer {'hoy' if is_today else _DAY_ES[refill]} · {name}"},

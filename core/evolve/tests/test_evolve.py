@@ -112,11 +112,22 @@ def test_trigger_approve_patch_and_screen(evolve_env):
             for ws, role in ((carmen, "elder"), (ana, "coordinator"), (marco, "helper")):
                 f = _until(ws, "patch")
                 assert f["base_rev"] == base and f["rev"] == base + 1 and f["role"] == role
-                assert f["proposal_id"] == p["id"] and "receptionist" in f["highlight"]
+                assert f["proposal_id"] == p["id"] and f["highlight"] == (["screened"] if role == "coordinator" else ["receptionist"])
             assert villages.receptionist_mode("v_reyes") is True
             assert villages.spec("v_reyes")["printables"][0]["family_word_first"] is True
             assert "receptionist" in db.views[("v_reyes", "elder")]["elements"]
             assert "b_village" in db.views[("v_reyes", "elder")]["elements"]
+            # D35: each change sits in the right place of that app, never loose under the Alert
+            kids = {r: db.views[("v_reyes", r)]["elements"]["s"]["children"] for r in ("elder", "coordinator", "helper")}
+            assert kids["elder"][kids["elder"].index("tonight") + 1] == "receptionist"
+            assert db.views[("v_reyes", "elder")]["elements"]["receptionist"]["props"]["tone"] == "muted"
+            assert kids["coordinator"][kids["coordinator"].index("areas") + 1] == "screened"
+            assert "receptionist" not in db.views[("v_reyes", "coordinator")]["elements"]
+            assert kids["helper"][kids["helper"].index("ans") + 1] == "receptionist"
+            assert all(len(k) <= 12 for k in kids.values())
+            from core import bindings
+            money = next(a for a in bindings.life_areas("v_reyes") if a["id"] == "money")["status"]["en"]
+            assert money.startswith("Village answers unknown calls first · ")
             receipt = next(m for m in db.messages if m["kind"] == "receipt")
             assert "Scored on" in receipt["text"]
             assert any(d["id"] == f"dc_{p['id']}_applied" and d["mode"] == "acted_alone" for d in db.decisions)
@@ -264,7 +275,7 @@ def test_plain_words_card_chat_and_life_areas(evolve_env):
         assert "Both were stopped." in lines[0]
         assert lines[1].startswith("Mamá: unknown callers reach Village first")
         assert lines[2] == "Marco: when a caller claims to be him, he gets one question on his phone."
-        assert lines[3] == "Ana and Lucía: a card shows every screened call."
+        assert lines[3] == "Ana: the Money area says Village answers unknown calls first, with a card of every screened call."
         assert lines[4] == "Nothing moves money. Mamá can turn this off by saying so. Her rules still apply."
         assert row["evidence_labels"][0] == "Oct 9, 7:21 PM · caller said he was Marco · asked for $1,500 in gift cards"
         assert row["evidence_labels"][1].startswith("Today, ") and row["evidence_labels"][1].endswith("asked for $2,000")
