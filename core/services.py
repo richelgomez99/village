@@ -267,6 +267,7 @@ async def decide(
     }
     await db.create_decision(decision_row)
     await control(village_id, "gate", {"decision": decision})
+    # row exists before the ledger writes (bindings read it); its LIVE publish (-> prompt) waits until after them
     if decision.get("verification"):
         verification = decision["verification"]
         await db.upsert_verification({
@@ -294,7 +295,7 @@ async def decide(
             "incident_id": None,
             "version": 0,
             "transitions": [{"from": "created", "to": verification["state"], "at": candidate["at"], "cause": "created"}],
-        })
+        }, publish=False)
     written_events = []
     for draft in decision.get("writes", []):
         event = await record_event(
@@ -308,6 +309,8 @@ async def decide(
         decision_row["event_ids"].append(event["id"])
         if draft.get("kind") == "escalation" and decision.get("escalate"):
             decision["escalate"]["related_event_id"] = event["id"]
+    if decision.get("verification") and decision["verification"]["id"] in db.verifications:
+        await db.publish("verification", db.verifications[decision["verification"]["id"]])
     decision["_events"] = written_events
     if idempotency_key:
         await db.put_idem(idempotency_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "at": clock.now().isoformat()})
