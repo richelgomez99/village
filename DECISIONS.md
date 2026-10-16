@@ -225,3 +225,10 @@ Framing rule for every lane from now on, enforced in code and on screen:
 5. **Platform face**: Control Room header "Village" + village switcher + "New village"; the empty state is the founding. Navigation = platform → pick or start a village → watch it work.
 6. **The pipeline is village-agnostic**: the release lane built the block in 13.4 s; that number sits next to the Reyes number in README/Devpost under "How Village builds any group": intake → spec → catalog render per role → gate → release pipeline → live patch.
 Pitch line after the block reveal: "Same code, no Reyes anywhere in it. Describe your group and it builds yours." Table demo if the intake loop is live: a judge describes their own group for 30 seconds and watches the cards appear. (The operator numbered this D26; D26 was taken, so it is D30.)
+
+# D31. Voice line rules from the first live call (Oct 16, 12:45; operator review)
+1. **Usted, always.** Carmen is 78; the whole call is formal. Prompt rule at the top; the gate's `say` lines are already usted.
+2. **AI disclosure first.** Inbound greeting: "Hola, soy Luz, la línea de la familia Reyes. Soy un programa, no una persona. ¿Cómo está?" Outbound (Village Caller) adds the family word after the disclosure. Spanish only on the phone; the projector captions carry English; language detection answers English callers in English (the presenter does not speak Spanish).
+3. **Guardrails must never touch the refusal.** The ElevenLabs prompt guardrail fired three times on Village's own "No mande dinero" lines (passed this time). Scope: block only offers to send/buy or requests for numbers; never block "don't send" or any `say` returned by a tool.
+4. **Every tool the agent can call has a Core handler** (`ask_family` returned 404 on the first live call: Carmen asked Marco to call tonight and nobody got the message).
+5. **The live agent is frozen**: no config push without the orchestrator's OK; every referenced dynamic variable has a default; Core's init webhook returns every variable.
