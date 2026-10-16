@@ -95,3 +95,6 @@
 
 ## Receptionist refuses a live money ask (14:00:30; presenter as an unknown caller)
 - Luz: "Carmen's phone, this is Village, a program that answers for her. Who's calling?" → name, relationship, purpose, one question per turn → "Carmen asked Village to answer unknown numbers first." → "Carmen decides whether to call you back…" → caller: "Tell her I need money to be sent to me." → `screen_caller` (POST 200) → "I can't confirm who you are, so I won't put you through to Carmen. Goodbye." → `end_call`. 66 s. Post-call webhook 200.
+
+## Village as a chat participant (live, 13:46 and 14:02)
+- Ana (operator) posted "hey guys, will need someone to take care of mom tomorrow" → 0.3 s: Village "Tomorrow's Saturday, Marco's night. Marco, still good? Lucía, can you cover if not?" + asks to Marco and Lucía → 3.5 s: Lucía (demo actor) "Okay, Saturday is mine." → 3.8 s: Marco (demo actor) "I can't Saturday, sorry." → 3.9 s: Village "Saturday: Lucía covers for Marco. Mamá will be told at her check-in." (no leader approval; D39). Second run 14:02 ("cover for Marco tomorrow") exposed: Marco was still asked, three bubbles, asks not resolved, rota unchanged on phones → fixed in ASKS-2 + CORE-GLUE-6 + KIT-MEMBERS-3 (14:08).
