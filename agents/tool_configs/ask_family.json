@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/tools/ask_family",
+    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/ask_family",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -76,6 +76,14 @@
             "money_request"
           ],
           "description": "reason"
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for ask_family"

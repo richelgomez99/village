@@ -1,6 +1,6 @@
 {
   "api_schema": {
-    "url": "${TUNNEL_URL}/tools/report_money_request",
+    "url": "${TUNNEL_URL}/hooks/elevenlabs/tools/report_money_request",
     "method": "POST",
     "request_headers": {
       "Content-Type": "application/json",
@@ -103,6 +103,14 @@
             "description": "red flags item"
           },
           "description": "red flags"
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for report_money_request"

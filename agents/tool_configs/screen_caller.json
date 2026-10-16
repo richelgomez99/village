@@ -54,6 +54,14 @@
         "amount": {
           "type": "string",
           "description": "Amount mentioned, as spoken, or empty."
+        },
+        "lang": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
         }
       },
       "description": "Request body for screen_caller (D19 receptionist)"

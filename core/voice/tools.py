@@ -68,6 +68,7 @@ OPTIONAL_FIELDS = {
     "member_id",
     "text",
     "asks_money",
+    "lang",
 }
 
 SENSITIVE_DIGITS = re.compile(r"(?<!\d)\d[\d\s-]{3,}\d(?!\d)")
@@ -294,6 +295,15 @@ LOCAL_TOOLS: dict[str, Any] = {
     "submit_answer": _submit_answer,
     "screen_caller": lambda body: screen_caller(body),
 }
+
+
+def _register_handlers() -> None:
+    from core.voice.handlers import HANDLERS
+
+    LOCAL_TOOLS.update(HANDLERS)
+
+
+_register_handlers()
 
 
 app = FastAPI(title="Village voice tools")

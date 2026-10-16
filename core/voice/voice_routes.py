@@ -40,9 +40,13 @@ async def hook_tool(
     x_village_variant: str | None = Header(default=None),
 ) -> dict[str, Any]:
     require_secret(x_village_secret)
+    from core.voice.lang import bilingual
     from core.voice.tools import handler
 
-    return await handler.handle(tool_name, await request.json(), variant=x_village_variant)
+    body = await request.json()
+    lang = body.get("lang")
+    response = await handler.handle(tool_name, body, variant=x_village_variant)
+    return bilingual(response, lang, body)
 
 
 async def conversation_token(agent: str = "setup", fetch: Any | None = None) -> dict[str, Any]:

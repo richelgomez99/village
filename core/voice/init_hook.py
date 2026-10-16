@@ -162,7 +162,11 @@ async def init_hook(
         watch_inbound(payload, variables)
     except Exception:
         pass
-    return {"dynamic_variables": variables}
+    body: dict[str, Any] = {"type": "conversation_initiation_client_data", "dynamic_variables": variables}
+    if variables["receptionist"] == "on" and variables["caller_known"] == "false":
+        # D19: Village answers first. The agent's static bilingual first message stays the fallback if this hook fails.
+        body["conversation_config_override"] = {"agent": {"first_message": variables["greeting"], "language": "en"}}
+    return body
 
 
 

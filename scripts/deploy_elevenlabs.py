@@ -14,6 +14,7 @@ headers become the workspace secret id. Secrets are never printed.
 from __future__ import annotations
 
 import argparse
+import re
 import copy
 import json
 import os
@@ -181,8 +182,20 @@ def tool_payload(path: Path, secret_id: str | None) -> dict[str, Any]:
     }
 
 
+SIM_TAG = "[voice2-sim]"
+
+
+def live_tools(c: httpx.Client) -> dict[str, str]:
+    """name -> id of the real workspace tools (throwaway simulate copies are tagged and ignored)."""
+    return {
+        t["tool_config"]["name"]: t["id"]
+        for t in call(c, "GET", "/convai/tools").get("tools", [])
+        if t.get("tool_config", {}).get("name") and not str(t["tool_config"].get("description", "")).startswith(SIM_TAG)
+    }
+
+
 def upsert_tools(c: httpx.Client, secret_id: str | None, dry: bool) -> dict[str, str]:
-    live = {t["tool_config"]["name"]: t["id"] for t in call(c, "GET", "/convai/tools").get("tools", []) if t.get("tool_config", {}).get("name")}
+    live = live_tools(c)
     ids = dict(live)
     for path in sorted(TOOL_CONFIGS.glob("*.json")):
         body = {"tool_config": tool_payload(path, secret_id)}
@@ -207,9 +220,7 @@ def upsert_tools(c: httpx.Client, secret_id: str | None, dry: bool) -> dict[str,
 def agent_payload(path: Path, tool_ids: dict[str, str], secret_id: str | None, init_webhook: str | None, dry: bool = False) -> dict[str, Any]:
     config = substitute(json.loads(path.read_text()), secret_id)
     agent = config.get("conversation_config", {}).get("agent", {})
-    agent.pop("language_presets", None)
     prompt = agent.get("prompt", {})
-    prompt.pop("built_in_tools", None)  # keep the live built-ins (end_call, language_detection, ...)
     names = [t["name"] for t in prompt.pop("tools", [])]
     if names:
         missing = [n for n in names if n not in tool_ids]
@@ -219,6 +230,63 @@ def agent_payload(path: Path, tool_ids: dict[str, str], secret_id: str | None, i
     if init_webhook is not None and config.get("platform_settings", {}).get("workspace_overrides", {}).get("conversation_initiation_client_data_webhook"):
         config["platform_settings"].setdefault("overrides", {})["enable_conversation_initiation_client_data_from_webhook"] = init_webhook == "on"
     return config
+
+
+VAR_RE = re.compile(r"{{\s*([A-Za-z0-9_]+)\s*}}")
+
+
+def referenced_vars(config_path: Path) -> dict[str, set[str]]:
+    """Every non-system dynamic variable the agent can ask for: prompt, first messages, presets, and its tools' URLs/bodies."""
+    config = json.loads(config_path.read_text())
+    cc = config.get("conversation_config", {})
+    agent = cc.get("agent", {})
+    found: dict[str, set[str]] = {}
+
+    def add(where: str, text: Any) -> None:
+        for name in VAR_RE.findall(json.dumps(text, ensure_ascii=False) if not isinstance(text, str) else text):
+            found.setdefault(name, set()).add(where)
+
+    add("prompt", agent.get("prompt", {}).get("prompt", ""))
+    add("first_message", agent.get("first_message", ""))
+    add("language_presets", cc.get("language_presets", {}))
+    for tool in agent.get("prompt", {}).get("tools", []):
+        path = TOOL_CONFIGS / f"{tool['name']}.json"
+        if not path.exists():
+            continue
+        tcfg = json.loads(path.read_text())
+        add(f"tool {tool['name']} url", tcfg.get("api_schema", {}).get("url", ""))
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                dv = node.get("dynamic_variable")
+                if isinstance(dv, str) and dv and not dv.startswith("system__"):
+                    found.setdefault(dv, set()).add(f"tool {tool['name']} body")
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(tcfg.get("api_schema", {}).get("request_body_schema", {}))
+    return {k: v for k, v in found.items() if not k.startswith("system__")}
+
+
+def missing_defaults(config_path: Path) -> dict[str, list[str]]:
+    config = json.loads(config_path.read_text())
+    defaults = config.get("conversation_config", {}).get("agent", {}).get("dynamic_variables", {}).get("dynamic_variable_placeholders", {})
+    return {k: sorted(v) for k, v in referenced_vars(config_path).items() if k not in defaults}
+
+
+def check_defaults(only: set[str] | None = None) -> None:
+    bad = {}
+    for item in json.loads(AGENTS_JSON.read_text())["agents"]:
+        if only and item["name"] not in only:
+            continue
+        miss = missing_defaults(AGENTS_DIR / item["config"])
+        if miss:
+            bad[item["name"]] = miss
+    if bad:
+        raise SystemExit(f"dynamic variables without a default (a phone call would die with 'Missing required dynamic variables'): {json.dumps(bad)}")
 
 
 def publish_procedures(agent_name: str, agent_id: str) -> None:
@@ -312,7 +380,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--init-webhook", choices=["on", "off"])
     ap.add_argument("--post-call-webhook", action="store_true")
     ap.add_argument("--no-tools", action="store_true")
+    ap.add_argument("--check", action="store_true", help="only verify every referenced dynamic variable has a default")
+    ap.add_argument("--yes-live", action="store_true", help="required to push: the coordinator approved this push between operator test calls")
     args = ap.parse_args(argv)
+    only = {s for s in args.only.split(",") if s}
+    if args.check:
+        check_defaults(only or None)
+        print("OK every referenced dynamic variable has a default")
+        return 0
+    check_defaults(only or None)
+    if not (args.pull or args.dry_run or args.yes_live):
+        raise SystemExit("refusing to push to the live agents without --yes-live (coordinator approval between operator test calls)")
     load_env()
     c = client()
     if args.pull:
@@ -323,7 +401,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     secret_id = sync_secret(c) if args.sync_secret and not args.dry_run else workspace_secret_id(c)
     if args.no_tools:
-        tool_ids = {t["tool_config"]["name"]: t["id"] for t in call(c, "GET", "/convai/tools").get("tools", [])}
+        tool_ids = live_tools(c)
     else:
         tool_ids = upsert_tools(c, secret_id, args.dry_run)
     upsert_agents(c, tool_ids, secret_id, {s for s in args.only.split(",") if s}, args.dry_run, args.init_webhook)
