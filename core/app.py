@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.contract_version = CONTRACT_VERSION
     app.state.clock_offset_minutes = 0
+    app.state.tracing = _tracing_start()
     await reset_demo()
     memory = await _memory_start()
     await start_live()
@@ -55,6 +56,17 @@ async def lifespan(app: FastAPI):
     if memory:
         await memory.stop()
     await stop_live()
+
+
+def _tracing_start() -> str:
+    """Arize register once at boot when ARIZE_SPACE_ID/ARIZE_API_KEY exist (no-op otherwise; never raises)."""
+    try:
+        from core.obs.tracing import init_tracing
+
+        return init_tracing()
+    except Exception:
+        log.exception("tracing init failed")
+        return "noop"
 
 
 async def _memory_start():

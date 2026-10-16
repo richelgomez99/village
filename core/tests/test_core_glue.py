@@ -219,3 +219,19 @@ def test_fridge_card_html() -> None:
         assert "girasol" in html
         other = next(p for p in spec["blueprint"]["people"] if p["id"] not in (coord, spec["village"]["care_recipient_id"]))
         assert str(other["name"]).split()[0] in html
+
+
+# ---- T6: builder tracer adapter ----------------------------------------------------------------
+
+def test_builder_spans_use_core_obs_tracer(monkeypatch) -> None:
+    monkeypatch.setenv("VILLAGE_TRACING", "off")
+    from core.builder import spans
+    from core.obs import BuilderTracer, tracing
+
+    tracing.init_tracing(force=True)
+    spans.set_tracer(None)
+    assert isinstance(spans.get_tracer(), BuilderTracer)
+    with spans.span("builder.found", "AGENT", **{"session.id": "village-v_x", "graph.node.id": "found"}) as rec:
+        rec.set("output.value", "ok")
+    assert rec.attrs["output.value"] == "ok" and rec._handle.attributes["session.id"] == "village-v_x"
+    assert rec._handle.attributes["openinference.span.kind"] == "AGENT"
