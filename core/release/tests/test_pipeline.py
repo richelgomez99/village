@@ -48,7 +48,9 @@ async def test_break_contrast_builder_fixes_its_own_build(spec, publisher, store
     assert validate_receipt(r3) == [] and validate_receipt(r4) == []
     assert r3["result"] == "blocked" and r3["live_rev"] == 2
     assert r3["stages"][2]["status"] == "failed"
-    assert r3["stages"][2]["details"]["summary"] == "contrast 4.1:1 on elder Text (needs 7:1)"
+    assert r3["stages"][2]["details"]["summary"].startswith("contrast 4.1:1 on elder Text (needs 7:1) · 43/45 floor tests · ")
+    assert r4["stages"][2]["details"]["summary"].startswith("45/45 floor tests · ")
+    assert r4["stages"][1]["details"]["summary"].startswith("sandbox ") and " · build " in r4["stages"][1]["details"]["summary"]
     assert [s["status"] for s in r3["stages"][3:]] == ["skipped"] * 3
     assert r4["result"] == "released" and r4["live_rev"] == 4 and r4["attempt"] == 2
     assert r4["trigger"] == "repair" and r4["repair_of"] == "rel_reyes_r3"

@@ -28,6 +28,29 @@ class FrameError(ValueError):
     pass
 
 
+def _secs(ms: int | None) -> str:
+    return f"{(ms or 0) / 1000:.1f} s"
+
+
+def _build_summary(res: Any) -> str:
+    """Daytona receipt line: "sandbox 1172d474 · daytonaio/sandbox:0.8.0 · build 2.1 s" (real numbers)."""
+    head = f"sandbox {res.sandbox_id[:8]}" if res.sandbox_id else "sandbox ?"
+    if res.image:
+        head += f" · {res.image}"
+    if res.build_ok:
+        return f"{head} · build {_secs(res.timings_ms.get('build'))}"[:200]
+    return f"{head} · build failed: {res.error or 'vite'}"[:200]
+
+
+def _tests_summary(res: Any, ok: bool) -> str:
+    total = res.tests_passed + res.tests_failed
+    counts = f"{res.tests_passed}/{total} floor tests · {_secs(res.timings_ms.get('tests'))}"
+    if ok:
+        return counts[:200]
+    lead = res.error or _summary_from_failures(res.failures)
+    return f"{lead} · {counts}"[:200]
+
+
 def release_id(village_id: str, rev: int) -> str:
     return f"rel_{village_id.removeprefix('v_')}_r{rev}"
 
@@ -199,7 +222,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 timings[f"{k}" if attempt == 1 else f"{k}_a{attempt}"] = v
             build_ms = sum(res.timings_ms.get(k, 0) for k in ("create", "upload_template", "npm_install", "upload", "build"))
             await run.end(r, "daytona_build", res.build_ok, t0, duration_ms=build_ms,
-                          summary=("vite build ok" if res.build_ok else f"build failed: {res.error or 'vite'}")[:200],
+                          summary=_build_summary(res),
                           sandbox_id=res.sandbox_id[:80] or None, preview_url=res.preview_url,
                           error=None if res.build_ok else (res.error or res.log_tail[-400:] or "build failed")[:500])
             if not res.build_ok:
@@ -212,7 +235,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
             ok = res.tests_failed == 0 and res.error is None
             await run.end(r, "tests", ok, time.perf_counter(), duration_ms=res.timings_ms.get("tests", 0),
                           tests_passed=res.tests_passed, tests_failed=res.tests_failed, failures=res.failures,
-                          summary=(f"{res.tests_passed} floor tests passed" if ok else (res.error or _summary_from_failures(res.failures)))[:200])
+                          summary=_tests_summary(res, ok))
             if not ok:
                 await run.block(r)
                 if attempt > max_repairs or res.error:
