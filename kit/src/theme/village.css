@@ -1,0 +1,20 @@
+[data-test="app"] {
+  --accent: #2F6B57;
+  --accent-soft: #E3EFE8;
+}
+
+[data-theme="family"] .screen,
+[data-theme="dashboard"] .screen {
+  max-width: 980px;
+}
+
+[data-theme="family"] [data-test="screen-title"],
+[data-theme="dashboard"] [data-test="screen-title"] {
+  font-size: 30px;
+}
+
+[data-theme="family"] [data-test="bigbutton"],
+[data-theme="dashboard"] [data-test="bigbutton"] {
+  min-height: 64px;
+  font-size: 18px;
+}

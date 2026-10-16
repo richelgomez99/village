@@ -1,0 +1,127 @@
+:root {
+  --paper: #FBF6EE;
+  --card: #FFFFFF;
+  --ink: #26211C;
+  --ink2: #5B5249;
+  --line: #E5DACB;
+  --tomato: #A8331A;
+  --tomato-soft: #FBE6DF;
+  --ok: #2E6F42;
+  --ok-soft: #E4F1E6;
+  --amber-soft: #FCEFD6;
+  --amber-ink: #7A4B00;
+  --sage: #2F6B57;
+  --sage-soft: #E3EFE8;
+  --plum: #6A3F7A;
+  --plum-soft: #F1E7F4;
+  --violet-soft: #ECE6F5;
+  --blue-soft: #E3ECF8;
+  --blue-ink: #234C8A;
+  --gray-soft: #ECEAE5;
+  --night: #1E1A16;
+  --night2: #2B2520;
+  --lid-blue: #2F5FA7;
+  --lid-yellow: #E8B12F;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--body);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); }
+button, input { font: inherit; }
+button { min-height: 48px; cursor: pointer; }
+svg[data-icon] { width: 28px; height: 28px; fill: currentColor; flex: 0 0 auto; }
+
+[data-test="app"] { min-height: 100vh; background: var(--paper); }
+[data-test="app"][data-theme="elder"] {
+  --ink: #1F1A15;
+  --ink2: #4A423A;
+}
+
+.screen { padding: 20px; max-width: 760px; margin: 0 auto; }
+.screen-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.identity-chip { border: 2px solid var(--line); border-radius: 999px; padding: 8px 12px; background: var(--card); font-weight: 700; }
+.read-aloud { border: 2px solid var(--sage); background: var(--sage-soft); color: var(--ink); border-radius: 14px; padding: 8px 14px; }
+[data-test="screen-title"] { font-family: var(--display); font-size: 40px; line-height: 1.04; margin: 18px 0 8px; }
+.subtitle, .muted { color: var(--ink2); }
+.caption { color: var(--ink2); font-size: 0.9em; margin-block-start: 4px; }
+
+[data-test="app"][data-theme="elder"] .screen { padding: 24px; }
+[data-test="app"][data-theme="elder"] [data-test="screen-title"] { font-size: 40px; }
+[data-test="app"][data-theme="elder"] p,
+[data-test="app"][data-theme="elder"] section { font-size: 22px; }
+
+[data-test="bigbutton"] {
+  width: 100%;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: flex-start;
+  border: 3px solid var(--sage);
+  border-radius: 18px;
+  background: var(--sage-soft);
+  color: var(--ink);
+  padding: 18px 20px;
+  margin: 12px 0;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: start;
+}
+[data-test="app"][data-theme="elder"] [data-test="bigbutton"] { min-height: 104px; }
+[data-test="bigbutton"][data-tone="danger"] { background: var(--tomato); border-color: var(--tomato); color: white; }
+[data-test="bigbutton"][data-tone="ok"] { background: var(--ok); border-color: var(--ok); color: white; }
+[data-test="bigbutton"][data-tone="info"] { background: var(--blue-soft); border-color: var(--blue-ink); }
+
+[data-test="alert"], [data-test="contact-card"], [data-test="helper-answer"], [data-test="verification-prompt"],
+[data-test="incident"], [data-test="life-areas"], [data-test="dose-tracker"], [data-test="care-rota"],
+[data-test="timeline"], [data-test="pill-organizer"], [data-test="refill-card"],
+[data-test="need-board"], [data-test="resource-board"], [data-test="verified-info-feed"],
+[data-test="check-in"], [data-test="call-log"], [data-test="status-grid"] {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 14px 0;
+}
+[data-test="alert"][data-severity="danger"], [data-test="incident-item"][data-severity="high"] { background: var(--tomato-soft); border-color: var(--tomato); }
+[data-test="alert"][data-severity="warn"] { background: var(--amber-soft); border-color: var(--amber-ink); }
+[data-test="alert-title"] { display: flex; align-items: center; gap: 10px; font-size: 28px; }
+[data-test="countdown"] { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; min-height: 48px; border-radius: 999px; background: var(--amber-soft); color: var(--amber-ink); font-weight: 700; }
+
+[data-test="verification-prompt"] button, [data-test="prompt-overlay"] button, [data-test="incident-ack"] {
+  min-height: 68px;
+  border-radius: 14px;
+  border: 2px solid var(--sage);
+  margin: 6px;
+  padding: 10px 16px;
+  background: var(--sage-soft);
+  font-weight: 700;
+}
+[data-test="verify-no"] { background: var(--tomato-soft); border-color: var(--tomato); }
+
+[data-test="contact-card"][data-kind="emergency"] { border-color: var(--tomato); background: var(--tomato-soft); font-size: 28px; }
+[data-test="contact-card"] a { color: inherit; display: inline-block; min-height: 48px; padding-block: 10px; }
+.lid-dot, [data-test="lid-chip"] { display: inline-block; width: 28px; height: 28px; border-radius: 50%; background: var(--lid, var(--lid-blue)); border: 2px solid var(--ink); vertical-align: middle; margin-inline-end: 8px; }
+.pill-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+[data-test="pill-lid"] { border: 2px solid var(--line); border-inline-start: 10px solid var(--lid); border-radius: 10px; padding: 8px; }
+[data-test="life-area"], [data-test="red-flag"] { display: inline-block; margin: 4px; padding: 6px 10px; border-radius: 999px; background: var(--sage-soft); font-weight: 700; }
+
+.prompt { position: fixed; inset: 12px; z-index: 20; background: var(--paper); border: 4px solid var(--sage); border-radius: 20px; padding: 22px; box-shadow: 0 20px 80px rgb(0 0 0 / 0.28); }
+[data-test="prompt-banner"] { font-weight: 700; color: var(--sage); }
+[data-test="ws-status"], [data-test="unknown-types"] { position: absolute; inset-inline-start: -999px; }
+[data-test="reconnect-strip"] { background: var(--amber-soft); color: var(--amber-ink); padding: 8px 12px; text-align: center; }
+
+.scan, .join { min-height: 100vh; padding: 26px; max-width: 720px; margin: 0 auto; }
+.scan h1 { font-family: var(--display); font-size: 42px; }
+.scan p { font-size: 28px; }
+[data-test="scan-page"][data-tone="report"] [data-test="lid-status"] { background: var(--amber-soft); border-color: var(--amber-ink); }
+[data-test="lid-status"] { border: 3px solid var(--ok); border-radius: 18px; padding: 20px; background: var(--ok-soft); }
+
+input { min-height: 52px; width: 100%; margin: 8px 0; padding: 10px; border: 2px solid #CDBFAD; border-radius: 12px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-new="true"] { animation: flash-new 1.2s ease-in-out 2; }
+  @keyframes flash-new { 50% { outline: 6px solid var(--ok); } }
+}

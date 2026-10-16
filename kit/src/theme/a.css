@@ -1,0 +1,28 @@
+:root {
+  --night: #100D0A;
+  --panel: #1B1612;
+  --panel2: #241D17;
+  --line: #3A3028;
+  --text: #F3EADF;
+  --muted: #B5A898;
+  --amber: #F2A541;
+  --coral: #FF7A59;
+  --mint: #62D9A0;
+}
+
+.control {
+  min-height: 100vh;
+  background: var(--night);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  padding: 18px;
+}
+.control header { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; }
+.control section, .control header { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.control [data-test="blueprint"] { grid-column: 1 / 5; }
+.control [data-test="live-moment"] { grid-column: 5 / 10; }
+.control [data-test="gate-feed"], .control [data-test="decisions-log"], .control [data-test="ask-why"] { grid-column: 10 / 13; }
+.control button { background: var(--panel2); color: var(--text); border: 1px solid var(--amber); border-radius: 8px; }
+.control .caption { color: var(--muted); }
