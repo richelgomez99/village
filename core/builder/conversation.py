@@ -414,6 +414,8 @@ def _coerce(topic: str, key: str, v: Any) -> Any:
         return {"days": days} if days else None
     if key in ("members", "meds"):
         return v if isinstance(v, list) and all(isinstance(x, dict) and x.get("name") for x in v) else None
+    if key in ("nearby", "problems", "speaker_does"):
+        return [str(x) for x in v] if isinstance(v, list) else ([str(v)] if v else None)
     if key == "family_word":
         return None  # only the rules path handles the word (it never leaves IntakeState)
     if isinstance(v, (dict, list)) and not v:
