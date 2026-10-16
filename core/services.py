@@ -80,6 +80,7 @@ def _decision_for_verification(row: dict[str, Any]) -> dict[str, Any]:
         "say_key": say_key,
         "say_vars": say_vars,
         "verification": _decision_verification(row),
+        "notify": [],
         "writes": [],
         "rules_fired": rules,
     }
@@ -93,10 +94,10 @@ def _decision_verification(row: dict[str, Any]) -> dict[str, Any]:
         "id": row["id"],
         "claimed_member": row.get("claimed_member_id"),
         "deadline": row.get("deadline"),
-        "channels": [
-            channel.get("via", channel)
+        "channels": list(dict.fromkeys(
+            channel.get("via", channel) if isinstance(channel, dict) else channel
             for channel in row.get("channels", [])
-        ],
+        )),
         "state": row.get("state"),
     }
 
@@ -176,6 +177,16 @@ def _incident_event_id(incident_id: str | None) -> str | None:
         if event["kind"] == "incident" and event.get("payload", {}).get("incident_id") == incident_id:
             return event["id"]
     return None
+
+
+def _mode_for(decision: dict[str, Any]) -> str:
+    """Kit autonomy chip (coordinator request; contract to follow): acted_alone | asked_human | refused."""
+    kind = decision.get("decision", "")
+    if kind in {"verify_with_member", "escalate_family", "ask_family", "advise_talk_to_coordinator"}:
+        return "asked_human"
+    if kind in {"refuse", "block", "refuse_advice", "advise_911_first"} or str(decision.get("rule_id", "")).startswith("R-MONEY-NEVER"):
+        return "refused"
+    return "acted_alone"
 
 
 def _gate_decide(inp: dict[str, Any]) -> dict[str, Any]:
@@ -266,7 +277,8 @@ async def decide(
         "event_ids": [],
     }
     await db.create_decision(decision_row)
-    await control(village_id, "gate", {"decision": decision})
+    public = {k: v for k, v in decision.items() if not k.startswith("_")}
+    await control(village_id, "gate", {"decision": public, "input_kind": candidate.get("kind", "tick"), "mode": _mode_for(public)})
     # row exists before the ledger writes (bindings read it); its LIVE publish (-> prompt) waits until after them
     if decision.get("verification"):
         verification = decision["verification"]
@@ -335,6 +347,8 @@ async def record_event(
         "decision_id": decision_id,
         "at": draft.get("at") or (await now()).isoformat(),
     }
+    if event["decision_id"] is None:
+        del event["decision_id"]
     await db.create_event(event)
     return event
 
@@ -745,11 +759,14 @@ async def apply_verification_step(
             "gate": copy.deepcopy(decision),
             "event_ids": [ev["id"] for ev in written],
         })
-        await control(village, "gate", {
+        gate_payload = {
             "decision": decision,
-            "input_kind": "verification_answer" if sm_event.get("type") == "answer" else "tick",
-            "event_id": verification_event["id"] if verification_event else None,
-        })
+            "input_kind": "verification_answer" if sm_event.get("type") == "answer" else ("await_returned" if sm_event.get("type") == "await_returned" else "tick"),
+            "mode": _mode_for(decision),
+        }
+        if verification_event:
+            gate_payload["event_id"] = verification_event["id"]
+        await control(village, "gate", gate_payload)
         if row.get("state") in {"denied", "late_denied"}:
             _COUNTERS["scams_stopped"] = _COUNTERS.get("scams_stopped", 0) + 1
             await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})

@@ -17,5 +17,5 @@ async def warp(body: dict, request: Request) -> dict:
     tick_result = await tick()
     request.app.state.clock_offset_minutes = offset
     payload = {"offset_minutes": offset, "now": clock.now().isoformat(), "tick": tick_result}
-    await hub.control("v_reyes", "clock", payload)
+    await hub.control("v_reyes", "clock", {"now": payload["now"], "offset_minutes": offset})
     return payload

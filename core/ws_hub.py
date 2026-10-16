@@ -55,7 +55,7 @@ class Hub:
         for client in list(self.clients):
             if client.village != event.get("village"):
                 continue
-            frame: dict[str, Any] = {"type": "event", "contract_version": CONTRACT_VERSION, "event": event}
+            frame: dict[str, Any] = {"type": "event", "event": event}
             if client.role != "control":
                 data = changed(event, client.role, client.member_id)
                 if data:

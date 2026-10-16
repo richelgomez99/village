@@ -18,37 +18,85 @@ def view_binds(role: str) -> set[str]:
     return binds
 
 
-def dose_day(subject: str = "m_carmen", *, show_med_names: bool = False) -> dict[str, Any]:
-    result = {"subject": subject, "date": "2026-10-16", "slots": {}}
-    for slot in ("morning", "evening"):
+def _slot_meds(slot: str) -> list[str]:
+    meds = []
+    for med in _family().get("medications", []):
+        if med.get("valid_until") or med.get("status") == "superseded":
+            continue
+        if any(entry.get("slot") == slot for entry in med.get("schedule", [])):
+            meds.append(f"{med['name']} {med.get('dose', '')}".strip())
+    return meds
+
+
+def dose_day(subject: str = "m_carmen", *, show_med_names: bool = False, date: str | None = None) -> dict[str, Any]:
+    """bv_dose_day: {date, slots: [bv_dose_slot]}; slot `meds` only for views with med names (never elder)."""
+    day = date or clock.now().date().isoformat()
+    now_hhmm = clock.now().strftime("%H:%M")
+    slots = []
+    for slot, due in (("morning", "08:00"), ("evening", "19:30")):
         event = next(
             (
                 ev for ev in reversed(db.events)
                 if ev["kind"] == "dose"
                 and ev["payload"].get("subject") == subject
                 and ev["payload"].get("slot") == slot
+                and str(ev["payload"].get("taken_at") or ev.get("at", "")).startswith(day)
             ),
             None,
         )
-        result["slots"][slot] = {
-            "status": "taken" if event else "unknown",
-            "event_id": event["id"] if event else None,
+        if event:
+            status = "uncertain" if event["payload"].get("confidence") == "uncertain" else "taken"
+        elif day < clock.now().date().isoformat():
+            status = "missed"
+        else:
+            status = "due" if now_hhmm >= due else "upcoming"
+        via = event["payload"].get("via") if event else None
+        item: dict[str, Any] = {
+            "slot": slot,
+            "status": status,
             "taken_at": event["payload"].get("taken_at") if event else None,
+            "via": via if via in {"lid_qr", "phone_line", "app"} else None,
         }
-    if show_med_names:
-        result["meds"] = db.prescriptions.get("v_reyes", [])
-    return result
+        if show_med_names:
+            item["meds"] = _slot_meds(slot)
+        slots.append(item)
+    return {"date": day, "slots": slots}
+
+
+def dose_week(subject: str = "m_carmen", *, show_med_names: bool = False) -> dict[str, Any]:
+    from datetime import timedelta as _td
+
+    today = clock.now().date()
+    return {"days": [dose_day(subject, show_med_names=show_med_names, date=(today - _td(days=n)).isoformat()) for n in range(6, -1, -1)]}
+
+
+def _person(member_id: str | None) -> dict[str, Any] | None:
+    if not member_id:
+        return None
+    return {"member_id": member_id, "name": str(db.members.get(member_id, {}).get("name", member_id)).split()[0]}
+
+
+def _next_shift(member_id: str, after: str) -> str | None:
+    week = _family().get("care_rota", {}).get("week_of_2026-10-12", [])
+    later = [day["date"] for day in week if day.get("on_duty") == member_id and day["date"] > after]
+    return later[0] if later else None
 
 
 def rota_me(member_id: str) -> dict[str, Any]:
     shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
     on_duty = shift["payload"].get("on_duty") if shift else "m_marco"
+    backup = shift["payload"].get("backup") if shift else "m_ana"
+    date = shift["payload"].get("date") if shift else clock.now().date().isoformat()
+    mine = member_id == on_duty
+    name = _person(on_duty)["name"]
     return {
-        "member_id": member_id,
-        "is_my_turn": member_id == on_duty,
-        "on_duty": on_duty,
-        "backup": shift["payload"].get("backup") if shift else "m_ana",
-        "answer": "Yes. You're on tonight." if member_id == on_duty else "No. Marco is on tonight.",
+        "is_my_turn": mine,
+        "date": date,
+        "on_duty": _person(on_duty),
+        "backup": _person(backup),
+        "until": None,
+        "next_shift": _next_shift(member_id, date),
+        "answer": {"en": "Yes. Tonight until 9:30. Nothing to do unless Village calls you." if mine else f"No. {name} is on tonight."},
     }
 
 
@@ -166,9 +214,7 @@ def snapshot_data(role: str, member_id: str | None) -> dict[str, Any]:
     if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=today" in binds:
         data["facts:dose_event?subject=m_carmen&valid_at=today"] = dose_day("m_carmen", show_med_names=role != "elder")
     if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=week" in binds:
-        data["facts:dose_event?subject=m_carmen&valid_at=week"] = dose_day("m_carmen", show_med_names=role != "elder")
-    if "*" in binds or "facts:dose_event?subject=m_carmen&valid_at=today?count" in binds:
-        data["facts:dose_event?subject=m_carmen&valid_at=today?count"] = len([ev for ev in db.events if ev["kind"] == "dose"])
+        data["facts:dose_event?subject=m_carmen&valid_at=week"] = dose_week("m_carmen", show_med_names=role != "elder")
     if member_id and ("*" in binds or "rota:current?member=me" in binds):
         data["rota:current?member=me"] = rota_me(member_id)
     if "*" in binds or "blueprint:life_areas" in binds:
@@ -309,6 +355,7 @@ def open_incidents() -> list[dict[str, Any]]:
             "provenance": _incident_provenance(event, verification),
             "at": event["at"],
         })
+        incidents[-1] = {k: v for k, v in incidents[-1].items() if v is not None}
     return incidents
 
 
@@ -373,11 +420,17 @@ def _member_name(member_id: str) -> str:
 
 def _incident_provenance(event: dict[str, Any], verification: dict[str, Any] | None) -> list[dict[str, Any]]:
     provenance = []
-    if verification and verification.get("conversation_id"):
-        provenance.append({
-            "label": "Original call",
-            "source": {"kind": "call", "ref": verification["conversation_id"]},
-        })
-    if event.get("source"):
+    vid = event.get("payload", {}).get("verification_id")
+    money = next((ev for ev in db.events if ev["kind"] == "money_request" and ev.get("payload", {}).get("verification_id") == vid), None)
+    if money and money.get("source"):
+        src = money["source"]
+        secs = src.get("secs")
+        label = f"Mamá's call, at {int(secs) // 60}:{int(secs) % 60:02d}" if isinstance(secs, (int, float)) else "Mamá's call"
+        provenance.append({"label": label, "source": {k: v for k, v in src.items() if k in {"kind", "ref", "secs", "url"}}})
+    answered = next((ev for ev in db.events if ev["kind"] in {"verification_denied", "verification_confirmed"} and ev.get("payload", {}).get("verification_id") == vid), None)
+    if answered and answered.get("source"):
+        name = _member_name(answered["payload"].get("claimed_member_id", ""))
+        provenance.append({"label": f"{name} answered in app" if answered["source"].get("kind") == "app" else f"{name} answered", "source": answered["source"]})
+    if not provenance and event.get("source"):
         provenance.append({"label": "Village decision", "source": event["source"]})
     return provenance

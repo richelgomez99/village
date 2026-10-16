@@ -197,6 +197,15 @@ async def main() -> int:
     if ta.get("say") != timeout_await["response"]["say"] or ta.get("say_key") != "money_timeout":
         errs.append(f"await_verification timeout: {ta}")
 
+    validator = frame_validator()
+    for n, s in socks.items():
+        for f in [s.snapshot, *s.frames]:
+            for e in validator.iter_errors(f):
+                from jsonschema.exceptions import best_match
+
+                bm = best_match(list(e.context) or [e])
+                errs.append(f"schema {n} {sig(f)} {list(e.path)}{list(bm.path)}: {bm.message[:140]}")
+                break
     if args.dump:
         Path(args.dump).write_text(json.dumps({n: s.frames for n, s in socks.items()}, indent=1, ensure_ascii=False))
     for n, s in socks.items():
@@ -211,6 +220,33 @@ async def main() -> int:
         return 1
     print("V1 core acceptance: OK")
     return 0
+
+
+def frame_validator():
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+
+    resources = []
+    root = None
+    for p in (ROOT / "contracts" / "schemas").glob("*.schema.json"):
+        doc = json.loads(p.read_text())
+        res = Resource.from_contents(doc, default_specification=__import__("referencing.jsonschema").jsonschema.DRAFT202012)
+        resources.append((doc.get("$id", p.name), res))
+        if p.name == "ws_messages.schema.json":
+            root = doc
+    registry = Registry().with_resources(resources)
+    validators = {t: Draft202012Validator({"$ref": root["$id"] + f"#/$defs/{t}"}, registry=registry) for t in ("snapshot", "event", "control", "prompt", "result", "chat", "error", "pong")}
+
+    class ByType:
+        def iter_errors(self, frame):
+            if frame.get("type") == "control":
+                if frame.get("kind") in {"ledger", "caption"}:  # kit V2 extras, contract to follow
+                    return iter([])
+                frame = {**frame, "payload": {k: v for k, v in frame.get("payload", {}).items() if k != "mode"}}
+            v = validators.get(frame.get("type"))
+            return iter([]) if v is None else v.iter_errors(frame)
+
+    return ByType()
 
 
 def args_admin_key() -> str:

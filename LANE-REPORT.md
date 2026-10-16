@@ -26,6 +26,7 @@ G007 · done · uv run pytest core/gate -q · mocked none
 LD-1: Gate models stay contract-shaped dict wrappers so Core can pass schema JSON without translation.
 
 ## core
+READY FOR MERGE V1
 READY FOR MERGE V0
 T001 · done · `uv run python - <<'PY' ... TestClient(app).get('/health') ... PY` · health deps use stubs; DB/live not wired yet; `uv run pytest core -q` currently collects no tests
 T002 · done · `uv run python - <<'PY' ... TestClient(app).post('/tools/log_dose') ... PY` · services seam replays contract examples/fixtures and log-only broadcast/post_message
@@ -46,7 +47,16 @@ T013 · done · `uv run pytest core/tests/test_verifications.py -q` · tool idem
 T014 · done · `uv run pytest core/tests/test_verifications.py -q` · scheduler tick runs on boot/clock warp and closes pending verifications past deadline with a timeout event
 T015 · done · `uv run pytest core -q` · WS prompt frames go only to the claimed member, terminal rows close the prompt, and live bindings resolve alerts, pending/mine verifications, and open incidents
 LD-4: Core uses the merged `step_verification` state machine for app answers; a later different answer is persisted as `conflict` per the verification contract instead of being dropped as a terminal no-op.
-T016 · done · `uv run pytest core/tests/test_verifications.py core/voice/tests/test_post_call.py -q` · real start/answer/await verification services, HTTP answer endpoint, app actions, and voice post-call path use the shared verification state machine; `uv run pytest core -q` still has pre-existing contract 1.2 fixture/binding expectation failures for rev 5 and elder dose binding
+T016 · done · `uv run pytest core/tests/test_verifications.py core/voice/tests/test_post_call.py -q` · real start/answer/await verification services, HTTP answer endpoint, app actions, and voice post-call path use the shared verification state machine; (the rev 5 / elder-dose failures were fixed by main 07680d9 on merge)
+T017 · done · `uv run pytest core/tests/test_recovery.py -q` · boot runs `scheduler.recover()`: first tick closes past-deadline rows through the gate SM (timeout + incident), rows with `call_placed_at` are never redialed; `core/dialer.py` seam: `FakeDialer` in tests/acceptance, real = `core.voice.outbound.ElevenLabsDialer` via `OutboundService` (CAS on `call_placed_at`) only when consent `ai_calls` is true and ElevenLabs key + `ELEVENLABS_AGENT_CALLER_ID` + phone number id are configured · mocked: memory DB is reset on boot, so recovery is exercised on rows injected into the store (no Surreal reload yet)
+T018 · done · `acceptance/run.sh V1 --lane core` (boots Core on :8792 with FakeDialer, real sockets via `acceptance/v1_flow.py`, then `uv run pytest -q`) · start+denied frames match `ws_sequence_scam.json` per client in order (type, event kind / control kind, prompt.closed, data keys bound by the view); every frame validates against `ws_messages.schema.json`; verbatim gate `say` for denied/timeout; duplicate webhook identical; timeout via `/clock/warp` · mocked: control `reasoning` lines not produced (skipped in the match)
+T019(1.2.0) · done · `uv run pytest core/tests/test_contract_12.py -q` · `prescriptions:current` (bv_prescriptions) for helper/coordinator/control snapshots and `changed()` on med_change/shift; lisinopril 10 mg with superseded 5 mg valid_until 2026-10-03 changed_by Dr. Lee, apixaban, metformin, atorvastatin; never elder
+T020(1.2.0) · done · same · `hello.view_as` honored for control/coordinator tokens only (others get `error{not_allowed}` and stay themselves); view_as sockets are read-only (actions/acks → `error{not_allowed}`)
+T021(1.2.0) · done · same · `snapshot.identity {member_id, name, role, village_name}` (+`view_as: true`); snapshot now carries `spec` (view for members, whole VillageSpec for control) and `now` per contract; all snapshots validate
+LD-5: Member tokens: `mt_<firstname>_<anything>` (QR/fixture form), the bare member id, or `control`/`CONTROL_TOKEN` resolve in `core/auth.py`; no token minting yet.
+LD-6: `changed_by` for the lisinopril change follows `ws_sequence_scam.json` ("Dr. Lee"); the seed ledger row says "Dr. Elena Park" and reyes_family.json says p_park; flagged for contracts.
+LD-7: Event frames are not tagged `contract_version` (schema forbids it); control sockets get events without `data`; `mode` rides on `control{gate}` payloads as an extra field (kit asked; contract to follow).
+LD-8: Voice tools reach real services via `services.handle_voice_tool` (the ToolHandler prefers it), so `core/voice/tools.py` keeps its stub branch only for import failure; I did not edit core/voice (voice lane owns it).
 
 ## pitch
 READY FOR MERGE V0
