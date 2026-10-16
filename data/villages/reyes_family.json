@@ -532,7 +532,7 @@
     "call_on_duty_at_minutes_late": 90,
     "call_backup_if_no_answer_minutes": 15,
     "double_dose_window_hours": 6,
-    "quiet_hours": "22:30-07:00 (no outbound calls to Mom except emergencies)",
+    "quiet_hours": "21:30-07:00 (her words on the welcome call, 1:48: Después de las nueve y media, no.)",
     "money_verification": "Requests in a member's name → verify with that member (app prompt; call if consented), 45 s deadline; unconfirmed → 'don't send' + incident to Ana."
   },
   "demo_spoken_description": {

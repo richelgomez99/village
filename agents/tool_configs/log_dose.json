@@ -1,0 +1,100 @@
+{
+  "api_schema": {
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/log_dose",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance",
+        "confidence"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "utterance"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "slot": {
+          "type": "string",
+          "enum": [
+            "morning",
+            "midday",
+            "evening",
+            "bedtime",
+            "current"
+          ],
+          "description": "slot"
+        },
+        "pill_description": {
+          "type": "string",
+          "description": "pill description"
+        },
+        "taken_at": {
+          "type": "string",
+          "description": "taken at"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "confirmed_by_caller",
+            "uncertain"
+          ],
+          "description": "confidence"
+        },
+        "possible_duplicate": {
+          "type": "boolean",
+          "description": "possible duplicate"
+        }
+      },
+      "description": "Request body for log_dose"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "gate_decision",
+      "value_path": "decision"
+    },
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    }
+  ],
+  "description": "Record that the caller took or thinks she took pills for a dose slot. Call only after confirming the slot with her.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "log_dose",
+  "response_timeout_secs": 10,
+  "type": "webhook"
+}

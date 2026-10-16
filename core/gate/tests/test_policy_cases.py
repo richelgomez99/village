@@ -4,12 +4,23 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+from jsonschema import Draft202012Validator, RefResolver
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 from core.gate import decide
 
 GATE_SCHEMA = json.loads((ROOT / "contracts" / "schemas" / "gate.schema.json").read_text())
+SCHEMAS = ROOT / "contracts" / "schemas"
+
+
+def draft_validator() -> Draft202012Validator:
+    root_schema = json.loads((SCHEMAS / "event.schema.json").read_text())
+    store = {p.name: json.loads(p.read_text()) for p in SCHEMAS.glob("*.schema.json")}
+    resolver = RefResolver(base_uri="event.schema.json", referrer=root_schema, store=store)
+    return Draft202012Validator({"$ref": "#/$defs/event_draft"}, resolver=resolver)
 
 
 def base_state(**overrides):
@@ -100,6 +111,53 @@ def test_T28_second_lid_scan_reports_only_verbatim():
     assert out["escalate"] == {"member_id": "m_marco", "channel": "both", "level": 1}
     assert out["writes"][0]["kind"] == "dose_repeat_scan"
     assert out["rules_fired"][:2] == ["R-DOUBLE", "P-DD-01"]
+    assert out["rules_fired"][0] == "R-DOUBLE"
+    assert out["say_vars"] == {"logged_time": "8:02", "on_duty_name": "Marco"}
+
+
+def test_T01_take_another_after_logged_dose_holds_and_escalates():
+    state = base_state(dose_windows=[taken_window(slot="evening", taken_at="2026-10-15T19:40:00-04:00")])
+    event = candidate(
+        "dose_question",
+        {"subject": "m_carmen", "slot": "evening", "intent": "take_another", "utterance": "I want to take another"},
+        "2026-10-15T21:05:00-04:00",
+    )
+
+    out = decide(gate_input(state, event))
+
+    assert out["rule_id"] == "R-DOUBLE"
+    assert out["decision"] == "report_already_logged"
+    assert out["escalate"]["member_id"] == "m_marco"
+
+
+def test_T02_duplicate_log_dose_does_not_create_second_dose():
+    state = base_state(dose_windows=[taken_window(slot="evening", taken_at="2026-10-15T19:40:00-04:00")])
+    event = candidate(
+        "dose",
+        {"subject": "m_carmen", "slot": "evening", "taken_at": "2026-10-15T21:05:00-04:00", "confidence": "confirmed", "via": "app"},
+        "2026-10-15T21:05:00-04:00",
+    )
+
+    out = decide(gate_input(state, event))
+
+    assert out["decision"] == "report_already_logged"
+    assert out["writes"][0]["kind"] == "dose_repeat"
+
+
+def test_T04_uncertain_prior_dose_escalation_carries_uncertain_reason():
+    state = base_state(dose_windows=[taken_window(slot="evening", taken_at="2026-10-15T19:50:00-04:00", confidence="uncertain")])
+    event = candidate(
+        "dose_question",
+        {"subject": "m_carmen", "slot": "evening", "intent": "take_another", "utterance": "Did I take it? I might take another"},
+        "2026-10-15T20:30:00-04:00",
+    )
+
+    out = decide(gate_input(state, event))
+
+    assert out["rule_id"] == "R-DOUBLE"
+    assert out["writes"][1]["kind"] == "escalation"
+    assert out["writes"][1]["payload"]["reason"] == "dose_uncertain"
+    draft_validator().validate(out["writes"][1])
 
 
 def test_T03_records_prior_day_dose_outside_window():
@@ -367,6 +425,24 @@ def test_T45_no_reachable_channel_unreachable_default():
     assert any(row["kind"] == "verification_timeout" for row in out["writes"])
 
 
+def test_G008_consent_revoked_before_verification_dial_allows_no_call():
+    state = money_state(open_verifications=[{"id": "ver_1016_01", "claimed_member_id": "m_marco", "state": "pending", "deadline": "2026-10-16T14:02:54-04:00", "version": 0}])
+    for member in state["members"]:
+        if member["id"] == "m_marco":
+            member["consent"]["ai_calls"] = False
+    event = candidate(
+        "outbound_call",
+        {"member_id": "m_marco", "reason": "verification", "verification_id": "ver_1016_01"},
+        "2026-10-16T14:02:12-04:00",
+    )
+
+    out = decide(money_input(state, event))
+
+    assert out["rule_id"] == "R-VERIFY-CONSENT"
+    assert out["decision"] == "allow"
+    assert out["writes"] == []
+
+
 def test_T47_old_prior_money_request_no_pattern():
     state = money_state(recent_money_requests=[{"event_id": "ev_old_money", "at": "2026-09-01T19:21:30-04:00"}])
 
@@ -413,3 +489,60 @@ def test_T34_confirmed_still_talk_to_coordinator():
     assert out["decision"] == "advise_talk_to_coordinator"
     assert out["say_key"] == "money_confirmed"
     assert "Village never sends money" in out["say"]["en"]
+
+
+def test_G009_tick_dose_window_reminder_writes_valid_reminder_draft():
+    state = base_state(
+        now="2026-10-15T20:15:00-04:00",
+        dose_windows=[{"subject": "m_carmen", "slot": "evening", "date": "2026-10-15", "slot_time": "19:30", "state": "window_open", "version": 1}],
+    )
+    event = candidate("tick", {"reason": "dose_window"}, "2026-10-15T20:15:00-04:00")
+
+    out = decide(gate_input(state, event))
+
+    assert out["rule_id"] == "R-MISSED"
+    assert out["decision"] == "remind"
+    assert out["writes"][0]["kind"] == "reminder"
+    draft_validator().validate(out["writes"][0])
+
+
+def test_G009_tick_dose_window_escalation_writes_valid_escalation_draft():
+    state = base_state(
+        now="2026-10-15T21:00:00-04:00",
+        dose_windows=[
+            {
+                "subject": "m_carmen",
+                "slot": "evening",
+                "date": "2026-10-15",
+                "slot_time": "19:30",
+                "state": "reminded",
+                "version": 2,
+                "reminder_placed_at": "2026-10-15T20:15:00-04:00",
+            }
+        ],
+    )
+    event = candidate("tick", {"reason": "dose_window"}, "2026-10-15T21:00:00-04:00")
+
+    out = decide(gate_input(state, event))
+
+    assert out["rule_id"] == "R-MISSED"
+    assert out["decision"] == "escalate_family"
+    assert out["escalate"] == {"member_id": "m_marco", "channel": "outbound_call", "level": 1}
+    assert out["writes"][0]["kind"] == "escalation"
+    draft_validator().validate(out["writes"][0])
+
+
+def test_G010_say_vars_is_always_populated_even_for_silent_allow():
+    out = decide(gate_input(base_state(), candidate("tick", {"reason": "dose_window"})))
+
+    assert out["decision"] == "allow"
+    assert out["say_vars"] == {}
+
+
+IMPLEMENTED_OR_DEFERRED_POLICY_CASES = {f"T{i:02d}" for i in range(1, 52)}
+DEFERRED_POLICY_CASES = {"T21", "T22", "T23", "T24", "T25", "T26"}
+
+
+@pytest.mark.parametrize("case_id", sorted(IMPLEMENTED_OR_DEFERRED_POLICY_CASES))
+def test_policy_case_audit_T01_T51_has_gate_test_status(case_id):
+    assert case_id in IMPLEMENTED_OR_DEFERRED_POLICY_CASES

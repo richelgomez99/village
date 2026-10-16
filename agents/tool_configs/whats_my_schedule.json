@@ -1,0 +1,83 @@
+{
+  "api_schema": {
+    "url": "https://richel-macbook.tail8feae0.ts.net/tools/whats_my_schedule",
+    "method": "POST",
+    "request_headers": {
+      "Content-Type": "application/json",
+      "X-Village-Secret": {
+        "env_var_label": "VILLAGE_TOOL_SECRET"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_id",
+        "caller_id",
+        "call_secs",
+        "utterance"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "caller_id": {
+          "type": "string",
+          "dynamic_variable": "system__caller_id"
+        },
+        "call_secs": {
+          "type": "string",
+          "dynamic_variable": "system__call_duration_secs"
+        },
+        "utterance": {
+          "type": "string",
+          "description": "utterance"
+        },
+        "tool_call_id": {
+          "type": "string",
+          "description": "tool call id"
+        },
+        "village_id": {
+          "type": "string",
+          "dynamic_variable": "village_id"
+        },
+        "slot": {
+          "type": "string",
+          "enum": [
+            "morning",
+            "midday",
+            "evening",
+            "bedtime",
+            "all"
+          ],
+          "description": "slot"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "description": "language"
+        }
+      },
+      "description": "Request body for whats_my_schedule"
+    }
+  },
+  "assignments": [
+    {
+      "dynamic_variable": "say_text",
+      "value_path": "say"
+    }
+  ],
+  "description": "Get the caller's current recorded schedule in plain words. Never add dosing advice.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "whats_my_schedule",
+  "response_timeout_secs": 10,
+  "type": "webhook"
+}

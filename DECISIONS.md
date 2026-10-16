@@ -205,3 +205,7 @@ Fourteen features raised after the screen pass (needs/offers, carer load, handof
 
 # D26. Rate limit: kit lane moves to Claude (Oct 16, 10:30)
 Five Codex (gpt-5.5) lanes share one OpenAI org limit of 1M tokens/min; every lane lost turns to `stream disconnected: rate limit` and the kit lane had zero commits after 20 minutes. Decision: Codex keeps **core** and **gate** (critical path, two sessions fit the limit); **kit** is implemented by a Claude Opus subagent in the same worktree/branch; voice and builder are paused at their V0/V2 checkpoints and resume one at a time. Codex config gained `stream_max_retries`/`request_max_retries` so later turns retry instead of dropping.
+- D26 addendum (10:40): the **release** lane (005) also runs on a Claude Opus subagent, started early because the live rebuild is the heart of the pitch (D15) and the most integration-heavy; Codex keeps core, gate and voice (three sessions). Merged lanes are tagged (`gate-v0`, `spine-v0`); `LANE-REPORT.md` merges by union (`.gitattributes`).
+
+# D27. Core port is 8790 (Oct 16, 10:50)
+Port 8787 on this Mac is held by an unrelated local Python 3.9 process running since Tuesday (not killed: not ours). Core runs on **8790** (`CORE_PORT`/`CORE_URL` in `.env`); Tailscale Funnel maps `https://richel-macbook.tail8feae0.ts.net` (443) → 127.0.0.1:8790. Nothing else changes: ElevenLabs tool URLs use the Funnel host; lanes use `CORE_URL` for local checks.
