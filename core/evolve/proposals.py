@@ -126,7 +126,7 @@ def _insert_at(view: dict[str, Any]) -> int:
 
 async def build_ops(village_id: str, spec: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
     """Per-role view ops (via core.builder.patch), spec_ops (printables) and voice_ops (receptionist flag)."""
-    from core.builder.patch import apply_to_copy, patch
+    from core.builder.patch import apply_to_copy
 
     recipient = evidence.get("subject") or villages.care_recipient_id(village_id)
     elder_role = _role_of(spec, recipient)
@@ -137,35 +137,44 @@ async def build_ops(village_id: str, spec: dict[str, Any], evidence: dict[str, A
     highlight: dict[str, list[str]] = {}
     cand = copy.deepcopy(spec)
     for role, view in spec.get("views", {}).items():
-        if "receptionist" in view.get("elements", {}):
+        els = view.get("elements", {})
+        if "receptionist" in els or "screened" in els:
             continue
-        at = _insert_at(view)
+        root = view.get("root", "s")
+        kids = list(els.get(root, {}).get("children", []))
+
+        def after(el_type: str) -> int | None:
+            """Index right after the first root child of this catalog type (D35: the right place, in the app's structure)."""
+            for i, eid in enumerate(kids):
+                if els.get(eid, {}).get("type") == el_type:
+                    return i + 1
+            return None
+
+        if len(kids) + 1 > MAX_CHILDREN:
+            log.info("evolve: %s screen is full (%d); no element added", role, len(kids))
+            continue
         if role == elder_role:
+            # a quiet one-sentence status directly under TonightCard (her app stays 3 big buttons)
+            at = after("TonightCard") or 1
             lang = view.get("lang", "es")
-            text = ("Village contesta primero las llamadas desconocidas. Su familia entra directo." if lang == "es"
-                    else "Village answers unknown calls first. Your family rings straight through.")
-            role_ops = [
-                {"op": "add", "path": "/elements/receptionist", "value": {"type": "Text", "props": {"text": text, "size": "l", "tone": "ok"}}},
-                {"op": "add", "path": f"/elements/s/children/{at}", "value": "receptionist"},
-            ]
-            served = {"receptionist": [need]}
+            text = ("Village contesta primero las llamadas de números desconocidos." if lang == "es"
+                    else "Village answers calls from unknown numbers first.")
+            eid, el = "receptionist", {"type": "Text", "props": {"text": text, "size": "m", "tone": "muted"}}
+        elif after("LifeAreas") is not None:
+            # leader: one card inside the Money area (LifeAreas money status says it too, via blueprint:life_areas)
+            at = after("LifeAreas")
+            eid, el = "screened", {"type": "Timeline", "props": {
+                "title": "Calls Village screened", "bind": f"timeline:subject={recipient}", "subject": recipient,
+                "event_kinds": ["money_request", "verification", "incident"], "show_provenance": True, "limit": 5}}
+        elif after("HelperAnswer") is not None:
+            at = after("HelperAnswer")
+            eid, el = "receptionist", {"type": "Text", "props": {
+                "text": "New since today: callers who say they're you get checked with you first.", "size": "m", "tone": "info"}}
         else:
-            res = await patch(cand, role, "receptionist: Village answers unknown callers first", llm=None)
-            if res.status not in {"valid", "repaired"} or not res.ops:
-                log.warning("builder patch for %s: %s %s", role, res.status, res.errors[:2])
-                continue
-            role_ops = [dict(o) for o in res.ops]
-            role_ops[0] = {"op": "add", "path": "/elements/receptionist", "value": {"type": "Text", "props": {
-                "text": f"Village answers unknown calls for {rel_en} first and checks with the real person before putting them through.",
-                "size": "m", "tone": "info"}}}
-            served = {"receptionist": [need]}
-            kids = view["elements"].get(view.get("root", "s"), {}).get("children", [])
-            if len(kids) + 2 <= MAX_CHILDREN:  # a full screen (e.g. Ana's, with Proposal + chat) keeps only the card
-                role_ops.append({"op": "add", "path": "/elements/screened", "value": {"type": "Timeline", "props": {
-                    "title": "Calls Village screened", "bind": f"timeline:subject={recipient}", "subject": recipient,
-                    "event_kinds": ["money_request", "verification", "incident"], "show_provenance": True, "limit": 5}}})
-                role_ops.append({"op": "add", "path": f"/elements/s/children/{at + 1}", "value": "screened"})
-                served["screened"] = [need]
+            continue
+        role_ops = [{"op": "add", "path": f"/elements/{eid}", "value": el},
+                    {"op": "add", "path": f"/elements/{root}/children/{at}", "value": eid}]
+        served = {eid: [need]}
         nxt, errs = apply_to_copy(cand, role, {"ops": role_ops, "needs_served": served})
         if nxt is None:
             log.warning("evolve ops for %s invalid: %s", role, errs[:3])
@@ -369,11 +378,13 @@ def plain_copy(village_id: str, spec: dict[str, Any], evidence: dict[str, Any]) 
     if claimed_id and claimed_id != recipient:
         changes.append({"en": f"{claimed}: when a caller claims to be {him}, {he_gets} one question on {'her' if cpr == 'she' else 'his' if cpr == 'he' else 'their'} phone.",
                         "es": f"{claimed}: cuando alguien dice ser {claimed}, le llega una pregunta a su teléfono."})
-    others = [villages.first_name(village_id, p["id"]) for p in spec.get("blueprint", {}).get("people", [])
-              if p.get("view") and p["id"] not in {recipient, claimed_id} and p.get("view") in spec.get("views", {})]
-    if others:
-        changes.append({"en": f"{_join(others, 'and')}: a card shows every screened call.",
-                        "es": f"{_join(others, 'y')}: una tarjeta muestra cada llamada revisada."})
+    views = spec.get("views", {})
+    leaders = [villages.first_name(village_id, p["id"]) for p in spec.get("blueprint", {}).get("people", [])
+               if p.get("view") in views and p["id"] not in {recipient, claimed_id}
+               and any(e.get("type") == "LifeAreas" for e in views[p["view"]].get("elements", {}).values())]
+    if leaders:
+        changes.append({"en": f"{_join(leaders, 'and')}: the Money area says Village answers unknown calls first, with a card of every screened call.",
+                        "es": f"{_join(leaders, 'y')}: el área de Dinero dice que Village contesta primero a desconocidos, con una tarjeta de cada llamada revisada."})
     stays = {"en": f"Nothing moves money. {rel_en} can turn this off by saying so. {her[:1].upper() + her[1:]} rules still apply.",
              "es": f"Nada mueve dinero. {rel_es} puede apagarlo con solo decirlo. Sus reglas siguen igual."}
     changes.append(stays)
