@@ -41,5 +41,6 @@ async def health(request: Request) -> dict:
             "live": live_status.status,
             "llm": llm["provider"],
             "llm_model": llm["model"],
+            "llm_roles": llm.get("roles", {}),
         },
     }

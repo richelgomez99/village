@@ -27,7 +27,7 @@ class OffClient:
         raise LLMOff("VILLAGE_LLM=off")
 
 
-HAIKU_ROLES = {"watcher", "verifier", "explainer", "haiku"}
+HAIKU_ROLES = {"watcher", "verifier", "explainer", "haiku", "chat", "actors"}
 
 
 def _anthropic_client(settings, role: str = "default"):  # type: ignore[no-untyped-def]
@@ -45,10 +45,38 @@ def _anthropic_client(settings, role: str = "default"):  # type: ignore[no-untyp
     return client
 
 
+def provider_for(role: str) -> str:
+    """`VILLAGE_LLM_PROVIDER_<ROLE>` (dots -> underscores; "chat.mention" also checks ..._CHAT), else
+    `VILLAGE_LLM_PROVIDER`, else "anthropic" (today's behaviour)."""
+    parts = role.upper().replace("-", "_").split(".")
+    for i in range(len(parts), 0, -1):
+        v = os.environ.get("VILLAGE_LLM_PROVIDER_" + "_".join(parts[:i]), "").strip().lower()
+        if v:
+            return v
+    return os.environ.get("VILLAGE_LLM_PROVIDER", "").strip().lower() or "anthropic"
+
+
+def provider_explicit(role: str) -> bool:
+    """True when a per-role provider line names this role (used to opt features like demo-actor lines in)."""
+    parts = role.upper().replace("-", "_").split(".")
+    return any(os.environ.get("VILLAGE_LLM_PROVIDER_" + "_".join(parts[:i]), "").strip() for i in range(len(parts), 0, -1))
+
+
 def llm(role: str = "default"):
     settings = get_settings()
     if settings.village_llm == "off":
         return OffClient(role=role)
+    if provider_for(role) == "openai":
+        from core.llm_openai import openai_client
+
+        client = openai_client(role, fallback=lambda: _anthropic_path(settings, role))
+        if client is not None:
+            return client
+        logging.getLogger(__name__).warning("openai provider requested for role %s but OPENAI_API_KEY is unset; using anthropic", role)
+    return _anthropic_path(settings, role)
+
+
+def _anthropic_path(settings, role: str):  # type: ignore[no-untyped-def]
     direct = _anthropic_client(settings, role)
     if direct is not None:
         return direct
@@ -70,9 +98,19 @@ def llm(role: str = "default"):
     return OffClient(role=role)
 
 
-def llm_status() -> dict[str, str]:
-    client = llm("health")
-    return {
-        "provider": getattr(client, "village_provider", getattr(client, "provider", "unknown")),
-        "model": getattr(client, "village_model", "off"),
-    }
+STATUS_ROLES = ("chat", "chat.mention", "actors", "builder", "sonnet", "haiku", "watcher", "verifier")
+
+
+def llm_status() -> dict:
+    """Top-level provider/model is the default ("health") route; `roles` lists provider+model per role."""
+    def one(role: str) -> dict[str, str]:
+        try:
+            client = llm(role)
+        except Exception as exc:  # status must never raise
+            return {"provider": "error", "model": type(exc).__name__}
+        return {"provider": getattr(client, "village_provider", getattr(client, "provider", "unknown")),
+                "model": getattr(client, "village_model", "off")}
+
+    out: dict = dict(one("health"))
+    out["roles"] = {r: one(r) for r in STATUS_ROLES}
+    return out

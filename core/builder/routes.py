@@ -361,7 +361,7 @@ def install_chat_participant() -> bool:
 
             async def run() -> None:
                 try:
-                    out = await participant(village_id, message, llm=get_llm(None, "haiku"))
+                    out = await participant(village_id, message, llm=get_llm(None, "chat"))
                     if out:
                         result["participant"] = out.get("kind")
                 except Exception:
