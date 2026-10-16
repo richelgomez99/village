@@ -118,6 +118,7 @@ class FoundingSession:
     answers: asyncio.Queue = field(default_factory=asyncio.Queue)
     intake: IntakeState | None = None
     question: Any = None
+    waiting: bool = False  # True only while Village waits for a live answer (not during replay)
 
 
 SESSIONS: dict[str, FoundingSession] = {}
@@ -437,10 +438,13 @@ async def found(
         if replay and opts.resume is not None:
             replay.clear()  # resume point reached: the rest is live
         if live_ok and opts.clarify_wait_s > 0:
+            session.waiting = True
             try:
                 return str(await asyncio.wait_for(session.answers.get(), timeout=opts.clarify_wait_s))
             except asyncio.TimeoutError:
                 return None
+            finally:
+                session.waiting = False
         return None
 
     with span("builder.found", "AGENT", **{"session.id": f"village-{village_id}", "graph.node.id": "found", "input.value": input.description[:500]}) as root:

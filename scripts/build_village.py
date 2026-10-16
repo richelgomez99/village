@@ -75,7 +75,7 @@ async def amain() -> int:
         loop = asyncio.get_running_loop()
         while True:
             s = SESSIONS.get(vid)
-            if s and s.question is not None and s.answers.empty() and len(s.intake.covered() if s.intake else []) >= (args.resume or 0):
+            if s and s.waiting and s.question is not None and s.answers.empty():
                 q = s.question
                 line = await loop.run_in_executor(None, lambda: input(f"\n{getattr(q, 'text', q)}\n> "))
                 answer(vid, line)

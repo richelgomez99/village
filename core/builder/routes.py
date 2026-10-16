@@ -156,8 +156,9 @@ async def get_village(village_id: str) -> JSONResponse:
     if run is not None:
         body["builder"] = run.summary()
         s = SESSIONS.get(village_id)
-        q = s.question if s else None
+        q = s.question if s and s.waiting else None
         body["builder"]["question"] = q.text if isinstance(q, (Question, Review)) else None
+        body["builder"]["waiting_for_answer"] = bool(s and s.waiting)
         if s and s.intake:
             body["builder"]["meter"] = s.intake.meter()
             body["builder"]["gaps"] = s.intake.gaps()

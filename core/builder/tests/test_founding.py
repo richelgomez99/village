@@ -109,7 +109,7 @@ def test_resume_at_8_takes_live_answers() -> None:
         while live:
             await asyncio.sleep(0.02)
             s = SESSIONS.get("v_resume")
-            if s and s.question is not None and s.answers.empty():
+            if s and s.waiting and s.answers.empty():
                 answer("v_resume", live.pop(0))
         return await task
 
