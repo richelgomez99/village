@@ -1,0 +1,28 @@
+{
+  "type": "webhook",
+  "name": "submit_verification_answer",
+  "description": "Record the claimed member's answer to the money verification call. First answer wins.",
+  "response_timeout_secs": 5,
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://{{system_env__core_host}}/verifications/{{verification_id}}/answer",
+    "method": "POST",
+    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verification_answer"],
+      "properties": {
+        "verification_answer": { "type": "string", "enum": ["yes", "no", "unsure"] },
+        "via": { "type": "string", "enum": ["app_prompt", "outbound_call"] },
+        "listener_quote": { "type": "string" },
+        "call_sid": { "type": "string", "dynamic_variable": "system__call_sid" },
+        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" }
+      }
+    }
+  },
+  "assignments": [
+    { "dynamic_variable": "verification_status", "value_path": "status" }
+  ]
+}
+

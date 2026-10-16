@@ -1,0 +1,43 @@
+{
+  "type": "webhook",
+  "name": "report_money_request",
+  "description": "Report that someone asked the caller for money, gift cards, crypto, a transfer, cash pickup, or bank/card/Medicare/SSN details. Call immediately before giving any opinion.",
+  "response_timeout_secs": 10,
+  "execution_mode": "immediate",
+  "pre_tool_speech": "off",
+  "tool_call_sound": "typing",
+  "tool_call_sound_behavior": "always",
+  "interruption_mode": "disable_during_tool",
+  "api_schema": {
+    "url": "https://{{system_env__core_host}}/tools/report_money_request",
+    "method": "POST",
+    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "urgency"],
+      "properties": {
+        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
+        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
+        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
+        "utterance": { "type": "string" },
+        "tool_call_id": { "type": "string" },
+        "village_id": { "type": "string", "dynamic_variable": "village_id" },
+        "claimed_member": { "type": "string" },
+        "claimed_identity": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "method": { "type": "string", "enum": ["gift_card", "crypto", "wire", "payment_app", "cash_courier", "bank_details", "cash", "unknown"] },
+        "urgency": { "type": "string", "enum": ["now", "today", "unspecified"] },
+        "red_flags": { "type": "array", "items": { "type": "string", "enum": ["secrecy", "urgency", "emotional_pressure", "jail_bail", "hospital", "accident", "voice_changed", "new_number", "threat_arrest", "safe_account", "prize", "asks_village_to_pay"] } }
+      }
+    }
+  },
+  "assignments": [
+    { "dynamic_variable": "gate_decision", "value_path": "decision" },
+    { "dynamic_variable": "say_text", "value_path": "say" },
+    { "dynamic_variable": "verification_id", "value_path": "data.verification_id" },
+    { "dynamic_variable": "verification_status", "value_path": "data.status" }
+  ]
+}
+

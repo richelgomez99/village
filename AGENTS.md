@@ -10,7 +10,7 @@ Village: software made for one group. Read `LAYERS.md` (plan of record: layers, 
 - If a task will take more than 20 minutes longer than planned, stop and say so. Scope gets cut, the deadline doesn't move.
 
 ## Stack (do not substitute)
-- **Core:** Python 3.13, `uv`, FastAPI, httpx, pydantic v2, pytest. One process: `uv run uvicorn core.app:app --port 8787`. Exposed publicly with Tailscale Funnel (`tailscale funnel --bg 8787`, stable `*.ts.net` URL in `TUNNEL_URL`); fallback: the Cloudflare Worker front door in `infra/worker-frontdoor/`.
+- **Core:** Python 3.13, `uv`, FastAPI, httpx, pydantic v2, pytest. One process: `uv run uvicorn core.app:app --port 8790`. Exposed publicly with Tailscale Funnel (`tailscale funnel --bg 8787`, stable `*.ts.net` URL in `TUNNEL_URL`); fallback: the Cloudflare Worker front door in `infra/worker-frontdoor/`.
 - **LLM:** `anthropic` SDK. `AnthropicBedrockMantle` (models `anthropic.claude-sonnet-5-5`, `anthropic.claude-haiku-5-5`) with fallback to `Anthropic()`. Use one `llm()` factory in `core/llm.py`. No boto3 Converse.
 - **Kit:** Vite + React + TypeScript, `fast-json-patch`, `zod`, `qrcode.react`, `vite-plugin-pwa`. Realtime = one WebSocket to Core (no SSE: quick tunnels buffer it; no direct browser→SurrealDB). Visual tokens and screens: `design/*.dc.html`, interaction/state rules in `design/INTERACTIONS.md` (read it before building any card), DECISIONS D8/D17–D23.
 - **Daytona:** `daytona` Python SDK; snapshot `village-kit`; Core reverse-proxies `/v/{id}/*` to the sandbox.
@@ -51,7 +51,7 @@ Village: software made for one group. Read `LAYERS.md` (plan of record: layers, 
 
 ## Commands
 ```
-uv run uvicorn core.app:app --reload --port 8787
+uv run uvicorn core.app:app --reload --port 8790
 uv run pytest -q
 cd kit && npm run dev
 /Applications/Tailscale.app/Contents/MacOS/Tailscale funnel --bg 8787

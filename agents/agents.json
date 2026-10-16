@@ -1,0 +1,7 @@
+{
+  "agents": [
+    { "name": "mom-line", "config": "agent_configs/mom-line.json" },
+    { "name": "village-caller", "config": "agent_configs/village-caller.json" },
+    { "name": "setup", "config": "agent_configs/setup.json" }
+  ]
+}

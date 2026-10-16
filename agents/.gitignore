@@ -1,0 +1,6 @@
+.env
+.elevenlabs/
+pulled/
+ids.json
+*.local.json
+

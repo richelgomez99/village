@@ -1,0 +1,33 @@
+{
+  "type": "webhook",
+  "name": "create_village",
+  "description": "Create a village from the coordinator's own description, members, needs, and language.",
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://{{system_env__core_host}}/tools/create_village",
+    "method": "POST",
+    "request_headers": { "X-Village-Secret": { "env_var_label": "core_secret" } },
+    "request_body_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
+      "properties": {
+        "conversation_id": { "type": "string", "dynamic_variable": "system__conversation_id" },
+        "caller_id": { "type": "string", "dynamic_variable": "system__caller_id" },
+        "call_secs": { "type": "string", "dynamic_variable": "system__call_duration_secs" },
+        "utterance": { "type": "string" },
+        "tool_call_id": { "type": "string" },
+        "description": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "object" } },
+        "needs": { "type": "array", "items": { "type": "string" } },
+        "medications_mentioned": { "type": "array", "items": { "type": "string" } },
+        "language": { "type": "string" }
+      }
+    }
+  },
+  "assignments": [
+    { "dynamic_variable": "village_id", "value_path": "data.village_id" }
+  ]
+}
+
