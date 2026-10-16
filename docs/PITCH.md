@@ -2,7 +2,7 @@
 
 Rubric: Impact, Technical, Creativity, Presentation (25 % each) plus sponsor prizes. Devpost is round one, so every beat below is also a section on the Devpost page. Numbers in `[brackets]` come from `RESULTS.md` only. Never say a number that isn't there.
 
-Props: the printed fridge card (`design/FridgeCard.dc.html`), your phone (Carmen's caller), the judge's phone (Marco), the projector on `control.html` (live), the fake sequences open in a second tab as fallback.
+Props: your phone (Carmen's caller and, later, the scammer), the judge's phone (Marco), the projector on `control.html` (live), the fake sequences open in a second tab as fallback. No printed props.
 
 Screen before you start: Control Room, Reyes family, idle, intake resumed at 8 of 10.
 
@@ -24,7 +24,7 @@ Village is software that builds a village and runs it.
 
 Everyone knows it takes a village. Nobody says that running one is a job: who's on tonight, who answers "did I take my pills", who checks the call that says "it's your son, send money". Today that job lands on one person, in a group chat, and when it slips, somebody gets hurt.
 
-You describe your people to Village once: who they are, what each one can do, what the rules are. It builds a different app for each person. For the one who won't use an app, it builds a phone line. It runs the week: the check-in calls, the refills, whose turn it is. And when the group's life changes, it changes itself: it notices, proposes, builds and tests the change, waits for a human yes, and every phone updates.
+You describe your people to Village once: who they are, what each one can do, what the rules are. It builds a different app for each person, down to three big buttons for the one who won't learn an app, and a phone line for her too. It runs the week: the check-in calls, the refills, whose turn it is. And when the group's life changes, it changes itself: it notices, proposes, builds and tests the change, waits for a human yes, and every phone updates.
 
 Any group. Here's one, built this morning.
 
@@ -36,7 +36,7 @@ Ana has been talking to Village for a few minutes. *(point at the transcript)* I
 
 Two questions left. *(read A10)* "Spanish only. A regular phone, she won't use apps. Big letters if anything. She'll answer a call; she won't read a text."
 
-*(cards appear)* So Carmen gets no app. She gets a phone line and this. *(hold up the fridge card)* Ana gets a dashboard. Marco gets one card that answers the only question he has: is it my night.
+*(cards appear)* So Carmen gets the simplest app there is: three big buttons in Spanish, read aloud, nothing to learn. *(point at Carmen's phone mirror)* And a phone line she can call or that calls her. Ana gets a dashboard. Marco gets one card that answers the only question he has: is it my night.
 
 *(read A11)* "After lunch, around one-thirty. And she hates calls at night."
 
