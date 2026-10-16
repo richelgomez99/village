@@ -24,6 +24,7 @@ COMMON_REQUIRED = {
     "create_village": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
     "answer_proposal": ["conversation_id", "caller_id", "call_secs", "utterance", "proposal_id", "answer"],
     "submit_answer": ["village_id", "text"],
+    "relay_message": ["conversation_id", "caller_id", "utterance", "from_name", "text"],
     # D19 receptionist (evolve lane): Core side in core/evolve/receptionist.py; phase 2 passes verification_id.
     "screen_caller": ["conversation_id", "caller_id", "utterance"],
 }
@@ -71,6 +72,9 @@ OPTIONAL_FIELDS = {
     "asks_money",
     "lang",
     "max_wait_s",
+    "from_name",
+    "callback_number",
+    "callback_requested",
 }
 
 SENSITIVE_DIGITS = re.compile(r"(?<!\d)\d[\d\s-]{3,}\d(?!\d)")

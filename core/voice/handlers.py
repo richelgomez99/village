@@ -140,7 +140,49 @@ async def get_today(body: dict[str, Any]) -> dict[str, Any]:
     return await _schedule(body, with_today=True)
 
 
+def _hm(iso: str, village_id: str) -> str:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    try:
+        return datetime.fromisoformat(iso).astimezone(ZoneInfo(village.timezone(village_id) or "America/New_York")).strftime("%H:%M")
+    except Exception:
+        return iso[11:16]
+
+
+async def relay_message(body: dict[str, Any]) -> dict[str, Any]:
+    """Receptionist: an unknown caller leaves a message / asks for a callback -> Village chat message + screened row."""
+    from core import services
+    from core.clock import clock
+    from core.voice import screened
+
+    vid = _vid(body)
+    names = _names(vid)
+    recipient = village.person(vid, village.care_recipient_id(vid)) or {}
+    who_family = recipient.get("short_name") or names["recipient_name"] or "her"
+    from_name = str(body.get("from_name") or "Someone").strip()[:80]
+    text = str(body.get("text") or body.get("message") or body.get("utterance") or "").strip()[:400]
+    caller = str(body.get("caller_id") or "")
+    callback = str(body.get("callback_number") or "").strip()
+    at = clock.now().isoformat()
+    hm = _hm(at, vid)
+    back = "at the same number" if not callback or callback == caller else f"at {callback}"
+    back_es = "al mismo número" if not callback or callback == caller else f"al {callback}"
+    asks_back = bool(body.get("callback_requested", True))
+    who = f"{from_name}," if "," in from_name else from_name  # "Richard, from church, asked …"
+    en = f"{who} asked {who_family} to call back {back}: \"{text}\" · screened call, {hm}" if asks_back else f"{who} left a message for {who_family}: \"{text}\" · screened call, {hm}"
+    es = f"{who} pidió que {who_family} le devuelva la llamada {back_es}: \"{text}\" · llamada filtrada, {hm}" if asks_back else f"{who} dejó un mensaje para {who_family}: \"{text}\" · llamada filtrada, {hm}"
+    message = await services.post_message(vid, author="village", kind="chat", text=en, text_i18n={"en": en, "es": es}, source=_source(body))
+    screened.record(vid, str(body.get("conversation_id") or message.get("id")), "message_taken", at=at, claimed=from_name, message=en, callback=callback or caller or None)
+    pair = {
+        "en": f"Thank you. I'll pass your message to the family. They'll call you back {back}.",
+        "es": f"Gracias. Le paso su mensaje a la familia. Le van a devolver la llamada {back_es}.",
+    }
+    return _response("escalate_family", "R-NOOP", pair, body, {"status": "message_taken", "message_id": message.get("id")}, "family_notified")
+
+
 HANDLERS = {
+    "relay_message": relay_message,
     "ask_family": ask_family,
     "report_symptom": report_symptom,
     "whats_my_schedule": whats_my_schedule,

@@ -37,8 +37,11 @@ def greeting(village_id: str, values: dict[str, str]) -> str:
     """First line of the call (agent first_message is {{greeting}})."""
     if values["caller_known"] == "false":
         if values["receptionist"] == "on":
-            owner = village.first_name(village_id, village.care_recipient_id(village_id)) or "This"
-            return f"{owner}'s phone, this is Village. Who's calling?"
+            recipient = _care_recipient(village_id) or {}
+            owner = village.first_name(village_id, recipient.get("id")) if recipient else ""
+            obj = {"he": "him", "she": "her", "they": "them"}.get(village.pronoun(recipient) if recipient else "they", "them")
+            # D31: disclose up front that a program answers
+            return f"{owner + chr(39) + 's' if owner else 'This'} phone, this is Village, a program that answers for {obj}. Who's calling?"
         return "Hola. Soy Luz, de la familia. ¿En qué le puedo ayudar?"
     if values["language"] == "en":
         return f"Hi {values['member_short_name']}, it's Luz, from the family. How are you doing?"
