@@ -40,6 +40,28 @@ def _jsonish(value: Any) -> str:
         return str(value)[:20000]
 
 
+def _import_register():
+    """`arize.otel` (arize-otel) and the `arize` SDK share the `arize` package name; when
+    the SDK is layered on top (uv run --with arize) its __init__ hides arize/otel. Re-expose it."""
+    try:
+        from arize.otel import register
+
+        return register
+    except ImportError:
+        import sys
+        from pathlib import Path
+
+        import arize
+
+        for entry in sys.path:
+            cand = Path(entry) / "arize"
+            if (cand / "otel").is_dir() and str(cand) not in list(arize.__path__):
+                arize.__path__.append(str(cand))
+        from arize.otel import register
+
+        return register
+
+
 def init_tracing(project: str | None = None, *, force: bool = False) -> str:
     """Register the Arize exporter once. Returns 'arize' or 'noop'."""
     with _lock:
@@ -50,8 +72,7 @@ def init_tracing(project: str | None = None, *, force: bool = False) -> str:
             _state.update(provider=None, tracer=None, mode="noop")
             return "noop"
         try:
-            from arize.otel import register
-
+            register = _import_register()
             provider = register(
                 space_id=space,
                 api_key=key,
