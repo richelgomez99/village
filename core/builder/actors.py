@@ -59,11 +59,13 @@ async def _reply(village_id: str, ask_id: str, member: str, role: str) -> None:
     from . import asks
 
     await asyncio.sleep(delay_s())
-    ask = asks.ASKS.get(ask_id)
+    gid = asks.BY_MEMBER_ASK.get(ask_id, (ask_id, member))[0]
+    ask = asks.ASKS.get(gid)
     if not ask or ask["status"] != "open":
         return
     key = "cover_yes" if role == "cover" else "on_duty_no"
     line = random.choice(CANNED[key]).format(day=ask["day"])
-    await services.post_message(village_id, author=member, kind="chat", text=f"[demo] {line}", refs=[{"kind": "member", "id": member}],
-                                source={"kind": "system", "ref": "demo_actor"})
+    gid = asks.BY_MEMBER_ASK.get(ask_id, (ask_id, member))[0]
+    await asks.post(village_id, author=member, kind="chat", text=f"[demo] {line}", refs=[{"kind": "member", "id": member}, {"kind": "ask", "id": ask_id}],
+                    source={"kind": "system", "ref": "demo_actor"}, reply_to=(asks.ASKS.get(gid) or {}).get("message_id"))
     await asks.answer(ask_id, member, "yes" if role == "cover" else "no")
