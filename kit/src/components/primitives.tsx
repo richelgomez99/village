@@ -134,6 +134,23 @@ export function ContactCard({ id, props }: CatalogProps) {
   );
 }
 
+/** "<bind>?count" from Core, else the length of "<bind>" when that list is in the snapshot (matched / overdue filter by status). */
+export function countOf(data: Record<string, unknown>, bind: string): number | undefined {
+  const v = data[bind];
+  if (typeof v === "number") return v;
+  if (!bind.endsWith("?count")) return undefined;
+  const base = bind.slice(0, -6);
+  const rows = data[base];
+  if (Array.isArray(rows)) return rows.length;
+  const alias: Record<string, [string, (r: any) => boolean]> = {
+    "needs:matched": ["needs:open", (r) => r?.status === "matched"],
+    "checkins:overdue": ["checkins:village", (r) => ["overdue", "urgent", "missed"].includes(r?.status)]
+  };
+  const a = alias[base];
+  if (a && Array.isArray(data[a[0]])) return (data[a[0]] as unknown[]).filter(a[1]).length;
+  return undefined;
+}
+
 export function StatusGrid({ props }: CatalogProps) {
   const ctx = useCtx();
   return (
@@ -141,7 +158,7 @@ export function StatusGrid({ props }: CatalogProps) {
       {props.title ? <h2 className="card-title"><Bi value={props.title} /></h2> : null}
       <dl className="status-grid">
         {(props.labels as string[]).map((label, i) => {
-          const v = ctx.data[props.binds[i]];
+          const v = countOf(ctx.data, props.binds[i]);
           return (
             <div key={label} className="status-cell" data-bind={props.binds[i]}>
               <dt>{label}</dt>
