@@ -1,5 +1,5 @@
 // Offline answers for the Control Room REST calls (?fake=…). Reyes-fixture wording lives here, never in kit/src outside dev/.
-import type { AskAnswer, QrEntry } from "../control/api";
+import type { AskAnswer, FactHistory, FactsAsOf, QrEntry } from "../control/api";
 
 const FAKE_ANSWERS: [RegExp, AskAnswer][] = [
   [
@@ -47,4 +47,31 @@ export const FAKE_NEW_VILLAGE = "v_new";
 export async function fakeCreateVillage(_description: string): Promise<{ village_id: string; plan: string }> {
   await new Promise((r) => setTimeout(r, 200));
   return { village_id: FAKE_NEW_VILLAGE, plan: "Intake: ten topics, one question at a time." };
+}
+
+/** Agent Memory offline: the lisinopril chain as core/memory/ledger_subscriber.py writes it (prior + change). */
+const HISTORY: Record<string, Omit<FactHistory, "village">> = {
+  "m_carmen/lisinopril_dose": {
+    entity: "m_carmen", key: "lisinopril_dose", degraded: false,
+    versions: [
+      { id: "fact:lisinopril_dose:m_carmen:2", value: "10 mg", text: "Lisinopril is 10 mg since Oct 3 (Dr. Park).", observed_at: "2026-10-03T17:40:00-04:00", recorded_at: "2026-10-03T17:41:12-04:00", superseded: false,
+        source: { kind: "call", ref: "conv_setup_0003", secs: 88, quote: "The doctor changed her lisinopril from five to ten on October third." }, event_id: "ev_1003_1740_med_change" },
+      { id: "fact:lisinopril_dose:m_carmen:1", value: "5 mg", text: "Lisinopril was 5 mg.", observed_at: "2026-09-01T10:00:00-04:00", recorded_at: "2026-10-03T17:41:12-04:00", superseded: true,
+        source: { kind: "system", ref: "prescription on file" } }
+    ]
+  }
+};
+
+export async function fakeFactHistory(village: string, entity: string, key: string): Promise<FactHistory> {
+  await new Promise((r) => setTimeout(r, 120));
+  const h = HISTORY[`${entity}/${key}`];
+  if (!h || village !== "v_reyes") throw new Error("404");
+  return { village, ...h };
+}
+
+export async function fakeFactsAsOf(village: string, entity: string, key: string, asOf: string): Promise<FactsAsOf> {
+  const h = await fakeFactHistory(village, entity, key);
+  const t = Date.parse(asOf);
+  const v = h.versions.filter((x) => Date.parse(x.observed_at) <= t).sort((a, b) => Date.parse(b.observed_at) - Date.parse(a.observed_at))[0];
+  return { village, as_of: asOf, degraded: false, facts: v ? [{ ...v, entity, key, superseded: false }] : [] };
 }

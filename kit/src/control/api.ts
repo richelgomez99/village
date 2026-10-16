@@ -6,7 +6,13 @@ export interface AskAnswer { answer: string; lang: string; citations: Citation[]
 export interface QrEntry { member_id: string; kind: "app" | "join" | "lid"; url: string; svg?: string }
 export interface ClockState { now: string; offset_minutes: number }
 
-import { fakeAsk, fakeCreateVillage, fakeQr } from "../dev/fakeApi";
+import { fakeAsk, fakeCreateVillage, fakeFactHistory, fakeFactsAsOf, fakeQr } from "../dev/fakeApi";
+
+export interface FactSource { kind: string; ref: string; secs?: number; url?: string; quote?: string }
+export interface FactVersion { id: string; value: string; text: string; observed_at: string; recorded_at: string; superseded: boolean; source: FactSource; event_id?: string }
+export interface FactHistory { village: string; entity: string; key: string; versions: FactVersion[]; degraded: boolean; degraded_reason?: string }
+export interface FactCard extends FactVersion { entity: string; key: string; valid_to?: string | null }
+export interface FactsAsOf { village: string; as_of: string; facts: FactCard[]; degraded: boolean }
 
 export interface ApiConfig {
   base: string;
@@ -62,4 +68,17 @@ export async function createVillage(cfg: ApiConfig, description: string): Promis
 export async function answerFollowUp(cfg: ApiConfig, village: string, question: string, text: string): Promise<{ village_id: string; state: string }> {
   if (cfg.fake) return { village_id: village, state: "building" };
   return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/answers`, { answers: [{ question: question.slice(0, 200), text }], lang: "en" });
+}
+
+/** Agent Memory (SurrealDB): every version of one fact, newest first (GET /villages/{id}/facts/{entity}/{key}/history). */
+export async function getFactHistory(cfg: ApiConfig, village: string, entity: string, key: string): Promise<FactHistory> {
+  if (cfg.fake) return fakeFactHistory(village, entity, key);
+  return call(cfg, "GET", `/villages/${encodeURIComponent(village)}/facts/${encodeURIComponent(entity)}/${encodeURIComponent(key)}/history`);
+}
+
+/** The same fact as of a valid time (GET /villages/{id}/facts?subject&key&as_of). */
+export async function getFactsAsOf(cfg: ApiConfig, village: string, entity: string, key: string, asOf: string): Promise<FactsAsOf> {
+  if (cfg.fake) return fakeFactsAsOf(village, entity, key, asOf);
+  const q = new URLSearchParams({ subject: entity, key, as_of: asOf });
+  return call(cfg, "GET", `/villages/${encodeURIComponent(village)}/facts?${q}`);
 }

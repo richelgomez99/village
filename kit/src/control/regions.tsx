@@ -6,6 +6,7 @@ import { Renderer } from "../renderer/Renderer";
 import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
+import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
 import { displayName, memberDisplay, nameCtx, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
 
@@ -473,6 +474,23 @@ export function PhonesRegion({ spec, data, village, nowMs, viewAs, onViewAs, liv
           );
         })}
       </div>
+    </Region>
+  );
+}
+
+/* ---------------- What Village knows (Agent Memory) ---------------- */
+
+export function KnowsRegion({ api, village, data, spec }: { api: ApiConfig; village: string; data: Record<string, unknown>; spec: any }) {
+  const t = factTarget(data);
+  const who = t ? memberDisplay(t.entity, spec, data) : "";
+  return (
+    <Region test="knows" title="What Village knows" className="r-knows" extra={{ "data-entity": t?.entity, "data-key": t?.key }}>
+      {t ? (
+        <FactHistoryCard api={api} village={village} entity={t.entity} factKey={t.key} title={`${t.med.charAt(0).toUpperCase()}${t.med.slice(1)}${who ? ` · ${who}` : ""}`} />
+      ) : (
+        <p className="empty">Nothing has changed yet. When a fact changes (a dose, a phone number), its history shows here.</p>
+      )}
+      <p className="caption knows-caption" data-test="knows-caption">{MEMORY_CAPTION}</p>
     </Region>
   );
 }
