@@ -42,6 +42,8 @@ One pipeline, keyed by village id. Nothing in it knows about a particular family
 - **Release pipeline.** Every version is built and tested in a Daytona sandbox (floor tests: elder text at least 28 px, contrast at least 7:1, buttons at least 88 px, a 911 contact), run by an Anchor browser at phone size, scored by Arize evals, and only then swapped in (`core/release/`).
 - **Live patch.** The new version reaches every connected phone over the WebSocket.
 
+**One renderer, apps shaped like jobs.** The catalog gained six components in contract 1.3.0, all generic: **Right now** (who's on tonight, what's happened today), **What Village did** (what it did on its own, what it asked, what it refused), **Since your turn** (what happened since your last shift), **Plan board** (who brings what, by when), **Screened calls** (who called claiming to be whom, and what Village did), and **Fact card** (what Village knows, with its source and history). **Tabs come from life areas:** each person's bottom tabs are the parts of the group's life their job touches, plus Chat. Ana touches all of them (Home · Pills · Money · People · Chat); Lucía touches one. Nothing in the app code decides who gets what; the spec does.
+
 **Both villages, same pipeline (real Daytona, real Anchor, Arize export on; `RESULTS.md`):**
 
 | | Reyes family | West 147th St block |
@@ -61,7 +63,7 @@ The caught-and-fixed build: rev 3 was blocked with "contrast 4.1:1 on elder Text
 
 ## What Village knows
 
-The fact-history card on the Control Room (hero screenshot slot: [PENDING: screenshot file]): lisinopril is 10 mg since Oct 3, from a call (conv_setup_0003, 88 s in: "The doctor changed her lisinopril from five to ten on October third."). The 5 mg fact is kept as history, not overwritten, and asking "as of Oct 2" returns 5 mg. Facts are typed, time-aware, supersede rather than overwrite, are traced to their source, and are shared across agents (SurrealDB Agent Memory, `core/memory/`).
+The fact-history card (`docs/hero/phone-ana-fact.png`, Ana's Pills tab): lisinopril is 10 mg since Oct 3, from a call (conv_setup_0003, 88 s in: "The doctor changed her lisinopril from five to ten on October third."). The 5 mg fact is kept as history, not overwritten, and asking "as of Oct 2" returns 5 mg. Facts are typed, time-aware, supersede rather than overwrite, are traced to their source, and are shared across agents (SurrealDB Agent Memory, `core/memory/`).
 
 ---
 
@@ -116,8 +118,8 @@ scripts/reset_demo.sh
 Tests and acceptance:
 
 ```bash
-uv run pytest -q                # 249 Python tests, model off, no network
-cd kit && npm test              # 57 kit tests
+uv run pytest -q                # 379 Python tests, model off, no network
+cd kit && npm test              # 114 kit tests
 acceptance/run.sh V1            # demo-path checks per version
 scripts/acceptance_summary.sh   # which acceptance checks exist and pass, and the version tags
 ```
@@ -136,12 +138,13 @@ Three bullets, one measured number (`RESULTS.md`) and the code for each. Twilio 
 - Sandbox egress is blocked by design: code an AI wrote for a family can't reach the internet; Core pulls the results out.
 
 **Measured:** Reyes release 14957 ms warm; West 147th block 13409 ms with 33 floor tests.  
-**Code:** `core/release/pipeline.py`, `core/release/floor_tests.py`, `core/release/daytona_svc.py`, `scripts/release_smoke.py`
+**Code:** `core/release/pipeline.py`, `core/release/floor_tests.py`, `core/release/daytona_svc.py`, `scripts/release_smoke.py`  
+[PENDING 14:00: receipt line "Built in Daytona sandbox `<id>` · 33/33 floor tests · build 2.1 s"]
 
 ### SurrealDB: shared, time-aware memory, pushed live to every phone
 - SurrealDB Cloud LIVE queries fan every change out to every phone: a check-in reaches all three family phones in about 130 ms.
 - Agent Memory facts are typed, time-aware, supersede rather than overwrite, and are traced to their source: lisinopril is 10 mg since Oct 3 (source: call conv_setup_0003 at 88 s, "The doctor changed her lisinopril from five to ten on October third."), the 5 mg fact is kept as history, and asking "as of Oct 2" returns 5 mg.
-- The memory is shared across agents: the voice line's post-call transcripts, the ledger and the Watcher's nightly rounds write and read the same facts, scoped per village and per member.
+- The memory is shared across agents: the voice line's post-call transcripts, the ledger and the Watcher's nightly rounds write and read the same facts, scoped per village and per member; the fact card shows who wrote each fact ("written by voice", "written by seed").
 
 **Measured:** Agent Memory writes p50 630 ms; LIVE fan-out to three phones about 130 ms.  
 **Code:** `core/db.py`, `core/live.py`, `core/memory/`
@@ -160,7 +163,8 @@ Three bullets, one measured number (`RESULTS.md`) and the code for each. Twilio 
 - A build Anchor hasn't checked doesn't reach anyone's phone.
 
 **Measured:** 5.2 s per check, warm (5211 ms).  
-**Code:** `core/release/anchor_qa.py`
+**Code:** `core/release/anchor_qa.py`  
+[PENDING 14:00: the session recording (MP4) linked on the receipt in place of the live-view URL]
 
 ### ElevenLabs: the whole product, for the person who won't use apps
 - Carmen's Village line is a real number, +1 848 257 9221, in Spanish, formal (usted), and it says it's a program before anything else.
@@ -168,7 +172,7 @@ Three bullets, one measured number (`RESULTS.md`) and the code for each. Twilio 
 - First live call at 12:23, end to end: init webhook → `report_money_request` → Marco's tap on his own phone → the refusal spoken to the caller.
 
 **Measured:** text to speech 656 ms for a 50 KB clip.  
-**Code:** `agents/`, `core/voice/`
+**Code:** `agents/`, `core/voice/` (success-evaluation criteria and data collection are in `agents/agent_configs/mom-line.json`; [PENDING: confirm they are pushed to the live agent])
 
 ### AWS: the reasoning fallback that kept the day running
 - Claude Haiku 4.5 on Bedrock (Mantle) is the fallback model; in the morning, before the Anthropic key worked, it ran every role, and it ran the scam extraction, the release evals and the Builder's repair.
@@ -176,7 +180,8 @@ Three bullets, one measured number (`RESULTS.md`) and the code for each. Twilio 
 - The scam eval set's model-on run (30/30, 0/20) used Bedrock Haiku 4.5 for extraction; a Bedrock Haiku 4.5 blueprint stream starts in 1.1 s.
 
 **Measured:** time to first token about 520–600 ms on Bedrock Haiku 4.5.  
-**Code:** `core/llm.py`
+**Code:** `core/llm.py`  
+[PENDING 14:00: model chip on the receipt, "Bedrock · claude-haiku-4-5"]
 
 ---
 
@@ -195,7 +200,7 @@ The gate is pure Python in `core/gate/`. It reads the village's state and a prop
 | **R-911** | Emergency words get "call 911" first, then everyone is notified. Nothing can downgrade it. Village never dials 911 itself. | `test_T17_911_cannot_be_downgraded` |
 | **P-QH-01** | No non-emergency calls to Carmen in her quiet hours; the family still gets escalations. In last night's round: "Blocked by code: Carmen's rule, no calls after 9:30 PM." | `test_T27_quiet_hours_suppress_care_recipient_call_but_not_family_escalation` |
 
-110 gate tests pass offline with the model off (`uv run pytest core/gate -q`, gate lane report).
+114 gate tests pass offline with the model off (`uv run pytest core/gate -q`, gate lane report).
 
 ---
 
@@ -203,8 +208,10 @@ The gate is pure Python in `core/gate/`. It reads the village's state and a prop
 
 Updated from `LANE-REPORT.md` at each merge. Tags in `main`: V0-green, V1-green, core-v2, kit-v2, release-v3, memory-v4, evals-v4.
 
+**What ran live today, what was recorded, what is designed only.** Live on the demo Core: the first real call to Carmen's line (12:23: the money report, Marco's tap on his own phone, the refusal spoken) and the live rebuild (13:00: Ana tapped Approve, every phone patched 12 s later). Live on a test Core: Thanksgiving through the family chat (proposal, approval, each app grows the right card). Recorded: the founding conversation, replayed at its own pace on stage (Sonnet 5.5, this morning). Designed only: everything under "What's next".
+
 **Real and tested**
-- The gate: the rules above, the verification state machine and the dose-window state machine, 110 tests with the model off.
+- The gate: the rules above, the verification state machine and the dose-window state machine, 114 tests with the model off.
 - The spine: tool call → gate → SurrealDB Cloud write → change feed → every connected phone, about 130 ms to the last of 3 clients.
 - The verification loop in Core: prompt frames go only to the claimed member; answers commit with compare-and-swap; past-deadline checks time out to the safe default, including after a restart; duplicate webhooks return the same decision.
 - The release pipeline with real Daytona, real Anchor and Arize export, for both villages (numbers above), including the caught-and-fixed build.
@@ -244,9 +251,11 @@ Only numbers from `RESULTS.md` and `LANE-REPORT.md`. Anything not there is not c
 | Agent Memory write / history / recall query | p50 630 ms / p50 248 ms / 3.7 s (never on a request path) |
 | Claude Haiku 4.5 on Bedrock, time to first token | about 520–600 ms |
 | ElevenLabs text to speech (50 KB mp3) | 656 ms |
-| Tests | 249 Python (110 of them gate), 57 kit |
-| Founding intake, full 11 questions to a valid spec and three apps (Sonnet 5.5) | 65.8 s total; who's-who draft 11.5 s; three apps rendered in 16.9 s |
-| Rebuild, Ana's yes to every phone patched (real Daytona + Anchor + evals) | 7705 ms (first run 13381 ms) |
+| Tests | 379 Python (114 of them gate), 114 kit |
+| Founding intake, full 11 questions to a valid spec and three apps (Sonnet 5.5) | 65.8 s total; who's-who draft 11.5 s; three apps rendered in 16.9 s; resume path starts at 8 of 10 |
+| **Live rebuild on the demo Core (13:00), Ana's yes to every phone patched** | **12 s**, six stages passed |
+| Rebuild, evolve lane runs (real pipeline) | 7705 ms (first run 13381 ms) |
+| First live call (12:23): hold line / refusal after Marco's tap | 18 s / 31 s into the call |
 | Scam pattern to proposal on screen (auto trigger) | 2166 ms |
 
 ---
