@@ -385,3 +385,80 @@ def install_chat_participant() -> bool:
 
 
 install_chat_participant()
+
+
+# ---- D39 asks + D38 demo actors ------------------------------------------------------------------------
+@router.post("/villages/{village_id}/asks/{ask_id}/answer")
+async def answer_ask_route(village_id: str, ask_id: str, body: dict, request: Request) -> dict:
+    from .asks import answer
+
+    member = body.get("member_id")
+    try:
+        from core.auth import resolve_token
+
+        member = resolve_token(request.headers.get("authorization")) or member
+    except Exception:
+        pass
+    try:
+        ask = await answer(ask_id, str(member), str(body.get("answer", "")))
+    except KeyError as exc:
+        raise HTTPException(404, "unknown ask") from exc
+    except PermissionError as exc:
+        raise HTTPException(403, "you were not asked") from exc
+    return {"ask_id": ask_id, "status": ask["status"], "answers": ask["answers"], "event_id": ask.get("event_id")}
+
+
+@router.post("/admin/demo-actors")
+async def demo_actors_route(body: dict, request: Request) -> dict:
+    from .actors import actors, set_actors
+
+    try:
+        from core.auth import resolve_token
+        from core.settings import get_settings
+
+        ok = request.headers.get("x-admin-key") == get_settings().admin_key or resolve_token(request.headers.get("authorization")) == "control"
+    except Exception:
+        ok = False
+    if not ok:
+        raise HTTPException(401, "admin key or control token required")
+    on = body.get("on", True)
+    names = body.get("actors") or []
+    if on and not names:  # default: every non-leader member with an app view
+        from core import village as villages
+
+        vid = body.get("village_id") or villages.default_village_id()
+        names = [p["id"] for p in villages.people(vid) if p.get("view") and p["id"] != villages.coordinator_id(vid) and p.get("role") != "care_recipient"]
+    return {"actors": sorted(set_actors(names if on else []))}
+
+
+def install_answer_ask_action() -> bool:
+    """App action `answer_ask` {arg: "<ask_id>:yes|no"} or payload {ask_id, answer} — wraps core.services.handle_action."""
+    try:
+        from core import services as core_services
+    except Exception:
+        return False
+    original = core_services.handle_action
+    if getattr(original, "_village_asks", False):
+        return True
+
+    async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
+        if name != "answer_ask":
+            return await original(village_id, name, request)
+        from .asks import answer
+
+        payload = request.get("payload") or {}
+        arg = str(request.get("arg") or "")
+        ask_id = payload.get("ask_id") or arg.split(":")[0]
+        value = payload.get("answer") or (arg.split(":")[1] if ":" in arg else "")
+        try:
+            ask = await answer(ask_id, str(request.get("member_id")), str(value))
+            return {"ok": True, "ask_id": ask_id, "status": ask["status"]}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": type(exc).__name__}
+
+    handle_action._village_asks = True  # type: ignore[attr-defined]
+    core_services.handle_action = handle_action
+    return True
+
+
+install_answer_ask_action()

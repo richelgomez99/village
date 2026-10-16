@@ -324,8 +324,9 @@ async def route_chat(village_id: str, text: str, author: str | None = None, *, l
     intent = intent or await classify(text, llm)
     if intent == "need":
         res = await answer_need(village_id, text, author, post_answer=False)
-        p = res.get("proposal")
-        return {"text": "Card above: Approve or Not now." if p else res["message"]["text"], "refs": [{"kind": "proposal", "id": p["id"]}] if p else [], "intent": "need"}
+        if res["kind"] == "ask":
+            return {"text": f"I asked {' and '.join(res['ask']['names'].values())}; I'll post what they say.", "refs": [{"kind": "member", "id": m} for m in res["ask"]["names"]], "intent": "need"}
+        return {"text": res["message"]["text"], "refs": [], "intent": "need"}
     if intent == "change":
         try:
             p = await propose_change(village_id, text, author, llm=llm)
@@ -368,7 +369,7 @@ def need_context(village_id: str, text: str, author: str | None) -> dict[str, An
             "center_word": villages.relationship_word(village_id, center, "en") or "them"}
 
 
-async def answer_need(village_id: str, text: str, author: str | None, *, post_answer: bool = True) -> dict[str, Any]:
+async def answer_need(village_id: str, text: str, author: str | None, *, post_answer: bool = True, message: dict[str, Any] | None = None) -> dict[str, Any]:
     """Village answers as a participant: who's on (from the rota) and, if a swap would help, a proposal with Approve · Not now."""
     from core import services
     from core import village as villages
@@ -381,9 +382,11 @@ async def answer_need(village_id: str, text: str, author: str | None, *, post_an
             return {"kind": "answer", "message": {"text": info}, "context": ctx}
         msg = await services.post_message(village_id, author="village", kind="answer", text=info, refs=[{"kind": "member", "id": ctx["on_duty"], "label": ctx["on_duty_name"]}], source={"kind": "system", "ref": "builder"})
         return {"kind": "answer", "message": msg, "context": ctx}
-    question = f"{info} Want me to ask {ctx['cover_name']} to swap?"
-    p = await propose_swap(village_id, ctx, author, question)
-    return {"kind": "proposal", "proposal": p, "context": ctx}
+    # D39: ask the people concerned (on duty + cover) in the thread; no proposal, no leader approval
+    from .asks import start_need
+
+    ask = await start_need(village_id, message or {"id": None, "author": author, "text": text}, ctx)
+    return {"kind": "ask", "ask": ask, "context": ctx}
 
 
 async def propose_swap(village_id: str, ctx: dict[str, Any], author: str | None, question: str) -> dict[str, Any]:
@@ -449,7 +452,7 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     if intent == "chit_chat":
         return None
     if intent == "need":
-        return await answer_need(village_id, text, author)
+        return await answer_need(village_id, text, author, message=message)
     from core import services
 
     out = await route_chat(village_id, text, author, llm=llm, intent=intent)
