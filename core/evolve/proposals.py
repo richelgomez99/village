@@ -23,6 +23,7 @@ from core.db import db
 log = logging.getLogger("village.evolve")
 
 UNDO_WINDOW_S = 10.0
+DETECTED_BY = {"arize_eval", "memory_pattern", "chat_request"}  # contract 1.3.3: chat_request (builder's chat path)
 RECEPTIONIST_RULE = "R-MONEY-UNKNOWN"
 
 # village_id -> proposal_id -> record {proposal, options, voice_ops, spec_before, ...}
@@ -232,7 +233,7 @@ async def propose(village_id: str, evidence: dict[str, Any], options: dict[str, 
     copy_ = plain_copy(village_id, spec, evidence)
     proposal: dict[str, Any] = {
         "id": pid, "village": village_id,
-        "detected_by": evidence.get("detected_by") if evidence.get("detected_by") in {"arize_eval", "memory_pattern"} else "memory_pattern",
+        "detected_by": evidence.get("detected_by") if evidence.get("detected_by") in DETECTED_BY else "memory_pattern",
         "title": {"en": f"Village answers unknown callers for {rel_en}", "es": f"Village contesta a desconocidos por {rel_es}"},
         "rationale": copy_["rationale"],
         "changes": copy_["changes"][:6],
@@ -382,8 +383,15 @@ def plain_copy(village_id: str, spec: dict[str, Any], evidence: dict[str, Any]) 
     if leaders:
         changes.append({"en": f"{_join(leaders, 'and')}: the Money area says Village answers unknown calls first, with a card of every screened call.",
                         "es": f"{_join(leaders, 'y')}: el área de Dinero dice que Village contesta primero a desconocidos, con una tarjeta de cada llamada revisada."})
-    stays = {"en": f"Nothing moves money. {rel_en} can turn this off by saying so. {her[:1].upper() + her[1:]} rules still apply.",
-             "es": f"Nada mueve dinero. {rel_es} puede apagarlo con solo decirlo. Sus reglas siguen igual."}
+    coord_id = villages.coordinator_id(village_id)
+    coord = villages.first_name(village_id, coord_id, "The coordinator")
+    obj_es = "ella" if pr == "she" else "él"
+    stays = {"en": f"Known numbers ring straight through. A caller who isn't asking for money is offered to {rel_en}, and "
+                   f"{pr if pr in {'she', 'he'} else 'they'} decide{'s' if pr in {'she', 'he'} else ''}. {coord} is told, never asked who {rel_en} may talk to. "
+                   f"Nothing moves money. {rel_en} can turn this off by saying so.",
+             "es": f"Los números conocidos entran directo. A quien llama sin pedir dinero se le ofrece a {rel_es}, y {obj_es} decide. "
+                   f"A {coord} se le avisa; nunca se le pregunta con quién puede hablar {rel_es}. "
+                   f"Nada mueve dinero. {rel_es} puede apagarlo con solo decirlo."}
     changes.append(stays)
     checked = None
     ev = latest_scam_eval()

@@ -276,7 +276,8 @@ def test_plain_words_card_chat_and_life_areas(evolve_env):
         assert lines[1].startswith("Mamá: unknown callers reach Village first")
         assert lines[2] == "Marco: when a caller claims to be him, he gets one question on his phone."
         assert lines[3] == "Ana: the Money area says Village answers unknown calls first, with a card of every screened call."
-        assert lines[4] == "Nothing moves money. Mamá can turn this off by saying so. Her rules still apply."
+        assert lines[4] == ("Known numbers ring straight through. A caller who isn't asking for money is offered to Mamá, and she decides. "
+                            "Ana is told, never asked who Mamá may talk to. Nothing moves money. Mamá can turn this off by saying so.")
         assert row["evidence_labels"][0] == "Oct 9, 7:21 PM · caller said he was Marco · asked for $1,500 in gift cards"
         assert row["evidence_labels"][1].startswith("Today, ") and row["evidence_labels"][1].endswith("asked for $2,000")
         blob = " ".join(lines + row["evidence_labels"])
@@ -288,3 +289,15 @@ def test_plain_words_card_chat_and_life_areas(evolve_env):
         assert areas["people"] == "People: Marco on duty tonight"
         assert areas["health"].startswith("Pills: ") and "lids" not in areas["health"] and "refill" in areas["health"]
         assert bindings.scams_stopped_today("v_reyes") == 1
+
+
+def test_chat_request_detected_by_is_kept(evolve_env):
+    import asyncio
+
+    from core.app import app
+    from core.evolve import proposals
+
+    with TestClient(app):
+        p = asyncio.run(proposals.propose("v_reyes", {"pattern": "chat_request", "detected_by": "chat_request", "subject": "m_carmen",
+                                                      "claimed_member_id": "m_marco", "count": 1, "event_ids": []}))
+        assert p["detected_by"] == "chat_request" and proposals.validate(p) == []
