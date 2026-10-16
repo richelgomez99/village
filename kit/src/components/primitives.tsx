@@ -73,8 +73,9 @@ export function BigButton({ id, props }: CatalogProps) {
       );
     }
     return (
-      <button type="button" className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} data-no-number={tel || ctx.disabled ? undefined : "true"} disabled>
+      <button type="button" className={`bigbutton tone-${tone}`} data-test="bigbutton" data-action={props.action} data-tone={tone} data-no-number={tel || ctx.disabled ? undefined : "true"} data-view-only={ctx.disabled ? "true" : undefined} disabled>
         {label}
+        {ctx.disabled ? <span className="view-only-tag small" data-test="view-only">{k("view_only", ctx.lang)}</span> : null}
         {!tel && !ctx.disabled ? <span className="no-number small" data-test="no-number">{k("no_number", ctx.lang)}</span> : null}
       </button>
     );
@@ -88,9 +89,11 @@ export function BigButton({ id, props }: CatalogProps) {
         data-action={props.action}
         data-tone={tone}
         disabled={ctx.disabled}
+        data-view-only={ctx.disabled ? "true" : undefined}
         onClick={onClick}
       >
         {label}
+        {ctx.disabled ? <span className="view-only-tag small" data-test="view-only">{k("view_only", ctx.lang)}</span> : null}
       </button>
       {confirming ? <ConfirmSheet text={props.confirm_text ?? props.label} onYes={fire} onNo={() => setConfirming(false)} /> : null}
     </>

@@ -6,6 +6,7 @@ import type { LiveState, VillageSocket } from "../live/ws";
 import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import type { ApiConfig } from "../control/api";
 import { Renderer } from "../renderer/Renderer";
+import { TabbedApp } from "./TabbedApp";
 
 /** View-as options from the coordinator's own data: member:<id> records, then everyone on the rota. */
 export function viewAsOptions(data: Record<string, unknown>): ViewAsOption[] {
@@ -64,9 +65,9 @@ export function MemberApp({ socket, captions = false, api }: { socket: VillageSo
         {canViewAs ? <ViewAs options={viewOpts} current={state.viewAs} self={state.self?.memberId ?? null} onPick={(m) => socket.viewAs(m)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
         <IdentityChip memberId={state.memberId} role={state.role} village={state.village} lang={lang} identity={state.identity} />
       </div>
-      {state.viewAs ? <ViewingAsBanner name={memberName(state.viewAs)} onBack={() => socket.viewAs(null)} lang="en" /> : null}
+      {state.viewAs ? <ViewingAsBanner name={viewOpts.find((o) => o.member_id === state.viewAs)?.name ?? memberName(state.viewAs, data)} onBack={() => socket.viewAs(null)} lang={state.self?.role === "elder" ? "es" : "en"} /> : null}
       {ctx ? (
-        <Renderer ctx={ctx} />
+        ctx.view.theme === "elder" ? <Renderer ctx={ctx} /> : <TabbedApp ctx={ctx} blueprint={(state.spec as { blueprint?: { life_areas?: any[] } } | null)?.blueprint ?? null} />
       ) : (
         <p className="skeleton" data-test="skeleton">{k("building", lang, { who: memberName(state.memberId) || "your" })}</p>
       )}
