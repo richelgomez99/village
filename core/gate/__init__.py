@@ -1,8 +1,6 @@
-"""Pure policy gate for Village.
+"""Pure policy gate for Village."""
 
-The public functions in this package are deliberately dict-shaped because Core
-loads and persists contract JSON.  The gate never performs I/O.
-"""
+from __future__ import annotations
 
 from core.gate.models import (
     Candidate,
@@ -13,6 +11,7 @@ from core.gate.models import (
     VillageState,
     gate_input_from_args,
 )
+from core.gate.rules.safety import decide_safety
 from core.gate.say import Say, say
 
 __all__ = [
@@ -25,4 +24,12 @@ __all__ = [
     "gate_input_from_args",
     "Say",
     "say",
+    "decide",
 ]
+
+
+def decide(*args, **kwargs) -> Decision:
+    """Return a contract-shaped Decision without performing I/O."""
+
+    inp = gate_input_from_args(*args, **kwargs)
+    return decide_safety(inp)
