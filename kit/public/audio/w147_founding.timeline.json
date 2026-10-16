@@ -1,0 +1,57 @@
+[
+  {
+    "t_ms": 0,
+    "speaker": "tanya",
+    "text": "Power's out on our whole block and it's ninety-seven degrees. Mrs. Alvarez on five needs her oxygen machine, and Mr. Chen's insulin is warming up. Darnell's got a generator, Priya's got a car. Help me."
+  },
+  {
+    "t_ms": 13603,
+    "speaker": "village",
+    "text": "Got it. A block outage in the heat, and two medical needs. Who on the block should I know about, and which floor are they on?"
+  },
+  {
+    "t_ms": 20891,
+    "speaker": "tanya",
+    "text": "Mrs. Alvarez is on five in a walk-up. She's eighty-one, on home oxygen. The Okafors on three have a three-week-old. Mr. James on two is in a power wheelchair, and the elevator's out."
+  },
+  {
+    "t_ms": 33704,
+    "speaker": "village",
+    "text": "Who only has a landline? And where do people go to make calls?"
+  },
+  {
+    "t_ms": 37555,
+    "speaker": "tanya",
+    "text": "Mrs. Alvarez only has her landline. Ramírez Deli on the corner has its own generator and ice. People call there."
+  },
+  {
+    "t_ms": 45307,
+    "speaker": "village",
+    "text": "Who can help, with what?"
+  },
+  {
+    "t_ms": 47300,
+    "speaker": "tanya",
+    "text": "Darnell's generator is a two-thousand-watt inverter, about six hours of fuel, outdoors only. Priya's car has A/C and fits three."
+  },
+  {
+    "t_ms": 57049,
+    "speaker": "village",
+    "text": "If someone can't breathe or passes out, what's the rule?"
+  },
+  {
+    "t_ms": 60760,
+    "speaker": "tanya",
+    "text": "Nine one one first, then me. Nobody waits for me."
+  },
+  {
+    "t_ms": 64982,
+    "speaker": "village",
+    "text": "Here's the draft: five households, two volunteers, the deli as the phone point, and nine one one first. Anything wrong?"
+  },
+  {
+    "t_ms": 71945,
+    "speaker": "tanya",
+    "text": "Looks right. Send it."
+  }
+]

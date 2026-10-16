@@ -1,4 +1,4 @@
-READY FOR MERGE VOICE2
+READY FOR MERGE VOICE3
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## contracts
@@ -530,3 +530,7 @@ ana     <- {"type": "chat", "kind": "receipt", "text": "Done. Village answers un
 HTTP    -> GET /villages/v_reyes/proposals -> [["prop_reyes_receptionist_1", "applied", 6]]
 ```
 After merge: restart the live Core, then reset the demo so the new rev-5 views are loaded (`scripts/reset_demo.sh`, or whatever reloads `reyes_spec.json` into the store). The proposal that is live now was built against the old coordinator view (9 children). If you re-applied it to the new view, Ana's screen would reach 13 children and fail validation, so drop it and run `POST /villages/v_reyes/evolve/trigger` (Bearer control) again. Rebuild `kit/dist` (`cd kit && npm run build`) if that Core serves the kit.
+
+### voice3 (after the merge, 12:40)
+- Live push · done · run from `~/village`: `deploy_elevenlabs.py --yes-live --sync-secret`, then `--yes-live --post-call-webhook`. Village Caller and Setup pushed from the worktree after f2eed10, because PATCH rejects the `{}` shorthand for built-in tools. Live dump of the mom line: the first message is the static Spanish AI-disclosure line; no referenced variable lacks a default; the guardrail is narrowed; the init flag is true; language_detection is on and the en preset is set. Post-call webhook 103bebc4… was created and its HMAC secret written to `~/village/.env`. `VILLAGE_TOOL_SECRET` was missing from both .env files (rewritten at 12:38), so `--sync-secret` generated a new value into `~/village/.env` and the workspace secret. Enforcement starts at the next Core restart.
+- D33 · done · `uv run python -m core.voice.founding_audio` writes `kit/public/audio/w147_founding.mp3` (73.5 s, 11 lines) and `w147_founding.timeline.json` (`[{t_ms, speaker: tanya|village, text}]`). Tanya uses ElevenLabs voice cgSgspJ2msm6clMCkdW9; Village uses Luz's voice (EXAVITQu4vr4xnSDxMaL). Rendered with TTS `with-timestamps` and joined with 0.6 s ffmpeg gaps; t_ms comes from the measured segment lengths, and silencedetect confirms the gaps. Condensed from `data/builder/w147_intake.jsonl`, keeping these lines: Darnell's generator, Mrs. Alvarez's oxygen and landline, Ramírez Deli as the phone point (the intake says deli, not bodega), the volunteers (Darnell, Priya), and the 911-first rule. Mocked: nothing (real TTS). Not checked: listening to the audio.
