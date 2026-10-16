@@ -117,6 +117,20 @@ class DaytonaBuilder:
             pass
         return self._sb
 
+    async def _drop_if_gone(self) -> None:
+        """Once per release: if the cached warm sandbox was deleted or stopped behind our back, forget it
+        (and its installed deps) so the next call creates a fresh one from the snapshot."""
+        if self._sb is None:
+            return
+        try:
+            d = await self.client()
+            cur = await d.get(getattr(self._sb, "id", ""))
+            if "started" not in str(getattr(cur, "state", "")).lower():
+                raise RuntimeError(f"sandbox state {getattr(cur, 'state', '')}")
+        except Exception:
+            self._sb = None
+            self._deps = None
+
     async def _exec(self, cmd: str, timeout: int = 180) -> tuple[int, str]:
         sb = await self.sandbox()
         r = await sb.process.exec(cmd, cwd=f"{self._home}/{APP}", timeout=timeout)
@@ -135,6 +149,7 @@ class DaytonaBuilder:
         tpl = template or bundle.template_files()
         key = _deps_key(tpl)
         timings: dict[str, int] = {}
+        await self._drop_if_gone()
         sb = await self.sandbox()
         if self._deps == key:
             return timings
