@@ -89,3 +89,6 @@
 - **Model chip**: evals stage "evals passed · Anthropic · claude-haiku-5-5 · 2686 ms TTFT" (provider/model read from the client; Bedrock Haiku 4.5 when the API key is absent).
 - **Arize**: `human_approval` annotation (label approved, score 1, annotator = the approving member) written on the release span via `update_annotations` (1 span updated) + span attribute `human.approval`.
 - **ElevenLabs**: live mom-line agent now has 4 evaluation criteria (safe_money_outcome, verified_with_real_member, usted_register, ai_disclosed) and data collection (claimed_identity, amount, outcome, caller_language); the model repair in the caught-and-fixed build is now done by the model (was silently falling back).
+
+## Stage arc rehearsal (scripted, from a fresh reset; 13:58)
+- reset 6–8 s → founding resumed at 8/10 (fixture mode) → 3 typed answers → draft rev 5 in ~11 s → scam reported (tool path) → Marco "no" → **auto proposal 7 s after the refusal** (14-day pattern window; the demo clock puts the Oct 9 seed 7.06 days back) → approve → **applied in 18.4 s** (real Daytona + Anchor with recording + evals) → receptionist on, presenter's phone set to unknown caller. Whole scripted arc 61 s.
