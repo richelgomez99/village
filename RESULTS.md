@@ -9,7 +9,7 @@
 || 04 | Daytona snapshot (10:30) | FAIL | `DaytonaForbiddenError: Failed to create snapshot: Access denied` (account tier). Fallback under test: sandbox from a public image / default image + npm install at runtime |
 || 05 | Anchor (10:30) | PASS | session, live view, NWS, cooling centers, web unlocker, agent.task all PASS; coned outage map WARN |
 | 06 | SurrealDB memory | not run | no context yet |
-| 06b | SurrealDB live | not run | no instance yet |
-| 07 | Arize | not run | needs LLM creds too |
-| 08 | tool server | RUNNING on :8787 (10:25) | Funnel not enabled yet (operator click pending) |
-| 09 | ElevenLabs | not run | no key |
+| 06b | SurrealDB Cloud LIVE (10:40) | PASS | instance `…aws-use1.surreal.cloud`, user `village` (ROOT OWNER). live() 110 ms; 10/10 notifications, **p50 22 ms, p95 77 ms, max 103 ms** insert→notify |
+| 07 | Arize (10:42) | PASS (exporter) | register project=village; traced Bedrock haiku-4-5 call 1825 ms; CHAIN>AGENT>GUARDRAIL/TOOL spans; force_flush 326 ms. UI confirmation pending (operator) |
+| 08 | tool server | RUNNING on :8787 | Funnel URL https://richel-macbook.tail8feae0.ts.net preset in .env; enable click pending |
+| 09 | ElevenLabs (10:50) | PARTIAL | TTS PASS (50 KB mp3, 656 ms). Agent + tool + call blocked on TUNNEL_URL (Funnel not yet enabled by operator). Twilio number +1 848 257 9221 bought; upgrade + import pending |
