@@ -5,9 +5,9 @@ import { text, type View } from "../renderer/view";
 export const ATTENTION_TYPES = new Set(["Alert", "Proposal", "VerificationPrompt", "IncidentCard"]);
 const LAYOUT = new Set(["Screen", "Header", "Text", "Stack"]);
 /** one-tap actions (Call Mamá, 911) never move off Home */
-const PINNED = new Set(["BigButton", "ContactCard", "RightNow", "WhatVillageDid", "SinceYourTurn", "LifeAreas"]);
-/** below this many tab-able elements one screen is enough (a helper: Home · Chat) */
-const MIN_FOR_TABS = 3;
+const PINNED = new Set(["BigButton", "ContactCard", "RightNow", "WhatVillageDid", "SinceYourTurn", "LifeAreas", "RefillCard"]);
+/** any element that belongs to a life area earns that area a tab (Marco: Home · People · Chat) */
+const MIN_FOR_TABS = 1;
 
 export interface Tab { id: string; label: string; elements: string[] }
 export interface TabPlan {
@@ -82,7 +82,6 @@ export function planTabs(view: View, data: Record<string, unknown>, lang: string
   const areas: Tab[] = order
     .filter((a) => byArea.has(a) || history.has(a))
     .map((a) => ({ id: a, label: labels.get(a) ?? a, elements: [...(history.get(a) ?? []), ...(byArea.get(a) ?? [])] }));
-  // one area is not a choice: keep it on Home (a helper or a supporter: Home · Chat)
-  if (areas.length < 2 || movable.length < MIN_FOR_TABS) return { attention, headline, homeRest: others, areas: [], chat };
+  if (areas.length < 1 || movable.length < MIN_FOR_TABS) return { attention, headline, homeRest: others, areas: [], chat };
   return { attention, headline, homeRest: others.filter((id) => pinned.includes(id) || unassigned.includes(id)), areas, chat };
 }

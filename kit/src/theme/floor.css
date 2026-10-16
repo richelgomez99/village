@@ -334,3 +334,11 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .chat-demo { padding: 0 6px; border-radius: 6px; background: var(--gray-soft); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--ink2); }
 .chat-ask { display: flex; gap: 8px; }
 .chat-ask-status { font-style: italic; }
+.ask-sheet { position: fixed; left: 12px; right: 12px; bottom: 84px; z-index: 20; padding: 16px; border-radius: 18px; background: var(--card); border: 2px solid var(--sage); box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
+.ask-from { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--sage); }
+.ask-q { font-size: 20px; font-weight: 650; margin: 0 0 12px; }
+.ask-sheet .row { display: flex; gap: 10px; }
+.ask-sheet .btn { flex: 1; min-height: 52px; }
+.rota tr[data-new="true"] { background: var(--amber-soft); }
+.rota .new-tag, .rota-asked { margin-left: 6px; font-size: 12px; font-weight: 800; }
+.chat-ask-chips { display: flex; flex-wrap: wrap; gap: 6px; }

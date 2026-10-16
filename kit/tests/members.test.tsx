@@ -40,9 +40,10 @@ describe("tabs from life areas (generic)", () => {
     const p = planTabs(view(R, "coordinator"), {}, "es", R.blueprint);
     expect(p.areas.map((a) => a.label)).toEqual(["Salud", "Dinero", "Familia"]);
   });
-  it("Reyes helper serves fewer than two areas on its own tabs: Home + Chat only", () => {
+  it("Reyes helper: Home (answer, since, refill, Call Mamá) · People (the rota) · Chat", () => {
     const p = planTabs(view(R, "helper"), areasData(R), "en");
-    expect(p.areas).toEqual([]);
+    expect(p.areas.map((a) => [a.id, a.elements])).toEqual([["people", ["rota"]]]);
+    expect(p.homeRest).toEqual(["since", "refill", "b_mom"]);
     expect(p.headline).toBe("ans");
     expect(p.chat).toBe("chat");
   });
@@ -52,9 +53,10 @@ describe("tabs from life areas (generic)", () => {
     expect(p.headline).toBe("st");
     expect(p.chat).toBe("chat");
   });
-  it("block volunteer: Home + Chat", () => {
+  it("block volunteer: the match board leads Home; offers on their area tab", () => {
     const p = planTabs(view(B, "volunteer"), areasData(B), "en");
-    expect(p.areas).toEqual([]);
+    expect(p.headline).toBe("nb");
+    expect(p.areas.map((a) => a.id)).toEqual(["health"]);
     expect(p.chat).toBe("chat");
   });
   it("no need → area map from Core: everything stays on Home (graceful)", () => {

@@ -71,6 +71,20 @@ export function MemberApp({ socket, captions = false, api }: { socket: VillageSo
       ) : (
         <p className="skeleton" data-test="skeleton">{k("building", lang, { who: memberName(state.memberId) || "your" })}</p>
       )}
+      {state.ask && !disabled ? (
+        <div className="ask-sheet" data-test="ask-sheet" role="dialog" aria-label="Village asks">
+          <p className="ask-from"><span className="village-mark" aria-hidden="true">V</span> Village asks</p>
+          <p className="ask-q" data-test="ask-question">{typeof state.ask.question === "string" ? state.ask.question : (state.ask.question as Record<string, string>)?.[lang] ?? (state.ask.question as Record<string, string>)?.en}</p>
+          <div className="row">
+            {(state.ask.options?.length ? state.ask.options : [{ id: "yes", label: "Yes" }, { id: "no", label: "Can't" }]).map((o) => (
+              <button key={o.id} type="button" className={`btn ${o.id === "yes" ? "btn-primary" : "btn-soft"}`} data-test={`ask-${o.id}`}
+                onClick={() => { socket.action({ name: "answer_ask", arg: state.ask!.ask_id, element_id: "ask", payload: { ask_id: state.ask!.ask_id, answer: o.id } }); socket.clearAsk(); }}>
+                {typeof o.label === "string" ? o.label : (o.label as Record<string, string>)?.[lang] ?? (o.label as Record<string, string>)?.en}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {prompt && !disabled ? (
         <PromptOverlay
           prompt={prompt}

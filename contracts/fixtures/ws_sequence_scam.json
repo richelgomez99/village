@@ -65,6 +65,7 @@
                   "ans",
                   "since",
                   "refill",
+                  "rota",
                   "b_mom",
                   "chat"
                 ]
@@ -121,6 +122,17 @@
                   "show_source": true
                 }
               },
+              "rota": {
+                "type": "CareRota",
+                "props": {
+                  "title": "Who's on this week",
+                  "bind": "rota:week",
+                  "period": "week",
+                  "highlight_current_user": true,
+                  "allow_swap": true,
+                  "show_backup": true
+                }
+              },
               "b_mom": {
                 "type": "BigButton",
                 "props": {
@@ -169,6 +181,9 @@
                 "n_turns",
                 "n_scam_calls",
                 "n_evening_pills"
+              ],
+              "rota": [
+                "n_turns"
               ]
             }
           },
@@ -291,6 +306,50 @@
                   "kind": "system",
                   "ref": "watcher"
                 }
+              }
+            ],
+            "rota:week": [
+              {
+                "date": "2026-10-12",
+                "day": "Mon",
+                "on_duty": "m_ana",
+                "backup": "m_marco"
+              },
+              {
+                "date": "2026-10-13",
+                "day": "Tue",
+                "on_duty": "m_lucia",
+                "backup": "m_ana"
+              },
+              {
+                "date": "2026-10-14",
+                "day": "Wed",
+                "on_duty": "m_ana",
+                "backup": "m_lucia"
+              },
+              {
+                "date": "2026-10-15",
+                "day": "Thu",
+                "on_duty": "m_marco",
+                "backup": "m_ana"
+              },
+              {
+                "date": "2026-10-16",
+                "day": "Fri",
+                "on_duty": "m_marco",
+                "backup": "m_ana"
+              },
+              {
+                "date": "2026-10-17",
+                "day": "Sat",
+                "on_duty": "m_lucia",
+                "backup": "m_marco"
+              },
+              {
+                "date": "2026-10-18",
+                "day": "Sun",
+                "on_duty": "m_marco",
+                "backup": "m_ana"
               }
             ]
           },

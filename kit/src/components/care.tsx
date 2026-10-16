@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CatalogProps } from "../renderer/catalog";
 import { FactHistoryCard, MEMORY_CAPTION } from "./fact";
 import { useCtx } from "../renderer/context";
@@ -208,22 +208,55 @@ export function Timeline({ props }: CatalogProps) {
 
 interface RotaDay { date: string; day: string; on_duty: string; backup: string }
 
+const DAY_LONG: Record<string, string> = { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+
+/** Who's on this week. Swap = ask the village in the chat ("@Village can someone cover Friday for me?"); the row says
+ *  "asked" until the rota changes; a day whose on_duty changes flashes NEW (Core pushes rota:* on shift events). */
 export function CareRota({ id, props }: CatalogProps) {
   const ctx = useCtx();
   const days = arr<RotaDay>(ctx.data[props.bind]);
+  const prev = useRef<Map<string, string> | null>(null);
+  const [flash, setFlash] = useState<Set<string>>(new Set());
+  const [asked, setAsked] = useState<Record<string, string>>({});
+  const sig = days.map((d) => `${d.date}:${d.on_duty}`).join(",");
+  useEffect(() => {
+    const now = new Map(days.map((d) => [d.date, d.on_duty]));
+    if (prev.current) {
+      const changed = days.filter((d) => prev.current!.has(d.date) && prev.current!.get(d.date) !== d.on_duty).map((d) => d.date);
+      if (changed.length) {
+        setFlash(new Set(changed));
+        setAsked((a) => Object.fromEntries(Object.entries(a).filter(([k]) => !changed.includes(k))));
+        const t = setTimeout(() => setFlash(new Set()), 12_000);
+        prev.current = now;
+        return () => clearTimeout(t);
+      }
+    }
+    prev.current = now;
+  }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const swap = (d: RotaDay) => {
+    if (ctx.openChat) {
+      const day = DAY_LONG[d.day] ?? weekdayName(d.date, "en") ?? d.day;
+      setAsked((a) => ({ ...a, [d.date]: d.on_duty }));
+      ctx.openChat(`@Village can someone cover ${day} for me?`, { send: true });
+    } else {
+      ctx.send({ name: "swap_shift", arg: d.date, element_id: id });
+    }
+  };
   return (
     <Card test="care-rota" title={props.title ? <Bi value={props.title} /> : undefined}>
       <table className="rota">
         <tbody>
           {days.map((d) => {
             const mine = props.highlight_current_user && d.on_duty === ctx.memberId;
+            const isNew = flash.has(d.date);
+            const wasAsked = asked[d.date] === d.on_duty;
             return (
-              <tr key={d.date} data-test="rota-row" data-date={d.date} data-on-duty={d.on_duty} className={mine ? "mine" : undefined}>
+              <tr key={d.date} data-test="rota-row" data-date={d.date} data-on-duty={d.on_duty} data-new={isNew ? "true" : undefined} className={mine ? "mine" : undefined}>
                 <th scope="row">{d.day}</th>
-                <td data-say="">{memberName(d.on_duty, ctx.data)}</td>
+                <td data-say="">{memberName(d.on_duty, ctx.data)}{isNew ? <span className="new-tag" data-test="rota-new">NEW</span> : null}</td>
                 {props.show_backup ? <td className="muted">{k("backup", ctx.lang)}: {memberName(d.backup, ctx.data)}</td> : null}
                 {props.allow_swap && d.on_duty === ctx.memberId ? (
-                  <td><button type="button" className="btn btn-link" disabled={ctx.disabled} onClick={() => ctx.send({ name: "swap_shift", arg: d.date, element_id: id })}>Swap</button></td>
+                  <td>{wasAsked ? <span className="rota-asked muted" data-test="rota-asked">asked</span> : <button type="button" className="btn btn-link" data-test="rota-swap" disabled={ctx.disabled} onClick={() => swap(d)}>Swap</button>}</td>
                 ) : null}
               </tr>
             );

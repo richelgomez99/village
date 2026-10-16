@@ -267,18 +267,27 @@ export function VillageChat({ id, props }: CatalogProps) {
   // an outside prefill (Swap my night) lands in the composer once
   const prefill = ctx.chatDraft ?? "";
   const [seenPrefill, setSeenPrefill] = useState("");
+  const [sendNow, setSendNow] = useState<string | null>(null);
   if (prefill && prefill !== seenPrefill) {
     setSeenPrefill(prefill);
-    setDraft(prefill);
+    if (ctx.chatAutoSend) setSendNow(prefill);
+    else setDraft(prefill);
   }
   const serverTexts = new Set(rows.filter((r) => r.author === ctx.memberId).map((r) => r.text));
   const shown = byTime([...rows, ...local.filter((l) => !serverTexts.has(l.text))]).slice(-(props.limit ?? 50));
-  const submit = async () => {
-    const t = draft.trim();
+  useEffect(() => {
+    if (sendNow) {
+      const t = sendNow;
+      setSendNow(null);
+      void submit(t);
+    }
+  }, [sendNow]); // eslint-disable-line react-hooks/exhaustive-deps
+  const submit = async (override?: string) => {
+    const t = (override ?? draft).trim();
     if (!t || ctx.disabled) return;
     const row: ChatRow = { id: `local_${Date.now()}`, kind: "chat", author: ctx.memberId ?? "me", text: t, refs: [], at: new Date(ctx.nowMs()).toISOString(), pending: true };
     setLocal((l) => [...l, row]);
-    setDraft("");
+    if (override === undefined) setDraft("");
     setFailed(false);
     try {
       const saved = await postChat(ctx.api, ctx.village, t);
