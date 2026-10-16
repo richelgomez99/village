@@ -14,8 +14,22 @@
      }
     ],
     "built_in_tools": {
-     "end_call": {},
-     "voicemail_detection": {}
+     "end_call": {
+      "type": "system",
+      "name": "end_call",
+      "description": "",
+      "params": {
+       "system_tool_type": "end_call"
+      }
+     },
+     "voicemail_detection": {
+      "type": "system",
+      "name": "voicemail_detection",
+      "description": "",
+      "params": {
+       "system_tool_type": "voicemail_detection"
+      }
+     }
     }
    },
    "dynamic_variables": {
