@@ -64,6 +64,21 @@ def is_call_out(village_id: str, text: str, author: str | None) -> bool:
     return bool(data.get("institutions")) and author in (None, "control", village_reg.coordinator_id(village_id))
 
 
+PLACES_Q_RE = re.compile(r"\b(nearest|closest|routes?|where|which|directions?|address)\b", re.I)
+
+
+def is_places_question(village_id: str, text: str) -> bool:
+    """'What are the nearest hospitals and the routes?' → answered from the village data, no call."""
+    from core import village as village_reg
+
+    if not (PLACE_RE.search(text) and PLACES_Q_RE.search(text)) or CALL_ASK_RE.search(text):
+        return False
+    try:
+        return bool(village_reg.village_data(village_id).get("institutions"))
+    except Exception:
+        return False
+
+
 async def classify(text: str, llm: Any | None = None) -> str:
     """Every member message: why | change | need | chit_chat (Haiku when on; rules off)."""
     if llm is not None:
@@ -471,6 +486,10 @@ async def route_chat(village_id: str, text: str, author: str | None = None, *, l
     """Core's @Village hook (`core.builder.ask(village_id, text)`): returns {text, refs, trace_id}."""
     from .ask import ask
 
+    if intent in (None, "places") and is_places_question(village_id, text):
+        from core.voice.institution_calls import institutions, places_text
+
+        return {"text": places_text(village_id), "refs": [{"kind": "rule", "id": str(i.get("id")), "label": str(i.get("name"))[:80]} for i in institutions(village_id)], "intent": "places"}
     if intent in (None, "call_out") and is_call_out(village_id, text, author):
         import asyncio
 
@@ -608,7 +627,7 @@ async def participant(village_id: str, message: dict[str, Any], *, llm: Any | No
     reply = await _answer_open_ask(message)
     if reply:
         return reply
-    intent = "call_out" if is_call_out(village_id, text, author) else await classify(text, llm)
+    intent = "call_out" if is_call_out(village_id, text, author) else "places" if is_places_question(village_id, text) else await classify(text, llm)
     if intent == "chit_chat":
         return None
     if intent == "need":

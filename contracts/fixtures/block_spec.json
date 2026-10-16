@@ -8,7 +8,9 @@
     "lang": "en",
     "timezone": "America/New_York",
     "coordinator_id": "b_tanya",
-    "theme": { "accent": "#234C8A" }
+    "theme": {
+      "accent": "#234C8A"
+    }
   },
   "blueprint": {
     "description": {
@@ -18,84 +20,591 @@
     },
     "people": [
       {
-        "id": "b_tanya", "name": "Tanya Brooks", "relation": "block association president", "role": "coordinator", "view": "coordinator", "phone": "+15555550201",
-        "profile": { "lang": "en", "script": "Latn", "reading_level": "advanced", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "app", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "08:00-23:00" } ] },
-        "consent": { "ai_calls": true, "app_prompts": true, "recorded_on": "2027-07-21", "recorded_by": "Tanya, setup call" }
+        "id": "b_tanya",
+        "name": "Tanya Brooks",
+        "relation": "block association president",
+        "role": "coordinator",
+        "view": "coordinator",
+        "phone": "+15555550201",
+        "profile": {
+          "lang": "en",
+          "script": "Latn",
+          "reading_level": "advanced",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "app",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "08:00-23:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": true,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "Tanya, setup call"
+        }
       },
       {
-        "id": "b_alvarez", "name": "Mrs. Gloria Alvarez", "relation": "neighbor", "role": "resident", "view": null, "phone": "+15555550202",
+        "id": "b_alvarez",
+        "name": "Mrs. Gloria Alvarez",
+        "relation": "neighbor",
+        "role": "resident",
+        "view": null,
+        "phone": "+15555550202",
         "notes": "81, 5th-floor walk-up, home oxygen; calls the block line from her landline.",
-        "profile": { "lang": "es", "script": "Latn", "reading_level": "simple", "vision": "reduced", "hearing": "typical", "memory": "typical", "mobility": "limited", "tech_comfort": "phone", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "07:00-22:00" } ] },
-        "consent": { "ai_calls": null, "app_prompts": null, "share_with": ["b_tanya"], "recorded_on": "2027-07-21", "recorded_by": "block line call (call_alvarez)" }
+        "profile": {
+          "lang": "es",
+          "script": "Latn",
+          "reading_level": "simple",
+          "vision": "reduced",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "limited",
+          "tech_comfort": "phone",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "07:00-22:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": null,
+          "app_prompts": null,
+          "share_with": [
+            "b_tanya"
+          ],
+          "recorded_on": "2027-07-21",
+          "recorded_by": "block line call (call_alvarez)"
+        }
       },
       {
-        "id": "b_chen", "name": "Mr. Wei Chen", "relation": "neighbor", "role": "resident", "view": null, "phone": "+15555550203",
+        "id": "b_chen",
+        "name": "Mr. Wei Chen",
+        "relation": "neighbor",
+        "role": "resident",
+        "view": null,
+        "phone": "+15555550203",
         "notes": "67, insulin pens in a fridge without power; grandson helps with English.",
-        "profile": { "lang": "zh", "secondary_langs": ["en"], "script": "Hans", "reading_level": "standard", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "phone", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "08:00-21:00" } ] },
-        "consent": { "ai_calls": null, "app_prompts": null, "share_with": ["b_tanya"], "recorded_on": "2027-07-21", "recorded_by": "block line call" }
+        "profile": {
+          "lang": "zh",
+          "secondary_langs": [
+            "en"
+          ],
+          "script": "Hans",
+          "reading_level": "standard",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "phone",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "08:00-21:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": null,
+          "app_prompts": null,
+          "share_with": [
+            "b_tanya"
+          ],
+          "recorded_on": "2027-07-21",
+          "recorded_by": "block line call"
+        }
       },
       {
-        "id": "b_okafor", "name": "The Okafor family (Ngozi & Daniel)", "relation": "neighbor", "role": "resident", "view": "resident", "phone": "+15555550204",
+        "id": "b_okafor",
+        "name": "The Okafor family (Ngozi & Daniel)",
+        "relation": "neighbor",
+        "role": "resident",
+        "view": "resident",
+        "phone": "+15555550204",
         "notes": "Newborn (3 weeks) in a hot apartment.",
-        "profile": { "lang": "en", "script": "Latn", "reading_level": "standard", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "app", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "00:00-23:59" } ] },
-        "consent": { "ai_calls": false, "app_prompts": true, "recorded_on": "2027-07-21", "recorded_by": "app join" }
+        "profile": {
+          "lang": "en",
+          "script": "Latn",
+          "reading_level": "standard",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "app",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "00:00-23:59"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": false,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "app join"
+        }
       },
       {
-        "id": "b_james", "name": "Mr. Louis James", "relation": "neighbor", "role": "resident", "view": "resident", "phone": "+15555550205",
+        "id": "b_james",
+        "name": "Mr. Louis James",
+        "relation": "neighbor",
+        "role": "resident",
+        "view": "resident",
+        "phone": "+15555550205",
         "notes": "Power wheelchair, 2nd floor, elevator out, battery ~40%.",
-        "profile": { "lang": "en", "script": "Latn", "reading_level": "standard", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "wheelchair", "tech_comfort": "both", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "08:00-22:00" } ] },
-        "consent": { "ai_calls": true, "app_prompts": true, "recorded_on": "2027-07-21", "recorded_by": "app join" }
+        "profile": {
+          "lang": "en",
+          "script": "Latn",
+          "reading_level": "standard",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "wheelchair",
+          "tech_comfort": "both",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "08:00-22:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": true,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "app join"
+        }
       },
       {
-        "id": "b_darnell", "name": "Darnell Price", "relation": "neighbor", "role": "volunteer", "view": "volunteer", "phone": "+15555550206",
+        "id": "b_darnell",
+        "name": "Darnell Price",
+        "relation": "neighbor",
+        "role": "volunteer",
+        "view": "volunteer",
+        "phone": "+15555550206",
         "notes": "Portable inverter generator (~2000 W, ~6 h fuel). Outdoors only.",
-        "profile": { "lang": "en", "script": "Latn", "reading_level": "standard", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "both", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "12:00-23:00" } ] },
-        "consent": { "ai_calls": true, "app_prompts": true, "recorded_on": "2027-07-21", "recorded_by": "Join screen AI-call consent checkbox" }
+        "profile": {
+          "lang": "en",
+          "script": "Latn",
+          "reading_level": "standard",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "both",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "12:00-23:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": true,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "Join screen AI-call consent checkbox"
+        }
       },
       {
-        "id": "b_priya", "name": "Priya Raman", "relation": "neighbor", "role": "volunteer", "view": "volunteer", "phone": "+15555550207",
+        "id": "b_priya",
+        "name": "Priya Raman",
+        "relation": "neighbor",
+        "role": "volunteer",
+        "view": "volunteer",
+        "phone": "+15555550207",
         "notes": "Car with A/C, 3 passengers, can fold a manual wheelchair (not a power chair).",
-        "profile": { "lang": "en", "secondary_langs": ["ta"], "script": "Latn", "reading_level": "advanced", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "app", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "14:00-22:00" } ] },
-        "consent": { "ai_calls": false, "app_prompts": true, "recorded_on": "2027-07-21", "recorded_by": "app join" }
+        "profile": {
+          "lang": "en",
+          "secondary_langs": [
+            "ta"
+          ],
+          "script": "Latn",
+          "reading_level": "advanced",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "app",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "14:00-22:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": false,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "app join"
+        }
       },
       {
-        "id": "b_bodega", "name": "Ramírez Deli & Grocery", "relation": "corner bodega (Amsterdam side)", "role": "business", "view": null, "phone": "+15555550208",
+        "id": "b_bodega",
+        "name": "Ramírez Deli & Grocery",
+        "relation": "corner bodega (Amsterdam side)",
+        "role": "business",
+        "view": null,
+        "phone": "+15555550208",
         "notes": "~40 bags of ice on its own generator; medical needs first.",
-        "profile": { "lang": "es", "secondary_langs": ["en"], "script": "Latn", "reading_level": "standard", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "phone", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "06:00-23:00" } ] },
-        "consent": { "ai_calls": null, "app_prompts": null, "recorded_on": "2027-07-21", "recorded_by": "block line call" }
+        "profile": {
+          "lang": "es",
+          "secondary_langs": [
+            "en"
+          ],
+          "script": "Latn",
+          "reading_level": "standard",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "phone",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "06:00-23:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": null,
+          "app_prompts": null,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "block line call"
+        }
+      },
+      {
+        "id": "m_ana_w147",
+        "name": "Ana Reyes",
+        "relation": "neighbor (lives on the block; coordinates the Reyes family village)",
+        "role": "volunteer",
+        "view": "volunteer",
+        "phone": "+15555550102",
+        "notes": "Volunteer after 6 PM; can check on neighbors on her floor and carry water up. No apartment number shared.",
+        "profile": {
+          "lang": "en",
+          "secondary_langs": [
+            "es"
+          ],
+          "script": "Latn",
+          "reading_level": "advanced",
+          "vision": "typical",
+          "hearing": "typical",
+          "memory": "typical",
+          "mobility": "typical",
+          "tech_comfort": "app",
+          "availability": [
+            {
+              "days": [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun"
+              ],
+              "window": "18:00-23:00"
+            }
+          ]
+        },
+        "consent": {
+          "ai_calls": true,
+          "app_prompts": true,
+          "recorded_on": "2027-07-21",
+          "recorded_by": "app join"
+        }
       }
     ],
     "edges": [
-      { "from": "b_tanya", "to": "b_alvarez", "kind": "coordinates", "label": "checks on" },
-      { "from": "b_tanya", "to": "b_chen", "kind": "coordinates", "label": "checks on" },
-      { "from": "b_darnell", "to": "b_alvarez", "kind": "helps", "label": "generator (outdoors only)" },
-      { "from": "b_bodega", "to": "b_chen", "kind": "helps", "label": "ice for insulin" },
-      { "from": "b_priya", "to": "b_okafor", "kind": "helps", "label": "car to a cooling center" }
+      {
+        "from": "b_tanya",
+        "to": "b_alvarez",
+        "kind": "coordinates",
+        "label": "checks on"
+      },
+      {
+        "from": "b_tanya",
+        "to": "b_chen",
+        "kind": "coordinates",
+        "label": "checks on"
+      },
+      {
+        "from": "b_darnell",
+        "to": "b_alvarez",
+        "kind": "helps",
+        "label": "generator (outdoors only)"
+      },
+      {
+        "from": "b_bodega",
+        "to": "b_chen",
+        "kind": "helps",
+        "label": "ice for insulin"
+      },
+      {
+        "from": "b_priya",
+        "to": "b_okafor",
+        "kind": "helps",
+        "label": "car to a cooling center"
+      },
+      {
+        "from": "m_ana_w147",
+        "to": "b_james",
+        "kind": "helps",
+        "label": "evening check-in, water"
+      }
     ],
     "needs": [
-      { "id": "n_powered_medical_device", "text": "Oxygen concentrator without power; portable tank time uncertain", "priority": 1, "domain": "safety", "life_area": "health", "subject_member_ids": ["b_alvarez"], "source_span": { "start": 62, "end": 107 }, "origin": "description" },
-      { "id": "n_refrigerated_medication", "text": "Insulin supply warming since the fridge lost power", "priority": 2, "domain": "resources", "life_area": "health", "subject_member_ids": ["b_chen"], "source_span": { "start": 109, "end": 141 }, "origin": "description" },
-      { "id": "n_rumors", "text": "Group chat full of rumors (power ETA, cooling center, water)", "priority": 3, "domain": "information", "life_area": "information", "source_span": { "start": 147, "end": 187 }, "origin": "description" },
-      { "id": "n_infant", "text": "Newborn in a hot apartment; needs a cool place and ice", "priority": 4, "domain": "resources", "life_area": "home", "subject_member_ids": ["b_okafor"], "source_span": null, "origin": "data" },
-      { "id": "n_mobility", "text": "Residents who cannot manage stairs; power wheelchair battery low", "priority": 5, "domain": "logistics", "life_area": "daily_living", "subject_member_ids": ["b_james", "b_alvarez"], "source_span": null, "origin": "data" }
+      {
+        "id": "n_powered_medical_device",
+        "text": "Oxygen concentrator without power; portable tank time uncertain",
+        "priority": 1,
+        "domain": "safety",
+        "life_area": "health",
+        "subject_member_ids": [
+          "b_alvarez"
+        ],
+        "source_span": {
+          "start": 62,
+          "end": 107
+        },
+        "origin": "description"
+      },
+      {
+        "id": "n_refrigerated_medication",
+        "text": "Insulin supply warming since the fridge lost power",
+        "priority": 2,
+        "domain": "resources",
+        "life_area": "health",
+        "subject_member_ids": [
+          "b_chen"
+        ],
+        "source_span": {
+          "start": 109,
+          "end": 141
+        },
+        "origin": "description"
+      },
+      {
+        "id": "n_rumors",
+        "text": "Group chat full of rumors (power ETA, cooling center, water)",
+        "priority": 3,
+        "domain": "information",
+        "life_area": "information",
+        "source_span": {
+          "start": 147,
+          "end": 187
+        },
+        "origin": "description"
+      },
+      {
+        "id": "n_infant",
+        "text": "Newborn in a hot apartment; needs a cool place and ice",
+        "priority": 4,
+        "domain": "resources",
+        "life_area": "home",
+        "subject_member_ids": [
+          "b_okafor"
+        ],
+        "source_span": null,
+        "origin": "data"
+      },
+      {
+        "id": "n_mobility",
+        "text": "Residents who cannot manage stairs; power wheelchair battery low",
+        "priority": 5,
+        "domain": "logistics",
+        "life_area": "daily_living",
+        "subject_member_ids": [
+          "b_james",
+          "b_alvarez"
+        ],
+        "source_span": null,
+        "origin": "data"
+      }
     ],
-    "rules": ["emergency_911_first", "medical_priority_matching", "rumor_check", "address_privacy", "consent_before_calls"],
+    "rules": [
+      "emergency_911_first",
+      "medical_priority_matching",
+      "rumor_check",
+      "address_privacy",
+      "consent_before_calls"
+    ],
     "life_areas": [
-      { "id": "health", "label": "Health: oxygen, insulin, power", "need_ids": ["n_powered_medical_device", "n_refrigerated_medication"], "modules": ["coordinator:nb", "coordinator:ci", "volunteer:nb", "voice:block-line", "outbound:T2"], "rules": ["P-911-01", "P-MP-01", "P-MP-02", "P-MP-03"] },
-      { "id": "information", "label": "Rumors: what's true", "need_ids": ["n_rumors"], "modules": ["coordinator:vf", "resident:vf", "coordinator:src"], "rules": ["P-RU-01", "P-RU-02", "P-RU-03", "P-RU-04"] },
-      { "id": "home", "label": "Cooling: the newborn and the heat", "need_ids": ["n_infant"], "modules": ["coordinator:rb", "volunteer:rb", "resident:ci"], "rules": ["P-MP-01"] },
-      { "id": "daily_living", "label": "Stairs: wheelchair and walk-ups", "need_ids": ["n_mobility"], "modules": ["coordinator:nb", "resident:ci"], "rules": ["P-MP-01", "P-PR-02"] }
+      {
+        "id": "health",
+        "label": "Health: oxygen, insulin, power",
+        "need_ids": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication"
+        ],
+        "modules": [
+          "coordinator:nb",
+          "coordinator:ci",
+          "volunteer:nb",
+          "voice:block-line",
+          "outbound:T2"
+        ],
+        "rules": [
+          "P-911-01",
+          "P-MP-01",
+          "P-MP-02",
+          "P-MP-03"
+        ]
+      },
+      {
+        "id": "information",
+        "label": "Rumors: what's true",
+        "need_ids": [
+          "n_rumors"
+        ],
+        "modules": [
+          "coordinator:vf",
+          "resident:vf",
+          "coordinator:src"
+        ],
+        "rules": [
+          "P-RU-01",
+          "P-RU-02",
+          "P-RU-03",
+          "P-RU-04"
+        ]
+      },
+      {
+        "id": "home",
+        "label": "Cooling: the newborn and the heat",
+        "need_ids": [
+          "n_infant"
+        ],
+        "modules": [
+          "coordinator:rb",
+          "volunteer:rb",
+          "resident:ci"
+        ],
+        "rules": [
+          "P-MP-01"
+        ]
+      },
+      {
+        "id": "daily_living",
+        "label": "Stairs: wheelchair and walk-ups",
+        "need_ids": [
+          "n_mobility"
+        ],
+        "modules": [
+          "coordinator:nb",
+          "resident:ci"
+        ],
+        "rules": [
+          "P-MP-01",
+          "P-PR-02"
+        ]
+      }
     ]
   },
   "channels": {
-    "b_tanya": ["app:coordinator"],
-    "b_alvarez": ["phone_line"],
-    "b_chen": ["phone_line"],
-    "b_okafor": ["app:resident"],
-    "b_james": ["app:resident", "phone_line", "outbound_calls"],
-    "b_darnell": ["app:volunteer", "outbound_calls"],
-    "b_priya": ["app:volunteer"],
-    "b_bodega": ["phone_line"]
+    "b_tanya": [
+      "app:coordinator"
+    ],
+    "b_alvarez": [
+      "phone_line"
+    ],
+    "b_chen": [
+      "phone_line"
+    ],
+    "b_okafor": [
+      "app:resident"
+    ],
+    "b_james": [
+      "app:resident",
+      "phone_line",
+      "outbound_calls"
+    ],
+    "b_darnell": [
+      "app:volunteer",
+      "outbound_calls"
+    ],
+    "b_priya": [
+      "app:volunteer"
+    ],
+    "b_bodega": [
+      "phone_line"
+    ],
+    "m_ana_w147": [
+      "app:volunteer"
+    ]
   },
   "views": {
     "coordinator": {
@@ -103,33 +612,258 @@
       "theme": "dashboard",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "W 147th St — blackout", "subtitle": "Block coordinator" }, "children": ["al", "st", "plan", "areas", "nb", "rb", "vf", "ci", "cl", "src", "chat", "e911"] },
-        "al": { "type": "Alert", "props": { "source": "official", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No active alerts", "show_escalation_status": true } },
-        "st": { "type": "StatusGrid", "props": { "title": "Right now", "labels": ["Open needs", "Matched", "Overdue check-ins", "Unverified claims"], "binds": ["needs:open?count", "needs:matched?count", "checkins:overdue?count", "claims:topic=all?count"] } },
-        "plan": { "type": "PlanBoard", "props": { "title": "This shift", "bind": "plan:shift_today" } },
-        "nb": { "type": "NeedBoard", "props": { "title": "Needs by priority", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status", "matched_resource", "language"], "redact_for_roles": ["resident", "volunteer"], "allow_match": true } },
-        "rb": { "type": "ResourceBoard", "props": { "title": "Offered by neighbors", "bind": "resources:available", "resource_types": ["generator", "vehicle", "ice", "cooling_center"], "show_constraints": true } },
-        "vf": { "type": "VerifiedInfoFeed", "props": { "title": "Rumor check", "bind": "claims:topic=all", "topics": ["power_restoration", "cooling_centers", "water", "heat_alerts"], "trust_levels_shown": ["official", "verified_volunteer", "unverified_neighbor"], "hide_unverified_for_roles": ["resident", "volunteer"] } },
-        "ci": { "type": "CheckIn", "props": { "title": "Check-ins", "subjects": ["b_alvarez", "b_chen", "b_james", "b_okafor"], "bind": "checkins:village", "interval_minutes": 60, "escalate_after_minutes": 90, "big": false } },
-        "cl": { "type": "CallLog", "props": { "title": "Block line calls", "line_ids": ["block-line"], "bind": "calls:line=block-line", "show_policy_decisions": true, "limit": 10 } },
-        "areas": { "type": "LifeAreas", "props": { "title": "The block", "bind": "blueprint:life_areas", "areas": ["health", "information", "home", "daily_living"], "show_rules": false, "show_contacts": true } },
-        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": true, "limit": 50 } },
-        "src": { "type": "SourceCard", "props": { "source_name": "Con Edison Outage Map", "url": "https://outagemap.coned.com/", "refresh_minutes": 15 } },
-        "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": false } }
+        "s": {
+          "type": "Screen",
+          "props": {
+            "title": "W 147th St — blackout",
+            "subtitle": "Block coordinator"
+          },
+          "children": [
+            "al",
+            "st",
+            "plan",
+            "areas",
+            "nb",
+            "rb",
+            "vf",
+            "ci",
+            "cl",
+            "src",
+            "chat",
+            "e911"
+          ]
+        },
+        "al": {
+          "type": "Alert",
+          "props": {
+            "source": "official",
+            "bind": "alerts:active",
+            "severity_levels": [
+              "danger",
+              "warn"
+            ],
+            "dismissible": false,
+            "empty_text": "No active alerts",
+            "show_escalation_status": true
+          }
+        },
+        "st": {
+          "type": "StatusGrid",
+          "props": {
+            "title": "Right now",
+            "labels": [
+              "Open needs",
+              "Matched",
+              "Overdue check-ins",
+              "Unverified claims"
+            ],
+            "binds": [
+              "needs:open?count",
+              "needs:matched?count",
+              "checkins:overdue?count",
+              "claims:topic=all?count"
+            ]
+          }
+        },
+        "plan": {
+          "type": "PlanBoard",
+          "props": {
+            "title": "This shift",
+            "bind": "plan:shift_today"
+          }
+        },
+        "nb": {
+          "type": "NeedBoard",
+          "props": {
+            "title": "Needs by priority",
+            "bind": "needs:open",
+            "priority_order": [
+              "powered_medical_device",
+              "refrigerated_medication",
+              "infant",
+              "mobility",
+              "other"
+            ],
+            "show_fields": [
+              "need_type",
+              "priority",
+              "status",
+              "matched_resource",
+              "language"
+            ],
+            "redact_for_roles": [
+              "resident",
+              "volunteer"
+            ],
+            "allow_match": true
+          }
+        },
+        "rb": {
+          "type": "ResourceBoard",
+          "props": {
+            "title": "Offered by neighbors",
+            "bind": "resources:available",
+            "resource_types": [
+              "generator",
+              "vehicle",
+              "ice",
+              "cooling_center"
+            ],
+            "show_constraints": true
+          }
+        },
+        "vf": {
+          "type": "VerifiedInfoFeed",
+          "props": {
+            "title": "Rumor check",
+            "bind": "claims:topic=all",
+            "topics": [
+              "power_restoration",
+              "cooling_centers",
+              "water",
+              "heat_alerts"
+            ],
+            "trust_levels_shown": [
+              "official",
+              "verified_volunteer",
+              "unverified_neighbor"
+            ],
+            "hide_unverified_for_roles": [
+              "resident",
+              "volunteer"
+            ]
+          }
+        },
+        "ci": {
+          "type": "CheckIn",
+          "props": {
+            "title": "Check-ins",
+            "subjects": [
+              "b_alvarez",
+              "b_chen",
+              "b_james",
+              "b_okafor"
+            ],
+            "bind": "checkins:village",
+            "interval_minutes": 60,
+            "escalate_after_minutes": 90,
+            "big": false
+          }
+        },
+        "cl": {
+          "type": "CallLog",
+          "props": {
+            "title": "Block line calls",
+            "line_ids": [
+              "block-line"
+            ],
+            "bind": "calls:line=block-line",
+            "show_policy_decisions": true,
+            "limit": 10
+          }
+        },
+        "areas": {
+          "type": "LifeAreas",
+          "props": {
+            "title": "The block",
+            "bind": "blueprint:life_areas",
+            "areas": [
+              "health",
+              "information",
+              "home",
+              "daily_living"
+            ],
+            "show_rules": false,
+            "show_contacts": true
+          }
+        },
+        "chat": {
+          "type": "VillageChat",
+          "props": {
+            "bind": "chat:village",
+            "composer": true,
+            "title": "Block chat",
+            "mention_label": "@Village",
+            "allow_approve": true,
+            "limit": 50
+          }
+        },
+        "src": {
+          "type": "SourceCard",
+          "props": {
+            "source_name": "Con Edison Outage Map",
+            "url": "https://outagemap.coned.com/",
+            "refresh_minutes": 15
+          }
+        },
+        "e911": {
+          "type": "ContactCard",
+          "props": {
+            "name": "911",
+            "label": "Life-threatening: call 911 first",
+            "phone": "911",
+            "kind": "emergency",
+            "big": false
+          }
+        }
       },
       "needs_served": {
-        "al": ["n_safety", "n_rumors"],
-        "st": ["n_powered_medical_device", "n_refrigerated_medication", "n_rumors"],
-        "plan": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "nb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "rb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "vf": ["n_rumors"],
-        "ci": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "cl": ["n_powered_medical_device", "n_refrigerated_medication"],
-        "src": ["n_rumors"],
-        "areas": ["n_powered_medical_device", "n_refrigerated_medication", "n_rumors", "n_infant", "n_mobility"],
-        "chat": ["n_safety"],
-        "e911": ["n_safety"]
+        "al": [
+          "n_safety",
+          "n_rumors"
+        ],
+        "st": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_rumors"
+        ],
+        "plan": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "nb": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "rb": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "vf": [
+          "n_rumors"
+        ],
+        "ci": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "cl": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication"
+        ],
+        "src": [
+          "n_rumors"
+        ],
+        "areas": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_rumors",
+          "n_infant",
+          "n_mobility"
+        ],
+        "chat": [
+          "n_safety"
+        ],
+        "e911": [
+          "n_safety"
+        ]
       }
     },
     "resident": {
@@ -137,19 +871,106 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "W 147th St — what to do now" }, "children": ["al", "ci", "vf", "chat", "e911"] },
-        "al": { "type": "Alert", "props": { "source": "official", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No official alerts right now" } },
-        "ci": { "type": "CheckIn", "props": { "title": "Are you OK?", "subjects": ["b_okafor", "b_james"], "bind": "checkins:village", "interval_minutes": 60, "escalate_after_minutes": 90, "big": true } },
-        "vf": { "type": "VerifiedInfoFeed", "props": { "title": "Checked facts", "bind": "claims:topic=all", "topics": ["power_restoration", "cooling_centers", "water", "heat_alerts"], "trust_levels_shown": ["official", "verified_volunteer"], "hide_unverified_for_roles": ["resident", "volunteer"] } },
-        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } },
-        "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": true } }
+        "s": {
+          "type": "Screen",
+          "props": {
+            "title": "W 147th St — what to do now"
+          },
+          "children": [
+            "al",
+            "ci",
+            "vf",
+            "chat",
+            "e911"
+          ]
+        },
+        "al": {
+          "type": "Alert",
+          "props": {
+            "source": "official",
+            "bind": "alerts:active",
+            "severity_levels": [
+              "danger",
+              "warn"
+            ],
+            "dismissible": false,
+            "empty_text": "No official alerts right now"
+          }
+        },
+        "ci": {
+          "type": "CheckIn",
+          "props": {
+            "title": "Are you OK?",
+            "subjects": [
+              "b_okafor",
+              "b_james"
+            ],
+            "bind": "checkins:village",
+            "interval_minutes": 60,
+            "escalate_after_minutes": 90,
+            "big": true
+          }
+        },
+        "vf": {
+          "type": "VerifiedInfoFeed",
+          "props": {
+            "title": "Checked facts",
+            "bind": "claims:topic=all",
+            "topics": [
+              "power_restoration",
+              "cooling_centers",
+              "water",
+              "heat_alerts"
+            ],
+            "trust_levels_shown": [
+              "official",
+              "verified_volunteer"
+            ],
+            "hide_unverified_for_roles": [
+              "resident",
+              "volunteer"
+            ]
+          }
+        },
+        "chat": {
+          "type": "VillageChat",
+          "props": {
+            "bind": "chat:village",
+            "composer": true,
+            "title": "Block chat",
+            "mention_label": "@Village",
+            "allow_approve": false,
+            "limit": 50
+          }
+        },
+        "e911": {
+          "type": "ContactCard",
+          "props": {
+            "name": "911",
+            "label": "Life-threatening: call 911 first",
+            "phone": "911",
+            "kind": "emergency",
+            "big": true
+          }
+        }
       },
       "needs_served": {
-        "al": ["n_safety"],
-        "ci": ["n_infant", "n_mobility"],
-        "vf": ["n_rumors"],
-        "chat": ["n_safety"],
-        "e911": ["n_safety"]
+        "al": [
+          "n_safety"
+        ],
+        "ci": [
+          "n_infant",
+          "n_mobility"
+        ],
+        "vf": [
+          "n_rumors"
+        ],
+        "chat": [
+          "n_safety"
+        ],
+        "e911": [
+          "n_safety"
+        ]
       }
     },
     "volunteer": {
@@ -157,49 +978,249 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Who needs help first" }, "children": ["al", "nb", "plan", "rb", "chat", "e911"] },
-        "al": { "type": "Alert", "props": { "source": "coordinator", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No requests for you right now", "show_escalation_status": true } },
-        "nb": { "type": "NeedBoard", "props": { "title": "Open needs (by priority)", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status"], "redact_for_roles": ["resident", "volunteer"], "allow_match": false } },
-        "plan": { "type": "PlanBoard", "props": { "title": "This shift", "bind": "plan:shift_today" } },
-        "rb": { "type": "ResourceBoard", "props": { "title": "What neighbors offered", "bind": "resources:available", "resource_types": ["generator", "vehicle", "ice", "cooling_center"], "show_constraints": true } },
-        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } },
-        "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": false } }
+        "s": {
+          "type": "Screen",
+          "props": {
+            "title": "Who needs help first"
+          },
+          "children": [
+            "al",
+            "nb",
+            "plan",
+            "rb",
+            "chat",
+            "e911"
+          ]
+        },
+        "al": {
+          "type": "Alert",
+          "props": {
+            "source": "coordinator",
+            "bind": "alerts:active",
+            "severity_levels": [
+              "danger",
+              "warn"
+            ],
+            "dismissible": false,
+            "empty_text": "No requests for you right now",
+            "show_escalation_status": true
+          }
+        },
+        "nb": {
+          "type": "NeedBoard",
+          "props": {
+            "title": "Open needs (by priority)",
+            "bind": "needs:open",
+            "priority_order": [
+              "powered_medical_device",
+              "refrigerated_medication",
+              "infant",
+              "mobility",
+              "other"
+            ],
+            "show_fields": [
+              "need_type",
+              "priority",
+              "status"
+            ],
+            "redact_for_roles": [
+              "resident",
+              "volunteer"
+            ],
+            "allow_match": false
+          }
+        },
+        "plan": {
+          "type": "PlanBoard",
+          "props": {
+            "title": "This shift",
+            "bind": "plan:shift_today"
+          }
+        },
+        "rb": {
+          "type": "ResourceBoard",
+          "props": {
+            "title": "What neighbors offered",
+            "bind": "resources:available",
+            "resource_types": [
+              "generator",
+              "vehicle",
+              "ice",
+              "cooling_center"
+            ],
+            "show_constraints": true
+          }
+        },
+        "chat": {
+          "type": "VillageChat",
+          "props": {
+            "bind": "chat:village",
+            "composer": true,
+            "title": "Block chat",
+            "mention_label": "@Village",
+            "allow_approve": false,
+            "limit": 50
+          }
+        },
+        "e911": {
+          "type": "ContactCard",
+          "props": {
+            "name": "911",
+            "label": "Life-threatening: call 911 first",
+            "phone": "911",
+            "kind": "emergency",
+            "big": false
+          }
+        }
       },
       "needs_served": {
-        "al": ["n_safety"],
-        "nb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "rb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "chat": ["n_safety"],
-        "plan": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
-        "e911": ["n_safety"]
+        "al": [
+          "n_safety"
+        ],
+        "nb": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "rb": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "chat": [
+          "n_safety"
+        ],
+        "plan": [
+          "n_powered_medical_device",
+          "n_refrigerated_medication",
+          "n_infant",
+          "n_mobility"
+        ],
+        "e911": [
+          "n_safety"
+        ]
       }
     }
   },
   "policies": [
-    { "rule_id": "P-911-01", "params": {} },
-    { "rule_id": "P-911-02", "params": {} },
-    { "rule_id": "P-MP-01", "params": { "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"] } },
-    { "rule_id": "P-MP-02", "params": { "generator_constraint": "outdoors only" } },
-    { "rule_id": "P-MP-03", "params": {} },
-    { "rule_id": "P-RU-01", "params": {} },
-    { "rule_id": "P-RU-02", "params": { "freshness_min": 30 } },
-    { "rule_id": "P-RU-03", "params": {} },
-    { "rule_id": "P-RU-04", "params": { "volunteer_report_ttl_h": 2 } },
-    { "rule_id": "P-PR-01", "params": {} },
-    { "rule_id": "P-PR-02", "params": {} },
-    { "rule_id": "P-CO-01", "params": {} }
+    {
+      "rule_id": "P-911-01",
+      "params": {}
+    },
+    {
+      "rule_id": "P-911-02",
+      "params": {}
+    },
+    {
+      "rule_id": "P-MP-01",
+      "params": {
+        "priority_order": [
+          "powered_medical_device",
+          "refrigerated_medication",
+          "infant",
+          "mobility",
+          "other"
+        ]
+      }
+    },
+    {
+      "rule_id": "P-MP-02",
+      "params": {
+        "generator_constraint": "outdoors only"
+      }
+    },
+    {
+      "rule_id": "P-MP-03",
+      "params": {}
+    },
+    {
+      "rule_id": "P-RU-01",
+      "params": {}
+    },
+    {
+      "rule_id": "P-RU-02",
+      "params": {
+        "freshness_min": 30
+      }
+    },
+    {
+      "rule_id": "P-RU-03",
+      "params": {}
+    },
+    {
+      "rule_id": "P-RU-04",
+      "params": {
+        "volunteer_report_ttl_h": 2
+      }
+    },
+    {
+      "rule_id": "P-PR-01",
+      "params": {}
+    },
+    {
+      "rule_id": "P-PR-02",
+      "params": {}
+    },
+    {
+      "rule_id": "P-CO-01",
+      "params": {}
+    }
   ],
   "voice_lines": [
-    { "agent": "block-line", "member_ids": ["b_alvarez", "b_chen", "b_james", "b_bodega"], "languages": ["es", "zh", "en"], "tools": ["report_need", "offer_resource", "check_rumor", "check_in_ok"], "escalation_targets": ["b_tanya"] }
+    {
+      "agent": "block-line",
+      "member_ids": [
+        "b_alvarez",
+        "b_chen",
+        "b_james",
+        "b_bodega"
+      ],
+      "languages": [
+        "es",
+        "zh",
+        "en"
+      ],
+      "tools": [
+        "report_need",
+        "offer_resource",
+        "check_rumor",
+        "check_in_ok"
+      ],
+      "escalation_targets": [
+        "b_tanya"
+      ]
+    }
   ],
   "printables": [],
   "custom_components": [],
   "official_sources": [
-    { "topic": "cooling_centers", "name": "NYC Cooling Center Finder", "url": "https://finder.nyc.gov/coolingcenters/" },
-    { "topic": "power_restoration", "name": "Con Edison Outage Map", "url": "https://outagemap.coned.com/" },
-    { "topic": "heat_alerts", "name": "NWS active alerts API (NY)", "url": "https://api.weather.gov/alerts/active?area=NY" },
-    { "topic": "water", "name": "NYC DEP — Drinking Water", "url": "https://www.nyc.gov/site/dep/water/drinking-water.page" },
-    { "topic": "water", "name": "Notify NYC", "url": "https://a858-nycnotify.nyc.gov/" }
+    {
+      "topic": "cooling_centers",
+      "name": "NYC Cooling Center Finder",
+      "url": "https://finder.nyc.gov/coolingcenters/"
+    },
+    {
+      "topic": "power_restoration",
+      "name": "Con Edison Outage Map",
+      "url": "https://outagemap.coned.com/"
+    },
+    {
+      "topic": "heat_alerts",
+      "name": "NWS active alerts API (NY)",
+      "url": "https://api.weather.gov/alerts/active?area=NY"
+    },
+    {
+      "topic": "water",
+      "name": "NYC DEP — Drinking Water",
+      "url": "https://www.nyc.gov/site/dep/water/drinking-water.page"
+    },
+    {
+      "topic": "water",
+      "name": "Notify NYC",
+      "url": "https://a858-nycnotify.nyc.gov/"
+    }
   ],
   "refusals": []
 }
