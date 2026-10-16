@@ -17,8 +17,22 @@
      }
     ],
     "built_in_tools": {
-     "end_call": {},
-     "language_detection": {}
+     "end_call": {
+      "type": "system",
+      "name": "end_call",
+      "description": "",
+      "params": {
+       "system_tool_type": "end_call"
+      }
+     },
+     "language_detection": {
+      "type": "system",
+      "name": "language_detection",
+      "description": "",
+      "params": {
+       "system_tool_type": "language_detection"
+      }
+     }
     }
    },
    "dynamic_variables": {
