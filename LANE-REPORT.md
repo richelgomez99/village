@@ -432,7 +432,14 @@ Core asks (V2b): send `member:<id>` (bv_person with `phone`) for every call targ
 
 
 ## core-glue
-READY FOR MERGE CORE-GLUE-2
+READY FOR MERGE CORE-GLUE-3
+Round 3 (contract 1.3.0, main e818871 merged): `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake VILLAGE_LLM=off uv run pytest -q` → 378 passed, 1 failed = `core/release/tests/test_units.py::test_template_catalog_matches_contract`, which fails identically on main (release template catalog lacks the 1.3.0 types; not this lane). Tests: `core/tests/test_core_glue3.py` (5).
+G3-1 view_binds · done · binds are read generically from every element's `props.bind` (RightNow/WhatVillageDid/SinceYourTurn/PlanBoard/ScreenedCalls/FactCard need no code); the Control Room gets the union of all its village's view binds · none
+G3-2 plan:<id> · done · `-k plan` · `bv_plan {title, date, items}` from `core.builder.chat_intent.plan_data(village, plan_id)`, else an Evolve proposal record's `plan`, else `{items: []}`; items get `status: open` by default; app action `claim_plan_item {plan_id, index, status?, owner?}` updates the item and re-sends the snapshot to every socket whose view binds that plan · claims are in-memory
+G3-3 calls:screened · done · `-k screened` · `bv_screened_calls` from receptionist verifications (`origin: screen_caller`: pending→held, confirmed→passed_through, denied/timed_out/unreachable→refused, `verified_by` = the claimed member once answered, `say` from the screen_caller answer) plus cached screen_caller answers that resolved without a verification (known caller put through, refused); newest first, ≤12; `changed()` adds it on every verification event of a screened call · source is the tool answers + verification rows (no separate decision-row query)
+G3-4 facts:history?subject=&key= · done · `-k history` · snapshot serves the ledger fallback immediately (matching events + prescription history, `degraded: true`); on connect Core fetches `core.memory.views.history_view` (4 s timeout), caches it and re-sends the snapshot to sockets that bind it when it differs · memory off in tests (fake history_view)
+G3-5 rounds:latest / events:since_last_turn · done (round 2) · now also served whenever a view binds them
+Round 2:
 Round 2 (after `git merge main` at 12:59, contract 1.2.2): suite 369 passed (`--import-mode=importlib`), `./acceptance/v2.sh` 17/17 PASS. Tests: `core/tests/test_core_glue2.py`.
 G2-1 rounds:latest · done · `-k rounds_latest` · coordinator + control snapshots: `{night, counts{acted_alone,asked_human,refused}, rows[{at,role,text,mode,decision_id}]}` from `core.watcher` LATEST / var file; `{}` when no round · none
 G2-2 events:since_last_turn?member=me · done · `-k since_last_turn` · helper snapshots: ≤3 newest lines `{at, text{en,es}}` since that member's last shift end (21:30 of their previous shift date, else 24 h): check-in answered (ack), scam call stopped (verification_denied/timeout), dose taken, "<relationship word> asked you to call tonight" (ask_family decisions); words from spec relationship_words · ask_family line depends on the decision row naming the member

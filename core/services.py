@@ -712,6 +712,16 @@ async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> 
         return {"type": "result", "req_id": req_id, "ok": True, "decision": {"decision": "allow", "data": {"action": name}}}
     if name in {"approve_proposal", "reject_proposal"}:
         return await approve_proposal(village_id, name, request)
+    if name == "claim_plan_item":
+        from core.bindings_v3 import set_plan_item
+
+        body = {**request, **(request.get("payload") or {})}
+        try:
+            plan = await set_plan_item(village_id, str(body.get("plan_id") or body.get("arg") or ""), int(body.get("index", -1)),
+                                       status=body.get("status") or "claimed", owner=body.get("owner") or member_id)
+        except (IndexError, ValueError):
+            return {"type": "result", "req_id": req_id, "ok": False, "error": "no such plan item"}
+        return {"type": "result", "req_id": req_id, "ok": True, "decision": {"decision": "allow", "data": {"items": len(plan["items"])}}}
     if name == "ask_proposal_other":
         from core.proposal_ask import ask_other
 

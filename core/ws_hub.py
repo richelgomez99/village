@@ -12,6 +12,7 @@ from core.db import db
 from core.settings import CONTRACT_VERSION
 
 
+_TASKS: set[Any] = set()
 VILLAGE_KEYED = {"reasoning", "caption", "ledger", "blueprint"}  # control kinds whose payload schema allows `village`
 
 
@@ -50,6 +51,12 @@ class Hub:
 
             await self._send(client, {"type": "control", "kind": "counter", "at": clock.now().isoformat(),
                                       "payload": {"name": "scams_stopped", "value": scams_stopped_today(village), "label": "scams stopped today"}})
+        if any(b.startswith("facts:history?") for b in self.binds_of(client)):
+            import asyncio
+
+            task = asyncio.get_running_loop().create_task(self._refresh_histories(client))
+            _TASKS.add(task)
+            task.add_done_callback(_TASKS.discard)
         return client
 
     def disconnect(self, ws: WebSocket) -> None:
@@ -75,6 +82,29 @@ class Hub:
             await client.ws.send_json(frame)
         except Exception:
             self.disconnect(client.ws)
+
+    def binds_of(self, client: Client) -> set[str]:
+        from core.bindings import all_view_binds, view_binds
+
+        return all_view_binds(client.village) if client.role == "control" else view_binds(client.role, client.village)
+
+    async def push_binds(self, village: str, keys: set[str]) -> None:
+        """Bound data changed outside an event (plan item claimed, memory history arrived): re-send the snapshot
+        to every socket of that village whose view binds one of `keys`."""
+        for client in list(self.clients):
+            if client.village == village and self.binds_of(client) & keys:
+                await self._send(client, snapshot(village, client.role, client.member_id, view_as=client.view_as))
+
+    async def _refresh_histories(self, client: Client) -> None:
+        from core.bindings_v3 import parse_history_bind, refresh_history
+
+        changed_keys = set()
+        for bind in self.binds_of(client):
+            hist = parse_history_bind(bind)
+            if hist and await refresh_history(client.village, *hist):
+                changed_keys.add(bind)
+        if changed_keys:
+            await self.push_binds(client.village, changed_keys)
 
     async def broadcast_event(self, event: dict[str, Any]) -> None:
         for client in list(self.clients):
