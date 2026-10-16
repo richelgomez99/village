@@ -534,7 +534,12 @@
           "status": "done"
         },
         {
-          "text": "Ice + cooler from Ramírez Deli to Mr. Chen",
+          "text": "Four bags of ice from Ramírez Deli to Mr. Chen (the deli sends someone)",
+          "owner": "b_bodega",
+          "status": "done"
+        },
+        {
+          "text": "Cooler to Mr. Chen, meet the deli's runner",
           "owner": "b_priya",
           "status": "done"
         },

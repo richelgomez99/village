@@ -1,7 +1,7 @@
 {
   "contract_version": "1.3.4",
   "village": "v_w147",
-  "description": "Village chat rows (D16, message.schema.json) for the West 147th block village, chronological, from the release receipt to the start of the demo (~14:00). Village is a participant (D39): it reports what it did with source chips, answers @Village questions with the official source and the time it was checked, asks the people concerned by name (one pending ask to Priya), and never repeats a rumor as fact. Volunteer and resident replies prefixed [demo] are played by demo actors (D38) and carry a visible demo tag. Load after events_w147_seed.json; core seeds rows before the contract clock's 14:02.",
+  "description": "Village chat rows (D16, message.schema.json) for the West 147th block village, chronological, from the release receipt to the start of the demo (~14:00). Village is a participant (D39): it reports what it did with source chips, answers @Village questions with the official source and the time it was checked, asks the people concerned by name (one pending ask to Priya), and never repeats a rumor as fact. Volunteer, resident and deli replies prefixed [demo] are played by demo actors (D38) and carry a visible demo tag. Load after events_w147_seed.json; core seeds rows before the contract clock's 14:02.",
   "clients_that_see_it": [
     "tanya",
     "darnell",
@@ -180,13 +180,29 @@
       "at": "2026-10-16T12:41:05-04:00"
     },
     {
+      "id": "msg_1016_1242_deli",
+      "village": "v_w147",
+      "author": "b_bodega",
+      "kind": "chat",
+      "text": "[demo] Ramírez Deli here. We'll send someone up with four bags of ice for Mr. Chen in fifteen minutes. Medical needs first, no charge.",
+      "mention": null,
+      "reply_to": "msg_1016_1241_chen",
+      "refs": [],
+      "routed": "none",
+      "source": {
+        "kind": "app",
+        "ref": "b_bodega"
+      },
+      "at": "2026-10-16T12:42:10-04:00"
+    },
+    {
       "id": "msg_1016_1243_priya",
       "village": "v_w147",
       "author": "b_priya",
       "kind": "chat",
-      "text": "[demo] Yes. Grabbing the ice now, back by 1:15.",
+      "text": "[demo] I'll bring a cooler and meet them at Mr. Chen's. Back by 1:15.",
       "mention": null,
-      "reply_to": null,
+      "reply_to": "msg_1016_1241_chen",
       "refs": [],
       "routed": "none",
       "source": {
@@ -221,7 +237,7 @@
       "village": "v_w147",
       "author": "village",
       "kind": "nudge",
-      "text": "Ice and a cooler are with Mr. Chen (Priya, 1:25). I can't say whether the insulin is still good; his grandson is asking the pharmacist.",
+      "text": "Four bags of ice from Ramírez Deli and Priya's cooler are with Mr. Chen (1:25). I can't say whether the insulin is still good; his grandson is asking the pharmacist.",
       "mention": null,
       "reply_to": null,
       "refs": [
@@ -229,6 +245,11 @@
           "kind": "event",
           "id": "ev_1016_1325_ack_chen",
           "label": "he tapped Got it"
+        },
+        {
+          "kind": "member",
+          "id": "b_bodega",
+          "label": "the deli said so at 12:42"
         }
       ],
       "source": {
