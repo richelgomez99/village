@@ -10,6 +10,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
+        globIgnores: ["**/slides.html", "**/hero/**"],
         navigateFallbackDenylist: [
           /^\/ws/,
           /^\/v\//,
