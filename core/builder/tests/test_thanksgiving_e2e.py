@@ -46,6 +46,11 @@ def test_ops_land_in_the_right_place() -> None:
 def test_e2e_on_core_app() -> None:
     os.environ["VILLAGE_EVOLVE_RELEASE"] = "fake"
     os.environ.setdefault("VILLAGE_LLM", "off")
+    os.environ["SURREAL_DB_URL"] = ""  # never write test rows to the shared SurrealDB Cloud instance
+    from core.settings import get_settings
+
+    get_settings.cache_clear()
+    assert not get_settings().surreal_db_url
     from fastapi.testclient import TestClient
 
     from core.app import app
