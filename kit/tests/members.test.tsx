@@ -185,7 +185,7 @@ describe("rounds:latest absent or empty", () => {
   });
 });
 
-describe("1.3.3 catalog types", () => {
+describe("1.3.4 catalog types", () => {
   const v = (elements: Record<string, unknown>, children: string[]) => ({ lang: "en", theme: "dashboard", root: "s", elements: { s: { type: "Screen", props: { title: "T" }, children }, ...elements } });
   it("PlanBoard, ScreenedCalls, FactCard (written by + caption) render from their binds, names not ids", () => {
     const { container } = renderView(v({

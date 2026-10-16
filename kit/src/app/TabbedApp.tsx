@@ -54,7 +54,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
   const homeHistory = yesItems.filter((id) => !inHistory.has(id) && !needsYes.includes(id) && !boundEmpty(ctx, id, false));
   const alerts = plan.attention.filter((id) => ctx.view.elements[id].type === "Alert");
   const has = (t: string) => Object.values(ctx.view.elements).some((e) => e.type === t);
-  // the shell composes a block only when the view doesn't already carry its 1.3.3 element
+  // the shell composes a block only when the view doesn't already carry its 1.3.4 element
   // a one-glance strip leads (above alerts); any other headline follows the asks
   const heroFirst = !!plan.headline && ctx.view.elements[plan.headline]?.type === "RightNow";
   const lines = has("RightNow") ? [] : rightNowLines(ctx.data, ctx.nowMs(), ctx.lang);

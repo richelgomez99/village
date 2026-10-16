@@ -298,7 +298,7 @@ interface RefillItem {
   med_id?: string; name: string; dose_mg?: number; dose_text?: string; schedule: string[]; valid_from: string; changed_by?: string;
   superseded?: { dose_text: string; valid_until: string }; source_label?: unknown;
 }
-/** bv_prescriptions (contract 1.3.3, D22). */
+/** bv_prescriptions (contract 1.3.4, D22). */
 export interface Prescriptions { subject?: string; refill_day: string; next_refill?: string; owner_member_id: string; owner_name?: string; items: RefillItem[] }
 
 const WEEKDAY_LONG: Record<string, Record<string, string>> = {

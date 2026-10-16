@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "1.3.3" as const;
+export const CONTRACT_VERSION = "1.3.4" as const;
 
 const localized = z.union([z.string(), z.record(z.string(), z.string())]);
 
@@ -75,6 +75,6 @@ export interface ClientHello {
   member_token: string;
   last_rev?: number;
   client: ClientName;
-  /** D21 View-as (contract 1.3.3 hello.view_as). */
+  /** D21 View-as (contract 1.3.4 hello.view_as). */
   view_as?: string;
 }
