@@ -20,6 +20,7 @@ from core.routes.join import router as join_router
 from core.routes.messages import router as messages_router
 from core.routes.tools import router as tools_router
 from core.routes.verifications import router as verifications_router
+from core.routes.villages import router as villages_router
 from core.routes.ws import router as ws_router
 from core.scheduler import recover, tick
 from core.settings import CONTRACT_VERSION, get_settings
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.contract_version = CONTRACT_VERSION
     app.state.clock_offset_minutes = 0
+    app.state.tracing = _tracing_start()
     await reset_demo()
     memory = await _memory_start()
     await start_live()
@@ -54,6 +56,17 @@ async def lifespan(app: FastAPI):
     if memory:
         await memory.stop()
     await stop_live()
+
+
+def _tracing_start() -> str:
+    """Arize register once at boot when ARIZE_SPACE_ID/ARIZE_API_KEY exist (no-op otherwise; never raises)."""
+    try:
+        from core.obs.tracing import init_tracing
+
+        return init_tracing()
+    except Exception:
+        log.exception("tracing init failed")
+        return "noop"
 
 
 async def _memory_start():
@@ -120,6 +133,7 @@ for _router in (
     messages_router,
     join_router,
     admin_router,
+    villages_router,
 ):
     app.include_router(_router)
 

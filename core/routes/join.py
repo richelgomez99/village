@@ -4,7 +4,7 @@ import unicodedata
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
-from core.auth import resolve_token
+from core.auth import register_token, resolve_token
 from core.db import db
 from core.settings import get_settings
 
@@ -54,10 +54,50 @@ async def qr(village_id: str, request: Request, kind: str = "app", member: str |
     return rows
 
 
+async def _builder_redeem(body: dict) -> dict | None:
+    """Invites minted by the builder's activate (hashed at rest there). Returns None when the builder
+    doesn't know the invite either; re-raises its 409 (already used)."""
+    try:
+        from core.builder.routes import redeem as builder_redeem
+    except Exception:
+        return None
+    try:
+        out = await builder_redeem(body)
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            return None
+        raise
+    village_id, member_id = out["village"], out["member_id"]
+    spec = db.specs.get(village_id) or {}
+    person = next((dict(p) for p in spec.get("blueprint", {}).get("people", []) if p.get("id") == member_id), {"id": member_id})
+    phone = body.get("phone")
+    if isinstance(phone, str) and phone.startswith("+") and phone[1:].isdigit():
+        person["phone"] = phone  # the judge's phone is the real call target (D11)
+        for p in spec.get("blueprint", {}).get("people", []):
+            if p.get("id") == member_id:
+                p["phone"] = phone
+    existing = db.members.get(member_id)
+    if existing is None or existing.get("village") == village_id:
+        await db.upsert_record("member", member_id, {**(existing or {}), "village": village_id, **person})
+    register_token(out["member_token"], member_id, village_id)
+    if out.get("consent_event"):
+        try:
+            await db.create_event(out["consent_event"])
+        except Exception:
+            pass
+    token = out["member_token"]
+    return {"member_id": member_id, "member_token": token, "village": village_id,
+            "app_url": f"./?m={token}&village={village_id}", "role": person.get("view"),
+            **({"consent_event": out["consent_event"]} if out.get("consent_event") else {})}
+
+
 @router.post("/auth/redeem")
 async def redeem(body: dict) -> dict:
     member_id = _member_for_invite(str(body.get("invite") or ""))
     if member_id is None or member_id == "control":
+        handed = await _builder_redeem(body)
+        if handed is not None:
+            return handed
         raise HTTPException(status_code=404, detail="unknown invite")
     person = dict(db.members.get(member_id, {}))
     consent = dict(person.get("consent", {}))

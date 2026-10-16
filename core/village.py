@@ -8,6 +8,8 @@ No member names or ids are hardcoded in core/; callers pass `village_id` and mem
 from __future__ import annotations
 
 import json
+import os as _os
+import re as _re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -268,3 +270,39 @@ def state_from_spec(
     if qh:
         state["quiet_hours"] = qh
     return state
+
+
+# ---- phones (D30: from the live member row / spec / env, never literals) ----
+
+
+_E164 = _re.compile(r"^\+[1-9][0-9]{6,14}$")
+
+
+def e164(value: Any) -> str | None:
+    return value if isinstance(value, str) and _E164.match(value) else None
+
+
+def village_number(village_id: str | None = None) -> str | None:
+    """The Village line: VILLAGE_PHONE_NUMBER env, else the spec's fridge card `village_number` when it is E.164."""
+    env = e164((_os.environ.get("VILLAGE_PHONE_NUMBER") or "").strip())
+    if env:
+        return env
+    for pr in spec(village_id).get("printables", []):
+        if pr.get("kind") == "fridge_card" and e164(pr.get("village_number")):
+            return pr["village_number"]
+    return spec(village_id).get("village", {}).get("village_number") if e164(spec(village_id).get("village", {}).get("village_number")) else None
+
+
+def member_phone(village_id: str | None, member_id: str | None) -> str | None:
+    """Real call target: the live member row (a redeemed judge's phone overrides, D11), else the spec person."""
+    if not member_id:
+        return None
+    try:
+        from core.db import db
+
+        row = db.members.get(member_id) or {}
+        if row.get("village", village_id) == village_id and e164(row.get("phone")):
+            return row["phone"]
+    except Exception:  # pragma: no cover
+        pass
+    return e164((person(village_id, member_id) or {}).get("phone"))
