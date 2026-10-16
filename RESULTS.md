@@ -54,3 +54,12 @@
 ## Platform (D30 sweep, 12:30)
 - `grep -ri -E "carmen|marco|lucia|reyes" core --exclude-dir=tests` → 0 hits outside `core/watcher/fixtures/` (was 231 in 35 files). `data/villages/index.json` lists villages; `core/village.py` resolves people/roles/rules from the spec. One Core serves both villages (`/ws?village=v_w147&m=b_tanya` → Tanya's coordinator view; `v_reyes` → Familia Reyes). Two-village gate test: P-QH-01 suppresses a 21:50 reminder for Reyes (quiet hours 21:30–07:00), not for the block; R-MONEY-DEFAULT names each village's own coordinator. 249 tests.
 - Voice: ElevenLabs mom-line calls failed instantly twice ("Missing required dynamic variables in first message") because the init webhook was not mounted on Core (405 at /) → webhooks grafted onto Core at /hooks/elevenlabs/{init,post-call}; agent now has default dynamic variables so a webhook failure can never drop a call.
+
+## Evolve / live rebuild (evolve lane, 12:20; Core on 8793)
+| Step | fakes | real pipeline (Daytona + Anchor + evals) |
+|---|---|---|
+| verification resolved → proposal (auto trigger, incl. 2 s delay) | 2169 ms | 2166 ms |
+| **Ana's yes → every phone patched** | 108 ms | **7705 ms** (first run 13381 ms) |
+| release inside that | 36 ms | 7632 ms (build 2065, floor tests 1180, Anchor 4106) |
+| consider_options, model on | n/a | 5221 ms |
+- Options weighed: "¿Es de verdad?" button (rejected: relies on her remembering under pressure), daily check-in call (helps; doesn't stop the call), **receptionist on her line** (chosen). Proposal validates against the contract with 5 evidence rows (Oct 9 + today). Receipt tests stage: "Scored on 52 calls (last night's included)" (50 base + 2 village). New voice tool `screen_caller` (hold → verify with the real member → refuse).
