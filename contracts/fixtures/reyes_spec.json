@@ -31,7 +31,7 @@
           "reading_level": "simple", "vision": "reduced", "hearing": "typical", "memory": "mild_lapses", "mobility": "typical",
           "tech_comfort": "phone",
           "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "07:00-22:30" } ],
-          "quiet_hours": "22:30-07:00",
+          "quiet_hours": "21:30-07:00",
           "notes": "Switches to Spanish when tired or upset, usually after 7pm."
         },
         "consent": {
@@ -190,7 +190,7 @@
     { "rule_id": "P-CO-01", "params": {} },
     { "rule_id": "P-911-01", "params": {} },
     { "rule_id": "P-911-02", "params": {} },
-    { "rule_id": "P-QH-01", "params": { "quiet_hours": "22:30-07:00" }, "applies_to_member_ids": ["m_carmen"] },
+    { "rule_id": "P-QH-01", "params": { "quiet_hours": "21:30-07:00" }, "applies_to_member_ids": ["m_carmen"] },
     { "rule_id": "R-MONEY-NEVER", "params": {} },
     { "rule_id": "R-MONEY-VERIFY", "params": { "trusted_contacts": ["m_marco", "m_ana"], "deadline_secs": 45, "await_max_secs": 30 }, "applies_to_member_ids": ["m_carmen"] },
     { "rule_id": "R-MONEY-DEFAULT", "params": { "coordinator": "m_ana" }, "applies_to_member_ids": ["m_carmen"] },

@@ -33,4 +33,12 @@ app.include_router(clock_router)
 app.include_router(ws_router)
 app.include_router(actions_router)
 app.include_router(decisions_router)
+
+# Serve the built kit (kit/dist) at / after all API routes. Vite base is './' so assets resolve relative to each entry.
+from pathlib import Path as _Path
+from fastapi.staticfiles import StaticFiles
+_dist = _Path(__file__).resolve().parent.parent / "kit" / "dist"
+if _dist.is_dir():
+    app.mount("/", StaticFiles(directory=str(_dist), html=True), name="kit")
+
 app.include_router(admin_router)
