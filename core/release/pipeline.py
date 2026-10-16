@@ -259,7 +259,9 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 if qa.live_view_url:
                     ev.append({"kind": "recording", "url": qa.live_view_url, "label": "Anchor live view"})
                 n_ok = sum(1 for a in qa.assertions if a.get("ok"))
-                summary = f"{n_ok}/{len(qa.assertions)} checks at {qa.viewport}"
+                via = ("daytona preview" if res.preview_url and qa.url.startswith(res.preview_url)
+                       else "local" if qa.degraded or qa.url.startswith(local_base) else "tunnel")
+                summary = f"{n_ok}/{len(qa.assertions)} checks at {qa.viewport} via {via}"
                 if qa.degraded:
                     summary = f"degraded: local Playwright ({(qa.error or 'tunnel unreachable')[:60]}); " + summary
                 elif not qa.ok:

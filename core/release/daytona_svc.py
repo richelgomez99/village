@@ -95,10 +95,9 @@ class DaytonaBuilder:
             try:
                 from daytona import ListSandboxesQuery
 
-                async for cand in d.list(ListSandboxesQuery(labels=dict(WARM_LABEL))):
-                    if "started" in str(getattr(cand, "state", "")).lower():
-                        self._sb = cand
-                        break
+                # Drain the iterator (breaking out of it trips Daytona's OTel decorator: "Failed to detach context").
+                found = [c async for c in d.list(ListSandboxesQuery(labels=dict(WARM_LABEL)))]
+                self._sb = next((c for c in found if "started" in str(getattr(c, "state", "")).lower()), None)
             except Exception:
                 self._sb = None
         if self._sb is None:
