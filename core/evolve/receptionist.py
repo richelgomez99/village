@@ -6,8 +6,8 @@ mom-line agent answers unknown callers first and calls `screen_caller`:
   phase "screen" (no verification_id): known caller id + family word -> pass_through. A caller claiming to be a
     family member (or asking for money) -> the pure gate (R-MONEY-VERIFY / R-MONEY-UNKNOWN) through the normal
     start_verification path (app prompt + outbound call to the REAL member's number on file) -> status held.
-  phase "await" (verification_id given): waits for the real member (<= 30 s) -> denied: "Marco says this isn't
-    him. I won't put you through." / confirmed: put through (money still never moves) / no answer: refuse.
+  phase "await" (verification_id given): waits for the real member (<= 30 s) -> denied: "<Name> says this isn't
+    <him|her|them>. I won't put you through." / confirmed: put through (money still never moves) / no answer: refuse.
 
 Spoken lines are English for the caller (captions); names and pronouns come from the village spec (D30).
 """

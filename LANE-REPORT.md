@@ -370,3 +370,59 @@ Branch `platform-sweep` (worktree `/Users/rgomez/village-platform`), D30 sweep: 
 - The block's own binds (needs, resources, rumors) have no bindings in core yet. Tanya's snapshot carries her view but its data is only `alerts:active` and `chat:village`.
 - `step_verification`'s incident `notified` reads `current["coordinator_id"]`, and that is empty unless the caller sets it. In practice services overwrites it through `_enrich_incident`.
 - The `core/memory/routes.py` header default still uses the default village's coordinator.
+
+## evolve
+READY FOR MERGE V4
+
+Branch `lane/evolve`. Owns `core/evolve/**`, `core/routes/proposals.py`, `acceptance/v4.sh` + `v4_flow.py`. Seams outside: `core/app.py` (+1 line: `core.routes.proposals` in LANE_ROUTER_MODULES), `core/services.py` (+24 lines: `approve_proposal` action seam, `_evolve_port` in `apply_verification_step`, `screen_caller` branch in `_handle_tool`), `core/village.py` (`receptionist_mode()`), `core/voice/init_hook.py` (`receptionist` init var), `core/voice/tools.py` (`screen_caller` in the standalone tool model).
+
+Tests: `SURREAL_DB_URL= VILLAGE_MEMORY=off VILLAGE_DIALER=fake uv run pytest -q core/evolve` → 5 passed. Whole suite: main's `uv run pytest -q` already fails at **collection** (pre-existing on main at 12:40, not this lane: `core/gate/tests` import-ban trips when collected with other packages (httpx already imported), and `core/voice/tests/test_tools.py` clashes with `core/builder/tests/test_tools.py` basename). Split runs are green: `pytest -q core/gate core/voice/tests/test_tools.py` → 125 passed; `pytest -q --ignore=core/gate --ignore=core/voice/tests/test_tools.py` → 175 passed (170 before + 5 evolve).
+
+- T030 · done · `pytest -q core/evolve -k options` · `consider_options` via `llm("watcher")` forced tool call (12 s timeout); model off/err/disagrees → canned (same 3 candidates, names from the spec). Stored in the decision row (`actor evolve, mode asked_human, options{...}`); emitted as `control{reasoning}` + 3 `control{ledger}` rows `opt:<dc>:<key>` (losers `refused` + one-line reason, winner `running` / result "testing" → `done` "passed the release gate" after release).
+- T017a · done · `acceptance/v4.sh` · `propose()`: schema-valid Proposal (validated with `proposal.schema.json`), evidence from `evals.detector.detect_patterns` (Oct 9 seed + today's call: 5 rows), ops per role through `core.builder.patch` (elder: Spanish Text "Village contesta primero…" at children/1, keeps "Llamar a Village"; coordinator/helper: Text "Village answers unknown calls…" + Timeline "Calls Village screened"; catalog types only), `spec_ops` fridge card `family_word_first: true`, chat post `kind: proposal` (refs `{kind: proposal}`), `control{proposal}`, decision rows.
+- T017b · done · `acceptance/v4.sh` · routes `GET /villages/{id}/proposals`, `GET …/proposals/{pid}`, `POST …/approve` (202; leader member token or control; `?wait=true` for tests), `…/reject`, `…/undo` (10 s window), WS action `approve_proposal|reject_proposal` (leader only). Approve → `verifying` → `run_release(trigger=proposal, proposal_id)` with the shared ReleaseService adapters (real Daytona/Anchor/evals when configured; fakes when `VILLAGE_EVOLVE_RELEASE=fake` or no Daytona key) → on `released`: store spec + views as rev N+1 (or the Builder's repaired rev), `patch{rev, base_rev, role, ops, proposal_id, highlight}` to every member socket of each role, fresh snapshot to control/other sockets, `control{proposal applied}`, chat `kind: receipt` (refs `{kind: release}`), decision rows; on `blocked`: status `failed`, rev N stays, receipt chat "Not published: …".
+- T017c · done · `pytest -q core/evolve` · Undo: within 10 s restores rev N's spec as a new monotonic rev (N+2), resnapshots every phone, repoints the published bundle if rev N's dist exists, proposal → `rejected` (remembered).
+- T017d · done · `acceptance/v4.sh` (auto path) · Watcher trigger: `services.apply_verification_step` → `_evolve_port` → `core.evolve.trigger.on_verification_resolved` (background, 2 s delay so the incident post lands first) when `detect_patterns` finds ≥2 money requests claiming that member within 7 days; `POST /villages/{id}/evolve/trigger` (control token; forced pattern from every money request on record when <2). One proposal per pattern (declined ones remembered); a demo reset (decision log cleared) forgets them.
+- T019r · done · `acceptance/v4.sh` step 6 · Receptionist data side: `policies[R-MONEY-UNKNOWN].params.receptionist_mode = true` → `village.receptionist_mode()` → init webhook var `receptionist: "on"|"off"` (+ unknown-caller `today_summary` with the screening script) → voice tool `screen_caller` (contract below).
+- T035 · done · `acceptance/v4.sh` (tests stage) · before the release `evals.incident_to_test.sync_from_events` runs over the live ledger, then `scam_experiment.load_cases(village)`: tests stage summary reads "Scored on 52 calls (last night's included) · N floor tests passed" (n_base 50 + n_village 2). Wrapped broadcast only (release lane's pipeline untouched).
+- T024e · done · `acceptance/v4.sh` (fakes) and `ENV_FILE=~/village/.env acceptance/v4.sh --real` (real pipeline) · both green.
+
+Mocked: fake release ports in tests and the default `acceptance/v4.sh` (FakeDaytona/FakeAnchor/FakeEvals); FakeDialer in both runs; model off in tests (canned options). The `--real` run used real Daytona build + floor tests + Anchor QA + release evals from `~/village/.env` (TUNNEL_URL blanked, RELEASE_LOCAL_BASE=8793).
+
+### Measured (Oct 16, this Mac, Core on 8793)
+| step | fakes | real pipeline |
+|---|---|---|
+| verification resolved → proposal on control (auto trigger, incl. 2 s delay) | 2169 ms | 2166 ms (first run 2148) |
+| Ana's yes (approve) → every phone patched (carmen/ana/marco `patch`) | 108 ms | **7705 ms** (warm sandbox; first run 13381 ms) |
+| release inside that (run_release) | 36 ms | 7632 ms (spec 23 · build 2065 · tests 1180 · Anchor 4106 · evals 2 · live 2) |
+| spec store + patch fan-out after the release | 1 ms | 1 ms |
+| consider_options, model on (Haiku 5.5 via `llm("watcher")`) | n/a | 5221 ms (canned: 0 ms) |
+
+### LD-evolve
+- LD-1: the contract's `spec_ops` only allow `/printables/`, and `village_spec` has no voice-line flag field. The receptionist flag lives in the spec as `policies[R-MONEY-UNKNOWN].params.receptionist_mode` (schema-valid: `params` is free props) and travels on the stored proposal record as a core-side `voice_ops` sidecar (not on the wire). `options` likewise is sidecar + decision row (proposal has `additionalProperties: false`). Contract follow-up: `spec_ops` path pattern `^/(printables|policies)/` and `proposal.options[]`.
+- LD-2: `llm("watcher")` maps to **Haiku 5.5** in `core/llm.py` (`HAIKU_ROLES`), not Sonnet; options are good on Haiku (5.2 s). Model on needs `VILLAGE_LLM=on` (settings default off; `~/village/.env` doesn't set it).
+- LD-3: undo publishes rev N's spec as rev N+2 (revs stay monotonic for the kit's base_rev check) and sends snapshots, not inverse ops. Proposal status after undo is `rejected` (contract has no `reverted`).
+- LD-4: auto trigger defaults on, except inside unrelated pytest runs (`PYTEST_CURRENT_TEST`); force with `VILLAGE_EVOLVE_AUTO=on|off`. Delay `VILLAGE_EVOLVE_DELAY_S` (2 s).
+- LD-5: release ports: `VILLAGE_EVOLVE_RELEASE=fake` forces fakes; otherwise the shared `ReleaseService` adapters (fakes only when no Daytona key).
+- LD-6: `screen_caller` responses speak English to the caller (projector captions); Carmen's Spanish lines stay with the gate's `await_verification`.
+
+### Voice tool contract for voice2 (`screen_caller`, Core side implemented)
+`POST /tools/screen_caller` (same auth/headers as the other tools; idempotent on `conversation_id` + `tool_call_id` + phase). Only meaningful when the init webhook returned `receptionist: "on"` (else `data.status = "receptionist_off"`, `next: "connect"`).
+Request: `{conversation_id*, caller_id*, utterance*, claimed_identity?, call_secs?, tool_call_id?, village_id?, amount?, method?, red_flags?, verification_id?, max_wait_s?}` (* required).
+Phase 1 (no `verification_id`): agent opens with "<Name>'s phone, this is Village. Who's calling?" then calls with what the caller claims.
+Phase 2 (with `verification_id` from phase 1): call again while the caller holds; Core waits ≤30 s for the real member.
+Response: `{decision, say, say_key: "screen_<status>", rule_id, lang: "en", decision_id?, data: {status, next, verification_id?, claimed_member_id?, deadline?, state?, member_id?}}`. Speak `say` verbatim.
+| data.status | when | say (example) | next |
+|---|---|---|---|
+| `pass_through` | known caller id + family word, no money ask; or phase 2 confirmed | "Thanks, Ana. Putting you through to Carmen." / "Marco confirmed it's him. Putting you through to Carmen. Village never sends money." | `connect` |
+| `held` | claims a family member or asks for money → gate R-MONEY-VERIFY → app prompt + outbound call to the real member | "Thanks. I'm checking with Marco now on his own phone. Please hold." | `screen_caller` (phase 2) |
+| `refused` | phase 2 denied / no answer, or gate R-MONEY-UNKNOWN (no member to verify) | "Marco says this isn't him. I won't put you through." / "I couldn't reach Marco, so I won't put you through. If this is really family, call back from a number we know." | `end_call` |
+| `ask_purpose` | no claim, no money words | "Thanks. What is this about? Carmen asked me to take a message for callers I don't know." | `screen_caller` |
+| `receptionist_off` | spec flag off | "" | `connect` |
+ElevenLabs: add `screen_caller` (webhook, params above) to the mom-line agent; prompt branch on `{{receptionist}} == "on"` for callers whose `member_id` is `m_unknown`.
+
+### Open risks
+- Live server on 8790: the auto trigger fires on the first resolved scam call today (Oct 9 seed + today's = 2). If Act 2 is rehearsed twice without a reset, the second run says "already proposed" (by design); `POST /admin/reset` clears it.
+- `run_release` holds the per-village release lock: a manual release running at approve time queues the proposal release behind it.
+- Kit must apply `patch` frames for roles and render the elder Text/coordinator Timeline (catalog types only); control gets a fresh snapshot, not a patch.
+- Core lane: please add `core.evolve.proposals.reset()` to `reset_demo` (today the prune-on-reset rule covers it).
