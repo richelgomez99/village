@@ -107,3 +107,6 @@ P004 · done · `scripts/acceptance_summary.sh --list` and full run (SURREAL_DB_
 P005 · done · docs/CHECKPOINTS.md template (11:00/12:15/13:00/13:40/14:15/14:20)
 P006 · done · docs/SLIDES.md (6 slides, stage lines, fallbacks; [MEASURE] where numbers go)
 LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated: voice code merged, live ElevenLabs pushes dry-run, outbound via FakeDialer (Twilio geo permissions).
+
+## builder
+T001 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · tool registry contains extract_blueprint/render_app/patch_app/cite_answer/classify_intent; fixed-shape schemas require `additionalProperties:false`
