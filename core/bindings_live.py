@@ -28,7 +28,7 @@ def _first(village_id: str, member_id: str | None) -> str:
 
 
 def _word(village_id: str, member_id: str | None, lang: str) -> str:
-    """Relationship word for the center person when the spec has one ('Mamá'), else first name."""
+    """Relationship word for the center person from the spec's relationship_words, else first name."""
     return villages.relationship_word(village_id, member_id, lang)
 
 
