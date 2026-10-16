@@ -86,7 +86,7 @@ With no SurrealDB URL set, Core uses an in-process store with the same interface
 | **Daytona** | Builds and tests every version of a group's software in an isolated sandbox before it reaches anyone. A failing build is caught and fixed in the same loop. | release lane (`core/release/`, in progress) |
 | **Arize** | Traces every step the agent takes, with the gate's decisions as guardrail spans. Evals on calls detect the scam pattern that triggers the rebuild; release evals score each version; the scam eval set gives the measured number. | `core/obs/`, `evals/` (in progress) |
 | **SurrealDB** | The shared record: villages, members, events, decisions, verifications. LIVE queries push every change to every phone. Agent Memory keeps facts with their source and history (lisinopril 5 mg superseded by 10 mg, never overwritten). | `core/db.py`, `core/live.py`, `core/schema.surql` |
-| **ElevenLabs** | The voice for the person who won't use apps: Carmen's Spanish phone line with safety lines spoken word for word, and the outbound call that checks with Marco. | `agents/`, `core/voice/` (in progress) |
+| **ElevenLabs** | The voice for the person who won't use apps: Carmen's Spanish phone line with safety lines spoken word for word, and the outbound call that checks with Marco. | `agents/`, `core/voice/` |
 | **Anchor Browser** | A real browser at phone size uses every generated version the way Carmen would before it is released; the live view goes on the projector. | release lane (in progress) |
 | **AWS Bedrock** | Claude does the reasoning. The lab account gives us Claude Haiku 4.5 only, so every role runs on Haiku 4.5 today. | `core/llm.py` |
 | Twilio | The phone number Carmen calls and that rings Marco. | via ElevenLabs |
@@ -114,7 +114,7 @@ The gate is pure Python in `core/gate/`. It reads the village's state and a prop
 
 ## What is real vs mocked today
 
-Updated from `LANE-REPORT.md` at each merge. As of the V0 merge (core + gate in `main`):
+Updated from `LANE-REPORT.md` at each merge. As of the voice merge (core, gate and voice code in `main`, 10:43):
 
 **Real and tested in `main`**
 - The gate: all rules above, the verification state machine (pending, confirmed, denied, timeout, late answers, duplicates) and the dose-window state machine, with tests that run with the model off.
@@ -130,8 +130,9 @@ Updated from `LANE-REPORT.md` at each merge. As of the V0 merge (core + gate in 
 
 **Stubbed or not merged yet**
 - `core.tools.warm` prints "warm OK (stub)": no Daytona sandbox or Anchor session is pre-warmed yet.
-- Phone app (`kit/`), voice line and outbound call (`002-verification-loop`), founding and generation (`003-founding-generation`, model-off template path today), release pipeline with Daytona + Anchor + Arize (`005-release-gate`), memory and rebuild (`006-memory-evolve`): on their branches, not in `main`.
-- ElevenLabs agent and Twilio calls: TTS works; the agent, phone tools and calls were blocked on the public URL and Twilio account setup at last measurement.
+- Voice (`agents/`, `core/voice/`): the ElevenLabs agent configs, tool webhooks, init hook, post-call hook and outbound-call code are merged and tested, but against fakes. Live agent, tool and procedure pushes are still dry-run; the outbound call uses a fake dialer because Twilio geographic permissions block live calls. ElevenLabs text to speech works live.
+- Phone app (`kit/`), founding and generation (`003-founding-generation`, model-off template path today), release pipeline with Daytona + Anchor + Arize (`005-release-gate`), memory and rebuild (`006-memory-evolve`): on their branches, not in `main`.
+- Receptionist mode (the rebuild's change, D19) is V4 work behind a flag; not built.
 
 ---
 
