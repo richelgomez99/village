@@ -37,7 +37,7 @@ def test_session_label_attaches_eval_and_switches_detected_by():
 def test_single_request_or_outside_window_is_not_a_pattern():
     assert detect_patterns("v_reyes", seed_events("v_reyes")) == []
     late = json.loads(json.dumps(_today()))
-    late["at"] = "2026-10-17T14:02:09-04:00"  # 8 days after Oct 9
+    late["at"] = "2026-10-29T14:02:09-04:00"  # 20 days after Oct 9 (outside the 14-day window)
     assert detect_patterns("v_reyes", seed_events("v_reyes") + [late]) == []
 
 

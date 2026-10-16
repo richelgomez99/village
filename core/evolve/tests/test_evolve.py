@@ -271,7 +271,7 @@ def test_plain_words_card_chat_and_life_areas(evolve_env):
         assert c.post("/villages/v_reyes/evolve/trigger", headers=CTRL).status_code == 200
         row = bindings.proposals_pending("v_reyes")[0]
         lines = [x["en"] for x in row["changes"]]
-        assert lines[0].startswith("Two calls in 7 days asked Mamá for money in Marco's name: Oct 9 ($1,500 in gift cards) and today ($2,000).")
+        assert lines[0].startswith("Two calls in 14 days asked Mamá for money in Marco's name: Oct 9 ($1,500 in gift cards) and today ($2,000).")
         assert "Both were stopped." in lines[0]
         assert lines[1].startswith("Mamá: unknown callers reach Village first")
         assert lines[2] == "Marco: when a caller claims to be him, he gets one question on his phone."
