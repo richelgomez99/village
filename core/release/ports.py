@@ -55,7 +55,8 @@ class DaytonaPort(Protocol):
 
 
 class AnchorPort(Protocol):
-    async def qa(self, url: str, *, village_id: str, rev: int, out_dir: Path, local_url: str | None = None) -> QAResult: ...
+    async def qa(self, url: str, *, village_id: str, rev: int, out_dir: Path, local_url: str | None = None,
+                 alt_url: str | None = None) -> QAResult: ...
 
 
 class EvalsPort(Protocol):

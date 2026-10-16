@@ -55,8 +55,9 @@ def parse_vitest(report: dict[str, Any]) -> tuple[int, int, list[str]]:
 
 
 class DaytonaBuilder:
-    def __init__(self, *, keep: bool = True, image: str | None = None) -> None:
+    def __init__(self, *, keep: bool = True, image: str | None = None, preview: bool | None = None) -> None:
         self.keep = keep
+        self.preview = preview if preview is not None else os.environ.get("RELEASE_PREVIEW_URL", "0") == "1"
         self.image = image or os.environ.get("RELEASE_DAYTONA_IMAGE") or None
         self._client: Any = None
         self._sb: Any = None
@@ -198,9 +199,38 @@ class DaytonaBuilder:
             timings["download"] = _ms(t0)
             result.dist_dir = out_dir
             await _emit(log, f"dist downloaded ({len(tgz or b'')} bytes) in {timings['download']} ms")
+            if self.preview:
+                t0 = time.perf_counter()
+                result.preview_url = await self.start_preview()
+                timings["preview"] = _ms(t0)
             return result
         except Exception as exc:  # surfaced as a failed daytona_build stage
             return BuildResult(False, sandbox_id=getattr(self._sb, "id", ""), timings_ms=timings, error=f"{type(exc).__name__}: {str(exc)[:300]}")
+
+    async def start_preview(self, port: int = 4173) -> str | None:
+        """Serve the just-built dist with vite preview and return a signed preview URL (talking point +
+        a public target for Anchor when the Funnel is not up). The sandbox still makes no outbound calls."""
+        from daytona import SessionExecuteRequest
+
+        sb = await self.sandbox()
+        try:
+            await sb.process.exec(f"pkill -f 'vite preview' || true", timeout=15)
+            try:
+                await sb.process.delete_session("preview")
+            except Exception:
+                pass
+            await sb.process.create_session("preview")
+            await sb.process.execute_session_command("preview", SessionExecuteRequest(
+                command=f"cd {self._home}/{APP} && npx vite preview --host 0.0.0.0 --port {port} --strictPort", run_async=True))
+            for _ in range(20):
+                code, _out = await self._exec(f"curl -sf -o /dev/null http://127.0.0.1:{port}/ && echo up", timeout=10)
+                if "up" in _out:
+                    break
+                await asyncio.sleep(0.3)
+            signed = await sb.create_signed_preview_url(port, expires_in_seconds=3600)
+            return str(getattr(signed, "url", signed)).rstrip("/") + "/"
+        except Exception:
+            return None
 
     async def keepalive(self) -> None:
         if self._sb is not None:
