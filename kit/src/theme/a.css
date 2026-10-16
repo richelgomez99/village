@@ -341,3 +341,8 @@ html, body { background: #100D0A; margin: 0; }
 .presenter-toast { position: fixed; right: 16px; bottom: 34px; z-index: 9; background: var(--panel2); border: 1px solid var(--mint); color: var(--text); border-radius: 10px; padding: 8px 14px; animation: toast 1s ease-out forwards; }
 @keyframes toast { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 .demo-chip { margin-left: 6px; font: 600 10px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; }
+.receipt-overlay { position: fixed; inset: 0; z-index: 20; background: rgba(8, 6, 4, 0.86); display: grid; place-items: center; }
+.receipt-card { width: min(1200px, 92vw); max-height: 92vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.receipt-title { margin: 0; font: 650 1.6em var(--display); }
+.receipt-video { width: 100%; max-height: 58vh; background: #000; border-radius: 12px; }
+.receipt-card .release-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }

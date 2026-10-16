@@ -10,11 +10,12 @@ export interface PresenterLayerProps {
   onDetails: () => void;
   onReselect: () => void;
   /** extra keys handled by the room (ROOM-7) */
-  extraKeys?: Record<string, () => string | void>;
+  extraKeys?: Record<string, () => string | void | Promise<string | void>>;
+  onEscape?: () => void;
   extraMap?: [string, string][];
 }
 
-export function PresenterLayer({ api, ctx, onNextVillage, onDetails, onReselect, extraKeys = {}, extraMap = [] }: PresenterLayerProps) {
+export function PresenterLayer({ api, ctx, onNextVillage, onDetails, onReselect, extraKeys = {}, extraMap = [], onEscape }: PresenterLayerProps) {
   const [caller, setCaller] = useState<CallerRole>("elder");
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -34,13 +35,22 @@ export function PresenterLayer({ api, ctx, onNextVillage, onDetails, onReselect,
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key;
-      if (k === "Escape") return setMapOpen(false);
+      if (k === "Escape") {
+        setMapOpen(false);
+        onEscape?.();
+        return;
+      }
       if (k === "v" || k === "V") return onNextVillage();
       if (k === "d" || k === "D") return onDetails();
       const extra = extraKeys[k.toLowerCase()];
       if (extra) {
-        const t = extra();
-        if (t) say(t);
+        e.preventDefault();
+        try {
+          const t = await extra();
+          if (t) say(t);
+        } catch (err) {
+          say(`Core didn't take that (${err instanceof Error ? err.message : "error"})`);
+        }
         return;
       }
       const req = presenterRequest(k, { ...latest.current.ctx, caller: latest.current.caller });
@@ -60,7 +70,7 @@ export function PresenterLayer({ api, ctx, onNextVillage, onDetails, onReselect,
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
-  }, [api, onNextVillage, onDetails, onReselect, extraKeys]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [api, onNextVillage, onDetails, onReselect, extraKeys, onEscape]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

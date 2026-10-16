@@ -48,6 +48,13 @@ Live Core only (Bearer control token); `?admin=<ADMIN_KEY>` for R. Keys are igno
 | P | The Watcher weighs fixes (rebuild) | `POST /villages/{id}/evolve/trigger` |
 | A | Approve the first pending proposal (as the coordinator) | `POST /villages/{id}/proposals/{pid}/approve` |
 | U | Presenter phone: elder ↔ unknown caller | `POST /admin/demo-caller {role}` |
+| M | The elder reports the money call (scam beat; names/phone from the spec) | `POST /tools/report_money_request` (X-Village-Secret from `?secret=`) |
+| S | Coordinator asks the chat for cover ("I need someone to cover for <verifier> tomorrow") | `POST /villages/{id}/messages` with the coordinator's token (`?ana=` or from `GET /villages/{id}/qr?format=json`) |
+| T | Coordinator posts the Thanksgiving plan to @Village | same, `mention: "village"` |
+| W | Warm Core | `POST /admin/warm`, else `GET /health` + `GET /villages` |
+| L | Latest receipt, large, with the Anchor recording playing | `GET /villages/{id}/releases` (or the room's last receipt) |
+| B | The block village's founding call as a replay (audio + transport) · Esc back to live | — (offline replay) |
+| X | Panic: the current beat as a replay with the transport bar · X again back to live | — (offline replay) |
 | V | Next village pill | — |
 | D | Details (ids, rule ids, traces) on/off | — |
 | Esc | Hide the key map | — |

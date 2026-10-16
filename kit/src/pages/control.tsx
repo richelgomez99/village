@@ -6,13 +6,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
-import { answerFollowUp, apiConfig, createVillage, listDecisions, listVillages, warpClock, type ApiConfig } from "../control/api";
+import { answerFollowUp, apiConfig, apiRequest, createVillage, getQr, listDecisions, listVillages, warpClock, type ApiConfig } from "../control/api";
 import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
 import { TransportBar } from "../control/transport";
 import { PresenterLayer } from "../control/PresenterLayer";
+import { KEY_MAP_7, coordinatorTokenFromQr, coverLine, demoCast, moneyCallBody, thanksgivingLine } from "../control/presenter";
+import { ReceiptOverlay } from "../control/regions";
 import type { Transport } from "../dev/transport";
 import { liveConfig, makeSocket, type LiveConfig } from "../live/useLive";
 import type { VillageSocket } from "../live/ws";
@@ -52,7 +54,7 @@ export function useSceneWithDispatch(socket: VillageSocket, village: string) {
 /** ?presenter=1: live stage mode — keys drive Core, no demo chrome (clock in words, no transport/details/banners). */
 const PRESENTER = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("presenter") === "1";
 
-/** "Friday · 8:50 PM · Marco's night" from the room clock and the rota. */
+/** "Friday · 8:50 PM · <on-duty name>'s night" from the room clock and the rota. */
 export function villageTimeWords(nowIso: string, data: Record<string, unknown>): string {
   const d = new Date(nowIso);
   if (Number.isNaN(d.getTime())) return "";
@@ -72,7 +74,10 @@ export function villageTimeWords(nowIso: string, data: Record<string, unknown>):
 /** ?hero=1: screenshot mode, dev chrome hidden (connection banner, clock warp, view-as bar). */
 const HERO = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("hero") === "1";
 
-const ADMIN_KEY = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("admin") ?? "" : "";
+const QS = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+const ADMIN_KEY = QS.get("admin") ?? "";
+const SECRET = QS.get("secret") ?? "";
+const COORD_TOKEN = QS.get("ana") ?? QS.get("coord") ?? "";
 
 /** first proposal waiting for a yes (proposals:pending, else the room's latest proposal frame) */
 function firstPending(scene: SceneState): string | null {
@@ -159,6 +164,19 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
   const names = useVillageNames(sockets);
   const tabs: VillageTab[] = list.map((id) => ({ id, label: names[id] ?? id.replace(/^v_/, "") }));
 
+  // presenter B / X: a replay socket (offline fake + transport) shown in place of the live room; Esc / X returns
+  const [override, setOverride] = useState<{ socket: VillageSocket; village: string; kind: "b" | "x" } | null>(null);
+  const exitReplay = () => {
+    if (!override) return;
+    override.socket.close();
+    override.socket = null as any;
+    try {
+      delete (window as any).__fake;
+    } catch {
+      /* ignore */
+    }
+    setOverride(null);
+  };
   const startVillage = async (description: string) => {
     const r = await createVillage(apiCfg, description);
     const s = make({ village: r.village_id, founding: true });
@@ -167,7 +185,22 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     setList((l) => (l.includes(r.village_id) ? l : [...l, r.village_id]));
     setTab(r.village_id);
   };
-
+  const startReplay = (kind: "b" | "x", beatNow: ArcBeat) => {
+    if (override) {
+      exitReplay();
+      if (override.kind === kind) return;
+    }
+    const block = kind === "b" || (tab === FAKE_VILLAGES[1] && beatNow !== "run" && beatNow !== "rebuild");
+    const village = block ? FAKE_VILLAGES[1] : FAKE_VILLAGES[0];
+    const seq = kind === "b" || beatNow === "build" || beatNow === "anyone" ? "founding" : beatNow === "run" ? "scam" : "evolve";
+    const search = `?seq=${seq}${seq === "founding" && block ? "&audio=1" : ""}${seq === "scam" ? "&tail=denied" : ""}`;
+    const s = makeSocket({ url: "ws://fake/control", village, token: "ct_replay_offline_demo", client: "control", fake: "control" }, search);
+    s.connect();
+    setOverride({ socket: s, village, kind });
+  };
+  if (override) {
+    return <VillageRoom key={`replay:${override.kind}:${override.village}`} village={override.village} socket={override.socket} tabs={tabs} onTab={(v) => { exitReplay(); setTab(v); }} onNew={() => { exitReplay(); setTab(NEW_VILLAGE); }} make={make} api={{ ...apiCfg, fake: true }} details={details} onDetails={setDetails} replay onReplay={startReplay} onExitReplay={exitReplay} />;
+  }
   const active = tab === NEW_VILLAGE || !tab ? null : sockets[tab];
   if (!active && !wantNew && list.length) {
     return <main className="control" data-test="control" data-village={tab} data-mode="loading"><p className="ws-banner" data-test="ws-banner">Connecting to Core…</p></main>;
@@ -206,7 +239,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     old?.close();
   };
   const nextVillage = () => setTab(list[(list.indexOf(tab) + 1) % list.length] ?? tab);
-  return <VillageRoom key={`${tab}:${roomEpoch(sockets[tab])}`} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} onReselect={reselect} onNextVillage={nextVillage} />;
+  return <VillageRoom key={`${tab}:${roomEpoch(sockets[tab])}`} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} onReselect={reselect} onNextVillage={nextVillage} onReplay={startReplay} />;
 }
 
 const EPOCHS = new WeakMap<object, number>();
@@ -233,8 +266,10 @@ function useVillageNames(sockets: Record<string, VillageSocket>): Record<string,
   return names;
 }
 
-function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false, onReselect, onNextVillage }: {
+function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false, onReselect, onNextVillage, replay = false, onReplay, onExitReplay }: {
   onReselect?: () => void; onNextVillage?: () => void;
+  /** presenter B/X replay in place of the live room: transport bar shown even in presenter mode */
+  replay?: boolean; onReplay?: (kind: "b" | "x", beat: ArcBeat) => void; onExitReplay?: () => void;
   village: string; socket: VillageSocket; tabs: VillageTab[]; onTab: (v: string) => void; onNew: () => void;
   make: (o: { village: string; viewAs?: string }) => VillageSocket; api: ApiConfig;
   details?: boolean; onDetails?: (on: boolean) => void; onJump?: (b: ArcBeat) => void; anyone?: boolean;
@@ -244,6 +279,58 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const founding = isFounding(scene);
   const beat: ArcBeat = anyone ? "anyone" : founding ? "build" : scene.beat ?? "run";
   const transport = typeof window !== "undefined" ? ((window as any).__fake?.transport as Transport | null | undefined) ?? null : null;
+  // presenter ROOM-7 keys: real Core calls built from the spec (names never hard-coded)
+  const [receipt, setReceipt] = useState<any>(null);
+  const real: ApiConfig = { ...api, fake: false };
+  const coordinatorToken = async (): Promise<string> => {
+    if (COORD_TOKEN) return COORD_TOKEN;
+    const qr = await getQr(real, village);
+    const t = coordinatorTokenFromQr(qr as any, spec?.village?.coordinator_id);
+    if (!t) throw new Error("no coordinator token");
+    return t;
+  };
+  const presenterExtras: Record<string, () => Promise<string | void> | string | void> = {
+    m: async () => {
+      await apiRequest(real, "POST", "/tools/report_money_request", moneyCallBody(spec, village), SECRET ? { "X-Village-Secret": SECRET } : undefined);
+      return `${demoCast(spec).centerName || "She"} reported the call`;
+    },
+    s: async () => {
+      await apiRequest({ ...real, token: await coordinatorToken() }, "POST", `/villages/${encodeURIComponent(village)}/messages`, { text: coverLine(spec) });
+      return `${demoCast(spec).coordName || "The coordinator"} asked the chat for cover`;
+    },
+    t: async () => {
+      await apiRequest({ ...real, token: await coordinatorToken() }, "POST", `/villages/${encodeURIComponent(village)}/messages`, { text: thanksgivingLine(spec), mention: "village" });
+      return `${demoCast(spec).coordName || "The coordinator"} posted the Thanksgiving plan`;
+    },
+    w: async () => {
+      try {
+        await apiRequest(real, "POST", "/admin/warm");
+      } catch {
+        await apiRequest(real, "GET", "/health").catch(() => undefined);
+        await listVillages(real).catch(() => undefined);
+      }
+      return "warm";
+    },
+    l: async () => {
+      let r = scene.release;
+      if (!r) {
+        const res = (await apiRequest(real, "GET" as any, `/villages/${encodeURIComponent(village)}/releases`)) as { receipts?: any[] } | any[];
+        const list = Array.isArray(res) ? res : res?.receipts ?? [];
+        r = [...list].sort((a, b) => Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? ""))[0] ?? null;
+      }
+      if (!r) return "No receipt yet";
+      setReceipt(r);
+      return `Receipt · rev ${r.rev}`;
+    },
+    b: () => {
+      onReplay?.("b", beat);
+      return replay ? "Back to live" : "The block's founding call";
+    },
+    x: () => {
+      onReplay?.("x", beat);
+      return replay ? "Back to live" : "Replay with controls";
+    }
+  };
   // presenter: a connection banner only after 5 s down
   const [downLong, setDownLong] = useState(false);
   useEffect(() => {
@@ -362,7 +449,8 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
           </aside>
         </div>
       )}
-      {transport && !HERO && !PRESENTER ? <TransportBar transport={transport} beat={beat} villages={tabs} /> : null}
+      {transport && !HERO && (!PRESENTER || replay) ? <TransportBar transport={transport} beat={beat} villages={tabs} /> : null}
+      {receipt ? <ReceiptOverlay receipt={receipt} spec={spec} data={scene.data} onClose={() => setReceipt(null)} /> : null}
       {PRESENTER ? (
         <PresenterLayer
           api={api}
@@ -370,6 +458,12 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
           onNextVillage={() => onNextVillage?.()}
           onDetails={() => onDetails?.(!details)}
           onReselect={() => onReselect?.()}
+          extraKeys={presenterExtras}
+          extraMap={KEY_MAP_7}
+          onEscape={() => {
+            if (receipt) setReceipt(null);
+            else if (replay) onExitReplay?.();
+          }}
         />
       ) : null}
       <CaptionsLayer ref={capRef} captions={scene.captions} />

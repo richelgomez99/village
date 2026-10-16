@@ -75,3 +75,53 @@ export function presenterRequest(key: string, c: PresenterCtx): PresenterRequest
       return null;
   }
 }
+
+/** ROOM-7 keys (M S T W L B X), shown in the key map. */
+export const KEY_MAP_7: [string, string][] = [
+  ["M", "The elder reports a money call (scam beat)"],
+  ["S", "Coordinator asks the chat for cover"],
+  ["T", "Coordinator posts the Thanksgiving plan (@Village)"],
+  ["W", "Warm Core"],
+  ["L", "Latest receipt, with the phone-check recording"],
+  ["B", "The block village's founding call (replay) · Esc back"],
+  ["X", "Panic: this beat as a replay with controls · X again back"]
+];
+
+/** The people a demo line needs, from the spec: the center person, the coordinator, the money verifier, another helper. */
+export function demoCast(spec: any) {
+  const people: any[] = spec?.blueprint?.people ?? [];
+  const first = (p: any) => (p ? String(p.short_name && p.role !== "care_recipient" ? p.short_name : p.name).split(" ")[0] : "");
+  const center = people.find((p) => p.role === "care_recipient");
+  const coord = people.find((p) => p.id === spec?.village?.coordinator_id) ?? people.find((p) => p.role === "coordinator");
+  const money = (spec?.blueprint?.life_areas ?? []).find((a: any) => a.id === "money");
+  const verifier = people.find((p) => p.id === money?.trusted_contacts?.[0]) ?? people.find((p) => p.consent?.money_verifier && p.role !== "coordinator");
+  const other = people.find((p) => p !== center && p !== coord && p !== verifier && p.view);
+  return { center, coord, verifier, other, centerName: first(center), coordName: first(coord), verifierName: first(verifier), otherName: first(other) };
+}
+
+/** M: the money call the elder reports (voice tool body, contract req_report_money_request). */
+export function moneyCallBody(spec: any, village: string, now = Date.now()) {
+  const c = demoCast(spec);
+  return {
+    conversation_id: `conv_stage_${now}`, caller_id: c.center?.phone ?? "", call_secs: 9, village_id: village,
+    utterance: `Me llamó ${c.verifierName} llorando, dice que está en problemas y necesita dos mil dólares.`,
+    claimed_member: c.verifier?.id, amount: 2000, currency: "USD", method: "wire", urgency: "now", lang: "es"
+  };
+}
+
+/** S / T: the coordinator's chat lines (names from the spec). */
+export function coverLine(spec: any): string {
+  return `I need someone to cover for ${demoCast(spec).verifierName || "the helper"} tomorrow`;
+}
+export function thanksgivingLine(spec: any): string {
+  const c = demoCast(spec);
+  return `@Village we're doing Thanksgiving at Mom's on the 27th. Twelve of us. ${c.verifierName} brings the turkey, ${c.otherName} brings the pie and comes in on the 11:40 train, someone has to pick her up at Penn Station at 1. Grandpa needs a low-salt plate. And no politics at the table.`;
+}
+
+/** The coordinator's member token: ?ana=… (named by role, not person: ?coord=… also works) or the `m=` of their app QR. */
+export function coordinatorTokenFromQr(entries: { member_id: string; kind: string; url: string }[], coordinatorId: string | undefined): string | null {
+  const e = entries.find((x) => x.member_id === coordinatorId && x.kind === "app") ?? entries.find((x) => x.member_id === coordinatorId);
+  if (!e) return null;
+  const m = e.url.match(/[?#&]m=([^&#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}

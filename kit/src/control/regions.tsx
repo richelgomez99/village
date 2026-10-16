@@ -57,7 +57,7 @@ export const TAGLINE = "Village builds an app for each person in a group, runs t
 
 export function Header({ tabs, tab, onTab, onNew, phones, clock, nowMs, onWarp, warpState, details = false, onDetails, villageTime }: {
   details?: boolean; onDetails?: (on: boolean) => void;
-  /** presenter mode: the clock in words ("Friday · 8:50 PM · Marco's night"), no demo chrome */
+  /** presenter mode: the clock in words ("Friday · 8:50 PM · <on-duty>'s night"), no demo chrome */
   villageTime?: string;
   tabs: VillageTab[]; tab: string; onTab: (id: string) => void; onNew: () => void; phones: number | null; clock: SceneState["clock"]; nowMs: () => number;
   onWarp: () => void; warpState: "idle" | "busy" | "failed";
@@ -464,7 +464,7 @@ function useQr(cfg: ApiConfig | undefined, village: string): QrEntry[] | null {
     if (!cfg) return;
     let live = true;
     setEntries(null);
-    getQr(cfg, village).then((e) => live && setEntries(e), () => live && setEntries([]));
+    getQr(cfg, village).then((e) => live && setEntries(Array.isArray(e) ? e : []), () => live && setEntries([]));
     return () => {
       live = false;
     };
@@ -679,6 +679,24 @@ export function stageToolLine(st: any, receipt: any): { text: string; href?: str
     default:
       return { text: summary };
   }
+}
+
+/** Presenter L: the latest receipt large, with the phone-check recording playing and the stage lines. */
+export function ReceiptOverlay({ receipt, spec, data, onClose }: { receipt: any; spec: any; data: Record<string, unknown>; onClose: () => void }) {
+  const anchor = (receipt?.stages ?? []).find((s: any) => s.name === "anchor_qa");
+  const video = anchor?.details?.video_url ?? (anchor?.evidence_urls ?? []).find((e: any) => e.kind === "recording" || /\.mp4$/.test(String(e.url)))?.url;
+  const live = (receipt?.stages ?? []).find((s: any) => s.name === "live");
+  const approver = String(live?.details?.summary ?? "").match(/approved by ([a-z]_[a-z0-9_]+)/)?.[1];
+  return (
+    <div className="receipt-overlay" data-test="receipt-overlay" role="dialog" aria-label="Release receipt" onClick={onClose}>
+      <div className="receipt-card" onClick={(e) => e.stopPropagation()}>
+        <h2 className="receipt-title">rev {receipt?.rev} · {receipt?.result === "released" ? "every phone updated" : receipt?.result ?? ""}</h2>
+        {video ? <video className="receipt-video" data-test="receipt-video" src={video} autoPlay muted loop playsInline controls /> : null}
+        <ReleaseTiles receipt={receipt} />
+        {approver ? <p className="muted" data-test="receipt-approver">approved by {memberDisplay(approver, spec, data)}</p> : null}
+      </div>
+    </div>
+  );
 }
 
 /** "Village checked its memory: …" when the proposal's evidence cites facts (labels only, never ids). */
