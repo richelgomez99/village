@@ -70,12 +70,14 @@ export function baseData(client: FakeClient): Record<string, unknown> {
     case "carmen":
       return {
         "alerts:active": [],
+        "member:m_ana": memberRecords()["member:m_ana"],
         "facts:dose_event?subject=m_carmen&valid_at=today": doseToday(false),
         "rota:current.on_duty": marcoPerson
       };
     case "ana":
       return {
         "alerts:active": [],
+        ...memberRecords(),
         "blueprint:life_areas": lifeAreas,
         "incidents:open": [],
         "verifications:pending?member=me": null,
@@ -88,7 +90,7 @@ export function baseData(client: FakeClient): Record<string, unknown> {
     case "marco":
     case "lucia": {
       const snap = connectSnapshot();
-      const data = { ...(snap?.data ?? {}) } as Record<string, unknown>;
+      const data = { ...(snap?.data ?? {}), "member:m_carmen": memberRecords()["member:m_carmen"] } as Record<string, unknown>;
       if (client === "lucia") {
         data["rota:current?member=me"] = {
           is_my_turn: false, date: "2026-10-16", on_duty: marcoPerson, backup: anaPerson, until: null, next_shift: "2026-10-17",
@@ -109,10 +111,20 @@ function connectSnapshot(): any {
 export const VILLAGE_NAME = "Familia Reyes";
 
 /** snapshot.identity (contract 1.2.1, D21). */
+/** The Village line (identity.village_number); the fixture's printables still say [NÚMERO]. */
+export const FAKE_VILLAGE_NUMBER = "+18482579221";
+
 export function fakeIdentity(client: FakeClient, viewAs = false) {
   const meta = FAKE_CLIENTS[client];
   const lang = meta.role === "elder" ? "es" : "en";
-  return { member_id: meta.member_id, name: meta.name, role: meta.role, village_name: VILLAGE_NAME, lang, ...(viewAs ? { view_as: true } : {}) };
+  return { member_id: meta.member_id, name: meta.name, role: meta.role, village_name: VILLAGE_NAME, village_number: FAKE_VILLAGE_NUMBER, lang, ...(viewAs ? { view_as: true } : {}) };
+}
+
+/** member:<id> records (bv_person with phone) for everyone in the fixture's blueprint. */
+function memberRecords(): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const p of (reyesSpec as any).blueprint.people) out[`member:${p.id}`] = { member_id: p.id, name: String(p.name).split(" ")[0], ...(p.phone ? { phone: p.phone } : {}) };
+  return out;
 }
 
 /** The fixture's views are sent unchanged (rev 5 already carries D22). */
@@ -142,3 +154,6 @@ export function blockControlSnapshot() {
   const identity = { member_id: null, name: "Control Room", role: "control", village_name: (blockSpec as any).village.name, lang: "en" };
   return { type: "snapshot", contract_version: "1.2.1", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
 }
+
+/** Villages the offline fake knows (Control Room switcher). */
+export const FAKE_VILLAGES = ["v_reyes", "v_w147"];

@@ -86,11 +86,18 @@ def test_bilingual_swaps_only_identical_templates() -> None:
     assert out["say"] == "Algo distinto." and out["data"]["say_en"] == ""
 
 
-def test_screen_caller_default_never_puts_unknown_through(client: TestClient) -> None:
-    out = tool(client, "screen_caller", {**BASE, "caller_id": "+19998887777", "utterance": "Soy Marco, necesito dinero", "claimed_identity": "Marco", "asks_money": True}).json()
+def test_core_tools_route_falls_back_to_voice_handlers(client: TestClient) -> None:
+    r = client.post("/tools/ask_family", json={**BASE, "call_secs": "41", "utterance": "¿Quién viene mañana?", "to": "family", "message": "¿Quién viene mañana?", "urgency": "normal", "lang": "es"})
+    assert r.status_code == 200, r.text
+    assert r.json()["say"].startswith("Le avisamos a") and r.json()["data"]["say_en"].startswith("We're letting")
+    assert client.post("/tools/not_a_tool", json={}).status_code == 404
+
+
+async def test_screen_caller_fallback_never_puts_unknown_through() -> None:
+    from core.voice.tools import screen_caller
+
+    out = await screen_caller({**BASE, "caller_id": "+19998887777", "utterance": "Soy Marco, necesito dinero", "claimed_identity": "Marco", "asks_money": True})
     assert out["data"]["screen"] == "refuse" and out["say"]
-    known = tool(client, "screen_caller", {**BASE, "call_secs": "3", "caller_id": "+15555550103", "utterance": "hi it's Marco", "claimed_identity": "Marco", "asks_money": False}).json()
-    assert known["data"]["screen"] == "pass_through"
 
 
 def test_init_hook_receptionist_override(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

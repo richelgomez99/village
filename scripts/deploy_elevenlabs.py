@@ -55,10 +55,10 @@ PROCEDURES: dict[str, list[dict[str, str]]] = {
             "type": "free_form",
             "trigger": "Only when the dynamic variable receptionist is \"on\" and caller_known is \"false\", and the caller claims to be family or asks for money.",
             "content": "\n".join([
-                "1. Call screen_caller with claimed_identity, utterance, asks_money and amount.",
+                "1. Call screen_caller with claimed_identity, utterance and amount.",
                 "2. Speak the returned `say` verbatim and nothing else.",
-                "3. If screen_result is `hold` or verification_status is `pending`, call await_verification and speak its `say` verbatim.",
-                "4. If screen_result is `refuse`, end the call after the line. If `pass_through`, continue normally.",
+                "3. If `data.next` is `screen_caller` (status `held`), call screen_caller again (it waits up to 30 s for the real member) and speak its `say` verbatim.",
+                "4. If `data.next` is `end_call` (status `refused`), end the call after the line. If `pass_through`/`confirmed`, continue normally.",
             ]),
         },
     ],

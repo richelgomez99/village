@@ -3,7 +3,7 @@ import { applyViewPatch, viewSchema, type View } from "../renderer/view";
 import type { ActionRequest, ResultInfo } from "../renderer/context";
 import { CONTRACT_VERSION, serverFrameSchema, type ClientHello, type ClientName, type ControlFrame, type Identity, type PromptFrame, type ServerFrame } from "./messages";
 
-export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "closed";
+export type SocketStatus = "idle" | "connecting" | "hello_sent" | "live" | "resync" | "reconnecting" | "updating" | "closed";
 
 export interface LiveState {
   status: SocketStatus;
@@ -38,6 +38,10 @@ export interface SocketOptions {
   WebSocketImpl?: typeof WebSocket;
   /** open this socket already viewing as a member (Control Room phones, D21). */
   viewAs?: string;
+  /** contract_mismatch: fetch the new bundle (service worker update); resolves when done. Default: SW registration.update(). */
+  onUpdate?: () => Promise<unknown>;
+  /** max wait for onUpdate before re-helloing (ms, default 2000) */
+  updateMs?: number;
   jitter?: number;
   pingMs?: number;
   deadMs?: number;
@@ -46,7 +50,7 @@ export interface SocketOptions {
 type Listener = (s: LiveState) => void;
 export type FrameListener = (f: ServerFrame) => void;
 
-export function initialLiveState(village = "v_reyes"): LiveState {
+export function initialLiveState(village = ""): LiveState {
   return {
     status: "idle", attempt: 0, closedReason: null, lastError: null, rev: 0, village, role: "", memberId: null,
     self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
@@ -66,6 +70,7 @@ export class VillageSocket {
   private pending = new Map<string, ActionRequest>();
   private incidentEvents = new Map<string, string>();
   private stopped = false;
+  private updatedOnce = false;
 
   constructor(private o: SocketOptions) {
     this.s = initialLiveState(o.village);
@@ -106,7 +111,7 @@ export class VillageSocket {
     clearTimeout(this.reconnectTimer);
     this.set({ status: "connecting" });
     const Impl = this.o.WebSocketImpl ?? (globalThis as any).WebSocket;
-    const ws: WebSocket = new Impl(this.o.url);
+    const ws: WebSocket = new Impl(this.url());
     this.ws = ws;
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
@@ -139,11 +144,23 @@ export class VillageSocket {
     this.set({ status: "closed", closedReason: this.s.closedReason ?? "closed" });
   }
 
+  /** Village this socket is for: the one the server named in the last snapshot, else the configured one. */
+  get village(): string {
+    return this.s.village || this.o.village;
+  }
+
+  /** Socket URL with the current village filled in (never `?village=&m=…` on a reconnect). */
+  url(): string {
+    const v = this.village;
+    if (!v || !/[?&]village=/.test(this.o.url)) return this.o.url;
+    return this.o.url.replace(/([?&])village=[^&]*/, `$1village=${encodeURIComponent(v)}`);
+  }
+
   hello() {
     const frame: ClientHello = {
       type: "hello",
       contract_version: CONTRACT_VERSION,
-      village: this.o.village,
+      village: this.village,
       member_token: this.o.token,
       client: this.o.client
     };
@@ -225,6 +242,12 @@ export class VillageSocket {
         return;
       }
       case "patch": {
+        // patches are per role (Core sends each socket its own role's ops); one for another role means our view is stale
+        if (f.role && this.s.role && f.role !== this.s.role) {
+          this.set({ status: "resync" });
+          this.hello();
+          return;
+        }
         if (!this.s.view || f.base_rev !== this.s.rev) {
           this.set({ status: "resync" });
           this.hello();
@@ -275,6 +298,23 @@ export class VillageSocket {
         clearTimeout(this.deadTimer);
         return;
       case "error":
+        if (f.code === "contract_mismatch" && !this.updatedOnce) {
+          // a cached bundle met a newer Core: update the service worker, then re-hello once ("Updating…", ≤ 2 s)
+          this.updatedOnce = true;
+          this.set({ status: "updating", lastError: f.message });
+          const update = (this.o.onUpdate ?? swUpdate)().catch(() => undefined);
+          const wait = new Promise((r) => setTimeout(r, this.o.updateMs ?? 2000));
+          void Promise.race([update, wait]).then(() => {
+            if (this.stopped) return;
+            if (this.ws && this.ws.readyState === 1) {
+              this.set({ status: "hello_sent" });
+              this.hello();
+            } else {
+              this.connect();
+            }
+          });
+          return;
+        }
         if (f.code === "bad_token" || f.code === "contract_mismatch") {
           this.set({ closedReason: f.code, lastError: f.message });
           this.close();
@@ -304,7 +344,7 @@ export class VillageSocket {
     this.stopPing();
     const every = this.o.pingMs ?? 15000;
     this.pingTimer = setInterval(() => {
-      this.sendRaw({ type: "ping", ts: Date.now() });
+      // arm the dead-man before sending: a pong can arrive synchronously (fake server) and must clear it
       clearTimeout(this.deadTimer);
       this.deadTimer = setTimeout(() => {
         try {
@@ -313,6 +353,7 @@ export class VillageSocket {
           /* ignore */
         }
       }, this.o.deadMs ?? 10000);
+      this.sendRaw({ type: "ping", ts: Date.now() });
     }, every);
   }
 
@@ -343,4 +384,12 @@ function resultKey(a: ActionRequest): string {
 export function isoWithOffset(ms: number): string {
   const d = new Date(ms - 4 * 3600_000);
   return d.toISOString().replace(/\.\d{3}Z$/, "-04:00");
+}
+
+/** Ask the service worker for the new bundle (vite-plugin-pwa autoUpdate activates it). */
+async function swUpdate(): Promise<unknown> {
+  const sw = typeof navigator !== "undefined" ? navigator.serviceWorker : undefined;
+  if (!sw) return;
+  const reg = await sw.getRegistration();
+  return reg?.update();
 }

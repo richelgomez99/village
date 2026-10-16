@@ -12,6 +12,9 @@ from core.db import db
 from core.settings import CONTRACT_VERSION
 
 
+VILLAGE_KEYED = {"reasoning", "caption", "ledger", "blueprint"}  # control kinds whose payload schema allows `village`
+
+
 @dataclass(eq=False)
 class Client:
     ws: WebSocket
@@ -84,9 +87,18 @@ class Hub:
             await self._send(client, frame)
 
     async def control(self, village: str, kind: str, payload: dict[str, Any]) -> None:
+        """Control frames go only to that village's Control Room sockets; kinds whose schema has `village`
+        carry it in the payload (D30: every WS frame is village-keyed)."""
+        if kind in VILLAGE_KEYED and "village" not in payload:
+            payload = {**payload, "village": village}
         for client in list(self.clients):
             if client.village == village and client.role == "control":
                 await self._send(client, {"type": "control", "kind": kind, "payload": payload, "at": clock.now().isoformat()})
+        if kind == "counter" and payload.get("name") == "intake_covered":
+            from core.founding_glue import founding_frames
+
+            for derived_kind, derived in founding_frames(village):
+                await self.control(village, derived_kind, derived)
 
     async def broadcast_chat(self, message: dict[str, Any]) -> None:
         for client in list(self.clients):
@@ -133,6 +145,9 @@ def identity(village: str, role: str, member_id: str | None, *, view_as: bool = 
         lang = person.get("lang")
         if lang in {"en", "es"}:
             out["lang"] = lang
+    number = villages.village_number(village)
+    if number:
+        out["village_number"] = number
     if view_as:
         out["view_as"] = True
     return out
@@ -144,7 +159,7 @@ def snapshot(village: str, role: str, member_id: str | None, *, view_as: bool = 
         view_spec: dict[str, Any] = spec
         member_id = None
     else:
-        view_spec = db.views.get((village, role), {})
+        view_spec = db.views.get((village, role)) or spec.get("views", {}).get(role, {})
     return {
         "type": "snapshot",
         "contract_version": CONTRACT_VERSION,

@@ -24,7 +24,8 @@ COMMON_REQUIRED = {
     "create_village": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
     "answer_proposal": ["conversation_id", "caller_id", "call_secs", "utterance", "proposal_id", "answer"],
     "submit_answer": ["village_id", "text"],
-    "screen_caller": ["conversation_id", "caller_id", "call_secs", "utterance", "claimed_identity"],
+    # D19 receptionist (evolve lane): Core side in core/evolve/receptionist.py; phase 2 passes verification_id.
+    "screen_caller": ["conversation_id", "caller_id", "utterance"],
 }
 
 OPTIONAL_FIELDS = {
@@ -69,6 +70,7 @@ OPTIONAL_FIELDS = {
     "text",
     "asks_money",
     "lang",
+    "max_wait_s",
 }
 
 SENSITIVE_DIGITS = re.compile(r"(?<!\d)\d[\d\s-]{3,}\d(?!\d)")
@@ -200,6 +202,8 @@ class ToolHandler:
         local = LOCAL_TOOLS.get(tool_name)
         if local is not None:
             return await local(body)
+        if tool_name == "screen_caller" and not hasattr(self.services, "handle_voice_tool"):
+            return await screen_caller(body)
         if hasattr(self.services, "handle_voice_tool"):
             return await self.services.handle_voice_tool(tool_name, body, variant=variant)
 
@@ -293,8 +297,7 @@ async def _submit_answer(body: dict[str, Any]) -> dict[str, Any]:
 LOCAL_TOOLS: dict[str, Any] = {
     "create_village": _create_village,
     "submit_answer": _submit_answer,
-    "screen_caller": lambda body: screen_caller(body),
-}
+}  # screen_caller: Core services (core.evolve.receptionist) own it; `screen_caller()` above is the fallback when they don't
 
 
 def _register_handlers() -> None:

@@ -1,7 +1,7 @@
 // Control Room scene reducer (T020). Pure: (scene, server frame) → scene. Every region reads from this.
-// Inputs are contract frames (ws_messages.schema.json control{kind}, event, snapshot). Two kit-tolerated kinds that
-// are NOT in contract 1.2.1 yet (LANE-REPORT LD-9): control{kind:"caption", payload:{es,en,speaker?,final?}} and
-// control{kind:"ledger", payload:{id,status,what,result?,role?,attempt?}}. Unknown kinds are ignored.
+// Inputs are contract 1.2.1 frames (ws_messages.schema.json control{kind}, event, snapshot), incl. caption + ledger
+// and `mode` on reasoning/ledger rows. One scene per village: frames that name another village are ignored.
+// Unknown kinds are ignored.
 import type { ServerFrame } from "../live/messages";
 
 export type Mode = "acted_alone" | "asked_human" | "refused";
@@ -9,10 +9,11 @@ export type AgentRole = "Founder" | "Watcher" | "Verifier" | "Builder" | "Explai
 export type LedgerStatus = "queued" | "running" | "done" | "retrying" | "fallback" | "refused";
 export type BlueprintStage = "people" | "needs" | "life_areas" | "rules" | "kind" | "questions" | "done";
 
-export interface LedgerRow { id: string; at: string; status: LedgerStatus; what: string; result?: string; role: AgentRole; attempt?: number; rule_id?: string }
+export interface LedgerRow { id: string; at: string; status: LedgerStatus; what: string; result?: string; role: AgentRole; attempt?: number; rule_id?: string; mode?: Mode; elapsed_ms?: number }
 export interface GateRow { id: string; at: string; rule_id: string; decision: string; say: { es?: string; en?: string } | null; mode: Mode; input_kind: string; verification_state?: string }
 export interface DecisionRow { id: string; at: string; text: string; role: AgentRole; mode: Mode; source: string }
 export interface CaptionLine { id: string; at: string; es: string; en: string; speaker?: string }
+export interface TranscriptLine { id: string; at: string; who: "ana" | "village" | string; text: string }
 export interface LiveMoment {
   verification_id: string | null;
   quote: string | null;
@@ -21,6 +22,8 @@ export interface LiveMoment {
   deadline: string | null;
   started: string;
   state: "pending" | "denied" | "confirmed" | "timeout" | "default_spoken";
+  /** who the call is with (money_request.subject) */
+  subject: string | null;
   say: { es?: string; en?: string } | null;
   channels: string[];
 }
@@ -43,14 +46,20 @@ export interface SceneState {
   release: any | null;
   buildLog: { at: string; stage: string; line: string; level: string }[];
   proposal: any | null;
+  /** village.name (spec) or snapshot.identity.village_name — names exist before the spec does during founding */
+  villageName: string | null;
+  /** founding intake (docs/FOUNDING-INTAKE.md): transcript, coverage meter, gap list */
+  transcript: TranscriptLine[];
+  coverage: { value: number; of: number } | null;
+  gaps: string[];
   frames: number;
 }
 
-export function initialScene(village = "v_reyes"): SceneState {
+export function initialScene(village = ""): SceneState {
   return {
     village, spec: null, data: {}, rev: 0, blueprint: { stages: {}, done: false }, ledger: [], gate: [], decisions: [],
     autonomy: { acted_alone: 0, asked_human: 0, refused: 0 }, live: null, counters: {}, phones: null, clock: null, captions: [],
-    release: null, buildLog: [], proposal: null, frames: 0
+    release: null, buildLog: [], proposal: null, villageName: null, transcript: [], coverage: null, gaps: [], frames: 0
   };
 }
 
@@ -88,6 +97,12 @@ export function roleFor(source: string, founding = false): AgentRole {
       return "Verifier";
     case "explainer":
       return "Explainer";
+    case "founder":
+      return "Founder";
+    case "watcher":
+      return "Watcher";
+    case "verifier":
+      return "Verifier";
     default:
       return "Watcher";
   }
@@ -108,19 +123,41 @@ function upsertLedger(rows: LedgerRow[], row: LedgerRow): LedgerRow[] {
   return next;
 }
 
-function name(id: string | undefined | null, spec: any): string {
+/** Display name from the member record: display_name, else the full name with the family surname dropped
+ *  ("Ana Diaz" in "Familia Diaz" → "Ana"); households and titles stay whole ("Mrs. Ruth Ng"). Never split on spaces. */
+export function displayName(p: any, spec?: any): string {
+  if (!p) return "";
+  if (p.display_name) return String(p.display_name);
+  const full = String(p.name ?? p.id ?? "");
+  const vname = String(spec?.village?.name ?? "");
+  const m = vname.match(/^(?:familia|family)\s+(\S+)$/i) ?? vname.match(/^(?:the\s+)?(\S+)\s+family$/i);
+  const fam = m ? m[1] : "";
+  if (fam && full.endsWith(` ${fam}`) && !/^(mr|mrs|ms|dr|the)\b/i.test(full)) return full.slice(0, -fam.length - 1);
+  return full;
+}
+
+/** Spec, or a stand-in carrying the village name while the spec doesn't exist yet (founding). */
+export function nameCtx(s: { spec: any; villageName: string | null }): any {
+  return s.spec ?? { village: { name: s.villageName ?? "" } };
+}
+
+/** Proper-cased member name from the record (spec people, then data member:<id>), else from the id. */
+export function memberDisplay(id: string | undefined | null, spec: any, data?: Record<string, unknown>): string {
   if (!id) return "";
   const p = spec?.blueprint?.people?.find((x: any) => x.id === id);
-  if (p) return String(p.name).split(" ")[0];
-  const base = id.replace(/^[a-z]_/, "");
-  return base.charAt(0).toUpperCase() + base.slice(1);
+  if (p) return displayName(p, spec);
+  const m = data?.[`member:${id}`] as { name?: string } | undefined;
+  if (m?.name) return m.name;
+  return id.replace(/^[a-z]_/, "").split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
+
+const name = (id: string | undefined | null, spec: any, data?: Record<string, unknown>) => memberDisplay(id, spec, data);
 
 function stageWords(stage: string, items: any[], spec: any): string {
   const n = items.length;
   switch (stage) {
     case "people":
-      return `Found ${n} ${n === 1 ? "person" : "people"}: ${items.map((p) => (p.name ?? p.id ?? "").split(" ")[0]).filter(Boolean).join(", ")}`;
+      return `Found ${n} ${n === 1 ? "person" : "people"}: ${items.map((p) => displayName(p, spec)).filter(Boolean).join(", ")}`;
     case "needs":
       return `${n} ${n === 1 ? "need" : "needs"} heard in the description`;
     case "life_areas":
@@ -141,10 +178,13 @@ function stageWords(stage: string, items: any[], spec: any): string {
 export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; village?: string }): SceneState {
   if (f.type === "reset") return initialScene(f.village ?? s.village);
   const frames = s.frames + 1;
+  const fv = frameVillage(f);
+  if (s.village && fv && fv !== s.village) return s;
   switch (f.type) {
     case "snapshot": {
       if (f.role !== "control") return { ...s, frames };
-      return { ...s, frames, village: f.village, spec: f.spec, data: { ...f.data }, rev: f.rev };
+      const villageName = (f.spec as any)?.village?.name ?? (f as any).identity?.village_name ?? s.villageName;
+      return { ...s, frames, spec: f.spec ?? null, data: { ...f.data }, rev: f.rev, villageName };
     }
     case "patch":
       return { ...s, frames, rev: f.rev };
@@ -157,6 +197,17 @@ export function sceneReducer(s: SceneState, f: ServerFrame | { type: "reset"; vi
   }
 }
 
+/** The village a frame names, if any (snapshot.village, event.village, control payload.village / receipt / proposal). */
+export function frameVillage(f: any): string | null {
+  if (f.type === "snapshot") return f.village ?? null;
+  if (f.type === "event") return f.event?.village ?? null;
+  if (f.type === "control") {
+    const p = f.payload ?? {};
+    return p.village ?? p.receipt?.village ?? p.proposal?.village ?? null;
+  }
+  return null;
+}
+
 function eventStep(s: SceneState, ev: { id: string; kind: string; at: string; payload?: any; source?: any }): SceneState {
   const p = ev.payload ?? {};
   switch (ev.kind) {
@@ -167,6 +218,7 @@ function eventStep(s: SceneState, ev: { id: string; kind: string; at: string; pa
           verification_id: p.verification_id ?? s.live?.verification_id ?? null,
           quote: p.utterance ?? ev.source?.quote ?? null,
           claimed: p.claimed_member_id ?? null,
+          subject: p.subject ?? s.live?.subject ?? null,
           amount: typeof p.amount === "number" ? p.amount : null,
           deadline: s.live?.deadline ?? null,
           started: ev.at,
@@ -193,7 +245,8 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
     case "gate": {
       const d = p?.decision;
       if (!d) return s;
-      const mode = gateMode(d.decision);
+      const explicit = d.mode ?? p.mode;
+      const mode: Mode = explicit === "acted_alone" || explicit === "asked_human" || explicit === "refused" ? explicit : gateMode(d.decision);
       const say = d.say && (d.say.es || d.say.en) ? d.say : null;
       const row: GateRow = { id: d.id, at, rule_id: d.rule_id, decision: d.decision, say, mode, input_kind: p.input_kind ?? "", verification_state: d.verification?.state };
       const known = s.gate.some((g) => g.id === d.id);
@@ -204,21 +257,24 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       let live = s.live;
       const v = d.verification;
       if (v) {
-        const who = name(v.claimed_member, s.spec);
+        const who = name(v.claimed_member, s.spec, s.data);
+        const subject: string | null = (d.writes ?? []).map((w: any) => w?.payload?.subject).find(Boolean) ?? s.live?.subject ?? null;
+        const subjName = name(subject, s.spec, s.data);
+        const notified = (d.notify ?? []).map((n: any) => name(n.member_id, s.spec, s.data)).filter(Boolean).join(", ");
         const ch = (v.channels ?? []).map((c: string) => (c === "app_prompt" ? "app" : c === "outbound_call" ? "call" : c)).join(" + ");
         const id = `ver:${v.id}`;
         if (v.state === "pending") {
           ledger = upsertLedger(ledger, { id, at, status: "running", what: `Checking with ${who}${ch ? ` (${ch})` : ""}`, role: "Verifier", rule_id: d.rule_id });
         } else if (v.state === "denied") {
-          ledger = upsertLedger(ledger, { id, at, status: "done", what: `Checked with ${who}`, result: `${who}: “that wasn't me” · Carmen told not to send`, role: "Verifier", rule_id: d.rule_id });
+          ledger = upsertLedger(ledger, { id, at, status: "done", what: `Checked with ${who}`, result: `${who}: “that wasn't me” · ${subjName || "she"} told not to send`, role: "Verifier", rule_id: d.rule_id });
         } else if (v.state === "confirmed") {
           ledger = upsertLedger(ledger, { id, at, status: "done", what: `Checked with ${who}`, result: `${who} says it was him · Village never sends money`, role: "Verifier", rule_id: d.rule_id });
         } else if (v.state === "default_spoken" || v.state === "timed_out") {
-          ledger = upsertLedger(ledger, { id, at, status: "fallback", what: `No answer from ${who}`, result: "Safe default: told Carmen “don't send”, Ana notified", role: "Verifier", rule_id: d.rule_id });
+          ledger = upsertLedger(ledger, { id, at, status: "fallback", what: `No answer from ${who}`, result: `Safe default: told ${subjName || "her"} “don't send”${notified ? `, ${notified} notified` : ""}`, role: "Verifier", rule_id: d.rule_id });
         }
         if (v.state === "pending") {
           live = {
-            verification_id: v.id, quote: s.live?.quote ?? null, claimed: v.claimed_member, amount: s.live?.amount ?? null, deadline: v.deadline,
+            verification_id: v.id, quote: s.live?.quote ?? null, claimed: v.claimed_member, subject, amount: s.live?.amount ?? null, deadline: v.deadline,
             started: s.live?.started ?? at, state: "pending", say, channels: v.channels ?? []
           };
         } else if (live) {
@@ -233,7 +289,7 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
     case "reasoning": {
       const text = String(p?.text ?? "");
       if (!text) return s;
-      const founding = !s.blueprint.done && Object.keys(s.blueprint.stages).length > 0;
+      const founding = !s.spec || (!s.blueprint.done && Object.keys(s.blueprint.stages).length > 0);
       const role = roleFor(String(p.source ?? ""), founding);
       if (p.kind === "decision") {
         const mode = textMode(text, p.mode);
@@ -242,6 +298,10 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
         const counts = p.source === "gate" ? s.autonomy : { ...s.autonomy, [mode]: s.autonomy[mode] + 1 };
         return { ...s, decisions: [row, ...s.decisions].slice(0, 100), autonomy: counts };
       }
+      if (role === "Founder" && p.kind === "note") {
+        // the Founder's "now I know" line + its next question (FOUNDING-INTAKE §4)
+        return { ...s, transcript: [...s.transcript, { id: `tr_${s.frames}`, at, who: "village", text }].slice(-40) };
+      }
       return { ...s, ledger: upsertLedger(s.ledger, { id: `rs_${s.frames}`, at, status: "done", what: text, role }) };
     }
     case "blueprint": {
@@ -249,27 +309,37 @@ function controlStep(s: SceneState, kind: string, p: any, at: string): SceneStat
       if (!stage) return s;
       const items = Array.isArray(p.items) ? p.items : [];
       const stages = { ...s.blueprint.stages, [stage]: items };
+      const gaps = stage === "questions" ? items.map((q: any) => String(q.gap ?? q.topic ?? q.question ?? "")).filter(Boolean) : s.gaps;
       const done = stage === "done" || s.blueprint.done;
-      const ledger = upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, s.spec), role: "Founder" });
-      return { ...s, blueprint: { stages, done }, ledger };
+      const ledger = upsertLedger(s.ledger, { id: `bp:${stage}`, at, status: "done", what: stageWords(stage, items, nameCtx(s)), role: "Founder" });
+      if (stage === "questions") return { ...s, blueprint: { stages, done }, gaps };
+      return { ...s, blueprint: { stages, done }, ledger, gaps: done ? [] : s.gaps };
     }
     case "counter": {
       if (!p?.name) return s;
       const counters = { ...s.counters, [p.name]: { value: Number(p.value) || 0, of: p.of, label: String(p.label ?? p.name) } };
       const phones = /^(phones|phones_live|sockets|phones_connected)$/.test(p.name) ? Number(p.value) || 0 : s.phones;
-      return { ...s, counters, phones };
+      const coverage = p.name === "intake_coverage" ? { value: Number(p.value) || 0, of: Number(p.of) || 10 } : s.coverage;
+      return { ...s, counters, phones, coverage };
     }
     case "clock":
       return p?.now ? { ...s, clock: { now: p.now, offset_minutes: Number(p.offset_minutes) || 0 } } : s;
     case "caption": {
       if (!p?.es && !p?.en) return s;
-      const line: CaptionLine = { id: `cap_${s.frames}`, at, es: String(p.es ?? ""), en: String(p.en ?? ""), speaker: p.speaker };
+      const speaker = p.speaker ? String(p.speaker).charAt(0).toUpperCase() + String(p.speaker).slice(1) : undefined;
+      const line: CaptionLine = { id: `cap_${s.frames}`, at, es: String(p.es ?? ""), en: String(p.en ?? ""), speaker };
+      // during founding, the coordinator's words (speaker "ana" in the contract enum) are the transcript (English; es may repeat it)
+      if (String(p.speaker) === "ana" && (!s.spec || !s.blueprint.done)) {
+        return { ...s, transcript: [...s.transcript, { id: `tr_${s.frames}`, at, who: "ana", text: line.en || line.es }].slice(-40) };
+      }
       return { ...s, captions: [...s.captions, line].slice(-6) };
     }
     case "ledger": {
       if (!p?.id || !p?.what) return s;
       const status: LedgerStatus = ["queued", "running", "done", "retrying", "fallback", "refused"].includes(p.status) ? p.status : "done";
-      return { ...s, ledger: upsertLedger(s.ledger, { id: String(p.id), at, status, what: String(p.what), result: p.result, role: (p.role as AgentRole) ?? "Founder", attempt: p.attempt }) };
+      const r = String(p.role ?? "founder").toLowerCase();
+      const role = (["founder", "watcher", "verifier", "builder", "explainer"].includes(r) ? r.charAt(0).toUpperCase() + r.slice(1) : "Founder") as AgentRole;
+      return { ...s, ledger: upsertLedger(s.ledger, { id: String(p.id), at: p.at ?? at, status, what: String(p.what), result: p.result, role, attempt: p.attempt, mode: p.mode, elapsed_ms: p.elapsed_ms }) };
     }
     case "release": {
       const r = p?.receipt;

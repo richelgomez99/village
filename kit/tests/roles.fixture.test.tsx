@@ -4,6 +4,8 @@ import reyes from "../../contracts/fixtures/reyes_spec.json";
 import { MemberApp } from "../src/app/MemberApp";
 import { makeSocket } from "../src/live/useLive";
 import "../src/theme/floor.css";
+import { makePhoneFor } from "../src/renderer/context";
+import { renderView } from "./helpers";
 
 function mount(fake: string, search = "?start=off") {
   const socket = makeSocket({ url: `ws://fake/${fake}`, village: "v_reyes", token: `mt_${fake}_offline_demo`, client: "kit", fake }, search);
@@ -70,5 +72,34 @@ describe("fixture roles via the fake server", () => {
     expect((window as any).__frames.filter((f: any) => f.type === "action")).toHaveLength(0);
     act(() => container.querySelector<HTMLButtonElement>("[data-test='confirm-yes']")!.click());
     expect((window as any).__frames.filter((f: any) => f.type === "action")[0]).toMatchObject({ name: "need_help", element_id: "b_help" });
+  });
+});
+
+describe("call affordances are real tel: links (iOS Safari)", () => {
+  it("marco: Call Mamá is <a href=tel:> with Carmen's number from her member record", async () => {
+    vi.useFakeTimers();
+    const { container } = mount("marco");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    const call = container.querySelector<HTMLAnchorElement>("[data-action='call_member']")!;
+    expect(call.tagName).toBe("A");
+    expect(call.getAttribute("href")).toBe("tel:+18482579221");
+  });
+
+  it("carmen: Llamar a Village + Llamar a Ana + 911 are tel: anchors", async () => {
+    vi.useFakeTimers();
+    const { container } = mount("carmen");
+    await act(async () => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector("[data-action='call_number']")?.getAttribute("href")).toBe("tel:+18482579221");
+    expect(container.querySelector("[data-action='call_member']")?.getAttribute("href")).toBe("tel:+15555550102");
+    expect(container.querySelector("[data-test='contact-card'][data-kind='emergency']")?.getAttribute("href")).toBe("tel:911");
+  });
+
+  it("a missing number renders a disabled button that says so", () => {
+    const view = { lang: "en", theme: "family", root: "s", elements: { s: { type: "Screen", props: { title: "x" }, children: ["b"] }, b: { type: "BigButton", props: { label: "Call Lee", action: "call_member", action_arg: "m_lee" } } } };
+    const { container } = renderView(view, {}, { phoneFor: makePhoneFor({}) });
+    const b = container.querySelector<HTMLButtonElement>("[data-action='call_member']")!;
+    expect(b.tagName).toBe("BUTTON");
+    expect(b.disabled).toBe(true);
+    expect(b.textContent).toContain("no number");
   });
 });

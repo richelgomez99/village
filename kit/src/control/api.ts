@@ -6,6 +6,8 @@ export interface AskAnswer { answer: string; lang: string; citations: Citation[]
 export interface QrEntry { member_id: string; kind: "app" | "join" | "lid"; url: string; svg?: string }
 export interface ClockState { now: string; offset_minutes: number }
 
+import { fakeAsk, fakeCreateVillage, fakeQr } from "../dev/fakeApi";
+
 export interface ApiConfig {
   base: string;
   token: string;
@@ -31,46 +33,13 @@ async function call<T>(cfg: ApiConfig, method: string, path: string, body?: unkn
   return (await res.json()) as T;
 }
 
-const FAKE_ANSWERS: [RegExp, AskAnswer][] = [
-  [
-    /marco/i,
-    {
-      answer: "Village called Marco, not Lucía, because the caller used Marco's name and Marco agreed to calls when he joined. If nobody answers in 45 seconds the answer is \"don't send\".",
-      lang: "en", degraded: false,
-      citations: [
-        { kind: "decision", id: "dc_1016_1402_money", label: "Gate · R-MONEY-VERIFY · 14:02" },
-        { kind: "member", id: "m_marco", label: "Marco · consent to calls (Oct 16)" },
-        { kind: "rule", id: "R-MONEY-DEFAULT", label: "No answer means don't send" }
-      ]
-    }
-  ],
-  [
-    /screen|differ|app/i,
-    {
-      answer: "Carmen gets 3 big buttons in Spanish because she uses a flip phone and reads Spanish; Marco gets one question because he works nights and only needs to know whose turn it is.",
-      lang: "en", degraded: false,
-      citations: [
-        { kind: "fact", id: "m_carmen.tech_comfort", label: "Carmen · phone only · Spanish" },
-        { kind: "fact", id: "m_marco.availability", label: "Marco · nights, leaves 9:30" }
-      ]
-    }
-  ]
-];
-
 export async function askVillage(cfg: ApiConfig, village: string, question: string): Promise<AskAnswer> {
-  if (cfg.fake) {
-    await new Promise((r) => setTimeout(r, 400));
-    const hit = FAKE_ANSWERS.find(([re]) => re.test(question));
-    return hit ? hit[1] : { answer: "Village has no decision on record about that yet.", lang: "en", degraded: true, citations: [] };
-  }
+  if (cfg.fake) return fakeAsk(question);
   return call<AskAnswer>(cfg, "POST", `/villages/${encodeURIComponent(village)}/ask`, { question, lang: "en" });
 }
 
 export async function getQr(cfg: ApiConfig, village: string): Promise<QrEntry[]> {
-  if (cfg.fake) {
-    const here = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname.replace(/control\.html$/, "")}` : "/";
-    return ["m_marco", "m_ana", "m_carmen"].map((m) => ({ member_id: m, kind: "app" as const, url: `${here}?fake=${m.slice(2)}` }));
-  }
+  if (cfg.fake) return fakeQr(village);
   return call<QrEntry[]>(cfg, "GET", `/villages/${encodeURIComponent(village)}/qr?kind=app&format=json`);
 }
 
@@ -81,4 +50,16 @@ export async function warpClock(cfg: ApiConfig, minutes: number): Promise<ClockS
     throw new Error("no fake hub");
   }
   return call<ClockState>(cfg, "POST", "/clock/warp", { minutes });
+}
+
+/** Founding: POST /villages {description} → 202 {village_id, ws_url}; the room then follows that village's socket. */
+export async function createVillage(cfg: ApiConfig, description: string): Promise<{ village_id: string; plan?: string }> {
+  if (cfg.fake) return fakeCreateVillage(description);
+  return call(cfg, "POST", "/villages", { description, language: "en" });
+}
+
+/** Founding follow-up: POST /villages/{id}/answers {answers:[{question, text}]}. */
+export async function answerFollowUp(cfg: ApiConfig, village: string, question: string, text: string): Promise<{ village_id: string; state: string }> {
+  if (cfg.fake) return { village_id: village, state: "building" };
+  return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/answers`, { answers: [{ question: question.slice(0, 200), text }], lang: "en" });
 }

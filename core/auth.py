@@ -13,6 +13,22 @@ def _ascii(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
 
 
+# Tokens minted elsewhere (builder-redeemed invites): token -> (member_id, village). Checked before the
+# first-name `mt_` heuristic so a new village's "mt_ana_*" never resolves to another village's Ana.
+ISSUED: dict[str, tuple[str, str]] = {}
+
+
+def register_token(token: str, member_id: str, village: str) -> None:
+    ISSUED[token] = (member_id, village)
+
+
+def token_village(token: str | None) -> str | None:
+    if not token:
+        return None
+    hit = ISSUED.get(token.removeprefix("Bearer ").strip())
+    return hit[1] if hit else None
+
+
 def resolve_token(token: str | None) -> str | None:
     """Return a member id, 'control', or None for an unknown token."""
     if not token:
@@ -21,6 +37,8 @@ def resolve_token(token: str | None) -> str | None:
     control = os.getenv("CONTROL_TOKEN")
     if token == "control" or (control and token == control):
         return "control"
+    if token in ISSUED:
+        return ISSUED[token][0]
     if token in db.members:
         return token
     if token.startswith("mt_"):

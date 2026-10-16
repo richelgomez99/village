@@ -32,6 +32,26 @@ export interface RenderCtx {
   ack: (eventId: string, status?: "got_it" | "accepted" | "declined" | "not_needed") => void;
   /** D18: render an English caption under Spanish strings (projector / control surfaces). */
   captions: boolean;
+  /** tel: number for a call target (member id, "village", or a literal number); null = no number known. */
+  phoneFor?: (target: string) => string | null;
+}
+
+const LITERAL_PHONE = /^(\+[1-9][0-9]{6,14}|911|988|18002221222)$/;
+
+/** Phone lookup from resolved data: literal numbers, member:<id>.phone, any bv_person with that id, and the Village line. */
+export function makePhoneFor(data: Record<string, unknown>, villageNumber?: string | null): (target: string) => string | null {
+  return (target: string) => {
+    if (!target) return null;
+    if (LITERAL_PHONE.test(target)) return target;
+    if (target === "village") return villageNumber ?? null;
+    const m = data[`member:${target}`] as { phone?: string } | null | undefined;
+    if (m?.phone) return m.phone;
+    for (const v of Object.values(data)) {
+      const p = v as { member_id?: string; phone?: string } | null;
+      if (p && typeof p === "object" && !Array.isArray(p) && p.member_id === target && p.phone) return p.phone;
+    }
+    return null;
+  };
 }
 
 const noop = () => "";
@@ -41,7 +61,7 @@ export const defaultCtx: RenderCtx = {
   lang: "en",
   role: "helper",
   memberId: null,
-  village: "v_reyes",
+  village: "",
   nowMs: () => Date.now(),
   disabled: false,
   highlight: new Set(),

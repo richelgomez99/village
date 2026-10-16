@@ -221,3 +221,7 @@ s { text-decoration-thickness: 2px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+a.bigbutton { text-decoration: none; box-sizing: border-box; }
+.bigbutton[data-no-number] { opacity: 0.6; }
+.no-number { display: block; font-weight: 400; font-size: 0.6em; }
+a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }

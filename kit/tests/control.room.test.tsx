@@ -30,10 +30,12 @@ describe("Control Room", () => {
     vi.useFakeTimers();
     const { container } = mount("?start=off");
     await tick(10);
-    for (const t of ["cr-header", "phones-counter", "demo-clock", "blueprint", "ledger", "live-moment", "phones", "gate-feed", "decisions-log", "ask-why", "join-qr"]) {
+    for (const t of ["cr-header", "tagline", "new-village", "phones-counter", "demo-clock", "blueprint", "ledger", "live-moment", "phones", "gate-feed", "decisions-log", "ask-why", "qr-tile"]) {
       expect(q(container, `[data-test='${t}']`), t).not.toBeNull();
     }
-    expect(container.querySelectorAll("[data-test='village-tab']")).toHaveLength(2);
+    const tabs = Array.from(container.querySelectorAll("[data-test='village-tab']")).map((t) => t.textContent);
+    expect(tabs).toEqual([reyes.village.name, block.village.name]);
+    expect(q(container, "[data-test='tagline']")?.textContent).toBe("Village builds an app for each person in a group, runs their week, and rebuilds itself when their life changes.");
   });
 
   it("phones region renders 3 roles read-only under the shared URL, elder light inside the dark frame", async () => {
@@ -97,12 +99,16 @@ describe("Control Room", () => {
   it("founding replay fills the ledger with Founder rows and the counter ticks up", async () => {
     vi.useFakeTimers();
     const { container } = mount("?seq=founding");
-    await tick(20000);
+    await tick(10);
+    expect(q(container, "[data-test='founding-empty']")?.textContent).toBe("No village yet. Describe your people.");
+    await tick(40000);
     const rows = Array.from(container.querySelectorAll<HTMLElement>("[data-test='ledger-row']"));
     expect(rows.length).toBeGreaterThanOrEqual(8);
     expect(rows.every((r) => ["queued", "running", "done", "retrying", "fallback", "refused"].includes(r.dataset.status!))).toBe(true);
-    expect(rows.some((r) => r.textContent?.includes("no interactions flagged"))).toBe(true);
+    expect(rows.some((r) => r.textContent?.includes("DailyMed: apixaban"))).toBe(true);
     expect(q(container, "[data-test='phones-counter']")?.dataset.count).toBe("4");
+    // the founding finished: the spec arrived and the room switched to the live layout
+    expect(q(container, "[data-test='control']")?.dataset.mode).toBe("live");
   });
 
   it("ask why: empty question ignored, disabled in flight, answer + citation chips", async () => {
@@ -136,16 +142,83 @@ describe("Control Room", () => {
     expect(q(container, "[data-test='qr-empty']")).not.toBeNull();
   });
 
-  it("join QR tiles: three tiles, Be Marco highlighted sage", async () => {
+  it("phone mirrors are labelled from the member record with a join QR under each; Be Marco highlighted sage", async () => {
     vi.useFakeTimers();
     const { container } = mount("?start=off");
     await tick(10);
-    const tiles = Array.from(container.querySelectorAll<HTMLElement>("[data-test='qr-tile']"));
-    expect(tiles).toHaveLength(3);
-    expect(tiles[0].dataset.member).toBe("m_marco");
-    expect(tiles[0].className).toContain("sage");
-    expect(tiles[0].textContent).toContain("Be Marco");
-    expect(tiles[0].querySelector("svg")).not.toBeNull();
+    const labels = Array.from(container.querySelectorAll("[data-test='phone-label']")).map((l) => l.textContent);
+    expect(labels).toEqual(["Carmen's phone · right now", "Ana's phone", "Marco's phone"]);
+    const tiles = Array.from(container.querySelectorAll<HTMLElement>("[data-test='phone'] [data-test='qr-tile']"));
+    expect(tiles.map((t) => t.dataset.member)).toEqual(["m_carmen", "m_ana", "m_marco"]);
+    expect(tiles[2].className).toContain("sage");
+    expect(tiles[2].textContent).toContain("Be Marco");
+    expect(tiles[0].className).not.toContain("sage");
+    expect(tiles[2].querySelector("svg")).not.toBeNull();
+  });
+
+  it("switching village re-keys every region: the Reyes scam never shows under West 147th", async () => {
+    vi.useFakeTimers();
+    const { container } = mount("?seq=scam&tail=denied");
+    await tick(17000);
+    expect(q(container, "[data-test='live-moment']")!.dataset.state).toBe("denied");
+    expect(q(container, "[data-test='captions-layer']")).not.toBeNull();
+    act(() => q(container, "[data-test='village-tab'][data-village='v_w147']")!.click());
+    await tick(10);
+    expect(q(container, "[data-test='control']")?.dataset.village).toBe("v_w147");
+    expect(q(container, "[data-test='live-moment']")!.dataset.state).toBe("idle");
+    expect(container.querySelectorAll("[data-test='ledger-row']")).toHaveLength(0);
+    expect(container.querySelectorAll("[data-test='gate-row']")).toHaveLength(0);
+    expect(container.querySelectorAll("[data-test='decision-row']")).toHaveLength(0);
+    expect(q(container, "[data-test='captions-layer']")).toBeNull();
+    expect(q(container, "[data-test='phones-counter']")?.dataset.count).toBe("0");
+    expect(container.textContent).not.toMatch(/Carmen|Marco/);
+    // back to Reyes: its scene is rebuilt from the socket's own frames
+    act(() => q(container, "[data-test='village-tab'][data-village='v_reyes']")!.click());
+    await tick(10);
+    expect(q(container, "[data-test='live-moment']")!.dataset.state).toBe("denied");
+  });
+
+  it("live headline uses the proper-cased member name", async () => {
+    vi.useFakeTimers();
+    const { container } = mount("?seq=scam&tail=timeout");
+    await tick(60000);
+    const out = q(container, "[data-test='live-outcome']")?.textContent ?? "";
+    expect(out).toContain("No answer from Marco");
+    expect(out).not.toContain("marco");
+  });
+
+  it("captions bar pads the room so it never covers the last safety rule", async () => {
+    vi.useFakeTimers();
+    const { container } = mount("?seq=scam");
+    await tick(1000);
+    expect(q(container, "[data-test='captions-layer']")).not.toBeNull();
+    expect(parseInt(q(container, "[data-test='control']")!.style.paddingBottom)).toBeGreaterThanOrEqual(32);
+  });
+
+  it("New village opens the founding empty state and posts the description to POST /villages", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi.fn(async (url: string) => new Response(JSON.stringify(String(url).endsWith("/villages") ? { village_id: "v_x", ws_url: "/ws" } : []), { status: 202 }));
+    const spawn = vi.fn((o: any) => makeSocket({ ...cfg, village: o.village }, "", { fakeOverrides: { start: "off", seq: o.founding ? "founding" : null, quiet: true } }));
+    const socket = makeSocket(cfg, "?start=off");
+    const { container } = render(<ControlRoom socket={socket} cfg={cfg} api={{ base: "http://core", token: "ct", fake: false, fetchImpl: fetchImpl as any }} spawn={spawn} villages={["v_reyes"]} />);
+    act(() => socket.connect());
+    await tick(10);
+    act(() => q(container, "[data-test='new-village']")!.click());
+    expect(q(container, "[data-test='founding-empty']")?.textContent).toBe("No village yet. Describe your people.");
+    fireEvent.change(q(container, "[data-test='founding-input']")!, { target: { value: "My dad lives alone." } });
+    await act(async () => { q(container, "[data-test='founding-submit']")!.click(); });
+    await tick(10);
+    const post = (fetchImpl.mock.calls as any[]).find((c) => String(c[0]) === "http://core/villages")!;
+    expect(JSON.parse(post[1].body)).toMatchObject({ description: "My dad lives alone." });
+    expect(spawn).toHaveBeenCalledWith(expect.objectContaining({ village: "v_x", founding: true }));
+    expect(q(container, "[data-test='control']")?.dataset.village).toBe("v_x");
+    expect(q(container, "[data-test='control']")?.dataset.mode).toBe("founding");
+    // the founding replay fills transcript, ledger and the coverage meter
+    await tick(4000);
+    expect(container.querySelectorAll("[data-test='transcript-line']").length).toBeGreaterThan(2);
+    expect(q(container, "[data-test='coverage']")?.textContent).toMatch(/\d+ of 10 covered · \d+ gaps/);
+    expect(container.querySelectorAll("[data-test='gap']").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("[data-test='phone-skeleton']").length).toBeGreaterThan(0);
   });
 
   it("view as Carmen morphs the elder phone into her live snapshot, others dim", async () => {
@@ -175,7 +248,7 @@ describe("Control Room", () => {
 describe("Blueprint region", () => {
   it.each([
     ["reyes", reyes, ["Carmen", "Ana", "Marco", "Lucía"], "family · aging parent at home"],
-    ["block", block, ["Tanya", "Mrs.", "Mr.", "The", "Mr.", "Darnell"], "block · neighbors in an emergency"]
+    ["block", block, ["Tanya Brooks", "Mrs. Gloria Alvarez", "Mr. Wei Chen", "The Okafor family (Ngozi & Daniel)", "Darnell Price"], "block · neighbors in an emergency"]
   ])("renders %s_spec.json without code changes", (_n, spec: any, firstNames, kind) => {
     const { container } = render(<div className="control"><BlueprintRegion spec={spec} scene={initialScene(spec.village.id)} /></div>);
     const people = Array.from(container.querySelectorAll("[data-test='bp-person'] .person-name")).map((n) => n.textContent);

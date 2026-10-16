@@ -148,15 +148,18 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
         core_responses: dict[str, Any] = {}
         answered: dict[str, Any] = {}
         with httpx.Client(timeout=45) as http:
+            system = {"conversation_id": f"sim_{os.getpid()}", "caller_id": "+15555550101", "call_secs": "12", "village_id": "v_reyes"}
             for name, params in calls:
-                if name in core_responses:
+                if name in core_responses or not (dep_tool := (ROOT / "agents" / "tool_configs" / f"{name}.json")).exists():
                     continue
+                allowed = set(json.loads(dep_tool.read_text())["api_schema"]["request_body_schema"]["properties"])
+                params = {k: v for k, v in {**system, **params}.items() if k in allowed}
                 if name == "await_verification":
                     vid = (core_responses.get("report_money_request") or {}).get("data", {}).get("verification_id")
                     params = {**params, "verification_id": vid}
                     th = threading.Thread(target=lambda: answered.update(_answer_no(core, vid)), daemon=True)
                     th.start()
-                r = http.post(f"{tunnel}/hooks/elevenlabs/tools/{name}", headers=headers, json={**params, "conversation_id": params.get("conversation_id") or f"sim_{os.getpid()}"})
+                r = http.post(f"{tunnel}/hooks/elevenlabs/tools/{name}", headers=headers, json=params)
                 core_responses[name] = r.json() if r.status_code < 400 else {"error": r.status_code, "body": r.text[:200]}
         second = _run_sim(c, agent_id, {k: v for k, v in core_responses.items() if "say" in v})
     finally:
@@ -167,7 +170,9 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
     agent_lines = [t.get("message") or "" for t in second if t.get("role") == "agent"]
     spoken = " ".join(agent_lines)
     says = {k: v.get("say", "") for k, v in core_responses.items() if isinstance(v, dict)}
-    norm = lambda x: " ".join(str(x).replace("  ", " ").split())
+    import re as _re
+
+    norm = lambda x: "".join(_re.sub(r"\[[^\]]*\]", "", str(x)).split())  # TTS transcripts split words and add [tags]
     verbatim = {k: bool(v) and norm(v) in norm(spoken) for k, v in says.items()}
     decisions = httpx.get(f"{core}/villages/v_reyes/decisions", params={"limit": 50}, timeout=5).json().get("decisions", [])
     return {

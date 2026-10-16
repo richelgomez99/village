@@ -14,9 +14,7 @@
       "required": [
         "conversation_id",
         "caller_id",
-        "call_secs",
-        "utterance",
-        "claimed_identity"
+        "utterance"
       ],
       "properties": {
         "conversation_id": {
@@ -47,13 +45,9 @@
           "type": "string",
           "description": "Who the caller says they are, in their words (e.g. 'Marco, her son'). 'unknown' if they will not say."
         },
-        "asks_money": {
-          "type": "boolean",
-          "description": "True if the caller asks for money, gift cards, a transfer, bail, or account details."
-        },
         "amount": {
-          "type": "string",
-          "description": "Amount mentioned, as spoken, or empty."
+          "type": "number",
+          "description": "Amount of money mentioned, as a number (0 if none)."
         },
         "lang": {
           "type": "string",
@@ -62,6 +56,10 @@
             "en"
           ],
           "description": "The language the caller is speaking right now: es or en. Core returns say in this language."
+        },
+        "verification_id": {
+          "type": "string",
+          "dynamic_variable": "verification_id"
         }
       },
       "description": "Request body for screen_caller (D19 receptionist)"
@@ -78,24 +76,24 @@
     },
     {
       "dynamic_variable": "screen_result",
-      "value_path": "data.screen"
+      "value_path": "data.status"
+    },
+    {
+      "dynamic_variable": "screen_next",
+      "value_path": "data.next"
     },
     {
       "dynamic_variable": "verification_id",
       "value_path": "data.verification_id"
-    },
-    {
-      "dynamic_variable": "verification_status",
-      "value_path": "data.status"
     }
   ],
-  "description": "Receptionist mode only: screen an unknown caller who claims to be family or asks for money. Speak the returned say verbatim.",
+  "description": "Receptionist mode only: screen an unknown caller who claims to be family or asks for money. Speak the returned say verbatim. If data.next is screen_caller, call it again (it waits up to 30 s for the real family member).",
   "disable_interruptions": true,
   "dynamic_variables": {
     "dynamic_variable_placeholders": {}
   },
   "force_pre_tool_speech": false,
   "name": "screen_caller",
-  "response_timeout_secs": 10,
+  "response_timeout_secs": 35,
   "type": "webhook"
 }
