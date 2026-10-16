@@ -127,8 +127,9 @@ def elder_judge(client: Any, spec: dict[str, Any]) -> dict[str, Any]:
     if view is None:
         return elder_heuristic(spec)
     prompt = (
-        "You judge accessibility of a phone screen for an 81-year-old Spanish speaker with low vision. Score 0..1: one clear primary "
-        "action, short plain labels, at most 3 big buttons, an emergency contact, nothing confusing. The renderer guarantees >=28px text, "
+        "You judge accessibility of a phone screen for an 81-year-old Spanish speaker with low vision. Score 0..1: short plain labels, "
+        "at most 3 big buttons (the reviewed elder design is up to 3 equal big buttons plus an emergency contact; do not penalise "
+        "that layout), an emergency contact, nothing confusing or technical. The renderer guarantees >=28px text, "
         '>=88px buttons and 7:1 contrast. Reply ONLY JSON {"score":0.0,"explanation":"..."}\n' + json.dumps(view, ensure_ascii=False)
     )
     data = _json(_ask(client, prompt))
