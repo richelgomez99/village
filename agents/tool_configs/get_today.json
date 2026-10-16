@@ -1,13 +1,9 @@
 {
-  "type": "webhook",
-  "name": "get_today",
-  "description": "Get today's status and on-duty person. Always use before questions about taking another pill.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/get_today",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -35,10 +31,12 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
@@ -50,9 +48,11 @@
             "status",
             "take_another",
             "who_is_coming"
-          ]
+          ],
+          "description": "intent"
         }
-      }
+      },
+      "description": "Request body for get_today"
     }
   },
   "assignments": [
@@ -60,5 +60,14 @@
       "dynamic_variable": "say_text",
       "value_path": "say"
     }
-  ]
+  ],
+  "description": "Get today's status and on-duty person. Always use before questions about taking another pill.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "get_today",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }

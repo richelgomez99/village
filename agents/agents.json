@@ -1,7 +1,19 @@
 {
   "agents": [
-    { "name": "mom-line", "config": "agent_configs/mom-line.json" },
-    { "name": "village-caller", "config": "agent_configs/village-caller.json" },
-    { "name": "setup", "config": "agent_configs/setup.json" }
+    {
+      "name": "mom-line",
+      "config": "agent_configs/mom-line.json",
+      "id": "agent_2801m52kavkdewkvmj29yfpnk4p3"
+    },
+    {
+      "name": "village-caller",
+      "config": "agent_configs/village-caller.json",
+      "id": "agent_1201m52kay3cf7wvwdqe364aw953"
+    },
+    {
+      "name": "setup",
+      "config": "agent_configs/setup.json",
+      "id": "agent_3001m52kazppebvb2v6tcmghqcn5"
+    }
   ]
 }

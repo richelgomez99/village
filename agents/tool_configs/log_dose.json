@@ -1,13 +1,9 @@
 {
-  "type": "webhook",
-  "name": "log_dose",
-  "description": "Record that the caller took or thinks she took pills for a dose slot. Call only after confirming the slot with her.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/log_dose",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -36,10 +32,12 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
@@ -53,26 +51,31 @@
             "evening",
             "bedtime",
             "current"
-          ]
+          ],
+          "description": "slot"
         },
         "pill_description": {
-          "type": "string"
+          "type": "string",
+          "description": "pill description"
         },
         "taken_at": {
           "type": "string",
-          "format": "date-time"
+          "description": "taken at"
         },
         "confidence": {
           "type": "string",
           "enum": [
             "confirmed_by_caller",
             "uncertain"
-          ]
+          ],
+          "description": "confidence"
         },
         "possible_duplicate": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "possible duplicate"
         }
-      }
+      },
+      "description": "Request body for log_dose"
     }
   },
   "assignments": [
@@ -84,5 +87,14 @@
       "dynamic_variable": "say_text",
       "value_path": "say"
     }
-  ]
+  ],
+  "description": "Record that the caller took or thinks she took pills for a dose slot. Call only after confirming the slot with her.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "log_dose",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }

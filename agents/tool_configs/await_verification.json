@@ -1,16 +1,9 @@
 {
-  "type": "webhook",
-  "name": "await_verification",
-  "description": "Wait for the family member's answer to a money verification. Blocks up to 30 seconds in Core; the agent speaks the returned say field verbatim.",
-  "response_timeout_secs": 35,
-  "execution_mode": "immediate",
-  "pre_tool_speech": "off",
-  "tool_call_sound": "elevator1",
-  "interruption_mode": "disable_during_tool",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/await_verification",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -39,10 +32,12 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
@@ -52,7 +47,8 @@
           "type": "string",
           "dynamic_variable": "verification_id"
         }
-      }
+      },
+      "description": "Request body for await_verification"
     }
   },
   "assignments": [
@@ -72,5 +68,14 @@
       "dynamic_variable": "verification_status",
       "value_path": "data.status"
     }
-  ]
+  ],
+  "description": "Wait for the family member's answer to a money verification. Blocks up to 30 seconds in Core; the agent speaks the returned say field verbatim.",
+  "disable_interruptions": true,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "await_verification",
+  "response_timeout_secs": 35,
+  "type": "webhook"
 }

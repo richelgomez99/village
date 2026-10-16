@@ -1,13 +1,9 @@
 {
-  "type": "webhook",
-  "name": "ask_family",
-  "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/ask_family",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -38,20 +34,24 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
           "dynamic_variable": "village_id"
         },
         "to": {
-          "type": "string"
+          "type": "string",
+          "description": "to"
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "message"
         },
         "urgency": {
           "type": "string",
@@ -59,7 +59,8 @@
             "now",
             "today",
             "fyi"
-          ]
+          ],
+          "description": "urgency"
         },
         "reason": {
           "type": "string",
@@ -73,9 +74,11 @@
             "question",
             "wants_to_talk",
             "money_request"
-          ]
+          ],
+          "description": "reason"
         }
-      }
+      },
+      "description": "Request body for ask_family"
     }
   },
   "assignments": [
@@ -87,5 +90,14 @@
       "dynamic_variable": "say_text",
       "value_path": "say"
     }
-  ]
+  ],
+  "description": "Send a factual message to the caller's family for help, safety concerns, refills, or questions.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "ask_family",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }

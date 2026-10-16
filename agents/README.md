@@ -38,6 +38,13 @@ elevenlabs agents list
 
 Copy the IDs into `.env` as `ELEVENLABS_AGENT_ID` for mom-line and `ELEVENLABS_CALLER_AGENT_ID` for village-caller.
 
+Current deployed IDs:
+
+- Mom line: `agent_2801m52kavkdewkvmj29yfpnk4p3`
+- Village caller: `agent_1201m52kay3cf7wvwdqe364aw953`
+- Setup: `agent_3001m52kazppebvb2v6tcmghqcn5`
+- Phone number: `phnum_7701m52hzdp6fqa9z0bmvxy4w536` (`+1 848 257 9221`) attached to Mom line
+
 Import and attach the Twilio number:
 
 ```bash

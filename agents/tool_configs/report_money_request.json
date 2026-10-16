@@ -1,17 +1,9 @@
 {
-  "type": "webhook",
-  "name": "report_money_request",
-  "description": "Report that someone asked the caller for money, gift cards, crypto, a transfer, cash pickup, or bank/card/Medicare/SSN details. Call immediately before giving any opinion.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
-  "pre_tool_speech": "off",
-  "tool_call_sound": "typing",
-  "tool_call_sound_behavior": "always",
-  "interruption_mode": "disable_during_tool",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/report_money_request",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -40,26 +32,32 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
           "dynamic_variable": "village_id"
         },
         "claimed_member": {
-          "type": "string"
+          "type": "string",
+          "description": "claimed member"
         },
         "claimed_identity": {
-          "type": "string"
+          "type": "string",
+          "description": "claimed identity"
         },
         "amount": {
-          "type": "number"
+          "type": "number",
+          "description": "amount"
         },
         "currency": {
-          "type": "string"
+          "type": "string",
+          "description": "currency"
         },
         "method": {
           "type": "string",
@@ -72,7 +70,8 @@
             "bank_details",
             "cash",
             "unknown"
-          ]
+          ],
+          "description": "method"
         },
         "urgency": {
           "type": "string",
@@ -80,7 +79,8 @@
             "now",
             "today",
             "unspecified"
-          ]
+          ],
+          "description": "urgency"
         },
         "red_flags": {
           "type": "array",
@@ -99,10 +99,13 @@
               "safe_account",
               "prize",
               "asks_village_to_pay"
-            ]
-          }
+            ],
+            "description": "red flags item"
+          },
+          "description": "red flags"
         }
-      }
+      },
+      "description": "Request body for report_money_request"
     }
   },
   "assignments": [
@@ -122,5 +125,14 @@
       "dynamic_variable": "verification_status",
       "value_path": "data.status"
     }
-  ]
+  ],
+  "description": "Report that someone asked the caller for money, gift cards, crypto, a transfer, cash pickup, or bank/card/Medicare/SSN details. Call immediately before giving any opinion.",
+  "disable_interruptions": true,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "report_money_request",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }

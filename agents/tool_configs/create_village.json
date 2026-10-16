@@ -1,13 +1,9 @@
 {
-  "type": "webhook",
-  "name": "create_village",
-  "description": "Create a village from the coordinator's own description, members, needs, and language.",
-  "response_timeout_secs": 20,
-  "execution_mode": "immediate",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/create_village",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -38,36 +34,47 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "description"
         },
         "members": {
           "type": "array",
           "items": {
-            "type": "object"
-          }
+            "type": "object",
+            "description": "members item"
+          },
+          "description": "members"
         },
         "needs": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "description": "needs item"
+          },
+          "description": "needs"
         },
         "medications_mentioned": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "description": "medications mentioned item"
+          },
+          "description": "medications mentioned"
         },
         "language": {
-          "type": "string"
+          "type": "string",
+          "description": "language"
         }
-      }
+      },
+      "description": "Request body for create_village"
     }
   },
   "assignments": [
@@ -75,5 +82,14 @@
       "dynamic_variable": "village_id",
       "value_path": "data.village_id"
     }
-  ]
+  ],
+  "description": "Create a village from the coordinator's own description, members, needs, and language.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "create_village",
+  "response_timeout_secs": 20,
+  "type": "webhook"
 }

@@ -1,13 +1,9 @@
 {
-  "type": "webhook",
-  "name": "report_symptom",
-  "description": "Record how the caller feels or other family-relevant information. Do not diagnose.",
-  "response_timeout_secs": 10,
-  "execution_mode": "immediate",
   "api_schema": {
     "url": "https://richel-macbook.tail8feae0.ts.net/tools/report_symptom",
     "method": "POST",
     "request_headers": {
+      "Content-Type": "application/json",
       "X-Village-Secret": {
         "env_var_label": "VILLAGE_TOOL_SECRET"
       }
@@ -37,17 +33,20 @@
           "dynamic_variable": "system__call_duration_secs"
         },
         "utterance": {
-          "type": "string"
+          "type": "string",
+          "description": "utterance"
         },
         "tool_call_id": {
-          "type": "string"
+          "type": "string",
+          "description": "tool call id"
         },
         "village_id": {
           "type": "string",
           "dynamic_variable": "village_id"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "description"
         },
         "type": {
           "type": "string",
@@ -58,15 +57,19 @@
             "blood_pressure_reading",
             "blood_sugar_reading",
             "info_for_family"
-          ]
+          ],
+          "description": "type"
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "description": "value"
         },
         "emergency_signals": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "emergency signals"
         }
-      }
+      },
+      "description": "Request body for report_symptom"
     }
   },
   "assignments": [
@@ -78,5 +81,14 @@
       "dynamic_variable": "say_text",
       "value_path": "say"
     }
-  ]
+  ],
+  "description": "Record how the caller feels or other family-relevant information. Do not diagnose.",
+  "disable_interruptions": false,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "force_pre_tool_speech": false,
+  "name": "report_symptom",
+  "response_timeout_secs": 10,
+  "type": "webhook"
 }
