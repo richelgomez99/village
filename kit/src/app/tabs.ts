@@ -6,7 +6,7 @@ export const ATTENTION_TYPES = new Set(["Alert", "Proposal", "VerificationPrompt
 const LAYOUT = new Set(["Screen", "Header", "Text", "Stack"]);
 /** one-tap actions (Call Mamá, 911) never move off Home */
 const PINNED = new Set(["BigButton", "ContactCard", "RightNow", "WhatVillageDid", "SinceYourTurn", "LifeAreas"]);
-/** below this many tab-able elements one screen is enough (Marco: Home · Chat) */
+/** below this many tab-able elements one screen is enough (a helper: Home · Chat) */
 const MIN_FOR_TABS = 3;
 
 export interface Tab { id: string; label: string; elements: string[] }
@@ -68,7 +68,7 @@ export function planTabs(view: View, data: Record<string, unknown>, lang: string
     else unassigned.push(id);
   }
   const areas: Tab[] = order.filter((a) => byArea.has(a)).map((a) => ({ id: a, label: labels.get(a) ?? a, elements: byArea.get(a)! }));
-  // one area is not a choice: keep it on Home (Marco: Home · Chat; Lucía: Home · Chat)
+  // one area is not a choice: keep it on Home (a helper or a supporter: Home · Chat)
   if (areas.length < 2 || movable.length < MIN_FOR_TABS) return { attention, headline, homeRest: others, areas: [], chat };
   return { attention, headline, homeRest: others.filter((id) => pinned.includes(id) || unassigned.includes(id)), areas, chat };
 }
