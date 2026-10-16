@@ -405,6 +405,22 @@ def load_intake(path: Any = None, kind: str = "care") -> list[dict[str, Any]]:
     return [json.loads(l) for l in open(path or kpath(kind, "intake"), encoding="utf-8") if l.strip()]
 
 
+def _coerce(topic: str, key: str, v: Any) -> Any:
+    """Model values must match the shapes the rules produce; anything else is dropped (never guessed)."""
+    if topic == "availability" and key in ("helper_days", "speaker_days"):
+        if isinstance(v, dict) and isinstance(v.get("days"), list):
+            return {**v, "days": [d for d in DAYS if d in v["days"]]}
+        days = _days(json.dumps(v)) if v else []
+        return {"days": days} if days else None
+    if key in ("members", "meds"):
+        return v if isinstance(v, list) and all(isinstance(x, dict) and x.get("name") for x in v) else None
+    if key == "family_word":
+        return None  # only the rules path handles the word (it never leaves IntakeState)
+    if isinstance(v, (dict, list)) and not v:
+        return None
+    return v
+
+
 async def record_answer(answer: str, q: Question | None, state: IntakeState, llm: Any | None = None) -> dict[str, dict[str, Any]]:
     """Structured extraction: the model's `record_answer` when on (merged over the rules), rules otherwise."""
     rules = extract(answer, q, state)
@@ -422,7 +438,9 @@ async def record_answer(answer: str, q: Question | None, state: IntakeState, llm
         for t, vals in model_fields.items():
             if t in state.fields and isinstance(vals, dict):
                 for k, v in vals.items():
-                    merged.setdefault(t, {}).setdefault(k, v)
+                    v = _coerce(t, k, v)
+                    if v is not None:
+                        merged.setdefault(t, {}).setdefault(k, v)
         return merged
     except Exception:
         return rules

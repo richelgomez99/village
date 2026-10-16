@@ -270,9 +270,13 @@ async def consent_call(spec: dict[str, Any], run: BuilderRun, services: Any, opt
 def rota_check(intake: IntakeState, helper: str) -> tuple[bool, str]:
     a = intake.fields["availability"]
     names: dict[str, str] = {}
-    for d in (a.get("speaker_days") or {}).get("days", []):
+
+    def days(v: Any) -> list[str]:
+        return v.get("days", []) if isinstance(v, dict) else []
+
+    for d in days(a.get("speaker_days")):
         names[d] = intake.speaker
-    for d in (a.get("helper_days") or {}).get("days", []):
+    for d in days(a.get("helper_days")):
         names[d] = helper
     gaps = [d for d in DAYS if d not in names]
     if gaps:
@@ -287,11 +291,11 @@ def apply_intake(spec: dict[str, Any], intake: IntakeState) -> dict[str, Any]:
     changes: dict[str, Any] = {}
     a = f["availability"]
     helper = next((m["name"] for m in (f["members"].get("members") or []) if m.get("relation") != "self" and not m.get("remote")), None)
-    if helper in people and (a.get("helper_days") or {}).get("days"):
+    if helper in people and isinstance(a.get("helper_days"), dict) and a["helper_days"].get("days"):
         people[helper]["profile"]["availability"] = [{"days": a["helper_days"]["days"], "window": "17:00-21:30", "note": "; ".join(a["helper_days"].get("constraints", []) + ([a["helper_days"]["reminder"]] if a["helper_days"].get("reminder") else []))[:200]}]
         changes[helper] = a["helper_days"]["days"]
     coord = next((p for p in spec["blueprint"]["people"] if p["id"] == spec["village"].get("coordinator_id")), None)
-    if coord and (a.get("speaker_days") or {}).get("days"):
+    if coord and isinstance(a.get("speaker_days"), dict) and a["speaker_days"].get("days"):
         coord["profile"]["availability"] = [{"days": a["speaker_days"]["days"], "window": "16:00-22:00", "note": ", ".join(a.get("speaker_does", []))[:200] or "from the intake"}]
     for m in f["members"].get("members") or []:
         p = people.get(m["name"])
@@ -472,7 +476,7 @@ async def found(
                 av = intake.fields.get("availability", {})
                 mem = intake.fields.get("members", {}).get("members")
                 helper = next((m["name"] for m in mem if m.get("relation") != "self" and not m.get("remote")), None) if isinstance(mem, list) else None
-                if "call" not in tasks and (av.get("helper_days") or {}).get("days"):
+                if "call" not in tasks and isinstance(av.get("helper_days"), dict) and av["helper_days"].get("days"):
                     hp = next((p for p in spec["blueprint"]["people"] if p["name"].split()[0] == helper), None)
                     if hp:
                         hp["profile"]["availability"] = [{"days": av["helper_days"]["days"], "window": "17:00-21:30"}]
