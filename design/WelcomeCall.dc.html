@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: Carmen's welcome call</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 22px 18px; display: flex; flex-direction: column; gap: 14px">
+  <header style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ok)">Welcome call · done 5:04 PM</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 28px; font-weight: 650; line-height: 1.12">Mamá said yes.</h1>
+    <span style="font-size: 15px; color: var(--ink2)">Village introduced itself in Spanish and asked. Here’s what she decided.</span>
+  </header>
+
+  <section style="background: var(--paper); border: 2px solid var(--ok); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">Village may call her</span><span style="font-size: 14px; font-weight: 700; color: var(--ok)">Yes</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">Evening check-in call</span><span style="font-size: 14px; font-weight: 700; color: var(--ok)">Yes, around 8</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">Quiet hours (her rule)</span><span style="font-size: 14px; font-weight: 700">after 9:30 PM, no calls</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">What she likes to be called</span><span style="font-size: 14px; font-weight: 700">Mamá</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">Health details shared with</span><span style="font-size: 14px; font-weight: 700">Ana, Marco</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 10px"><span style="font-size: 15px">Family word</span><span style="font-size: 14px; font-weight: 700">set · on the fridge card</span></div>
+    <span style="font-size: 13px; color: var(--ink2)">Recorded from the call at 1:48, 2:20 and 2:41 (“Después de las nueve y media, no.”). She can change any of this by calling Village.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700">What Village said, in English</span>
+    <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink2)">“Hello Carmen, this is Village, an automated assistant Ana set up for your family. I can call you in the evening to ask how you’re doing, and if anyone ever asks you for money, I check with your family first. Is that okay with you? You can say no.”</p>
+    <a href="#audio" style="font-size: 15px; font-weight: 700">Listen to the call (3:12)</a>
+  </section>
+
+  <section style="background: var(--amber-soft); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber-ink)">She asked</span>
+    <span style="font-size: 15px; line-height: 1.45">“Will it tell Marco everything?” Village answered: only what the family agreed, and she can ask what’s shared any time.</span>
+  </section>
+
+  <span style="margin-top: auto; font-size: 13px; line-height: 1.5; color: var(--ink2)">If she had said no, Village would not call her; the family app and fridge card would still work.</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

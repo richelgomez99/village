@@ -1,0 +1,616 @@
+{
+  "contract_version": "1.1.0",
+  "village": "v_reyes",
+  "description": "Headline scam flow (D13), exact voice tool requests/responses in order per variant. Carmen calls the Mom line at 14:02:00; report_money_request at call second 9; the agent speaks the hold line, then calls await_verification at second 14 (blocks ≤ 30 s, ElevenLabs timeout 35 s). verification deadline = created + 45 s. Responses are what the agent speaks verbatim (say) and assigns (decision, data.verification_id).",
+  "call": {
+    "conversation_id": "conv_demo_1016_scam",
+    "caller_id": "+15555550101",
+    "agent": "mom-line",
+    "started_at": "2026-10-16T14:02:00-04:00"
+  },
+  "variants": {
+    "denied": {
+      "description": "Judge-Marco taps 'That wasn't me' in the app at t+12 s (WS action answer_verification; see ws_sequence_scam.json). The outbound call is cancelled.",
+      "exchanges": [
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:02:09-04:00",
+          "returned_at": "2026-10-16T14:02:09-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "9",
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "tool_call_id": "toolu_01",
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ]
+          },
+          "response": {
+            "decision": "verify_with_member",
+            "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+            "say_key": "money_hold",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_money",
+            "data": {
+              "status": "pending",
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "deadline_secs": 45,
+              "next": "await_verification"
+            }
+          }
+        },
+        {
+          "tool": "await_verification",
+          "at": "2026-10-16T14:02:14-04:00",
+          "returned_at": "2026-10-16T14:02:21-04:00",
+          "http_status": 200,
+          "note": "Returns as soon as Marco answers (7 s after the call).",
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "14",
+            "utterance": "Ay, Dios mío.",
+            "tool_call_id": "toolu_02",
+            "verification_id": "ver_1016_01"
+          },
+          "response": {
+            "decision": "advise_do_not_send",
+            "say": "Ese no era Marco. No mande dinero. Ana ya lo sabe.",
+            "say_key": "money_denied",
+            "rule_id": "R-MONEY-DEFAULT",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_denied",
+            "data": {
+              "status": "denied",
+              "verification_id": "ver_1016_01",
+              "state": "denied",
+              "answered_via": "app_prompt",
+              "answered_at_secs": 12,
+              "incident_id": "inc_ver_1016_01"
+            }
+          }
+        }
+      ],
+      "answers": [],
+      "verification_after": {
+        "id": "ver_1016_01",
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "claimed_member_id": "m_marco",
+        "claimed_identity": "Marco (her son)",
+        "origin": "report_money_request",
+        "conversation_id": "conv_demo_1016_scam",
+        "money_request_event_id": "ev_1016_1402_money",
+        "request": {
+          "amount": 2000,
+          "currency": "USD",
+          "method": "unknown",
+          "urgency": "now",
+          "red_flags": [
+            "urgency",
+            "emotional_pressure"
+          ]
+        },
+        "state": "denied",
+        "status": "denied",
+        "channels": [
+          {
+            "via": "app_prompt",
+            "member_id": "m_marco",
+            "status": "answered",
+            "ref": "wsp_ver_1016_01",
+            "at": "2026-10-16T14:02:21-04:00"
+          },
+          {
+            "via": "outbound_call",
+            "member_id": "m_marco",
+            "status": "cancelled",
+            "ref": "conv_verify_ver_1016_01",
+            "at": "2026-10-16T14:02:21-04:00"
+          }
+        ],
+        "answers": [
+          {
+            "answer": "no",
+            "via": "app_prompt",
+            "member_id": "m_marco",
+            "at": "2026-10-16T14:02:21-04:00",
+            "secs_since_created": 12,
+            "outcome": "applied"
+          }
+        ],
+        "created_at": "2026-10-16T14:02:09-04:00",
+        "deadline": "2026-10-16T14:02:54-04:00",
+        "call_placed_at": "2026-10-16T14:02:10-04:00",
+        "await_returned_at": "2026-10-16T14:02:21-04:00",
+        "resolved_at": "2026-10-16T14:02:21-04:00",
+        "spoken_say_key": "money_denied",
+        "incident_id": "inc_ver_1016_01",
+        "pattern_flag": "possible_fraud_pattern",
+        "version": 4,
+        "transitions": [
+          {
+            "from": "created",
+            "to": "pending",
+            "at": "2026-10-16T14:02:09-04:00",
+            "cause": "created"
+          },
+          {
+            "from": "pending",
+            "to": "denied",
+            "at": "2026-10-16T14:02:21-04:00",
+            "cause": "answer"
+          }
+        ]
+      }
+    },
+    "timeout": {
+      "description": "Nobody answers. await_verification returns at 30 s with the safe default (state default_spoken; incident to Ana now). The row stays answerable until the 45 s deadline, then timed_out.",
+      "exchanges": [
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:02:09-04:00",
+          "returned_at": "2026-10-16T14:02:09-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "9",
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "tool_call_id": "toolu_01",
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ]
+          },
+          "response": {
+            "decision": "verify_with_member",
+            "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+            "say_key": "money_hold",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_money",
+            "data": {
+              "status": "pending",
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "deadline_secs": 45,
+              "next": "await_verification"
+            }
+          }
+        },
+        {
+          "tool": "await_verification",
+          "at": "2026-10-16T14:02:14-04:00",
+          "returned_at": "2026-10-16T14:02:44-04:00",
+          "http_status": 200,
+          "note": "Held the full 30 s.",
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "14",
+            "utterance": "Ay, Dios mío.",
+            "tool_call_id": "toolu_02",
+            "verification_id": "ver_1016_01"
+          },
+          "response": {
+            "decision": "advise_do_not_send",
+            "say": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
+            "say_key": "money_timeout",
+            "rule_id": "R-MONEY-DEFAULT",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_await",
+            "data": {
+              "status": "timeout",
+              "verification_id": "ver_1016_01",
+              "state": "default_spoken",
+              "answered_via": null,
+              "answered_at_secs": null,
+              "incident_id": "inc_ver_1016_01"
+            }
+          }
+        }
+      ],
+      "answers": [],
+      "verification_after": {
+        "id": "ver_1016_01",
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "claimed_member_id": "m_marco",
+        "claimed_identity": "Marco (her son)",
+        "origin": "report_money_request",
+        "conversation_id": "conv_demo_1016_scam",
+        "money_request_event_id": "ev_1016_1402_money",
+        "request": {
+          "amount": 2000,
+          "currency": "USD",
+          "method": "unknown",
+          "urgency": "now",
+          "red_flags": [
+            "urgency",
+            "emotional_pressure"
+          ]
+        },
+        "state": "timed_out",
+        "status": "timeout",
+        "channels": [
+          {
+            "via": "app_prompt",
+            "member_id": "m_marco",
+            "status": "delivered",
+            "ref": "wsp_ver_1016_01",
+            "at": "2026-10-16T14:02:10-04:00"
+          },
+          {
+            "via": "outbound_call",
+            "member_id": "m_marco",
+            "status": "cancelled",
+            "ref": "conv_verify_ver_1016_01",
+            "at": "2026-10-16T14:02:54-04:00"
+          }
+        ],
+        "answers": [],
+        "created_at": "2026-10-16T14:02:09-04:00",
+        "deadline": "2026-10-16T14:02:54-04:00",
+        "call_placed_at": "2026-10-16T14:02:10-04:00",
+        "await_returned_at": "2026-10-16T14:02:44-04:00",
+        "resolved_at": "2026-10-16T14:02:54-04:00",
+        "spoken_say_key": "money_timeout",
+        "incident_id": "inc_ver_1016_01",
+        "pattern_flag": "possible_fraud_pattern",
+        "version": 4,
+        "transitions": [
+          {
+            "from": "created",
+            "to": "pending",
+            "at": "2026-10-16T14:02:09-04:00",
+            "cause": "created"
+          },
+          {
+            "from": "pending",
+            "to": "default_spoken",
+            "at": "2026-10-16T14:02:44-04:00",
+            "cause": "await_returned"
+          },
+          {
+            "from": "default_spoken",
+            "to": "timed_out",
+            "at": "2026-10-16T14:02:54-04:00",
+            "cause": "deadline"
+          }
+        ]
+      }
+    },
+    "confirmed": {
+      "description": "Marco says 'yes' on the outbound verification call at t+21 s (village-caller tool submit_verification_answer → POST /verifications/ver_1016_01/answer). No incident (no hard red flag); FYI to Ana.",
+      "exchanges": [
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:02:09-04:00",
+          "returned_at": "2026-10-16T14:02:09-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "9",
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "tool_call_id": "toolu_01",
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ]
+          },
+          "response": {
+            "decision": "verify_with_member",
+            "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+            "say_key": "money_hold",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_money",
+            "data": {
+              "status": "pending",
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "deadline_secs": 45,
+              "next": "await_verification"
+            }
+          }
+        },
+        {
+          "tool": "await_verification",
+          "at": "2026-10-16T14:02:14-04:00",
+          "returned_at": "2026-10-16T14:02:30-04:00",
+          "http_status": 200,
+          "note": "Returns when the call answer lands.",
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "14",
+            "utterance": "Ay, Dios mío.",
+            "tool_call_id": "toolu_02",
+            "verification_id": "ver_1016_01"
+          },
+          "response": {
+            "decision": "advise_talk_to_coordinator",
+            "say": "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo.",
+            "say_key": "money_confirmed",
+            "rule_id": "R-MONEY-DEFAULT",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_confirmed",
+            "data": {
+              "status": "confirmed",
+              "verification_id": "ver_1016_01",
+              "state": "confirmed",
+              "answered_via": "outbound_call",
+              "answered_at_secs": 21,
+              "incident_id": null
+            }
+          }
+        }
+      ],
+      "answers": [
+        {
+          "at": "2026-10-16T14:02:30-04:00",
+          "method": "POST",
+          "path": "/verifications/ver_1016_01/answer",
+          "auth": "X-Village-Secret",
+          "body": {
+            "verification_answer": "yes",
+            "via": "outbound_call",
+            "listener_quote": "Yeah, that was me. I called her.",
+            "call_sid": "CA9f1c2e7b5d4a3b2c1d0e9f8a7b6c5d4e",
+            "call_secs": "8"
+          },
+          "response_status": 200
+        }
+      ],
+      "verification_after": {
+        "id": "ver_1016_01",
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "claimed_member_id": "m_marco",
+        "claimed_identity": "Marco (her son)",
+        "origin": "report_money_request",
+        "conversation_id": "conv_demo_1016_scam",
+        "money_request_event_id": "ev_1016_1402_money",
+        "request": {
+          "amount": 2000,
+          "currency": "USD",
+          "method": "unknown",
+          "urgency": "now",
+          "red_flags": [
+            "urgency",
+            "emotional_pressure"
+          ]
+        },
+        "state": "confirmed",
+        "status": "confirmed",
+        "channels": [
+          {
+            "via": "app_prompt",
+            "member_id": "m_marco",
+            "status": "cancelled",
+            "ref": "wsp_ver_1016_01",
+            "at": "2026-10-16T14:02:30-04:00"
+          },
+          {
+            "via": "outbound_call",
+            "member_id": "m_marco",
+            "status": "answered",
+            "ref": "conv_verify_ver_1016_01",
+            "at": "2026-10-16T14:02:30-04:00"
+          }
+        ],
+        "answers": [
+          {
+            "answer": "yes",
+            "via": "outbound_call",
+            "member_id": "m_marco",
+            "at": "2026-10-16T14:02:30-04:00",
+            "secs_since_created": 21,
+            "outcome": "applied",
+            "quote": "Yeah, that was me. I called her."
+          }
+        ],
+        "created_at": "2026-10-16T14:02:09-04:00",
+        "deadline": "2026-10-16T14:02:54-04:00",
+        "call_placed_at": "2026-10-16T14:02:10-04:00",
+        "await_returned_at": "2026-10-16T14:02:30-04:00",
+        "resolved_at": "2026-10-16T14:02:30-04:00",
+        "spoken_say_key": "money_confirmed",
+        "incident_id": null,
+        "pattern_flag": "possible_fraud_pattern",
+        "version": 4,
+        "transitions": [
+          {
+            "from": "created",
+            "to": "pending",
+            "at": "2026-10-16T14:02:09-04:00",
+            "cause": "created"
+          },
+          {
+            "from": "pending",
+            "to": "confirmed",
+            "at": "2026-10-16T14:02:30-04:00",
+            "cause": "answer"
+          }
+        ]
+      }
+    },
+    "unknown_claimed": {
+      "description": "R-MONEY-UNKNOWN: the claimed identity (a grandson) is not in the village. No verification, no await_verification; incident to Ana now.",
+      "exchanges": [
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:20:07-04:00",
+          "returned_at": "2026-10-16T14:20:07-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_unknown",
+            "caller_id": "+15555550101",
+            "call_secs": "7",
+            "utterance": "Me llamó mi nieto Danny, dice que viene un señor a recoger mil quinientos dólares.",
+            "tool_call_id": "toolu_11",
+            "claimed_identity": "mi nieto Danny",
+            "amount": 1500,
+            "currency": "USD",
+            "method": "cash_courier",
+            "urgency": "now",
+            "red_flags": [
+              "urgency"
+            ]
+          },
+          "response": {
+            "decision": "advise_do_not_send",
+            "say": "No puedo confirmar quién llamó. No mande dinero ni dé datos de su banco. Le aviso a Ana.",
+            "say_key": "money_unknown",
+            "rule_id": "R-MONEY-UNKNOWN",
+            "lang": "es",
+            "decision_id": "dc_1016_1420_unknown",
+            "data": {
+              "status": "unverifiable",
+              "verification_id": null,
+              "claimed_member_id": null,
+              "channels": [],
+              "deadline": null,
+              "incident_id": "inc_1016_1420_unknown",
+              "next": "none"
+            }
+          }
+        }
+      ],
+      "answers": []
+    },
+    "duplicate_webhook": {
+      "description": "T49 idempotency: ElevenLabs retries report_money_request with the same (conversation_id, tool_call_id). Core returns the cached response; no second verification, prompt or call.",
+      "exchanges": [
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:02:09-04:00",
+          "returned_at": "2026-10-16T14:02:09-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "9",
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "tool_call_id": "toolu_01",
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ]
+          },
+          "response": {
+            "decision": "verify_with_member",
+            "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+            "say_key": "money_hold",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_money",
+            "data": {
+              "status": "pending",
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "deadline_secs": 45,
+              "next": "await_verification"
+            }
+          }
+        },
+        {
+          "tool": "report_money_request",
+          "at": "2026-10-16T14:02:10-04:00",
+          "returned_at": "2026-10-16T14:02:10-04:00",
+          "http_status": 200,
+          "request": {
+            "conversation_id": "conv_demo_1016_scam",
+            "caller_id": "+15555550101",
+            "call_secs": "9",
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "tool_call_id": "toolu_01",
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ]
+          },
+          "response": {
+            "decision": "verify_with_member",
+            "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+            "say_key": "money_hold",
+            "rule_id": "R-MONEY-VERIFY",
+            "lang": "es",
+            "decision_id": "dc_1016_1402_money",
+            "data": {
+              "status": "pending",
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "deadline_secs": 45,
+              "next": "await_verification"
+            }
+          },
+          "note": "Retry of toolu_01: identical cached response."
+        }
+      ],
+      "answers": []
+    }
+  }
+}

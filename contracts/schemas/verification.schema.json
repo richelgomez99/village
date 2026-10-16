@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/verification.schema.json",
+  "title": "Verification record",
+  "description": "One money verification (D13, R-MONEY-VERIFY). Stored in SurrealDB table `verification`, CAS on version. `state` is the fine state machine from data/datasets/policy_cases.md; `status` is the coarse 4-value view every UI and the event kinds use (pending → confirmed | denied | timeout). Transitions are listed in x-state-machine and implemented by the gate lane as pure step(verification, event, now).",
+  "x-contract-version": "1.1.0",
+  "x-state-machine": {
+    "initial": ["pending", "unreachable"],
+    "terminal": ["confirmed", "late_confirmed", "denied", "late_denied", "unsure", "unreachable", "timed_out"],
+    "status_of_state": {
+      "pending": "pending", "default_spoken": "pending",
+      "confirmed": "confirmed", "late_confirmed": "confirmed",
+      "denied": "denied", "late_denied": "denied",
+      "unsure": "timeout", "unreachable": "timeout", "timed_out": "timeout"
+    },
+    "transitions": [
+      { "from": "pending", "on": "answer:yes", "to": "confirmed", "say_key": "money_confirmed", "emit": ["verification_confirmed"] },
+      { "from": "pending", "on": "answer:no", "to": "denied", "say_key": "money_denied", "emit": ["verification_denied", "incident"] },
+      { "from": "pending", "on": "answer:unsure", "to": "unsure", "say_key": "money_timeout", "emit": ["verification_timeout", "incident"] },
+      { "from": "pending", "on": "await_returned (t >= 30 s, no answer)", "to": "default_spoken", "say_key": "money_timeout", "emit": ["incident"] },
+      { "from": "pending", "on": "tick (t >= 45 s)", "to": "timed_out", "say_key": "money_timeout", "emit": ["verification_timeout", "incident"] },
+      { "from": "default_spoken", "on": "answer:no (t < 45 s)", "to": "late_denied", "say_key": null, "emit": ["verification_denied", "incident"] },
+      { "from": "default_spoken", "on": "answer:yes (t < 45 s)", "to": "late_confirmed", "say_key": null, "emit": ["verification_confirmed"] },
+      { "from": "default_spoken", "on": "answer:unsure", "to": "unsure", "say_key": null, "emit": ["verification_timeout", "incident"] },
+      { "from": "default_spoken", "on": "tick (t >= 45 s)", "to": "timed_out", "say_key": null, "emit": ["verification_timeout"] },
+      { "from": "(create)", "on": "no reachable channel (R-VERIFY-CONSENT)", "to": "unreachable", "say_key": "money_timeout", "emit": ["verification_timeout", "incident"] }
+    ],
+    "notes": "First answer wins (CAS on version). A later answer from the other channel is appended to answers[] with outcome dup (same value) or conflict (different value; also emits verification_answer_conflict, and a conflicting yes winner is downgraded to unconfirmed). Answers on a terminal row other than default_spoken are stored with outcome ignored. The incident for a verification has id 'inc_' + verification id (e.g. inc_ver_1016_01) and is upserted."
+  },
+  "$ref": "#/$defs/verification",
+
+  "$defs": {
+    "state": { "enum": ["pending", "default_spoken", "confirmed", "late_confirmed", "denied", "late_denied", "unsure", "unreachable", "timed_out"] },
+    "status": { "enum": ["pending", "confirmed", "denied", "timeout"] },
+
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "village", "subject", "claimed_member_id", "claimed_identity", "origin", "conversation_id", "request", "state", "status", "channels", "answers", "created_at", "deadline", "call_placed_at", "await_returned_at", "resolved_at", "spoken_say_key", "incident_id", "version", "transitions"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "subject": { "$ref": "common.schema.json#/$defs/member_id", "description": "Who was asked for money (the care recipient)." },
+        "claimed_member_id": { "$ref": "common.schema.json#/$defs/member_id", "description": "Who is asked to verify. Never null (R-MONEY-UNKNOWN opens no verification)." },
+        "claimed_identity": { "type": "string", "maxLength": 120 },
+        "origin": { "enum": ["report_money_request", "start_verification"] },
+        "conversation_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/conversation_id" }, { "type": "null" } ], "description": "Mom-line conversation (null for start_verification from the app)." },
+        "money_request_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "request": {
+          "type": "object", "additionalProperties": false, "required": ["amount", "currency", "method", "urgency", "red_flags"],
+          "properties": {
+            "amount": { "type": ["number", "null"], "minimum": 0 },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "method": { "$ref": "common.schema.json#/$defs/money_method" },
+            "urgency": { "$ref": "common.schema.json#/$defs/money_urgency" },
+            "red_flags": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/money_red_flag" } }
+          }
+        },
+        "state": { "$ref": "#/$defs/state" },
+        "status": { "$ref": "#/$defs/status" },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["via", "member_id", "status", "at"],
+            "properties": {
+              "via": { "$ref": "common.schema.json#/$defs/verification_channel" },
+              "member_id": { "$ref": "common.schema.json#/$defs/member_id" },
+              "status": { "enum": ["sent", "delivered", "ringing", "in_progress", "answered", "no_answer", "voicemail", "failed", "cancelled", "skipped_no_consent", "skipped_no_session"] },
+              "ref": { "type": "string", "maxLength": 128, "description": "app_prompt: WS prompt message id · outbound_call: ElevenLabs conversation_id or Twilio call_sid." },
+              "at": { "$ref": "common.schema.json#/$defs/datetime", "description": "Time of the latest status." }
+            }
+          }
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["answer", "via", "member_id", "at", "secs_since_created", "outcome"],
+            "properties": {
+              "answer": { "$ref": "common.schema.json#/$defs/verification_answer" },
+              "via": { "$ref": "common.schema.json#/$defs/verification_channel" },
+              "member_id": { "$ref": "common.schema.json#/$defs/member_id" },
+              "at": { "$ref": "common.schema.json#/$defs/datetime" },
+              "secs_since_created": { "type": "number", "minimum": 0 },
+              "outcome": { "enum": ["applied", "dup", "conflict", "ignored"] },
+              "quote": { "type": "string", "maxLength": 300 }
+            }
+          }
+        },
+        "created_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "deadline": { "$ref": "common.schema.json#/$defs/datetime", "description": "created_at + 45 s." },
+        "call_placed_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ], "description": "Set once by CAS; never redialed." },
+        "await_returned_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "resolved_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ], "description": "When state became terminal." },
+        "spoken_say_key": { "anyOf": [ { "enum": ["money_confirmed", "money_denied", "money_timeout"] }, { "type": "null" } ], "description": "What await_verification returned to the voice agent (what Carmen heard). null until await returns." },
+        "incident_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/incident_id" }, { "type": "null" } ] },
+        "pattern_flag": { "const": "possible_fraud_pattern" },
+        "version": { "type": "integer", "minimum": 0 },
+        "transitions": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["from", "to", "at", "cause"],
+            "properties": {
+              "from": { "anyOf": [ { "$ref": "#/$defs/state" }, { "const": "created" } ] },
+              "to": { "$ref": "#/$defs/state" },
+              "at": { "$ref": "common.schema.json#/$defs/datetime" },
+              "cause": { "enum": ["created", "answer", "await_returned", "deadline", "unreachable"] }
+            }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "state": { "enum": ["pending", "default_spoken"] } } }, "then": { "properties": { "status": { "const": "pending" }, "resolved_at": { "type": "null" } } } },
+        { "if": { "properties": { "state": { "enum": ["confirmed", "late_confirmed"] } } }, "then": { "properties": { "status": { "const": "confirmed" }, "resolved_at": { "type": "string" }, "answers": { "contains": { "properties": { "answer": { "const": "yes" }, "outcome": { "const": "applied" } }, "required": ["answer", "outcome"] } } } } },
+        { "if": { "properties": { "state": { "enum": ["denied", "late_denied"] } } }, "then": { "properties": { "status": { "const": "denied" }, "resolved_at": { "type": "string" }, "answers": { "contains": { "properties": { "answer": { "const": "no" }, "outcome": { "const": "applied" } }, "required": ["answer", "outcome"] } } } } },
+        { "if": { "properties": { "state": { "enum": ["unsure", "unreachable", "timed_out"] } } }, "then": { "properties": { "status": { "const": "timeout" }, "resolved_at": { "type": "string" } } } },
+        { "if": { "properties": { "state": { "enum": ["default_spoken", "late_confirmed", "late_denied"] } } }, "then": { "properties": { "await_returned_at": { "type": "string" }, "spoken_say_key": { "const": "money_timeout" } } } }
+      ]
+    }
+  },
+
+  "examples": [
+    {
+      "id": "ver_1016_01", "village": "v_reyes", "subject": "m_carmen", "claimed_member_id": "m_marco", "claimed_identity": "Marco (her son)",
+      "origin": "report_money_request", "conversation_id": "conv_demo_1016_scam", "money_request_event_id": "ev_1016_1402_money",
+      "request": { "amount": 2000, "currency": "USD", "method": "unknown", "urgency": "now", "red_flags": ["urgency", "emotional_pressure"] },
+      "state": "denied", "status": "denied",
+      "channels": [
+        { "via": "app_prompt", "member_id": "m_marco", "status": "answered", "ref": "wsp_ver_1016_01", "at": "2026-10-16T14:02:21-04:00" },
+        { "via": "outbound_call", "member_id": "m_marco", "status": "cancelled", "ref": "conv_verify_ver_1016_01", "at": "2026-10-16T14:02:21-04:00" }
+      ],
+      "answers": [ { "answer": "no", "via": "app_prompt", "member_id": "m_marco", "at": "2026-10-16T14:02:21-04:00", "secs_since_created": 12, "outcome": "applied" } ],
+      "created_at": "2026-10-16T14:02:09-04:00", "deadline": "2026-10-16T14:02:54-04:00",
+      "call_placed_at": "2026-10-16T14:02:10-04:00", "await_returned_at": "2026-10-16T14:02:21-04:00", "resolved_at": "2026-10-16T14:02:21-04:00",
+      "spoken_say_key": "money_denied", "incident_id": "inc_ver_1016_01", "pattern_flag": "possible_fraud_pattern", "version": 4,
+      "transitions": [
+        { "from": "created", "to": "pending", "at": "2026-10-16T14:02:09-04:00", "cause": "created" },
+        { "from": "pending", "to": "denied", "at": "2026-10-16T14:02:21-04:00", "cause": "answer" }
+      ]
+    },
+    {
+      "id": "ver_1016_01", "village": "v_reyes", "subject": "m_carmen", "claimed_member_id": "m_marco", "claimed_identity": "Marco (her son)",
+      "origin": "report_money_request", "conversation_id": "conv_demo_1016_scam",
+      "request": { "amount": 2000, "currency": "USD", "method": "unknown", "urgency": "now", "red_flags": ["urgency", "emotional_pressure"] },
+      "state": "timed_out", "status": "timeout",
+      "channels": [
+        { "via": "app_prompt", "member_id": "m_marco", "status": "delivered", "ref": "wsp_ver_1016_01", "at": "2026-10-16T14:02:10-04:00" },
+        { "via": "outbound_call", "member_id": "m_marco", "status": "cancelled", "ref": "conv_verify_ver_1016_01", "at": "2026-10-16T14:02:54-04:00" }
+      ],
+      "answers": [],
+      "created_at": "2026-10-16T14:02:09-04:00", "deadline": "2026-10-16T14:02:54-04:00",
+      "call_placed_at": "2026-10-16T14:02:10-04:00", "await_returned_at": "2026-10-16T14:02:44-04:00", "resolved_at": "2026-10-16T14:02:54-04:00",
+      "spoken_say_key": "money_timeout", "incident_id": "inc_ver_1016_01", "version": 4,
+      "transitions": [
+        { "from": "created", "to": "pending", "at": "2026-10-16T14:02:09-04:00", "cause": "created" },
+        { "from": "pending", "to": "default_spoken", "at": "2026-10-16T14:02:44-04:00", "cause": "await_returned" },
+        { "from": "default_spoken", "to": "timed_out", "at": "2026-10-16T14:02:54-04:00", "cause": "deadline" }
+      ]
+    }
+  ]
+}

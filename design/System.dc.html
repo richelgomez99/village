@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Village design system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=Noto+Sans+SC:wght@700&amp;family=Noto+Sans+Arabic:wght@700&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--card:#FFFFFF;--ink:#26211C;--ink2:#5B5249;--line:#E5DACB;--sage:#2F6B57;--sky:#2F6F8F;--plum:#6A3F7A;--tomato:#A8331A;--ok:#2E6F42;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 1200px; height: 1100px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 36px 40px; display: flex; flex-direction: column; gap: 24px">
+  <header style="display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-family: var(--display); font-size: 36px; font-weight: 650">Two layers: a floor nobody can change, and a look each village makes its own</h1>
+    <p style="margin: 0; font-size: 18px; color: var(--ink2); max-width: 980px; line-height: 1.5">The builder can choose anything in the right column. The Daytona build runs tests that enforce the left column, so a generated look that breaks the floor never ships.</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; flex-grow: 1">
+    <section style="background: var(--card); border: 2px solid var(--ink); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+      <h2 style="margin: 0; font-family: var(--display); font-size: 26px; font-weight: 650">Fixed floor · same in every village</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Safety colors and words (never themed)</span>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <span style="background: var(--tomato); color: #fff; border-radius: 10px; padding: 10px 14px; font-weight: 700">Stopped / needs help</span>
+          <span style="background: var(--ok); color: #fff; border-radius: 10px; padding: 10px 14px; font-weight: 700">Recorded</span>
+          <span style="background: var(--amber-soft); color: var(--amber-ink); border-radius: 10px; padding: 10px 14px; font-weight: 700">Needs a person</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.45">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Accessibility</span>
+        <span>Elder view: text ≥ 28px, buttons ≥ 88px tall, contrast ≥ 7:1, at most 3–4 actions</span>
+        <span>Everyone: tap targets ≥ 48px, color never the only signal, read-aloud on every screen</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.45">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Behavior</span>
+        <span>Components only from the tested set; unknown ones render nothing</span>
+        <span>Safety lines are pre-written and reviewed, then translated and back-checked</span>
+        <span>Every button goes through the safety gate, never straight to data</span>
+      </div>
+      <pre style="margin: 0; margin-top: auto; background: var(--paper); border-radius: 12px; padding: 12px 14px; font: 400 13px/1.6 var(--mono); white-space: pre-wrap">vitest · floor.spec.ts
+✓ elder contrast ≥ 7:1      ✓ BigButton ≥ 88px
+✓ safety colors unchanged   ✓ every action → /actions</pre>
+    </section>
+
+    <section style="background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+      <h2 style="margin: 0; font-family: var(--display); font-size: 26px; font-weight: 650">Village layer · generated per group</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Accent, from an approved range</span>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 15px">
+          <span style="display: flex; align-items: center; gap: 8px"><span style="width: 28px; height: 28px; border-radius: 8px; background: var(--sage)"></span>Reyes</span>
+          <span style="display: flex; align-items: center; gap: 8px"><span style="width: 28px; height: 28px; border-radius: 8px; background: var(--sky)"></span>Wei’s family</span>
+          <span style="display: flex; align-items: center; gap: 8px"><span style="width: 28px; height: 28px; border-radius: 8px; background: var(--plum)"></span>a new card</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.45">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Words and objects</span>
+        <span>What Mom is called: Mamá · Ma · 王伯伯</span>
+        <span>Real-world things: her organizer’s lid colors, stickers, the fridge card</span>
+        <span>Density per person: three buttons for Carmen, a dashboard for Ana</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 15px; font-weight: 700; color: var(--ink2)">Any language, any script</span>
+        <div lang="es" style="background: var(--paper); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center"><span style="font-size: 26px; font-weight: 700">Ya me la tomé</span><span style="font-size: 13px; color: var(--ink2)">Spanish · Atkinson</span></div>
+        <div lang="zh-Hans" style="background: var(--paper); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center"><span style="font-size: 26px; font-weight: 700; font-family: 'Noto Sans SC', sans-serif">我回来了</span><span style="font-size: 13px; color: var(--ink2)">Chinese · Noto</span></div>
+        <div lang="ar" dir="rtl" style="background: var(--paper); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center"><span style="font-size: 26px; font-weight: 700; font-family: 'Noto Sans Arabic', sans-serif">أخذت دوائي</span><span dir="ltr" style="font-size: 13px; color: var(--ink2)">Arabic · right to left · Noto</span></div>
+      </div>
+      <span style="font-size: 15px; color: var(--ink2); line-height: 1.5">Planned against NYC’s 10 official service languages. Can’t read any script? Icons and read-aloud carry every screen.</span>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

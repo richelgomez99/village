@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/common.schema.json",
+  "title": "Village shared definitions",
+  "description": "Leaf definitions shared by every Village contract. Referenced as common.schema.json#/$defs/<name>. Not an instance schema on its own.",
+  "x-contract-version": "1.1.0",
+  "$defs": {
+    "contract_version": { "const": "1.1.0", "description": "Bump in contracts/VERSION, every schema's x-contract-version, and here, together." },
+
+    "village_id": { "type": "string", "pattern": "^v_[a-z0-9_]{2,40}$", "examples": ["v_reyes", "v_w147"] },
+    "member_id": { "type": "string", "pattern": "^[a-z]_[a-z0-9_]{1,40}$", "examples": ["m_carmen", "b_tanya"] },
+    "role_key": { "type": "string", "pattern": "^[a-z][a-z_]{1,23}$", "description": "View key. Care villages: elder | coordinator | helper. Block villages: coordinator | resident | volunteer.", "examples": ["elder", "coordinator", "helper"] },
+    "element_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,23}$" },
+    "need_id": { "type": "string", "pattern": "^n_[a-z0-9_]+$" },
+    "event_id": { "type": "string", "pattern": "^ev_[A-Za-z0-9_]{3,64}$" },
+    "verification_id": { "type": "string", "pattern": "^ver_[A-Za-z0-9_]{2,64}$", "examples": ["ver_1016_01"] },
+    "incident_id": { "type": "string", "pattern": "^inc_[A-Za-z0-9_]{2,64}$", "examples": ["inc_ver_1016_01"] },
+    "proposal_id": { "type": "string", "pattern": "^prop_[A-Za-z0-9_]{2,64}$" },
+    "decision_id": { "type": "string", "pattern": "^dc_[A-Za-z0-9_]{2,64}$" },
+    "release_id": { "type": "string", "pattern": "^rel_[A-Za-z0-9_]{2,64}$" },
+    "invite_id": { "type": "string", "pattern": "^inv_[A-Za-z0-9_]{2,64}$", "description": "Join invite minted at activation (one active per member with a view). 1.1.0." },
+    "invite_token": { "type": "string", "pattern": "^[A-Za-z0-9._-]{16,256}$", "description": "Secret join token (/join?i=<invite_token>). Same rules as slot_token: hashed at rest, never in specs, logs or traces; refer to it by invite_id. 1.1.0." },
+    "message_id": { "type": "string", "pattern": "^msg_[A-Za-z0-9_]{2,64}$", "description": "Village chat message (D16). 1.1.0.", "examples": ["msg_1016_1402_incident"] },
+    "uncertainty_id": { "type": "string", "pattern": "^unc_[A-Za-z0-9_]{2,64}$", "description": "Agent Memory uncertainty (two facts disagree). 1.1.0." },
+    "conversation_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{3,128}$", "description": "ElevenLabs conversation id (system__conversation_id).", "examples": ["conv_demo_1016_scam"] },
+    "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$", "description": "OpenTelemetry/Arize trace id, 32 lowercase hex." },
+    "slot_token": { "type": "string", "pattern": "^[A-Za-z0-9._-]{16,256}$", "description": "Signed per-slot lid token (secret). Never stored in specs or traces; specs reference token_ref instead." },
+    "slot": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,23}$", "description": "Dose slot id from dose_slots.", "examples": ["morning", "evening"] },
+    "rev": { "type": "integer", "minimum": 0, "description": "Monotonic spec revision per village." },
+    "village_status": { "enum": ["draft", "active"], "description": "Village lifecycle (FS-3). draft = edits allowed via PATCH /villages/{id}/draft, no invites/calls/prompts (QR and activate-dependent routes answer 409); active = invites minted, edits only via proposals. 1.1.0." },
+
+    "datetime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "RFC 3339 with explicit offset. Demo clock times are America/New_York (-04:00 in October)."
+    },
+    "date": { "type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "hhmm": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+    "time_window": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$", "examples": ["16:00-22:00"] },
+    "weekday": { "enum": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+    "e164": { "type": "string", "pattern": "^\\+[1-9][0-9]{6,14}$" },
+    "phone_or_short_code": { "type": "string", "pattern": "^(\\+[1-9][0-9]{6,14}|911|988|18002221222)$" },
+    "hex_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+    "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "lang": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$", "description": "BCP-47 tag." },
+    "script": { "type": "string", "pattern": "^[A-Z][a-z]{3}$", "description": "ISO 15924 script code.", "examples": ["Latn", "Hans", "Arab"] },
+
+    "localized": {
+      "type": "object",
+      "description": "Text by language. At least one language; demo villages always carry es and en where shown to both.",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+      "additionalProperties": { "type": "string", "maxLength": 600 }
+    },
+    "say": {
+      "type": "object",
+      "description": "Gate-owned verbatim lines. Empty string = say/show nothing.",
+      "additionalProperties": false,
+      "required": ["es", "en"],
+      "properties": {
+        "es": { "type": "string", "maxLength": 400 },
+        "en": { "type": "string", "maxLength": 400 }
+      }
+    },
+
+    "primitive": { "type": ["string", "number", "boolean", "null"] },
+    "primitive_array": { "type": "array", "maxItems": 24, "items": { "type": ["string", "number", "boolean"] } },
+    "props": {
+      "type": "object",
+      "description": "Component props: primitives or arrays of primitives only (builder rule).",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+      "additionalProperties": {
+        "anyOf": [ { "$ref": "#/$defs/primitive" }, { "$ref": "#/$defs/primitive_array" } ]
+      }
+    },
+
+    "actor": {
+      "description": "Who caused a ledger row: a member, or a system actor.",
+      "anyOf": [
+        { "$ref": "#/$defs/member_id" },
+        { "enum": ["system", "scheduler", "gate", "builder", "evolve", "release", "voice:mom-line", "voice:village-caller", "voice:setup", "unknown_caller"] }
+      ]
+    },
+
+    "source": {
+      "type": "object",
+      "description": "Provenance of every write (CLAUDE.md rule 5).",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": { "enum": ["call", "app", "scan", "url", "system"] },
+        "ref": { "type": "string", "minLength": 1, "maxLength": 200, "description": "call: conversation_id · app: member_id or ws req_id · scan: token_ref (never the token) · url: short label · system: component name (scheduler, gate, evolve, release, seed)." },
+        "secs": { "type": "number", "minimum": 0, "description": "Offset in the call (system__call_duration_secs at tool time). Required when kind=call." },
+        "url": { "$ref": "#/$defs/url" },
+        "quote": { "type": "string", "maxLength": 600, "description": "Verbatim words when available (utterance or transcript span)." }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "call" } } }, "then": { "required": ["secs"] } },
+        { "if": { "properties": { "kind": { "const": "url" } } }, "then": { "required": ["url"] } }
+      ]
+    },
+
+    "am": {
+      "type": "object",
+      "description": "Observability + Agent Memory links for a row.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "trace_id": { "$ref": "#/$defs/trace_id" },
+        "key": { "type": "string", "maxLength": 200, "description": "Agent Memory fact key or id written for this row (e.g. last_dose_taken)." }
+      }
+    },
+
+    "gate_decision": {
+      "enum": [
+        "record", "remind", "report_already_logged", "refuse_medical_advice", "escalate_family", "advise_911",
+        "verify_with_member", "advise_do_not_send", "advise_talk_to_coordinator", "mark_unverified", "verify_with_source",
+        "require_approval", "allow", "deny"
+      ],
+      "description": "Closed vocabulary. policy_cases.md 'hold_and_escalate' == report_already_logged + escalate."
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[RP]-[A-Z0-9]+(-[A-Z0-9]+)*$",
+      "description": "Gate rule ids (R-*) or builder policy ids (P-*). Known R-*: R-DOUBLE, R-DOSE-ADVICE, R-WINDOW, R-MISSED, R-911, R-CONSENT, R-AUTONOMY, R-RUMOR, R-PRIORITY, R-SPEC, R-KILL, R-MONEY-NEVER, R-MONEY-VERIFY, R-MONEY-DEFAULT, R-MONEY-UNKNOWN, R-MONEY-PATTERN, R-VERIFY-CONSENT, R-NOOP.",
+      "examples": ["R-MONEY-VERIFY", "P-DD-01"]
+    },
+    "say_key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,40}$",
+      "description": "Template key of the verbatim line (policy_cases.md). Known: money_hold, money_denied, money_timeout, money_confirmed, money_unknown, money_never, money_share_disclosure, dd_report, dose_recorded, advise_911_first, no_dose_advice, schedule_readback, family_notified, core_down, money_core_down (1.1.0: fixed script when Core is unreachable during a money call; the agent speaks it and never improvises).",
+      "examples": ["money_hold", "dd_report"]
+    },
+
+    "member_channel": {
+      "description": "Per-member channels assigned by the builder (D3, D13). app:<role_key> = the role view.",
+      "anyOf": [
+        { "enum": ["lid_qr", "phone_line", "outbound_calls", "fridge_card", "verification:app_prompt", "verification:call"] },
+        { "type": "string", "pattern": "^app:[a-z][a-z_]{1,23}$" }
+      ],
+      "examples": ["app:elder", "app:coordinator", "app:helper", "lid_qr"]
+    },
+    "notify_channel": { "enum": ["app", "app_banner", "outbound_call", "sms"], "description": "app = ledger row + card; app_banner = 'Village is calling you' banner over WS; outbound_call = ElevenLabs/Twilio call." },
+    "verification_channel": { "enum": ["app_prompt", "outbound_call"] },
+    "verification_answer": { "enum": ["yes", "no", "unsure"], "description": "yes = it was me (confirm) · no = it wasn't me (deny) · unsure." },
+
+    "message_kind": { "enum": ["chat", "incident", "proposal", "receipt", "nudge", "answer"], "description": "D16 village chat. Members write only chat; Village posts incident (from an incident row), proposal (Approve / Not now inline), receipt (release), nudge (rota or dose status line), answer (reply to an @Village question). 1.1.0." },
+    "message_ref": {
+      "type": "object",
+      "description": "What a chat message cites (source chips). id is the referenced object's id: ev_* / dc_* / prop_* / rel_* / inc_* / ver_* / m_*, an Agent Memory fact key, a trace id, or a rule id. 1.1.0.",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["event", "decision", "fact", "trace", "proposal", "release", "member", "incident", "verification", "rule"] },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "label": { "type": "string", "maxLength": 80, "description": "Chip text, e.g. 'her call, 0:09', 'rule R-MONEY-VERIFY', 'consent record', 'receipt'." }
+      }
+    },
+
+    "money_method": { "enum": ["unknown", "cash", "cash_courier", "gift_card", "crypto", "wire", "wire_to_stranger", "payment_app", "payment_app_to_stranger", "bank_details", "check", "other"] },
+    "money_red_flag": {
+      "enum": ["gift_card", "crypto", "wire_to_stranger", "cash_courier", "bank_details", "payment_app_to_stranger", "secrecy", "urgency", "emotional_pressure", "jail_bail", "hospital", "accident", "voice_changed", "new_number", "threat_arrest", "safe_account", "prize", "asks_village_to_pay", "claimed_family_member"]
+    },
+    "money_urgency": { "enum": ["now", "today", "unspecified"] },
+    "family_urgency": { "enum": ["now", "today", "fyi"] },
+
+    "action_name": {
+      "enum": [
+        "log_dose", "need_help", "call_member", "call_number", "check_in_ok", "report_symptom", "report_need", "offer_resource",
+        "check_rumor", "ack_alert", "swap_shift", "approve_match",
+        "start_verification", "answer_verification", "ack_incident", "approve_proposal", "reject_proposal"
+      ],
+      "description": "Actions → POST /v/{id}/actions/{name} or WS action; always gated. BigButton may use the first 12; start_verification (ScamCheck), answer_verification (VerificationPrompt), ack_incident (IncidentCard) and approve_proposal/reject_proposal (Proposal) are built into their components."
+    },
+
+    "view_patch_op": {
+      "type": "object",
+      "description": "RFC 6902 op restricted to a role view (builder patch_app rules). Paths are relative to the view object.",
+      "additionalProperties": false,
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "enum": ["add", "remove", "replace"] },
+        "path": { "type": "string", "pattern": "^/elements/[a-z][a-z0-9_]{0,23}(/props(/[a-z][a-z0-9_]{0,31})?|/children(/(-|[0-9]{1,2}))?)?$" },
+        "value": {}
+      },
+      "allOf": [
+        { "if": { "properties": { "op": { "enum": ["add", "replace"] } } }, "then": { "required": ["value"] } },
+        { "if": { "properties": { "op": { "const": "remove" } } }, "then": { "not": { "required": ["value"] } } }
+      ]
+    },
+    "json_patch_op": {
+      "type": "object",
+      "description": "Unrestricted RFC 6902 op (used only for spec-level ops such as printables).",
+      "additionalProperties": false,
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "enum": ["add", "remove", "replace", "move", "copy", "test"] },
+        "path": { "type": "string", "pattern": "^(/([^~/]|~[01])*)*$" },
+        "from": { "type": "string", "pattern": "^(/([^~/]|~[01])*)*$" },
+        "value": {}
+      }
+    }
+  }
+}

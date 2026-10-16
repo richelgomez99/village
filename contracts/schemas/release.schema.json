@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/release.schema.json",
+  "title": "Release receipt",
+  "description": "One attempt to release a spec rev through the gate strip (D7, D13 receipts): spec → daytona_build → tests → anchor_qa → arize_evals → live. Produced by the release lane (core/release/), shown by the kit's ReleaseStrip in the Control Room via WS control{kind: release}. Blue/green on live_rev: if any stage fails, the previous live rev stays live (max 2 repair attempts).",
+  "x-contract-version": "1.1.0",
+  "$ref": "#/$defs/receipt",
+
+  "$defs": {
+    "stage_name": { "enum": ["spec", "daytona_build", "tests", "anchor_qa", "arize_evals", "live"] },
+    "stage_status": { "enum": ["pending", "running", "passed", "failed", "skipped"] },
+    "result": { "enum": ["in_progress", "released", "blocked", "rolled_back"], "description": "blocked = a stage failed and the previous live rev stayed live." },
+
+    "stage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "status", "started", "ended", "details"],
+      "properties": {
+        "name": { "$ref": "#/$defs/stage_name" },
+        "status": { "$ref": "#/$defs/stage_status" },
+        "started": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "ended": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "evidence_url": { "$ref": "common.schema.json#/$defs/url", "description": "Primary evidence: logs, Anchor recording, Arize experiment/trace link." },
+        "evidence_urls": {
+          "type": "array", "maxItems": 12,
+          "description": "1.1.0. Every evidence file of this stage, served by GET /releases/{rel}/qa/{file} (or any URL). The strip shows the first screenshot / video; report = JSON of the assertions.",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["kind", "url"],
+            "properties": {
+              "kind": { "enum": ["log", "screenshot", "video", "report", "trace", "experiment", "recording"] },
+              "url": { "$ref": "common.schema.json#/$defs/url" },
+              "label": { "type": "string", "maxLength": 80 },
+              "viewport": { "type": "string", "pattern": "^[0-9]{3,4}x[0-9]{3,4}$" }
+            }
+          }
+        },
+        "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" },
+        "details": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "summary": { "type": "string", "maxLength": 200, "description": "One line for the strip, e.g. 'contrast 4.1:1 on elder view (needs 7:1)'." },
+            "sandbox_id": { "type": "string", "maxLength": 80 },
+            "preview_url": { "$ref": "common.schema.json#/$defs/url" },
+            "duration_ms": { "type": "integer", "minimum": 0 },
+            "tests_passed": { "type": "integer", "minimum": 0 },
+            "tests_failed": { "type": "integer", "minimum": 0 },
+            "failures": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 300 } },
+            "anchor_session_id": { "type": "string", "maxLength": 80 },
+            "live_view_url": { "$ref": "common.schema.json#/$defs/url" },
+            "video_url": { "$ref": "common.schema.json#/$defs/url" },
+            "viewport": { "type": "string", "pattern": "^[0-9]{3,4}x[0-9]{3,4}$" },
+            "eval_scores": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 } },
+            "eval_thresholds": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 } },
+            "roles_patched": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/role_key" } },
+            "error": { "type": "string", "maxLength": 500 }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "pending" } } }, "then": { "properties": { "started": { "type": "null" }, "ended": { "type": "null" } } } },
+        { "if": { "properties": { "status": { "const": "running" } } }, "then": { "properties": { "started": { "type": "string" }, "ended": { "type": "null" } } } },
+        { "if": { "properties": { "status": { "enum": ["passed", "failed"] } } }, "then": { "properties": { "started": { "type": "string" }, "ended": { "type": "string" } } } }
+      ]
+    },
+
+    "receipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "village", "rev", "previous_live_rev", "live_rev", "attempt", "trigger", "stages", "result", "created_at"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/release_id" },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "rev": { "$ref": "common.schema.json#/$defs/rev", "description": "Spec rev being released." },
+        "previous_live_rev": { "anyOf": [ { "$ref": "common.schema.json#/$defs/rev" }, { "type": "null" } ] },
+        "live_rev": { "anyOf": [ { "$ref": "common.schema.json#/$defs/rev" }, { "type": "null" } ], "description": "Rev live after this receipt (= rev if released, else previous_live_rev)." },
+        "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "repair_of": { "$ref": "common.schema.json#/$defs/release_id", "description": "The blocked receipt this attempt repairs." },
+        "trigger": { "enum": ["initial", "proposal", "repair", "manual"] },
+        "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" },
+        "trace_id": { "$ref": "common.schema.json#/$defs/trace_id", "description": "Root trace of the whole release." },
+        "candidate_path": { "type": "string", "pattern": "^/v/v_[a-z0-9_]{2,40}/r/[0-9]+/$", "description": "1.1.0. Where the candidate build is served while under test: GET /v/{id}/r/{rev}/{path} (the kit points its WS at the shadow village with ?village=<id>_qa). The published path stays /v/{id}/." },
+        "evidence_base_url": { "$ref": "common.schema.json#/$defs/url", "description": "1.1.0. Base of GET /releases/{rel}/qa/{file} for this receipt's evidence files." },
+        "stages": {
+          "type": "array",
+          "prefixItems": [
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "spec" } } } ] },
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "daytona_build" } } } ] },
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "tests" } } } ] },
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "anchor_qa" } } } ] },
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "arize_evals" } } } ] },
+            { "allOf": [ { "$ref": "#/$defs/stage" }, { "properties": { "name": { "const": "live" } } } ] }
+          ],
+          "minItems": 6, "maxItems": 6, "items": false,
+          "description": "Exactly six stages in this order. Stages after a failed one are 'skipped'."
+        },
+        "result": { "$ref": "#/$defs/result" },
+        "created_at": { "$ref": "common.schema.json#/$defs/datetime" }
+      },
+      "allOf": [
+        { "if": { "properties": { "result": { "const": "released" } } }, "then": { "properties": { "stages": { "items": false, "prefixItems": [ { "properties": { "status": { "const": "passed" } } }, { "properties": { "status": { "const": "passed" } } }, { "properties": { "status": { "const": "passed" } } }, { "properties": { "status": { "enum": ["passed", "skipped"] } } }, { "properties": { "status": { "enum": ["passed", "skipped"] } } }, { "properties": { "status": { "const": "passed" } } } ] } } } },
+        { "if": { "properties": { "result": { "const": "blocked" } } }, "then": { "properties": { "stages": { "contains": { "properties": { "status": { "const": "failed" } }, "required": ["status"] } } } } }
+      ]
+    }
+  },
+
+  "examples": [
+    {
+      "id": "rel_reyes_r3", "village": "v_reyes", "rev": 3, "previous_live_rev": 2, "live_rev": 2, "attempt": 1, "trigger": "initial",
+      "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "stages": [
+        { "name": "spec", "status": "passed", "started": "2026-10-16T11:40:00-04:00", "ended": "2026-10-16T11:40:01-04:00", "details": { "summary": "VillageSpec valid (3 views, 1 custom component)" } },
+        { "name": "daytona_build", "status": "passed", "started": "2026-10-16T11:40:01-04:00", "ended": "2026-10-16T11:40:39-04:00", "details": { "summary": "vite build ok", "sandbox_id": "sbx_reyes_r3", "duration_ms": 38000 } },
+        { "name": "tests", "status": "failed", "started": "2026-10-16T11:40:39-04:00", "ended": "2026-10-16T11:40:51-04:00", "details": { "summary": "contrast 4.1:1 on elder view (needs 7:1)", "tests_passed": 41, "tests_failed": 1, "failures": ["floor/contrast.test.ts › elder BigButton tone=info contrast 4.1:1 < 7:1"] } },
+        { "name": "anchor_qa", "status": "skipped", "started": null, "ended": null, "details": {} },
+        { "name": "arize_evals", "status": "skipped", "started": null, "ended": null, "details": {} },
+        { "name": "live", "status": "skipped", "started": null, "ended": null, "details": {} }
+      ],
+      "result": "blocked", "created_at": "2026-10-16T11:40:00-04:00"
+    },
+    {
+      "id": "rel_reyes_r4", "village": "v_reyes", "rev": 4, "previous_live_rev": 2, "live_rev": 4, "attempt": 2, "repair_of": "rel_reyes_r3", "trigger": "repair",
+      "candidate_path": "/v/v_reyes/r/4/", "evidence_base_url": "https://richel-macbook.tail8feae0.ts.net/releases/rel_reyes_r4/qa/",
+      "stages": [
+        { "name": "spec", "status": "passed", "started": "2026-10-16T11:42:00-04:00", "ended": "2026-10-16T11:42:01-04:00", "details": { "summary": "elder info tone mapped to floor ink" } },
+        { "name": "daytona_build", "status": "passed", "started": "2026-10-16T11:42:01-04:00", "ended": "2026-10-16T11:42:35-04:00", "details": { "sandbox_id": "sbx_reyes_r4", "preview_url": "https://4173-sbx-reyes-r4.proxy.daytona.works/" } },
+        { "name": "tests", "status": "passed", "started": "2026-10-16T11:42:35-04:00", "ended": "2026-10-16T11:42:47-04:00", "details": { "tests_passed": 42, "tests_failed": 0 } },
+        { "name": "anchor_qa", "status": "passed", "started": "2026-10-16T11:42:47-04:00", "ended": "2026-10-16T11:43:20-04:00", "evidence_url": "https://anchor.example/recordings/sess_r4",
+          "evidence_urls": [
+            { "kind": "screenshot", "url": "https://richel-macbook.tail8feae0.ts.net/releases/rel_reyes_r4/qa/elder_scan_2.png", "label": "second scan: already logged", "viewport": "390x844" },
+            { "kind": "video", "url": "https://richel-macbook.tail8feae0.ts.net/releases/rel_reyes_r4/qa/qa.mp4", "label": "tapped on a real phone" },
+            { "kind": "report", "url": "https://richel-macbook.tail8feae0.ts.net/releases/rel_reyes_r4/qa/report.json" }
+          ],
+          "details": { "summary": "scan twice + VerificationPrompt at 390x844", "viewport": "390x844", "anchor_session_id": "sess_r4" } },
+        { "name": "arize_evals", "status": "passed", "started": "2026-10-16T11:43:20-04:00", "ended": "2026-10-16T11:43:31-04:00", "trace_id": "0af7651916cd43dd8448eb211c80319c", "details": { "eval_scores": { "safety_copy": 1.0, "translation_backcheck": 0.96 }, "eval_thresholds": { "safety_copy": 1.0, "translation_backcheck": 0.9 } } },
+        { "name": "live", "status": "passed", "started": "2026-10-16T11:43:31-04:00", "ended": "2026-10-16T11:43:31-04:00", "details": { "summary": "published_rev 2 → 4", "roles_patched": ["elder", "coordinator", "helper"] } }
+      ],
+      "result": "released", "created_at": "2026-10-16T11:42:00-04:00"
+    }
+  ]
+}

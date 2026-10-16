@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Progress, working and transition states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap">
+<style>
+:root{--paper:#FFFCF6;--card:#FFFFFF;--cream:#FBF6EE;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--tomato:#A8331A;--tomato-soft:#FBE6DF;--amber-ink:#7A4B00;--amber-soft:#FCEFD6;--sky:#234C8A;--sky-soft:#E1EEF4;--plum:#6A3F7A;--plum-soft:#F1E7F4;--night:#100D0A;--panel:#1B1612;--panel2:#241D17;--nline:#3A3028;--ntext:#F3EADF;--muted:#B5A898;--amber:#F2A541;--coral:#FF7A59;--mint:#62D9A0;--nsky:#7FB7E6;--nplum:#C9A6E8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+@keyframes bars{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes grow{from{width:0}to{width:100%}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(106,63,122,.45)}50%{box-shadow:0 0 0 10px rgba(106,63,122,0)}}
+.bar{display:inline-block;width:4px;border-radius:2px;background:var(--sage);transform-origin:bottom;animation:bars 1s infinite}
+.skel{background:linear-gradient(90deg,#F1E9DD 0px,#FBF6EE 80px,#F1E9DD 160px);background-size:400px 100%;animation:shimmer 1.4s infinite linear;border-radius:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1800px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 36px 40px; display: flex; flex-direction: column; gap: 22px">
+  <header style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-family: var(--display); font-size: 36px; font-weight: 650">Progress, working and transition states</h1>
+    <p style="margin: 0; font-size: 17px; color: var(--ink2); max-width: 1100px">How the agent’s work shows while it happens, and how a phone changes under someone’s thumb without startling them. Rule: never a spinner alone. Every “working” state names the step, shows elapsed time, and ends in a row someone can tap. Reduced-motion users get the same information with no animation.</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start">
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">1 · Listening → heard → committed</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 10px"><span style="display: inline-flex; align-items: flex-end; gap: 3px; height: 22px"><span class="bar" style="height: 10px; animation-delay: 0s"></span><span class="bar" style="height: 22px; animation-delay: .15s"></span><span class="bar" style="height: 14px; animation-delay: .3s"></span><span class="bar" style="height: 20px; animation-delay: .45s"></span><span class="bar" style="height: 8px; animation-delay: .6s"></span></span><span style="font-size: 14px; font-weight: 700">Listening</span><span style="font: 500 12px var(--mono); color: var(--ink2); margin-left: auto">0:41</span></div>
+        <div style="font-size: 15px; line-height: 1.45; color: var(--ink2)">My sister Lucía in Philly handles the insurance. Mom’s <span style="color: var(--ink); background: var(--amber-soft); border-radius: 4px; padding: 0 3px">Mamá</span><span style="color: var(--ink2)">… Spanish, most</span><span style="display: inline-block; width: 2px; height: 16px; background: var(--ink); vertical-align: text-bottom; animation: blink 1s infinite"></span></div>
+        <span style="font-size: 12px; color: var(--ink2)">Grey = partial transcript; it turns ink when the sentence is final. Names Village recognised get a soft highlight. Tap a word to correct it.</span>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--amber-ink); animation: blink 1.2s infinite"></span>Village is on a call with Mamá <span style="font: 500 12px var(--mono); color: var(--ink2); font-weight: 400; margin-left: auto">2:10</span></div>
+        <span style="font-size: 13px; color: var(--ink2)">Chat shows this line while any call is live. What she says arrives as relayed messages when the call ends, not mid-call.</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">2 · Thinking shows the step, not dots</h2>
+      <div style="align-self: flex-start; width: 100%; box-sizing: border-box; background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 12px; font-weight: 700; color: var(--ink2)">Village</span>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 14px"><span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--sage); animation: spin 1s linear infinite"></span><span>Checking metformin on DailyMed</span><span style="font: 500 12px var(--mono); color: var(--ink2); margin-left: auto">2 of 4 · 0:06</span></div>
+        <div style="height: 4px; border-radius: 2px; background: var(--line); overflow: hidden"><span style="display: block; height: 100%; width: 48%; background: var(--sage)"></span></div>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 12px; font-weight: 700; color: var(--ink2)">Village · weighing</span>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 14px">
+          <div style="display: flex; align-items: center; gap: 8px"><span style="color: var(--ok); font-weight: 700">✓</span><span>Block unknown numbers</span><span style="margin-left: auto; font-size: 12px; color: var(--tomato)">she’d miss the doctor</span></div>
+          <div style="display: flex; align-items: center; gap: 8px"><span style="color: var(--ok); font-weight: 700">✓</span><span>Only the family word</span><span style="margin-left: auto; font-size: 12px; color: var(--tomato)">needs her to remember</span></div>
+          <div style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--plum); animation: spin 1s linear infinite"></span><span>Village answers first</span><span style="margin-left: auto; font: 500 12px var(--mono); color: var(--ink2)">testing · 0:31</span></div>
+        </div>
+        <span style="font-size: 12px; color: var(--ink2)">`consider_options` renders each option as it is judged. Losers get their one-line reason immediately; the winner stays “testing” until the gate passes.</span>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">3 · Ledger row · 6 states</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; display: grid; grid-template-columns: 18px 1fr auto; gap: 7px 8px; font-size: 14px; align-items: center">
+        <span style="color: var(--ink2)">·</span><span style="color: var(--ink2)">Call Marco to confirm his days</span><span style="font: 500 11px var(--mono); color: var(--ink2)">queued</span>
+        <span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--sage); animation: spin 1s linear infinite"></span><span>Calling Marco · ringing</span><span style="font: 500 11px var(--mono); color: var(--ink2)">0:08</span>
+        <span style="color: var(--ok); font-weight: 700">✓</span><span>Marco: Tue Thu Fri Sat, okay with calls</span><span style="font: 500 11px var(--mono); color: var(--ink2)">0:48 · <a href="#rec">record</a></span>
+        <span style="color: var(--amber-ink); font-weight: 700">↻</span><span>Build failed a floor test · fixing · attempt 2 of 3</span><span style="font: 500 11px var(--mono); color: var(--amber-ink)">0:14</span>
+        <span style="color: var(--tomato); font-weight: 700">✕</span><span>Couldn’t reach Marco by app · <strong>calling him instead</strong></span><span style="font: 500 11px var(--mono); color: var(--tomato)">fallback</span>
+        <span style="color: var(--tomato); font-weight: 700">⊘</span><span>Wanted to call Mamá · <strong>blocked by code</strong>: no calls after 9:30 PM</span><span style="font: 500 11px var(--mono); color: var(--ink2)">refused</span>
+      </div>
+      <span style="font-size: 12px; color: var(--ink2)">Rows never disappear; a running row becomes its result in place. Tap any row → decision record drawer (inputs, rule, alternatives, trace link).</span>
+      <div style="background: var(--card); border-left: 4px solid var(--plum); border-radius: 0 12px 12px 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px"><span style="font-weight: 700">Decision #f1a9 · asked a human</span><span style="color: var(--ink2)">Inputs: caller claims family + urgency · Rule: R-MONEY-1 · Alternatives: none allowed · Outcome: Marco said no in 12 s · <a href="#trace">trace</a></span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">4 · Countdowns · hold and verify</h2>
+      <div style="display: flex; gap: 10px">
+        <div lang="es" style="flex: 1; background: var(--amber-soft); border: 3px solid var(--amber-ink); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center">
+          <span style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: conic-gradient(var(--amber-ink) 0 66%, var(--line) 66% 100%); display: grid; place-items: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: var(--amber-soft); display: grid; place-items: center; font: 600 20px var(--mono)">23</span></span>
+          <span style="font-size: 22px; font-weight: 700; line-height: 1.2">Un momento</span>
+          <span style="font-size: 16px">Preguntando a Marco</span>
+          <span style="font-size: 12px; color: var(--ink2)">One moment · asking Marco</span>
+        </div>
+        <div style="flex: 1; background: var(--card); border: 2px solid var(--tomato); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; font-weight: 700; color: var(--tomato); text-transform: uppercase">Village · right now</span>
+          <span style="font-size: 16px; font-weight: 700; line-height: 1.3">Someone is calling Mamá saying they’re you.</span>
+          <div style="height: 6px; border-radius: 3px; background: var(--line); overflow: hidden"><span style="display: block; height: 100%; width: 66%; background: var(--tomato)"></span></div>
+          <span style="font-size: 12px; color: var(--ink2)">23 s left · then Village says no</span>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: var(--ink2)">Both count the same 35 s from the same server timestamp. The ring drains; the number is read aloud every 10 s on Carmen’s line (“veinte segundos”). At 0 the amber card becomes the tomato refusal card, no intermediate state.</span>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">5 · Build stepper · live durations</h2>
+      <div style="background: var(--night); color: var(--ntext); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+          <span style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 11px var(--mono); color: var(--mint)">BUILD ✓</span><span style="font: 500 11px var(--mono); color: var(--muted)">41 s</span></span>
+          <span style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 11px var(--mono); color: var(--mint)">TESTS ✓</span><span style="font: 500 11px var(--mono); color: var(--muted)">12/12</span></span>
+          <span style="background: var(--panel2); border: 1px solid var(--amber); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 11px var(--mono); color: var(--amber)">PHONE …</span><span style="font: 500 11px var(--mono); color: var(--muted)">screen 3/4</span></span>
+          <span style="background: var(--panel2); border: 1px solid var(--nline); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 11px var(--mono); color: var(--muted)">SCORE</span><span style="font: 500 11px var(--mono); color: var(--muted)">50 calls</span></span>
+          <span style="background: var(--panel2); border: 1px solid var(--nline); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 11px var(--mono); color: var(--muted)">LIVE</span><span style="font: 500 11px var(--mono); color: var(--muted)">rev 7</span></span>
+        </div>
+        <div style="font: 400 11px var(--mono); color: var(--muted); line-height: 1.6; border-top: 1px solid var(--nline); padding-top: 8px">anchor · 390×844 · open /calls-screened<br>anchor · tap “Who called” · ok 412 ms<br>anchor · contrast CallScreen 7.4:1 ✓<br><span style="color: var(--ntext)">anchor · tap “Turn off” · waiting…</span><span style="display: inline-block; width: 7px; height: 12px; background: var(--ntext); vertical-align: text-bottom; animation: blink 1s infinite"></span></div>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">Same stepper on Ana’s phone, in words</span><span style="color: var(--ink2)">“Trying it on a phone (3 of 4 screens)… you can leave this page; it’ll tell you.” Steps fill in over WS `release` events; the log tail is projector-only.</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">6 · Your village changed · live sync</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; position: relative">
+        <div style="background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 12px; font-size: 14px; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--mint)"></span><span><strong>Your village changed.</strong> Village now answers unknown callers.</span><a href="#new" style="margin-left: auto; color: #F2A541; font-weight: 700; white-space: nowrap">See what’s new</a></div>
+        <div style="background: var(--plum-soft); border: 2px solid var(--plum); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 4px; animation: pulse 1.6s 2"><div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 15px; font-weight: 700">Calls screened</span><span style="font-size: 11px; font-weight: 700; background: var(--plum); color: #fff; border-radius: 999px; padding: 2px 8px">new</span></div><span style="font-size: 13px; color: var(--ink2)">Screened today: 0 · last attempt: tonight 8:47</span></div>
+        <div style="opacity: .55; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; font-size: 14px">Mamá’s pills · unchanged</div>
+      </div>
+      <span style="font-size: 12px; color: var(--ink2)">A changed app never re-renders under a thumb mid-tap: the patch is applied on the next idle moment or when the toast is tapped. New cards slide in from the top with a “new” tag for 24 h; unchanged cards don’t move. On the projector, every phone dot flashes mint once at the same moment.</span>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; display: flex; align-items: center; gap: 10px"><span>Turned on. Mamá will be told tonight.</span><span style="margin-left: auto; font-weight: 700; color: var(--sage)">Undo</span><span style="position: relative; width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(var(--sage) 0 70%, var(--line) 70% 100%); display: grid; place-items: center"><span style="width: 16px; height: 16px; border-radius: 50%; background: var(--card); font: 600 9px var(--mono); display: grid; place-items: center">7</span></span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">7 · Skeletons say what they’re becoming</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 700">Building Marco’s app…</span><span class="skel" style="height: 18px; width: 70%"></span><span class="skel" style="height: 14px; width: 90%"></span><span class="skel" style="height: 44px; width: 100%"></span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 700; color: var(--ok)">Mamá’s phone line ✓ · Ana’s app ✓</span></div>
+      </div>
+      <span style="font-size: 12px; color: var(--ink2)">Each skeleton is labelled with the person it’s for and fills in as that person’s spec validates (zod). Order is Carmen first, always; nobody waits on the slowest build.</span>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border-radius: 50%; background: var(--sage); color: #fff; display: grid; place-items: center; font-size: 16px">🔊</span><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">Reading aloud</span><div style="height: 4px; border-radius: 2px; background: var(--line); overflow: hidden"><span style="display: block; height: 100%; width: 35%; background: var(--sage)"></span></div></div><span style="font: 500 12px var(--mono); color: var(--ink2)">0:04 / 0:11</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">8 · Projector captions and the phones ticker</h2>
+      <div style="background: var(--night); color: var(--ntext); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 3px; padding-left: 12px; border-left: 3px solid var(--nsky)"><span style="font: 600 11px var(--mono); color: var(--nsky)">VILLAGE · 00:17</span><span style="font-size: 20px; line-height: 1.3">Un momento. Le aviso a Marco en su telé<span style="display: inline-block; width: 2px; height: 18px; background: var(--ntext); vertical-align: text-bottom; animation: blink 1s infinite"></span></span><span style="font-size: 14px; color: var(--muted); opacity: .5">English appears when the line is final</span></div>
+        <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--nline); padding-top: 10px"><span style="font: 600 26px var(--mono); color: var(--mint)">7</span><span style="font-size: 13px; color: var(--muted)">phones live</span><span style="display: flex; gap: 5px; margin-left: 8px"><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--mint)"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--amber); animation: blink .8s 3"></span></span><span style="font: 500 11px var(--mono); color: var(--amber); margin-left: auto">+1 · family · 0:02 ago</span></div>
+      </div>
+      <span style="font-size: 12px; color: var(--ink2)">Spanish types in as the ASR streams; the English line appears once, complete, 300 ms after the Spanish is final (no half-translations). Each new phone is a dot that blinks three times and a count that ticks up; a dot turns grey if its socket drops.</span>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">9 · Fallbacks are transitions, not errors</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <div style="display: flex; gap: 8px; align-items: center"><span style="font: 500 11px var(--mono); color: var(--ink2); width: 40px">0:17</span><span>Asked Marco on his phone</span></div>
+        <div style="display: flex; gap: 8px; align-items: center"><span style="font: 500 11px var(--mono); color: var(--ink2); width: 40px">0:37</span><span style="color: var(--amber-ink)">No answer in 20 s → <strong>calling him</strong></span></div>
+        <div style="display: flex; gap: 8px; align-items: center"><span style="font: 500 11px var(--mono); color: var(--ink2); width: 40px">0:52</span><span style="color: var(--tomato)">No answer in 35 s → <strong>told Mamá not to send</strong> · Ana called</span></div>
+      </div>
+      <div style="background: var(--amber-soft); border-radius: 12px; padding: 10px 12px; font-size: 14px"><strong>Voice is down.</strong> Village can’t call right now (ElevenLabs). Check-ins pause; the apps, chat and verification prompts keep working. Trying again every minute.</div>
+      <div style="background: var(--tomato-soft); border-radius: 12px; padding: 10px 12px; font-size: 14px"><strong>Build gave up after 3 tries.</strong> Nothing changed on anyone’s phone. Village kept the failing test and will try a different approach tomorrow. <a href="#why">What failed</a></div>
+      <span style="font-size: 12px; color: var(--ink2)">Every fallback names what still works. The safe default (“don’t send”) is reached by the same timeline whether the fallback succeeds or not.</span>
+    </section>
+
+  </div>
+
+  <footer style="margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; color: var(--ink2); border-top: 1px solid var(--line); padding-top: 14px">
+    <div><strong>Timing rules.</strong> Working indicators appear after 300 ms, never sooner (no flicker). Elapsed time shows after 2 s. Anything over 8 s gets a “you can leave this page” line. Rows animate in once (200 ms slide, 0 for reduced motion). Patches to a visible app wait for idle (no touch for 1 s) or the toast tap. Countdown rings use the server timestamp, never the phone clock.</div>
+    <div><strong>What is never shown.</strong> Raw model text while streaming. Percent confidence to people (only to the Control Room). Spinners without a step name. Red before the safe default has actually been applied. Any state the user cannot act on or wait out with a known end.</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

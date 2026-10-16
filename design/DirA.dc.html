@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Direction A: Night Watch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--night:#100D0A;--panel:#1B1612;--panel2:#241D17;--line:#3A3028;--text:#F3EADF;--muted:#B5A898;--amber:#F2A541;--coral:#FF7A59;--mint:#62D9A0;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#F2A541}a:hover{color:#FFC37A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes flow{from{background-position:0 0}to{background-position:40px 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--night); color: var(--text); font-family: var(--body); position: relative; overflow: hidden">
+
+  <div style="position: absolute; left: 56px; top: 44px; width: 760px; display: flex; flex-direction: column; gap: 16px">
+    <span style="display: flex; align-items: center; gap: 10px; font: 600 14px var(--mono); letter-spacing: 0.12em; color: var(--coral)"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--coral); animation: pulse 1.2s infinite"></span>LIVE · CARMEN’S LINE · 8:52 PM</span>
+    <p lang="es" style="margin: 0; font-family: var(--display); font-size: 38px; font-weight: 450; line-height: 1.22">“Me llamó Marco llorando. Dice que está en problemas y necesita <span style="color: var(--coral); font-weight: 650">dos mil dólares</span>.”</p>
+    <p style="margin: 0; font-size: 20px; line-height: 1.35; color: var(--muted)">“Marco called me crying. He says he’s in trouble and needs <span style="color: var(--text)">two thousand dollars</span>.” <span style="font: 400 12px var(--mono)">live caption</span></p>
+    <div aria-hidden="true" style="display: flex; align-items: center; gap: 4px; height: 44px">
+      <span style="width: 5px; height: 12px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 24px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 36px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 20px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 40px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 30px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 14px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 28px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 42px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 22px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 34px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 16px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 26px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 38px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 18px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 10px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 30px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 40px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 24px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 12px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 32px; border-radius: 3px; background: var(--text)"></span><span style="width: 5px; height: 20px; border-radius: 3px; background: var(--muted)"></span><span style="width: 5px; height: 8px; border-radius: 3px; background: var(--line)"></span><span style="width: 5px; height: 8px; border-radius: 3px; background: var(--line)"></span><span style="width: 5px; height: 8px; border-radius: 3px; background: var(--line)"></span>
+      <span style="margin-left: 14px; font: 400 14px var(--mono); color: var(--muted)">Village hears a money request in Marco’s name</span>
+    </div>
+  </div>
+
+  <div role="timer" aria-label="Checking with Marco, 23 seconds left" style="position: absolute; right: 64px; top: 40px; width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(var(--amber) 0 51%, var(--panel2) 51% 100%); display: grid; place-items: center">
+    <div style="width: 168px; height: 168px; border-radius: 50%; background: var(--night); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+      <span style="font: 600 52px var(--mono); color: var(--amber)">0:23</span>
+      <span style="font-size: 15px; color: var(--muted)">checking Marco</span>
+    </div>
+  </div>
+
+  <span aria-hidden="true" style="position: absolute; left: 300px; top: 540px; width: 330px; height: 3px; background: repeating-linear-gradient(90deg, var(--amber) 0 12px, transparent 12px 20px); animation: flow 1s linear infinite; box-shadow: 0 0 12px rgba(242,165,65,.6)"></span>
+  <span aria-hidden="true" style="position: absolute; left: 810px; top: 540px; width: 300px; height: 3px; background: repeating-linear-gradient(90deg, var(--amber) 0 12px, transparent 12px 20px); animation: flow 1s linear infinite; box-shadow: 0 0 12px rgba(242,165,65,.6)"></span>
+
+  <div aria-label="Village" style="position: absolute; left: 630px; top: 450px; width: 180px; height: 180px; border-radius: 50%; border: 2px solid var(--amber); box-shadow: 0 0 60px rgba(242,165,65,.35); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--panel)">
+    <span style="font-family: var(--display); font-size: 34px; font-weight: 650">Village</span>
+    <span style="font: 400 12px var(--mono); color: var(--muted); text-align: center; line-height: 1.5">money asked in<br>Marco’s name →<br>ask the real Marco</span>
+  </div>
+
+  <figure style="position: absolute; left: 64px; top: 320px; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px">
+    <div lang="es" style="width: 230px; height: 440px; box-sizing: border-box; border-radius: 44px; border: 10px solid #2C2621; background: #FBF6EE; color: #1F1A15; padding: 34px 14px 14px; display: flex; flex-direction: column; gap: 12px; position: relative; box-shadow: 0 30px 80px rgba(0,0,0,.6)">
+      <span style="position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 12px; background: #2C2621"></span>
+      <span style="font-family: var(--display); font-size: 26px; font-weight: 650">Hola, Carmen</span>
+      <div style="background: #FCEFD6; border: 3px solid #7A4B00; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 23px; font-weight: 700; line-height: 1.15">No mande dinero todavía</span><span style="font-size: 17px">Confirmando con Marco…</span></div>
+      <span style="min-height: 70px; border-radius: 16px; background: #E3EFE8; border: 3px solid #2F6B57; font-size: 21px; font-weight: 700; display: flex; align-items: center; padding: 0 14px">Llamar a Ana</span>
+    </div>
+    <figcaption style="font-size: 15px; color: var(--muted); text-align: center; line-height: 1.4"><span style="color: var(--text); font-weight: 700">Carmen</span> · on the call<br>“Don’t send money yet. Checking with Marco…”</figcaption>
+  </figure>
+
+  <figure style="position: absolute; left: 1110px; top: 320px; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px">
+    <div style="width: 230px; height: 440px; box-sizing: border-box; border-radius: 44px; border: 10px solid #2C2621; background: #FBF6EE; color: #1F1A15; padding: 34px 14px 14px; display: flex; flex-direction: column; gap: 12px; position: relative; box-shadow: 0 0 0 3px var(--amber), 0 30px 80px rgba(0,0,0,.6)">
+      <span style="position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 12px; background: #2C2621"></span>
+      <span style="background: #1E1A16; color: #F4EDE3; border-radius: 12px; padding: 8px 10px; font-size: 13px; font-weight: 700">Village is calling · AI</span>
+      <span style="font-family: var(--display); font-size: 25px; font-weight: 650; line-height: 1.15">Did you just call Mamá asking for $2,000?</span>
+      <span style="margin-top: auto; min-height: 58px; border-radius: 14px; background: #A8331A; color: #fff; font-size: 19px; font-weight: 700; display: grid; place-items: center">That wasn’t me</span>
+      <span style="min-height: 50px; border-radius: 14px; border: 2px solid #26211C; font-size: 17px; font-weight: 700; display: grid; place-items: center">It was me</span>
+    </div>
+    <figcaption style="font-size: 16px; color: var(--muted)"><span style="color: var(--text); font-weight: 700">Marco</span> · a judge’s phone is ringing</figcaption>
+  </figure>
+
+  <div style="position: absolute; left: 56px; right: 56px; bottom: 30px; display: flex; gap: 28px; font: 400 14px var(--mono); color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px">
+    <span><span style="color: var(--mint)">●</span> never moves money</span>
+    <span><span style="color: var(--mint)">●</span> no answer = “don’t send”</span>
+    <span><span style="color: var(--mint)">●</span> only calls people who agreed</span>
+    <span style="margin-left: auto">rule R-MONEY-VERIFY · traced in Arize</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

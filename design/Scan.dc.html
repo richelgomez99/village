@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Carmen: tapa azul escaneada</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--ink:#1F1A15;--ink2:#4A423A;--ok:#2E6F42;--tomato:#A8331A;--tomato-soft:#FBE6DF;--lid-blue:#2F5FA7;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 32px 22px; display: flex; flex-direction: column; gap: 22px">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; padding-top: 40px">
+    <div aria-hidden="true" style="width: 140px; height: 140px; border-radius: 34px; background: var(--lid-blue); display: grid; place-items: center">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 44px; font-weight: 650; line-height: 1.1">Anotado, Carmen</h1>
+    <p style="margin: 0; font-size: 28px; line-height: 1.35">Pastillas de la noche<br>a las 8:02</p>
+    <p style="margin: 0; font-size: 22px; color: var(--ink2)">Su familia ya lo sabe.</p>
+  </div>
+
+  <section aria-label="Si escanea otra vez" style="margin-top: auto; background: var(--tomato-soft); border: 2px solid var(--tomato); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tomato)">Si escanea la tapa azul otra vez</span>
+    <span style="font-size: 26px; font-weight: 700; line-height: 1.25">Esta tapa ya se anotó a las 8:02.</span>
+    <span style="font-size: 19px; line-height: 1.35">Le avisamos a Marco.</span>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

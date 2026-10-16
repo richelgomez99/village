@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Village: tonight's rounds</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--night:#100D0A;--panel:#1B1612;--panel2:#241D17;--line:#3A3028;--text:#F3EADF;--muted:#B5A898;--amber:#F2A541;--coral:#FF7A59;--mint:#62D9A0;--sky:#7FB7E6;--plum:#C9A6E8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#F2A541}a:hover{color:#FFC37A}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--night); color: var(--text); font-family: var(--body); padding: 28px 40px; display: grid; grid-template-rows: auto 1fr auto; gap: 18px">
+
+  <header style="display: flex; align-items: center; gap: 24px">
+    <span style="font-family: var(--display); font-size: 30px; font-weight: 650">Village</span>
+    <span style="font: 600 13px var(--mono); letter-spacing: 0.1em; color: var(--muted)">ROUNDS · REYES · FRI 22:00</span>
+    <span style="font-size: 15px; color: var(--muted)">Every night Village walks through each person and decides what, if anything, to do. Code sets the budget; the agent spends it.</span>
+    <div style="margin-left: auto; display: flex; gap: 10px; align-items: center">
+      <span style="display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font: 600 28px var(--mono); color: var(--mint)">4</span><span style="font-size: 13px; color: var(--muted)">did alone</span></span>
+      <span style="display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font: 600 28px var(--mono); color: var(--plum)">1</span><span style="font-size: 13px; color: var(--muted)">asked a human</span></span>
+      <span style="display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font: 600 28px var(--mono); color: var(--coral)">1</span><span style="font-size: 13px; color: var(--muted)">refused itself</span></span>
+      <span style="display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font: 600 20px var(--mono)">3 / 6</span><span style="font-size: 13px; color: var(--muted)">action budget left</span></span>
+    </div>
+  </header>
+
+  <div style="display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; min-height: 0">
+
+    <section aria-label="People walked" style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">WALKING THE VILLAGE</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 12px"><span><strong>Carmen</strong> · center</span><span style="font: 600 12px var(--mono); color: var(--mint)">done</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 12px"><span><strong>Marco</strong> · on duty</span><span style="font: 600 12px var(--mono); color: var(--mint)">done</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--amber)"><span><strong>Ana</strong> · leader</span><span style="font: 600 12px var(--mono); color: var(--amber)">now</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 12px"><span><strong>Lucía</strong> · supporter</span><span style="font: 600 12px var(--mono); color: var(--muted)">next</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel2); border-radius: 10px; padding: 10px 12px"><span><strong>The village</strong> · patterns</span><span style="font: 600 12px var(--mono); color: var(--muted)">next</span></div>
+      </div>
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); line-height: 1.45">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em">THE BUDGET (CODE, NOT MODEL)</span>
+        <span>≤ 6 actions per round · no calls after 9:30 PM (Carmen’s rule) · never money · never a new component without a human · every action gets a decision record</span>
+      </div>
+    </section>
+
+    <section aria-label="Decisions this round" style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">WHAT IT DECIDED, IN ORDER</span>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.45">
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:04</span><span style="font: 600 12px var(--mono); color: var(--mint); border: 1px solid var(--mint); border-radius: 6px; padding: 3px 6px; text-align: center">did alone</span><span>Moved Carmen’s Saturday refill checklist to show apixaban 10 mg; crossed out 5 mg. Source: Dr. Patel’s note, Oct 14.</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:11</span><span style="font: 600 12px var(--mono); color: var(--mint); border: 1px solid var(--mint); border-radius: 6px; padding: 3px 6px; text-align: center">did alone</span><span>Texted Marco the refill list for his Saturday turn, with the dose change at the top.</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:19</span><span style="font: 600 12px var(--mono); color: var(--coral); border: 1px solid var(--coral); border-radius: 6px; padding: 3px 6px; text-align: center">refused</span><span>Wanted to call Carmen to confirm she heard tonight’s “don’t send” warning. <strong>Blocked by code:</strong> Carmen’s rule from the welcome call, no calls after 9:30 PM. Will ask at tomorrow’s 8 PM check-in instead.</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:27</span><span style="font: 600 12px var(--mono); color: var(--mint); border: 1px solid var(--mint); border-radius: 6px; padding: 3px 6px; text-align: center">did alone</span><span>Added tonight’s caller (“Marco, $2,000, tonight”) to the village memory as a scam pattern; linked to last week’s “man from the bank.”</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:40</span><span style="font: 600 12px var(--mono); color: var(--mint); border: 1px solid var(--mint); border-radius: 6px; padding: 3px 6px; text-align: center">did alone</span><span>Scored tonight’s call against the 50-call scam set: held correctly, 0 false holds this week.</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 12px; align-items: start; background: var(--panel2); border: 1px solid var(--plum); border-radius: 12px; padding: 10px 12px"><span style="font: 600 13px var(--mono); color: var(--muted)">22:00:58</span><span style="font: 600 12px var(--mono); color: var(--plum); border: 1px solid var(--plum); border-radius: 6px; padding: 3px 6px; text-align: center">asked Ana</span><span>Two money asks in 30 days. Considered 3 fixes, proposing <strong>Village answers unknown callers first</strong>. Built and tested it; waiting for Ana. <span style="color: var(--muted)">Why ask: changes who answers Carmen’s phone. Not something it may do alone.</span></span></div>
+      </div>
+    </section>
+
+    <section aria-label="Thinking out loud" style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">ANA · THINKING OUT LOUD</span>
+      <div style="font-size: 14px; line-height: 1.5; color: var(--text); display: flex; flex-direction: column; gap: 8px">
+        <span>Ana hasn’t opened the app since 20:55. She has the incident, the proposal, and the receipt waiting.</span>
+        <span>Nothing here is urgent at 22:00. I won’t text; the morning card is enough.</span>
+        <span style="color: var(--muted)">Also seen: Lucía marked the insurance item handled Thursday, but the pharmacy still shows it open. Re-check on Lucía’s turn, not now.</span>
+      </div>
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">TRACE</span>
+        <div style="font: 400 12px var(--mono); color: var(--muted); line-height: 1.6">session village-reyes · round r-0417<br>agent.watcher → tool.memory.search (3)<br>agent.watcher → guardrail.gate ✗ P-QH-01 (source: welcome_call)<br>agent.watcher → tool.consider_options (3)<br>agent.builder → release.gate ✓ rev 7 staged<br>eval possible_fraud 0.96 · eval tone_ok 1.0</div>
+        <a href="#arize" style="font: 600 13px var(--mono)">open in Arize ↗</a>
+      </div>
+    </section>
+  </div>
+
+  <footer style="display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--muted)">
+    <span><strong style="color: var(--text)">Last 7 nights:</strong> 23 did alone · 4 asked a human · 3 refused itself · 0 money moved</span>
+    <span style="margin-left: auto; font: 600 12px var(--mono); letter-spacing: 0.1em">EVERY LINE ABOVE IS A DECISION RECORD · <span style="color: var(--amber)">/decisions?village=reyes</span></span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

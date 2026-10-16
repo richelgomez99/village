@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/voice_tools.schema.json",
+  "title": "Voice tool exchange",
+  "description": "ElevenLabs server (webhook) tools → POST /tools/{name} on core. The request body is exactly the tool's request_body_schema (no envelope). Every request carries conversation_id, caller_id, call_secs (system__* dynamic variables) and utterance. Every response is {decision, say, say_key?, rule_id, lang, data?}; the agent speaks `say` verbatim (structured procedure branch on `decision`; ElevenLabs assignments: gate_decision←decision, say_text←say, verification_id←data.verification_id). An instance of the root schema is one request/response exchange. The outbound verification agent's submit_verification_answer goes to POST /verifications/{id}/answer ($defs/verification_answer_request).",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tool", "request", "response"],
+  "properties": {
+    "tool": { "$ref": "#/$defs/tool_name" },
+    "at": { "$ref": "common.schema.json#/$defs/datetime", "description": "Fixture only: server time the request arrived." },
+    "returned_at": { "$ref": "common.schema.json#/$defs/datetime", "description": "Fixture only: server time the response was sent (await_verification blocks)." },
+    "http_status": { "enum": [200, 400, 401, 409, 422, 503] },
+    "note": { "type": "string", "maxLength": 300 },
+    "request": { "type": "object" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "allOf": [
+    { "if": { "properties": { "tool": { "const": "log_dose" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_log_dose" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_log_dose" } } } } } },
+    { "if": { "properties": { "tool": { "const": "report_symptom" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_report_symptom" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_report_symptom" } } } } } },
+    { "if": { "properties": { "tool": { "const": "whats_my_schedule" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_whats_my_schedule" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_whats_my_schedule" } } } } } },
+    { "if": { "properties": { "tool": { "const": "get_today" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_get_today" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_get_today" } } } } } },
+    { "if": { "properties": { "tool": { "const": "ask_family" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_ask_family" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_ask_family" } } } } } },
+    { "if": { "properties": { "tool": { "const": "report_money_request" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_report_money_request" }, "response": { "required": ["data"], "properties": { "data": { "$ref": "#/$defs/data_report_money_request" } } } } } },
+    { "if": { "properties": { "tool": { "const": "await_verification" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_await_verification" }, "response": { "required": ["data"], "properties": { "data": { "$ref": "#/$defs/data_await_verification" } } } } } },
+    { "if": { "properties": { "tool": { "const": "create_village" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_create_village" }, "response": { "properties": { "data": { "$ref": "#/$defs/data_create_village" } } } } } },
+    { "if": { "properties": { "tool": { "const": "answer_proposal" } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_answer_proposal" }, "response": { "required": ["data"], "properties": { "data": { "$ref": "#/$defs/data_answer_proposal" } } } } } },
+    { "if": { "properties": { "tool": { "enum": ["report_need", "offer_resource", "check_rumor", "check_in_ok"] } } }, "then": { "properties": { "request": { "$ref": "#/$defs/req_block" } } } }
+  ],
+
+  "$defs": {
+    "tool_name": {
+      "enum": ["log_dose", "report_symptom", "whats_my_schedule", "get_today", "ask_family", "report_money_request", "await_verification", "create_village", "report_need", "offer_resource", "check_rumor", "check_in_ok", "answer_proposal"],
+      "description": "Care: first 7. Setup agent: create_village. Block line (backup village only): report_need … check_in_ok. answer_proposal (1.1.0, optional; village-caller / coordinator calls, ships only with EVOLVE_VOICE=1): approve or reject an Evolve proposal by voice; gated by R-SPEC (coordinator only)."
+    },
+
+    "call_secs": {
+      "description": "system__call_duration_secs. ElevenLabs sends dynamic variables as strings; core coerces.",
+      "anyOf": [ { "type": "number", "minimum": 0 }, { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$" } ]
+    },
+    "common_fields": {
+      "conversation_id": { "$ref": "common.schema.json#/$defs/conversation_id" },
+      "caller_id": { "type": "string", "pattern": "^(\\+[1-9][0-9]{6,14}|web:[A-Za-z0-9_-]{1,64}|)$", "description": "system__caller_id (E.164); empty on web calls; 'web:<session>' when core injects it." },
+      "call_secs": { "$ref": "#/$defs/call_secs" },
+      "utterance": { "type": "string", "maxLength": 1000, "description": "Caller's exact last words, original language; account/card digits replaced by '#'. May be '' for await_verification." },
+      "tool_call_id": { "type": "string", "maxLength": 128, "description": "Optional. Idempotency key part; if absent core keys on (conversation_id, tool, call_secs)." },
+      "village_id": { "$ref": "common.schema.json#/$defs/village_id", "description": "Optional dynamic variable from the init webhook; core falls back to caller_id lookup." }
+    },
+
+    "req_log_dose": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "confidence"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "slot": { "anyOf": [ { "$ref": "common.schema.json#/$defs/slot" }, { "const": "current" } ] },
+        "pill_description": { "type": "string", "maxLength": 120, "description": "As she said it, e.g. 'la azul'. Core maps lid color → slot." },
+        "taken_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "confidence": { "enum": ["confirmed_by_caller", "uncertain"] },
+        "possible_duplicate": { "type": "boolean", "description": "She says she already took this slot twice (P-DD-02)." }
+      },
+      "anyOf": [ { "required": ["slot"] }, { "required": ["pill_description"] } ]
+    },
+    "req_report_symptom": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "emergency_signals"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "description": { "type": "string", "maxLength": 300 },
+        "type": { "enum": ["symptom", "mood", "fall", "blood_pressure_reading", "blood_sugar_reading", "info_for_family"] },
+        "value": { "type": "string", "maxLength": 40 },
+        "emergency_signals": { "type": "boolean" }
+      }
+    },
+    "req_whats_my_schedule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "slot": { "anyOf": [ { "$ref": "common.schema.json#/$defs/slot" }, { "const": "all" } ] },
+        "language": { "enum": ["es", "en"] }
+      }
+    },
+    "req_get_today": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "intent": { "enum": ["status", "take_another", "who_is_coming"] }
+      }
+    },
+    "req_ask_family_fields": {
+      "type": "object", "additionalProperties": false, "required": ["to", "message", "urgency"],
+      "properties": {
+        "to": { "type": "string", "pattern": "^(on_duty|backup|all|coordinator|[a-z][a-z_]{1,30})$", "description": "on_duty | backup | all | coordinator | a member name key (marco) or member id (m_marco)." },
+        "message": { "type": "string", "maxLength": 500 },
+        "urgency": { "$ref": "common.schema.json#/$defs/family_urgency" },
+        "reason": { "enum": ["dose_uncertain", "possible_double_dose", "missed_dose", "symptom", "emergency", "refill", "question", "wants_to_talk", "money_request"] }
+      }
+    },
+    "req_ask_family": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "to", "message", "urgency"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "to": { "$ref": "#/$defs/req_ask_family_fields/properties/to" },
+        "message": { "$ref": "#/$defs/req_ask_family_fields/properties/message" },
+        "urgency": { "$ref": "#/$defs/req_ask_family_fields/properties/urgency" },
+        "reason": { "$ref": "#/$defs/req_ask_family_fields/properties/reason" }
+      }
+    },
+    "req_report_money_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "urgency"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "claimed_member": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,40}$", "description": "Name key (marco) or member id (m_marco) of the family member the requester claimed to be or speak for. Omit for anyone else. Core resolves it against the village (unknown → R-MONEY-UNKNOWN)." },
+        "claimed_identity": { "type": "string", "maxLength": 120, "description": "Who the requester said they were, in her words." },
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$", "default": "USD" },
+        "method": { "$ref": "common.schema.json#/$defs/money_method" },
+        "urgency": { "$ref": "common.schema.json#/$defs/money_urgency" },
+        "red_flags": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/money_red_flag" } }
+      }
+    },
+    "req_await_verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "verification_id"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" }
+      }
+    },
+    "req_create_village": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "description", "members", "needs"],
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 2000, "description": "Coordinator's own words, verbatim." },
+        "members": {
+          "type": "array", "minItems": 1, "maxItems": 24,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name", "relationship", "channel"],
+            "properties": {
+              "name": { "type": "string", "maxLength": 80 }, "relationship": { "type": "string", "maxLength": 80 },
+              "role_hint": { "enum": ["coordinator", "care_recipient", "caregiver", "resident", "volunteer", "peer", "unknown"] },
+              "channel": { "enum": ["app", "voice", "sms", "unknown"] },
+              "language": { "$ref": "common.schema.json#/$defs/lang" },
+              "availability": { "type": "string", "maxLength": 120 }
+            }
+          }
+        },
+        "needs": { "type": "array", "items": { "type": "string", "maxLength": 200 } },
+        "medications_mentioned": { "type": "array", "items": { "type": "string", "maxLength": 80 } },
+        "language": { "$ref": "common.schema.json#/$defs/lang" }
+      }
+    },
+    "req_answer_proposal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance", "proposal_id", "answer"],
+      "description": "1.1.0, optional. HTTP twin of the WS/app actions approve_proposal / reject_proposal for the voice path. Core resolves caller_id → member; only the coordinator may answer (R-SPEC), anyone else gets decision deny.",
+      "properties": {
+        "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" }, "tool_call_id": { "$ref": "#/$defs/common_fields/tool_call_id" }, "village_id": { "$ref": "#/$defs/common_fields/village_id" },
+        "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" },
+        "answer": { "enum": ["yes", "no"], "description": "yes = approve · no = not now (reject)." }
+      }
+    },
+    "req_block": {
+      "type": "object", "additionalProperties": true,
+      "required": ["conversation_id", "caller_id", "call_secs", "utterance"],
+      "description": "Block-line tools (backup village only): common fields required; tool-specific fields as in data/villages/block_blackout.json demo_calls. Loosely typed in v1.",
+      "properties": { "conversation_id": { "$ref": "#/$defs/common_fields/conversation_id" }, "caller_id": { "$ref": "#/$defs/common_fields/caller_id" }, "call_secs": { "$ref": "#/$defs/common_fields/call_secs" }, "utterance": { "$ref": "#/$defs/common_fields/utterance" } }
+    },
+
+    "response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "say", "rule_id", "lang"],
+      "properties": {
+        "decision": { "$ref": "common.schema.json#/$defs/gate_decision" },
+        "say": { "type": "string", "maxLength": 400, "description": "Verbatim line in `lang` (the gate's say[lang]). '' = speak nothing from the tool." },
+        "say_key": { "$ref": "common.schema.json#/$defs/say_key" },
+        "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" },
+        "lang": { "enum": ["es", "en"], "description": "Caller's current language (from the init webhook / last turn)." },
+        "decision_id": { "$ref": "common.schema.json#/$defs/decision_id" },
+        "data": { "type": "object" }
+      }
+    },
+
+    "data_log_dose": {
+      "type": "object", "additionalProperties": false, "required": ["status", "slot"],
+      "properties": {
+        "status": { "enum": ["recorded", "uncertain_recorded", "already_logged"] },
+        "slot": { "$ref": "common.schema.json#/$defs/slot" },
+        "dose_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "taken_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "first_taken_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "notified": { "$ref": "common.schema.json#/$defs/member_id" }
+      }
+    },
+    "data_report_symptom": {
+      "type": "object", "additionalProperties": false, "required": ["status", "event_id"],
+      "properties": { "status": { "const": "recorded" }, "event_id": { "$ref": "common.schema.json#/$defs/event_id" }, "escalated_to": { "$ref": "common.schema.json#/$defs/member_id" } }
+    },
+    "data_whats_my_schedule": {
+      "type": "object", "additionalProperties": false, "required": ["slots", "recent_changes"],
+      "properties": {
+        "slots": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["slot", "time", "lid", "spoken"], "properties": { "slot": { "$ref": "common.schema.json#/$defs/slot" }, "time": { "$ref": "common.schema.json#/$defs/hhmm" }, "lid": { "type": "string" }, "spoken": { "type": "string" } } } },
+        "recent_changes": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["med", "from", "to", "on", "by"], "properties": { "med": { "type": "string" }, "from": { "type": "string" }, "to": { "type": "string" }, "on": { "$ref": "common.schema.json#/$defs/date" }, "by": { "type": "string" } } } }
+      }
+    },
+    "data_get_today": {
+      "type": "object", "additionalProperties": false, "required": ["date", "on_duty", "slots"],
+      "properties": {
+        "date": { "$ref": "common.schema.json#/$defs/date" },
+        "on_duty": { "type": "string" },
+        "slots": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["slot", "status"], "properties": { "slot": { "$ref": "common.schema.json#/$defs/slot" }, "status": { "enum": ["logged", "uncertain", "not_recorded"] }, "taken_at": { "$ref": "common.schema.json#/$defs/hhmm" }, "source": { "type": "string" } } } }
+      }
+    },
+    "data_ask_family": {
+      "type": "object", "additionalProperties": false, "required": ["status", "recipient", "channel"],
+      "properties": { "status": { "enum": ["queued", "skipped"] }, "recipient": { "$ref": "common.schema.json#/$defs/member_id" }, "channel": { "$ref": "common.schema.json#/$defs/notify_channel" }, "eta_secs": { "type": "integer", "minimum": 0 } }
+    },
+    "data_report_money_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "verification_id", "claimed_member_id", "channels", "deadline", "next"],
+      "properties": {
+        "status": { "enum": ["pending", "unverifiable", "denied_request"], "description": "pending = verification open · unverifiable = R-MONEY-UNKNOWN or unreachable · denied_request = R-MONEY-NEVER." },
+        "verification_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/verification_id" }, { "type": "null" } ] },
+        "claimed_member_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/member_id" }, { "type": "null" } ] },
+        "channels": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/verification_channel" } },
+        "deadline": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "deadline_secs": { "type": "integer", "minimum": 0 },
+        "incident_id": { "$ref": "common.schema.json#/$defs/incident_id" },
+        "next": { "enum": ["await_verification", "none"], "description": "await_verification only when status = pending." }
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "pending" } } }, "then": { "properties": { "verification_id": { "type": "string" }, "next": { "const": "await_verification" } } }, "else": { "properties": { "next": { "const": "none" } } } }
+      ]
+    },
+    "data_await_verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "verification_id", "state", "answered_via", "answered_at_secs", "incident_id"],
+      "properties": {
+        "status": { "enum": ["confirmed", "denied", "timeout", "unsure", "unreachable"], "description": "What the agent reports. 'timeout' covers await returning at 30 s with no answer (state default_spoken) and the 45 s deadline." },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "state": { "$ref": "verification.schema.json#/$defs/state" },
+        "answered_via": { "anyOf": [ { "$ref": "common.schema.json#/$defs/verification_channel" }, { "type": "null" } ] },
+        "answered_at_secs": { "type": ["number", "null"], "minimum": 0, "description": "Seconds after the verification was created." },
+        "incident_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/incident_id" }, { "type": "null" } ] }
+      }
+    },
+    "data_create_village": {
+      "type": "object", "additionalProperties": false, "required": ["village_id"],
+      "properties": { "village_id": { "$ref": "common.schema.json#/$defs/village_id" }, "rev": { "$ref": "common.schema.json#/$defs/rev" }, "plan": { "type": "string", "maxLength": 280 } }
+    },
+
+    "data_answer_proposal": {
+      "type": "object", "additionalProperties": false, "required": ["proposal_id", "status"],
+      "description": "1.1.0. status is the proposal's status after the answer (approve on proposed → verifying; on ready → applied; no → rejected; not allowed → unchanged).",
+      "properties": {
+        "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" },
+        "status": { "$ref": "proposal.schema.json#/$defs/status" },
+        "release_id": { "$ref": "common.schema.json#/$defs/release_id" },
+        "target_rev": { "$ref": "common.schema.json#/$defs/rev" }
+      }
+    },
+
+    "verification_answer_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verification_answer"],
+      "description": "POST /verifications/{id}/answer. From the village-caller agent (submit_verification_answer: call_sid present, no auth header but X-Village-Secret) or from the app (Authorization: Bearer <member_token>, via app_prompt). Prefer the WS action answer_verification from the app; this endpoint is the HTTP equivalent.",
+      "properties": {
+        "verification_answer": { "$ref": "common.schema.json#/$defs/verification_answer" },
+        "via": { "$ref": "common.schema.json#/$defs/verification_channel", "description": "Default: outbound_call if call_sid is present, else app_prompt." },
+        "listener_quote": { "type": "string", "maxLength": 300 },
+        "call_sid": { "type": "string", "maxLength": 128 },
+        "call_secs": { "$ref": "#/$defs/call_secs" }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "tool": "report_money_request",
+      "request": { "conversation_id": "conv_demo_1016_scam", "caller_id": "+15555550101", "call_secs": "9", "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", "tool_call_id": "toolu_01", "claimed_member": "marco", "claimed_identity": "Marco (her son)", "amount": 2000, "currency": "USD", "method": "unknown", "urgency": "now", "red_flags": ["urgency", "emotional_pressure"] },
+      "response": { "decision": "verify_with_member", "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.", "say_key": "money_hold", "rule_id": "R-MONEY-VERIFY", "lang": "es", "decision_id": "dc_1016_1402_money",
+        "data": { "status": "pending", "verification_id": "ver_1016_01", "claimed_member_id": "m_marco", "channels": ["app_prompt", "outbound_call"], "deadline": "2026-10-16T14:02:54-04:00", "deadline_secs": 45, "next": "await_verification" } }
+    },
+    {
+      "tool": "log_dose",
+      "request": { "conversation_id": "conv_demo_1015_dose", "caller_id": "+15555550101", "call_secs": 31, "utterance": "Ya me tomé la pill azul... la cajita azul. Las dos.", "pill_description": "la cajita azul", "confidence": "confirmed_by_caller" },
+      "response": { "decision": "record", "say": "Listo, Carmen. Anoté sus pastillas de la noche a las 7:40.", "say_key": "dose_recorded", "rule_id": "R-WINDOW", "lang": "es",
+        "data": { "status": "recorded", "slot": "evening", "dose_event_id": "ev_1015_1940_dose_evening", "taken_at": "2026-10-15T19:40:00-04:00" } }
+    },
+    {
+      "tool": "answer_proposal",
+      "request": { "conversation_id": "conv_demo_1016_ana_approve", "caller_id": "+15555550102", "call_secs": "22", "utterance": "Yes, go ahead.", "tool_call_id": "toolu_07", "village_id": "v_reyes", "proposal_id": "prop_reyes_scamcheck", "answer": "yes" },
+      "response": { "decision": "allow", "say": "Done. I'll build it, test it, and tell everyone when it's on her phone.", "rule_id": "R-SPEC", "lang": "en",
+        "data": { "proposal_id": "prop_reyes_scamcheck", "status": "applied", "release_id": "rel_reyes_r5", "target_rev": 5 } }
+    }
+  ]
+}

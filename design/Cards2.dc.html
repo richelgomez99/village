@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Component cards, sheet 2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap">
+<style>
+:root{--paper:#FFFCF6;--card:#FFFFFF;--cream:#FBF6EE;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--tomato:#A8331A;--tomato-soft:#FBE6DF;--amber-ink:#7A4B00;--amber-soft:#FCEFD6;--sky:#234C8A;--sky-soft:#E1EEF4;--plum:#6A3F7A;--plum-soft:#F1E7F4;--pen:#1D3F8F;--pen-soft:#E1E8F6;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1600px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 36px 40px; display: flex; flex-direction: column; gap: 24px">
+  <header style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-family: var(--display); font-size: 36px; font-weight: 650">Component cards · sheet 2</h1>
+    <p style="margin: 0; font-size: 17px; color: var(--ink2)">Added after D18–D23. Sheet 1’s “¿Es de verdad?” ScamCheck is superseded by CallScreen (Village answers unknown callers; the elder never has to ask). Names match contracts/schemas/village_spec; every state shown is one the kit must render.</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start">
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">ChatMessage · 5 kinds</h2>
+      <div style="align-self: flex-end; max-width: 92%; background: var(--sage-soft); border-radius: 16px 16px 4px 16px; padding: 10px 12px; font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 700; color: var(--sage)">Ana · mine</span>Marco, thank you for answering so fast.</div>
+      <div style="align-self: flex-start; max-width: 92%; background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 700; color: var(--sky)">Marco · member</span>Of course. Calling her now.</div>
+      <div style="align-self: flex-start; max-width: 92%; background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 12px; font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 700; color: var(--ink2)">Village · participant</span>A proposal is coming to Ana tomorrow: unknown callers answered by Village first.</div>
+      <div style="align-self: flex-start; width: 100%; background: var(--amber-soft); border-radius: 16px; padding: 10px 12px; font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 700; color: var(--amber-ink)">Village · relayed from a call</span>Mamá said: <em>“En mi casa.”</em><span style="display: block; font-size: 13px; color: var(--ink2)">“At my place.”</span></div>
+      <div style="align-self: center; font-size: 13px; color: var(--ink2); background: var(--cream); border-radius: 999px; padding: 4px 12px">system · Lucía joined · 10:52</div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">RefillCard · caregiver · 3 states</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: var(--ink2)">SATURDAY REFILL · MAMÁ’S ORGANIZER</span>
+        <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Apixaban · evening</span><span style="font-weight: 700"><s style="color: var(--ink2)">5 mg</s> 10 mg</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Metformin · morning + evening</span><span style="font-weight: 700">500 mg</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Lisinopril · morning</span><span style="font-weight: 700">10 mg</span></div>
+        <span style="font-size: 13px; color: var(--amber-ink)">Dose change from Dr. Patel’s note, Oct 14. Older note is crossed out, not deleted.</span>
+      </div>
+      <div style="background: var(--ok-soft); border-radius: 18px; padding: 12px 14px; font-size: 15px; display: flex; justify-content: space-between; align-items: center"><span><strong>Filled</strong> · Marco · Sat 10:14</span><span style="font-size: 13px; color: var(--ink2)">photo kept 30 days</span></div>
+      <div style="background: var(--amber-soft); border: 2px solid var(--amber-ink); border-radius: 18px; padding: 12px 14px; font-size: 15px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">Photo check: Thursday evening looks empty</span><span style="font-size: 13px; color: var(--ink2)">Village isn’t sure (shadow?). Marco, look when you’re there. Not a medical judgment.</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">CallScreen · leader/caregiver · 3 outcomes</h2>
+      <div style="background: var(--tomato-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15px"><span style="font-weight: 700; color: var(--tomato)">Refused · 8:47 PM</span><span>Unknown caller said they were Marco and asked for $2,000. Marco said no. Mamá’s phone never rang.</span><span style="color: var(--ink2)">Decision #f1a9 · asked a human · listen 0:41</span></div>
+      <div style="background: var(--ok-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15px"><span style="font-weight: 700; color: var(--ok)">Put through · 2:10 PM</span><span>Dr. Patel’s office, new number. Caller gave the appointment date. Added to known numbers.</span><span style="color: var(--ink2)">Decision #c77d · did alone</span></div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15px"><span style="font-weight: 700">Took a message · 11:30 AM</span><span>“Con Edison about a meter reading.” No money asked. Mamá can hear it on her next check-in.</span><span style="color: var(--ink2)">Decision #a2e0 · did alone</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">IdentityChip + ViewAs · same URL, different person</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--sage-soft); color: var(--sage); border-radius: 999px; padding: 6px 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--sage)"></span>Ana · leader</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--sky-soft); color: var(--sky); border-radius: 999px; padding: 6px 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--sky)"></span>Marco · on duty</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--plum-soft); color: var(--plum); border-radius: 999px; padding: 6px 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--plum)"></span>Lucía · supporter</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--cream); color: var(--ink2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px">Family · guest</span>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: var(--ink2)">VIEW AS (leader only · stage switcher)</span>
+        <div style="display: flex; gap: 6px"><span style="flex: 1; text-align: center; font-size: 14px; font-weight: 700; background: var(--ink); color: #fff; border-radius: 10px; padding: 8px">Ana</span><span style="flex: 1; text-align: center; font-size: 14px; font-weight: 700; border: 2px solid var(--line); border-radius: 10px; padding: 8px">Marco</span><span style="flex: 1; text-align: center; font-size: 14px; font-weight: 700; border: 2px solid var(--line); border-radius: 10px; padding: 8px">Lucía</span><span style="flex: 1; text-align: center; font-size: 14px; font-weight: 700; border: 2px solid var(--line); border-radius: 10px; padding: 8px">Mamá</span></div>
+        <span style="font-size: 13px; color: var(--ink2)">Identity comes from the member token in the QR → cookie. View-as never changes what the real Marco sees.</span>
+      </div>
+      <div style="background: var(--amber-soft); border-radius: 16px; padding: 10px 14px; font-size: 14px"><strong>Viewing as Marco.</strong> Buttons are disabled; you can’t answer for him. <a href="#back">Back to me</a></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">RoundsCard · leader morning card · 2 states</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: var(--ink2)">OVERNIGHT · VILLAGE’S ROUNDS</span>
+        <div style="display: flex; gap: 14px; font-size: 15px"><span><strong style="font-size: 22px; color: var(--ok)">4</strong> did alone</span><span><strong style="font-size: 22px; color: var(--plum)">1</strong> asked you</span><span><strong style="font-size: 22px; color: var(--tomato)">1</strong> stopped itself</span></div>
+        <span style="font-size: 14px; line-height: 1.4; color: var(--ink2)">Stopped itself: wanted to call Mamá at 10 PM; Mamá’s rule says no calls after 9:30.</span>
+        <a href="#rounds" style="font-size: 14px; font-weight: 700">See all six</a>
+      </div>
+      <div style="background: var(--cream); border: 1px dashed var(--line); border-radius: 18px; padding: 12px 14px; font-size: 14px; color: var(--ink2)">Quiet night. Village walked everyone at 10 PM and found nothing to do. <span style="font-family: var(--mono)">0 / 6 budget used</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">OptionsCard · proposal with alternatives</h2>
+      <div style="background: var(--plum-soft); border: 2px solid var(--plum); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; font-weight: 700; color: var(--plum)">VILLAGE PROPOSES</span><span style="font-size: 12px; font-weight: 700; background: var(--plum); color: #fff; border-radius: 999px; padding: 3px 8px">tested</span></div>
+        <span style="font-size: 17px; font-weight: 700; line-height: 1.3">Village answers unknown callers first</span>
+        <details style="font-size: 14px; color: var(--ink2)"><summary style="font-weight: 700; color: var(--ink); cursor: pointer">2 other options it considered</summary><div style="padding-top: 6px; display: flex; flex-direction: column; gap: 4px"><span>Block unknown numbers: she’d miss the doctor.</span><span>Only the family word: depends on her remembering under pressure.</span></div></details>
+        <div style="display: flex; gap: 8px"><span style="flex: 1; text-align: center; background: var(--plum); color: #fff; border-radius: 10px; padding: 10px; font-weight: 700; font-size: 14px">Approve</span><span style="flex: 1; text-align: center; border: 2px solid var(--line); border-radius: 10px; padding: 10px; font-weight: 700; font-size: 14px; background: var(--card)">Not now</span></div>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; font-size: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">Declined · Oct 9</span><span style="color: var(--ink2)">“Text Mamá the weather each morning.” Ana said she doesn’t read texts. Village won’t propose it again.</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">ReceiptDetail · release gate · 2 states</h2>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; grid-template-columns: 24px 1fr auto; gap: 6px 10px; font-size: 14px; align-items: center">
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✓</span><span>Built in sandbox</span><span style="font: 500 12px var(--mono); color: var(--ink2)">41 s</span>
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✓</span><span>Floor tests</span><span style="font: 500 12px var(--mono); color: var(--ink2)">12/12</span>
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✓</span><span>Clicked on a phone-size browser</span><span style="font: 500 12px var(--mono); color: var(--ink2)">4 screens</span>
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✓</span><span>Scored on 50 calls</span><span style="font: 500 12px var(--mono); color: var(--ink2)">50/50</span>
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✓</span><span>Approved · published rev 7</span><span style="font: 500 12px var(--mono); color: var(--ink2)">7:34</span>
+      </div>
+      <div style="background: var(--tomato-soft); border-radius: 18px; padding: 12px 14px; display: grid; grid-template-columns: 24px 1fr auto; gap: 6px 10px; font-size: 14px; align-items: center">
+        <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--tomato); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700">✗</span><span>Floor test: button 38 px on “who’s calling”</span><span style="font: 500 12px var(--mono); color: var(--tomato)">11/12</span>
+        <span style="grid-column: 1 / -1; color: var(--ink2)">Attempt 1 of 3. Village is fixing it and building again. Nothing was published.</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">PollCard · SwapCard · design-only (P3)</h2>
+      <div style="background: var(--card); border: 2px solid var(--plum); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; font-weight: 700">Where should Thanksgiving be?</span><div style="position: relative; border: 2px solid var(--plum); border-radius: 10px; padding: 8px 10px; overflow: hidden; font-size: 14px"><span style="position: absolute; inset: 0; width: 67%; background: var(--plum-soft)"></span><span style="position: relative; display: flex; justify-content: space-between; font-weight: 700"><span>Mamá’s</span><span>2</span></span></div><div style="border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; display: flex; justify-content: space-between"><span>Marco’s</span><span>1</span></div><span style="font-size: 12px; color: var(--ink2)">Carmen votes by voice at the check-in.</span></div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 14px"><span style="font-weight: 700">Marco asks: swap Saturday</span><span style="color: var(--ink2)">Ana is free Saturday; Marco would take her Sunday. The refill list moves with the day.</span><div style="display: flex; gap: 6px"><span style="flex: 1; text-align: center; background: var(--sage); color: #fff; border-radius: 8px; padding: 8px; font-weight: 700">Yes, I’ll take it</span><span style="flex: 1; text-align: center; border: 2px solid var(--line); border-radius: 8px; padding: 8px; font-weight: 700">Can’t</span></div></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: var(--mono); font-size: 15px; color: var(--ink2)">OfflineBanner · Uncertainty · Caption</h2>
+      <div style="background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 14px; font-size: 14px; display: flex; justify-content: space-between; align-items: center"><span><strong>No connection.</strong> Showing 8:47 PM. Buttons still work; they send when you’re back.</span><span style="font-family: var(--mono); font-size: 12px; opacity: .8">queued 1</span></div>
+      <div style="background: var(--amber-soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; display: flex; justify-content: space-between; align-items: center"><span><strong>Reconnecting…</strong> last update 2 min ago</span><span style="font-family: var(--mono); font-size: 12px; color: var(--amber-ink)">ws retry 3</span></div>
+      <div style="background: var(--card); border: 1px dashed var(--amber-ink); border-radius: 12px; padding: 10px 14px; font-size: 14px; display: flex; flex-direction: column; gap: 4px"><span><strong>Not sure:</strong> Mamá may have said “Tuesday” or “Thursday” for the eye doctor.</span><span style="font-size: 13px; color: var(--ink2)">From the 8 PM call · Village will ask again tomorrow · <a href="#fix">I know the answer</a></span></div>
+      <div style="background: #100D0A; color: #F3EADF; border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px">Ese no era Marco. No mande dinero.</span><span style="font-size: 13px; color: #B5A898">That wasn’t Marco. Don’t send money.</span><span style="font-size: 11px; color: #B5A898; font-family: var(--mono)">projector caption · every Spanish line gets an English one (D18)</span></div>
+    </section>
+
+  </div>
+
+  <footer style="margin-top: auto; display: flex; gap: 24px; font-size: 14px; color: var(--ink2)">
+    <span><strong>Floor rules apply to every card:</strong> elder-actionable text ≥ 28 px, nothing under 22 px on Carmen’s surface, 7:1 contrast, targets ≥ 48 px, read-aloud on every card, safety colors fixed.</span>
+    <span style="margin-left: auto; font-family: var(--mono)">village layer: accent · words · density · language</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Village Control Room</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--card:#FFFFFF;--ink:#26211C;--ink2:#5B5249;--line:#E5DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--tomato:#A8331A;--tomato-soft:#FBE6DF;--ok:#2E6F42;--ok-soft:#E4F1E6;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--lid-blue:#2F5FA7;--lid-yellow:#E8B12F;--night:#1E1A16;--night2:#2B2520;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace}
+body{margin:0;background:var(--paper)}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="box-sizing: border-box; width: 100%; min-height: 900px; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 20px">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-family: var(--display); font-size: 34px; font-weight: 650; letter-spacing: -0.01em">Village</span>
+      <span style="font-size: 15px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700">Control room</span>
+    </div>
+    <nav aria-label="Villages" style="display: flex; gap: 8px; flex-wrap: wrap">
+      <button type="button" style="font: 700 16px var(--body); padding: 10px 16px; border-radius: 999px; border: 2px solid var(--ink); background: var(--ink); color: #fff">Reyes family</button>
+      <button type="button" style="font: 700 16px var(--body); padding: 10px 16px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--ink)">West 147th St block</button>
+    </nav>
+    <div style="margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+      <div style="display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2F6B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"></rect><line x1="11" y1="18" x2="13" y2="18"></line></svg>
+        <span style="font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">7</span>
+        <span style="font-size: 15px; color: var(--ink2)">phones connected</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 8px 16px">
+        <span style="font-size: 15px; color: var(--ink2)">Demo clock</span>
+        <span style="font-family: var(--mono); font-size: 22px; font-weight: 600">20:47</span>
+        <button type="button" style="font: 700 15px var(--body); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink)">+30 min</button>
+      </div>
+    </div>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-items: start">
+
+    <section aria-labelledby="think" style="grid-column: span 4; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+      <h2 id="think" style="margin: 0; font-family: var(--display); font-size: 24px; font-weight: 600">What the agent heard</h2>
+      <blockquote style="margin: 0; padding: 14px 16px; background: var(--paper); border-radius: 12px; font-size: 17px; line-height: 1.5">“Mom’s seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going.”<span style="display: block; margin-top: 8px; font-size: 14px; color: var(--ink2)">Ana, by voice · 0:41</span></blockquote>
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.45">
+        <div><span style="font-weight: 700">People.</span> Carmen (phone only, Spanish) · Ana (coordinator) · Marco (nights, Tue/Thu/Sat) · Lucía (backup, Philadelphia)</div>
+        <div><span style="font-weight: 700">Life areas.</span> Health: mixes up pills · Money: near-miss scam in Marco’s name · People: unclear whose turn</div>
+        <div><span style="font-weight: 700">Building.</span> Carmen gets three big buttons in Spanish. The family gets Tonight, her pill organizer, who’s on duty and a timeline.</div>
+        <div><span style="font-weight: 700">Safety rules on.</span> Money asked in a family name → check with that person · no answer means “don’t send” · lid already logged → report it · never gives dosing advice</div>
+      </div>
+    </section>
+
+    <section aria-labelledby="ship" style="grid-column: span 5; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="ship" style="margin: 0; font-family: var(--display); font-size: 24px; font-weight: 600">Release · rev 3</h2>
+        <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px">
+          <li style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--ok-soft)"><span style="font-weight: 700; font-size: 15px">Spec</span><span style="font-size: 13px; color: var(--ok)">2 views · 4.2 s</span></li>
+          <li style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--ok-soft)"><span style="font-weight: 700; font-size: 15px">Daytona build</span><span style="font-size: 13px; color: var(--ok)">village-kit · 18 s</span></li>
+          <li style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--ok-soft)"><span style="font-weight: 700; font-size: 15px">Tests</span><span style="font-size: 13px; color: var(--ok)">14 / 14 · contrast AAA</span></li>
+          <li style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--ok-soft)"><span style="font-weight: 700; font-size: 15px">Anchor QA</span><span style="font-size: 13px; color: var(--ok)">tapped on a phone</span></li>
+          <li style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--sage); color: #fff"><span style="font-weight: 700; font-size: 15px">Live</span><span style="font-size: 13px">on 7 phones</span></li>
+        </ol>
+        <pre style="margin: 0; background: var(--night); color: #EDE6DB; border-radius: 12px; padding: 14px 16px; font: 400 13px/1.6 var(--mono); overflow-x: auto; white-space: pre">$ npm run build    vite v7 · 212 modules
+✓ built dist/ in 6.1s
+$ npx vitest run
+✓ renders elder view (es)          ✓ BigButton ≥ 88px
+✓ contrast ≥ 7:1 on elder theme    ✓ PillOrganizer lids
+✓ actions route through /actions   14 passed
+→ anchor: tapped “Ya me la tomé” at 390×844 · round trip 0.8s</pre>
+      </div>
+
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-family: var(--display); font-size: 24px; font-weight: 600">Join the Reyes family</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+          <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px">
+            <div role="img" aria-label="QR code for Ana" style="width: 100%; aspect-ratio: 1; max-width: 160px; border-radius: 12px; border: 2px dashed var(--ink2); display: grid; place-items: center; font: 600 14px var(--mono); color: var(--ink2)">QR · Ana</div>
+            <figcaption style="font-size: 16px; font-weight: 700">Ana</figcaption>
+          </figure>
+          <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px">
+            <div role="img" aria-label="QR code to join as Marco" style="width: 100%; aspect-ratio: 1; max-width: 160px; border-radius: 12px; border: 3px solid var(--sage); display: grid; place-items: center; font: 600 14px var(--mono); color: var(--sage); background: var(--sage-soft)">QR · Be Marco</div>
+            <figcaption style="font-size: 16px; font-weight: 700">Be Marco (a judge)</figcaption>
+          </figure>
+          <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px">
+            <div role="img" aria-label="Carmen's phone line" style="width: 100%; aspect-ratio: 1; max-width: 160px; border-radius: 12px; background: var(--paper); display: grid; place-items: center; text-align: center; padding: 10px; box-sizing: border-box">
+              <span style="font-size: 14px; color: var(--ink2)">Carmen calls</span>
+            </div>
+            <figcaption style="font-size: 16px; font-weight: 700; font-family: var(--mono)">[MOM LINE NUMBER]</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="qa" style="grid-column: span 3; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+      <div style="background: var(--night2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; color: #EDE6DB">
+        <h2 id="qa" style="margin: 0; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em">Anchor · QA browser</h2>
+        <div role="img" aria-label="Live view of the QA browser showing Carmen's app" style="aspect-ratio: 390 / 600; border-radius: 12px; background: var(--paper); color: var(--ink); padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; position: relative">
+          <span style="font-family: var(--display); font-size: 22px; font-weight: 650">Hola, Carmen</span>
+          <span style="background: var(--ok); color: #fff; border-radius: 10px; padding: 12px; font-weight: 700; font-size: 15px">Ya me la tomé</span>
+          <span style="background: var(--sage-soft); color: var(--ink); border-radius: 10px; padding: 12px; font-weight: 700; font-size: 15px">Llamar a Ana</span>
+          <span style="position: absolute; left: 46%; top: 38%; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #2F5FA7; background: rgba(47,95,167,0.25)"></span>
+        </div>
+        <span style="font-size: 13px; color: #CFC5B8">live view · 390×844 · recording</span>
+      </div>
+
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-family: var(--display); font-size: 22px; font-weight: 600">Safety gate</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: var(--tomato-soft)">
+          <span style="font-weight: 700; color: var(--tomato); font-size: 15px">20:52 · Scam stopped</span>
+          <span style="font-size: 14px; line-height: 1.4">$2,000 asked in Marco’s name. Checked with Marco (R-MONEY-VERIFY): “that wasn’t me”. Carmen told not to send.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: var(--ok-soft)">
+          <span style="font-weight: 700; color: var(--ok); font-size: 15px">20:02 · Recorded evening dose</span>
+          <span style="font-size: 14px; line-height: 1.4">Blue-lid sticker scanned on Carmen’s phone.</span>
+        </div>
+        <span style="font-size: 13px; color: var(--ink2)">Every decision is code, tested with the model off · traced in Arize</span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

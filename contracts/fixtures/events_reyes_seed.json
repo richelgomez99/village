@@ -1,0 +1,282 @@
+{
+  "contract_version": "1.1.0",
+  "village": "v_reyes",
+  "description": "Ledger state at the start of the Protect act (2026-10-16 ~14:00), chronological. Load after reyes_spec.json. The Oct 9 rows are the seeded possible_fraud session the Arize eval labels (D13 Evolve); per the orchestrator brief they include a verification that timed out (app prompt only: Marco had not consented to AI calls before 2026-10-16). NOTE: data/villages/reyes_family.json tells Oct 9 as discovered by Ana the next day; the seed deliberately models it as a Village-caught timeout.",
+  "events": [
+    {
+      "id": "ev_1003_1740_med_change",
+      "village": "v_reyes",
+      "kind": "med_change",
+      "payload": {
+        "subject": "m_carmen",
+        "med": "lisinopril",
+        "from": {
+          "med_id": "med_lisinopril_5",
+          "dose": "5 mg"
+        },
+        "to": {
+          "med_id": "med_lisinopril_10",
+          "dose": "10 mg"
+        },
+        "effective": "2026-10-03",
+        "prescriber": "Dr. Elena Park"
+      },
+      "actor": "m_ana",
+      "source": {
+        "kind": "call",
+        "ref": "conv_setup_0003",
+        "secs": 88,
+        "quote": "The doctor changed her lisinopril from five to ten on October third."
+      },
+      "am": {
+        "key": "lisinopril_dose"
+      },
+      "at": "2026-10-03T17:40:00-04:00"
+    },
+    {
+      "id": "ev_1009_1921_money",
+      "village": "v_reyes",
+      "kind": "money_request",
+      "payload": {
+        "subject": "m_carmen",
+        "claimed_member_id": "m_marco",
+        "claimed_identity": "Marco (her son)",
+        "amount": 1500,
+        "currency": "USD",
+        "method": "gift_card",
+        "urgency": "now",
+        "red_flags": [
+          "gift_card",
+          "urgency",
+          "claimed_family_member"
+        ],
+        "utterance": "Me llamó Marco, dice que está en problemas y que le compre tarjetas de regalo.",
+        "verification_id": "ver_1009_01"
+      },
+      "actor": "m_carmen",
+      "source": {
+        "kind": "call",
+        "ref": "conv_seed_1009",
+        "secs": 21,
+        "quote": "Me llamó Marco, dice que está en problemas y que le compre tarjetas de regalo."
+      },
+      "am": {
+        "trace_id": "5a0c9e3b7d214f6c8e1f2a3b4c5d6e7f",
+        "key": "money_request"
+      },
+      "decision_id": "dc_1009_1921_money",
+      "at": "2026-10-09T19:21:30-04:00"
+    },
+    {
+      "id": "ev_1009_1921_ver_pending",
+      "village": "v_reyes",
+      "kind": "verification_pending",
+      "payload": {
+        "verification_id": "ver_1009_01",
+        "subject": "m_carmen",
+        "claimed_member_id": "m_marco",
+        "deadline": "2026-10-09T19:22:15-04:00",
+        "channels": [
+          "app_prompt"
+        ],
+        "origin": "report_money_request"
+      },
+      "actor": "gate",
+      "source": {
+        "kind": "call",
+        "ref": "conv_seed_1009",
+        "secs": 21
+      },
+      "decision_id": "dc_1009_1921_money",
+      "at": "2026-10-09T19:21:30-04:00"
+    },
+    {
+      "id": "ev_1009_1922_ver_timeout",
+      "village": "v_reyes",
+      "kind": "verification_timeout",
+      "payload": {
+        "verification_id": "ver_1009_01",
+        "claimed_member_id": "m_marco",
+        "reason": "deadline",
+        "state": "timed_out"
+      },
+      "actor": "scheduler",
+      "source": {
+        "kind": "system",
+        "ref": "scheduler"
+      },
+      "decision_id": "dc_1009_1922_deadline",
+      "at": "2026-10-09T19:22:15-04:00"
+    },
+    {
+      "id": "ev_1009_1922_incident",
+      "village": "v_reyes",
+      "kind": "incident",
+      "payload": {
+        "incident_id": "inc_ver_1009_01",
+        "type": "unverified_money_request",
+        "severity": "high",
+        "status": "acked",
+        "title": {
+          "en": "Couldn't confirm",
+          "es": "No se pudo confirmar"
+        },
+        "summary": {
+          "en": "Someone claiming to be Marco asked Mamá for $1,500 in gift cards. Marco didn't answer in 45 s. She was told not to send money.",
+          "es": "Alguien que dijo ser Marco le pidió $1,500 en tarjetas de regalo a Mamá. Marco no contestó en 45 s. Le dijimos que no mande dinero."
+        },
+        "related_event_ids": [
+          "ev_1009_1921_money",
+          "ev_1009_1921_ver_pending",
+          "ev_1009_1922_ver_timeout"
+        ],
+        "verification_id": "ver_1009_01",
+        "notified": [
+          "m_ana"
+        ],
+        "acked_by": "m_ana"
+      },
+      "actor": "gate",
+      "source": {
+        "kind": "system",
+        "ref": "gate"
+      },
+      "decision_id": "dc_1009_1922_deadline",
+      "at": "2026-10-09T19:22:15-04:00"
+    },
+    {
+      "id": "ev_1010_1812_consent_carmen",
+      "village": "v_reyes",
+      "kind": "consent",
+      "payload": {
+        "member_id": "m_carmen",
+        "scopes": {
+          "dose_logging": true,
+          "share_with_family": true,
+          "money_safety_sharing": true
+        },
+        "text_version": "consent_voice_v1"
+      },
+      "actor": "m_carmen",
+      "source": {
+        "kind": "call",
+        "ref": "conv_setup_0007",
+        "secs": 12,
+        "quote": "Sí, está bien que mis hijos lo sepan."
+      },
+      "at": "2026-10-10T18:12:00-04:00"
+    },
+    {
+      "id": "ev_1011_2005_consent_lucia",
+      "village": "v_reyes",
+      "kind": "consent",
+      "payload": {
+        "member_id": "m_lucia",
+        "scopes": {
+          "ai_calls": false,
+          "app_prompts": true
+        },
+        "text_version": "join_v1"
+      },
+      "actor": "m_lucia",
+      "source": {
+        "kind": "app",
+        "ref": "m_lucia"
+      },
+      "at": "2026-10-11T20:05:00-04:00"
+    },
+    {
+      "id": "ev_1012_0900_shift_1016",
+      "village": "v_reyes",
+      "kind": "shift",
+      "payload": {
+        "date": "2026-10-16",
+        "on_duty": "m_marco",
+        "backup": "m_ana",
+        "change": "assigned"
+      },
+      "actor": "system",
+      "source": {
+        "kind": "system",
+        "ref": "seed"
+      },
+      "at": "2026-10-12T09:00:00-04:00"
+    },
+    {
+      "id": "ev_1016_0811_dose_morning",
+      "village": "v_reyes",
+      "kind": "dose",
+      "payload": {
+        "subject": "m_carmen",
+        "slot": "morning",
+        "taken_at": "2026-10-16T08:11:04-04:00",
+        "confidence": "confirmed",
+        "via": "lid_qr"
+      },
+      "actor": "m_carmen",
+      "source": {
+        "kind": "scan",
+        "ref": "st_reyes_morning"
+      },
+      "am": {
+        "key": "last_dose_taken"
+      },
+      "decision_id": "dc_1016_0811_scan",
+      "at": "2026-10-16T08:11:04-04:00"
+    },
+    {
+      "id": "ev_1016_1140_release_r3",
+      "village": "v_reyes",
+      "kind": "release",
+      "payload": {
+        "rev": 3,
+        "release_id": "rel_reyes_r3",
+        "result": "blocked",
+        "live_rev": 2
+      },
+      "actor": "release",
+      "source": {
+        "kind": "system",
+        "ref": "release"
+      },
+      "at": "2026-10-16T11:40:51-04:00"
+    },
+    {
+      "id": "ev_1016_1143_release_r4",
+      "village": "v_reyes",
+      "kind": "release",
+      "payload": {
+        "rev": 4,
+        "release_id": "rel_reyes_r4",
+        "result": "released",
+        "live_rev": 4
+      },
+      "actor": "release",
+      "source": {
+        "kind": "system",
+        "ref": "release"
+      },
+      "at": "2026-10-16T11:43:31-04:00"
+    },
+    {
+      "id": "ev_1016_1358_consent_marco",
+      "village": "v_reyes",
+      "kind": "consent",
+      "payload": {
+        "member_id": "m_marco",
+        "scopes": {
+          "ai_calls": true,
+          "app_prompts": true,
+          "money_safety_sharing": true
+        },
+        "text_version": "join_v1"
+      },
+      "actor": "m_marco",
+      "source": {
+        "kind": "app",
+        "ref": "m_marco"
+      },
+      "at": "2026-10-16T13:58:00-04:00"
+    }
+  ]
+}

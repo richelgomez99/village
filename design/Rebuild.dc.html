@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rebuild: the software rewrites itself</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--night:#100D0A;--panel:#1B1612;--panel2:#241D17;--line:#3A3028;--text:#F3EADF;--muted:#B5A898;--amber:#F2A541;--coral:#FF7A59;--mint:#62D9A0;--sky:#7FB7E6;--plum:#C9A6E8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#F2A541}a:hover{color:#FFC37A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--night); color: var(--text); font-family: var(--body); padding: 36px 48px; display: flex; flex-direction: column; gap: 22px">
+
+  <header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 8px; max-width: 960px">
+      <span style="font: 600 14px var(--mono); letter-spacing: 0.12em; color: var(--plum)">REBUILD · SECOND ATTEMPT THIS MONTH</span>
+      <h1 style="margin: 0; font-family: var(--display); font-size: 38px; font-weight: 650; line-height: 1.1">Village: “Ana, that’s the second call this month pretending to be Marco. Proposal: unknown callers on Mamá’s line go to Village first.” Ana: “Sí, hazlo.” <span style="font-size: 22px; color: var(--muted); font-weight: 400">(Yes, do it.)</span></h1>
+    </div>
+    <span style="flex: none; font: 600 38px var(--mono); color: var(--mint)">0:31</span>
+  </header>
+
+  <ol aria-label="Rebuild pipeline" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+    <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font: 600 12px var(--mono); color: var(--mint)">1 FOUND THE PATTERN ✓</span><span style="font-size: 14px; line-height: 1.4">2 calls in 7 days claiming to be Marco, asking for money (Arize flagged both)</span></li>
+    <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font: 600 12px var(--mono); color: var(--mint)">2 DESIGNED THE FIX ✓</span><span style="font-size: 14px; line-height: 1.4">Village answers unknown callers on Mamá’s line first; family passes through; money asks get checked with the real person</span></li>
+    <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font: 600 12px var(--mono); color: var(--mint)">3 BUILT + TESTED ✓ 12 s</span><span style="font-size: 14px; line-height: 1.4">Daytona sandbox · 16 of 16 tests passed · contrast 7.4 to 1</span></li>
+    <li style="background: #2A2219; border: 2px solid var(--amber); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 0 30px rgba(242,165,65,.25)"><span style="font: 600 12px var(--mono); color: var(--amber); animation: pulse 1.2s infinite">4 TRIED ON A PHONE · NOW</span><span style="font-size: 14px; line-height: 1.4">Anchor browser, 390×844 · opening the family’s new “calls screened” card…</span></li>
+    <li style="background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; opacity: .7"><span style="font: 600 12px var(--mono); color: var(--muted)">5 CHECKED</span><span style="font-size: 14px; line-height: 1.4">Arize: covers the need · no medical advice · Spanish matches English · readable by an 78-year-old</span></li>
+    <li style="background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; opacity: .7"><span style="font: 600 12px var(--mono); color: var(--muted)">6 LIVE · THEN THE SCAMMER CALLS AGAIN</span><span style="font-size: 14px; line-height: 1.4">Village picks up first. Watch.</span></li>
+  </ol>
+
+  <div style="display: grid; grid-template-columns: 430px minmax(0, 1fr) 300px; gap: 24px; flex-grow: 1; min-height: 0">
+    <section aria-label="Anchor live view" style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">ANCHOR · LIVE VIEW</span>
+      <div style="flex-grow: 1; border-radius: 12px; background: #FBF6EE; color: #1F1A15; padding: 16px 14px; position: relative; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-family: var(--display); font-size: 22px; font-weight: 650">Mamá, tonight</span>
+        <div style="border-radius: 14px; background: #F1E7F4; border: 3px solid #6A3F7A; padding: 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #6A3F7A">NEW · CALLS SCREENED</span><span style="font-size: 16px; font-weight: 700; line-height: 1.25">Village answers unknown callers on Mamá’s line first</span><span style="font-size: 13px; color: #5E5246">Family passes through. Money asks get checked with the real person.</span></div>
+        <span style="border-radius: 12px; background: #fff; border: 1px solid #E6DACB; padding: 10px; font-size: 13px">Screened today: 0 · last attempt: tonight 8:52</span>
+        <span aria-hidden="true" style="position: absolute; left: 150px; top: 120px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #2F5FA7; background: rgba(47,95,167,.3)"></span>
+      </div>
+      <span style="font: 400 12px var(--mono); color: var(--muted)">recording · screenshot per assertion</span>
+    </section>
+
+    <section aria-label="Why" style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+      <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">THE TWO CALLS</span>
+        <span style="font-size: 16px; line-height: 1.45"><span style="color: var(--coral)">Oct 9, 0:21 into the call</span> · “Marco” asked for $1,500 in gift cards · nobody confirmed · Ana found out next day</span>
+        <span style="font-size: 16px; line-height: 1.45"><span style="color: var(--coral)">Tonight, 0:14 into the call</span> · “Marco” asked for $2,000 · the real Marco: “That wasn’t me”</span>
+        <span style="font-size: 13px; color: var(--muted)">both stored with the exact moment in the recording · rule: 2 money requests in 30 days</span>
+      </div>
+      <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">THE CHANGE (JSON PATCH)</span>
+        <pre style="margin: 0; font: 400 13px/1.6 var(--mono); color: var(--text); white-space: pre-wrap">+ voice_lines/mom-line: screening = true   (unknown callers answered by Village first)
++ coordinator/elements/screen: CallScreenCard { line: "mom-line" }
++ elder/elements/b4: BigButton { label: "Llamar a Village", action: "call_village" }
++ printables: fridge_card v2 ("Village contesta primero")</pre>
+      </div>
+      <div style="background: #1E2A22; border: 1px solid var(--mint); border-radius: 18px; padding: 14px 18px; font-size: 16px; line-height: 1.45"><span style="color: var(--mint); font-weight: 700">What the change could not touch:</span> Village still never moves money · no answer still means “don’t send” · it still only calls people who agreed · the safety sentences are the reviewed originals</div>
+    </section>
+
+    <aside aria-label="Phones" style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">PHONES IN THE ROOM</span>
+      <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px">Carmen · elder</span><span style="font-size: 13px; color: var(--muted)">waiting for step 6</span></div>
+      <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px">Ana + 5 judges · coordinator</span><span style="font-size: 13px; color: var(--muted)">waiting for step 6</span></div>
+      <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px">Marco (a judge) · helper</span><span style="font-size: 13px; color: var(--muted)">waiting for step 6</span></div>
+      <span style="margin-top: auto; font: 400 13px var(--mono); color: var(--muted); line-height: 1.5">when 6 lights up, every one of these changes at once. Then a second phone calls Mamá’s line: Village answers.</span>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

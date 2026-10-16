@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: talking to Village</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--tomato:#A8331A;--tomato-soft:#FBE6DF;--amber-soft:#FCEFD6;--sky-soft:#E1EEF4;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 22px 18px 20px; display: flex; flex-direction: column; gap: 14px">
+  <header style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">New village · step 1 of 3</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 28px; font-weight: 650; line-height: 1.12">Tell me about your people.</h1>
+    <span style="font-size: 15px; color: var(--ink2)">Who they are, what worries you, who helps.</span>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px; overflow: hidden">
+    <div style="align-self: flex-end; max-width: 88%; background: var(--sage-soft); border-radius: 16px 16px 4px 16px; padding: 10px 12px; font-size: 15px; line-height: 1.45">Mom’s seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going.</div>
+    <div style="align-self: flex-start; max-width: 88%; background: var(--paper); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 700; color: var(--ink2)">Village</span>
+      <span style="font-size: 15px; line-height: 1.45">Your mom, you, and Marco. Two quick questions. Does anyone else help with her? And what does she like to be called?</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px"><span style="font-size: 12px; background: var(--amber-soft); border-radius: 999px; padding: 4px 9px">pills</span><span style="font-size: 12px; background: var(--tomato-soft); border-radius: 999px; padding: 4px 9px">money · impersonation</span><span style="font-size: 12px; background: var(--sky-soft); border-radius: 999px; padding: 4px 9px">whose turn</span></div>
+    </div>
+    <div style="align-self: flex-end; max-width: 88%; background: var(--sage-soft); border-radius: 16px 16px 4px 16px; padding: 10px 12px; font-size: 15px; line-height: 1.45">My sister Lucía in Philly handles insurance. Mom’s “Mamá”. Spanish, mostly.</div>
+    <div style="align-self: flex-start; max-width: 88%; background: var(--paper); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 700; color: var(--ink2)">Village</span>
+      <span style="font-size: 15px; line-height: 1.45">Thanks. Two things are being checked before the draft: her four medications, and Marco’s days. About a minute.</span>
+    </div>
+    <div aria-label="Work Village is doing right now" style="align-self: stretch; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink2)">Doing now</span>
+      <div style="display: grid; grid-template-columns: 16px 1fr auto; gap: 5px 8px; font-size: 13px; line-height: 1.35; align-items: center">
+        <span style="color: var(--sage); font-weight: 700">✓</span><span>Looked up apixaban, metformin, lisinopril, atorvastatin on DailyMed</span><span style="font: 500 11px var(--mono); color: var(--ink2)">no interactions</span>
+        <span style="color: var(--sage); font-weight: 700">✓</span><span>Called Marco: Tue Thu Fri Sat, okay with calls</span><span style="font: 500 11px var(--mono); color: var(--ink2)">0:48 call</span>
+        <span style="color: var(--amber-ink, #7A4B00); font-weight: 700">…</span><span>Drafting 3 apps, refill checklist, fridge card, Spanish line</span><span style="font: 500 11px var(--mono); color: var(--ink2)">nothing sent</span>
+      </div>
+      <a href="#log" style="font-size: 12px; font-weight: 700">Every step, with sources</a>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px">
+    <button type="button" aria-label="Village is listening. Tap to pause." style="width: 84px; height: 84px; border-radius: 50%; border: 0; background: var(--sage); display: grid; place-items: center; animation: pulse 1.6s infinite; box-shadow: 0 10px 30px rgba(47,107,87,.35)">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+    </button>
+    <span style="font-size: 14px; color: var(--ink2)">Listening · <a href="#type">type instead</a></span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

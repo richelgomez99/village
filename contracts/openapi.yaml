@@ -1,0 +1,1080 @@
+openapi: 3.1.0
+info:
+  title: Village Core API
+  version: 1.1.0
+  summary: The one HTTP surface of Village Core (FastAPI, :8787, public via Tailscale Funnel).
+  description: |
+    Contract version 1.1.0 (see contracts/VERSION). Bodies reference contracts/schemas/*.schema.json.
+    Auth, by caller:
+      - memberToken: `Authorization: Bearer <member_token>` (or `?m=` on page loads and /ws). Minted by POST /auth/redeem or embedded in a per-member QR.
+      - villageSecret: `X-Village-Secret` header on ElevenLabs server tools and the village-caller answer tool.
+      - elevenlabsSignature: `ElevenLabs-Signature` HMAC header on post-call webhooks.
+      - controlToken: `Authorization: Bearer <control_token>` (Control Room, demo operator endpoints).
+      - none: GET /s/{slot_token} (the token is the identity), GET /health.
+    Every gated endpoint returns the gate Decision it produced. Idempotency: tools key on (conversation_id, tool_call_id);
+    app actions key on (member, req_id) via the Idempotency-Key header.
+servers:
+  - url: https://richel-macbook.tail8feae0.ts.net
+    description: Tailscale Funnel (D6)
+  - url: http://localhost:8787
+    description: Local
+tags:
+  - name: villages
+  - name: app
+  - name: voice
+  - name: verification
+  - name: evolve
+  - name: chat
+  - name: memory
+  - name: release
+  - name: demo
+  - name: realtime
+security:
+  - memberToken: []
+
+paths:
+  /villages:
+    post:
+      tags: [villages]
+      operationId: createVillage
+      summary: Create a village from a description (builder). Streams progress over WS control{reasoning,build_log}.
+      security: [{ controlToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [description]
+              properties:
+                description: { type: string, minLength: 1, maxLength: 2000 }
+                members:
+                  type: array
+                  items: { $ref: './schemas/voice_tools.schema.json#/$defs/req_create_village/properties/members/items' }
+                needs: { type: array, items: { type: string } }
+                language: { $ref: './schemas/common.schema.json#/$defs/lang' }
+                mode: { type: string, enum: [full, fast, fixture], default: full, description: 'fast = catalog-only, no custom component (D9); fixture = load contracts/fixtures/reyes_spec.json' }
+      responses:
+        '202':
+          description: Accepted; the spec arrives over WS (snapshot to control) and GET /villages/{id}.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [village_id, ws_url]
+                properties:
+                  village_id: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+                  plan: { type: string, maxLength: 280 }
+                  ws_url: { type: string }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}:
+    get:
+      tags: [villages]
+      operationId: getVillage
+      summary: Current VillageSpec (coordinator / control only; members get their view over WS).
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      responses:
+        '200':
+          description: The spec at its current rev.
+          headers:
+            ETag: { schema: { type: string }, description: 'W/"rev-<rev>"' }
+          content:
+            application/json:
+              schema: { $ref: './schemas/village_spec.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /villages/{id}/draft:
+    patch:
+      tags: [villages]
+      operationId: patchDraft
+      summary: Edit a draft village (1.1.0, FS-3). RFC 6902 ops on the allowed paths (people, needs, channels, views props; never the floor). Re-validated; a new rev each time.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ops]
+              properties:
+                base_rev: { $ref: './schemas/common.schema.json#/$defs/rev', description: 'Optimistic concurrency; 409 if it is not the current rev.' }
+                ops: { type: array, minItems: 1, maxItems: 24, items: { $ref: './schemas/common.schema.json#/$defs/json_patch_op' } }
+      responses:
+        '200':
+          description: New rev of the draft.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [rev, status]
+                properties:
+                  rev: { $ref: './schemas/common.schema.json#/$defs/rev' }
+                  status: { $ref: './schemas/common.schema.json#/$defs/village_status' }
+                  spec: { $ref: './schemas/village_spec.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 'Village is active (edit via proposals) or base_rev is stale.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'An invariant failed; details[] names it (contracts/README.md §Invariants).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /villages/{id}/activate:
+    post:
+      tags: [villages]
+      operationId: activateVillage
+      summary: Draft → active (1.1.0, FS-3). Validates, mints one join invite per member with a view and the lid-sticker tokens, writes village_activated, starts the initial release.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      responses:
+        '200':
+          description: Activated. invites[] carry the join URLs/QRs (the only place the invite token appears).
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status, rev, invites, printables]
+                properties:
+                  status: { const: active }
+                  rev: { $ref: './schemas/common.schema.json#/$defs/rev' }
+                  invites: { type: array, items: { $ref: './schemas/village_spec.schema.json#/$defs/invite' } }
+                  printables:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, kind, url]
+                      properties:
+                        id: { type: string, pattern: '^pr_[a-z0-9_]{2,40}$' }
+                        kind: { type: string, enum: [lid_sticker, fridge_card] }
+                        token_ref: { type: string, pattern: '^st_[a-z0-9_]{2,60}$' }
+                        url: { type: string, description: 'Print URL; lid stickers embed /s/<slot_token>.' }
+                  event: { $ref: './schemas/event.schema.json' }
+                  release_id: { $ref: './schemas/common.schema.json#/$defs/release_id' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 'Already active.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'The draft fails validation; details[] names the invariants.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /villages/{id}/answers:
+    post:
+      tags: [villages]
+      operationId: answerFollowUps
+      summary: Text-path follow-up answers to the builder's questions (1.1.0, FS-3). Resumes the build; progress continues over WS control{reasoning|blueprint}.
+      security: [{ controlToken: [] }, { memberToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [answers]
+              properties:
+                answers:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [question, text]
+                    properties:
+                      question: { type: string, maxLength: 200 }
+                      text: { type: string, minLength: 1, maxLength: 600 }
+                lang: { $ref: './schemas/common.schema.json#/$defs/lang' }
+      responses:
+        '202':
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [village_id, state]
+                properties:
+                  village_id: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+                  state: { type: string, enum: [building, draft_ready, needs_more] }
+        '409': { description: 'Village is active; use chat @Village or a proposal.' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}/ask:
+    post:
+      tags: [villages]
+      operationId: askVillage
+      summary: Ask why (1.1.0, FS-3). Read-only answer in plain words with citations to decision rows, facts and events. Same path the chat uses for '@Village …' questions.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [question]
+              properties:
+                question: { type: string, minLength: 1, maxLength: 600 }
+                lang: { $ref: './schemas/common.schema.json#/$defs/lang' }
+                reply_to: { $ref: './schemas/common.schema.json#/$defs/message_id', description: 'When asked from the chat: the member message; the answer is also posted as a chat row (kind answer).' }
+      responses:
+        '200':
+          description: Answer with sources. degraded = Agent Memory was unavailable, so citations come from the ledger and decision log only.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [answer, lang, citations, degraded]
+                properties:
+                  answer: { type: string, maxLength: 1200 }
+                  lang: { $ref: './schemas/common.schema.json#/$defs/lang' }
+                  citations:
+                    type: array
+                    maxItems: 12
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [kind, id, label]
+                      properties:
+                        kind: { type: string, enum: [decision, fact, event, rule, member] }
+                        id: { type: string, minLength: 1, maxLength: 128 }
+                        label: { type: string, maxLength: 120 }
+                        at: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+                        source: { $ref: './schemas/common.schema.json#/$defs/source' }
+                  trace_id: { $ref: './schemas/common.schema.json#/$defs/trace_id' }
+                  message: { $ref: './schemas/message.schema.json', description: 'The chat row (kind answer) when reply_to was given.' }
+                  degraded: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}/decisions:
+    get:
+      tags: [villages]
+      operationId: listDecisions
+      summary: Decision log (1.1.0). Plain-words rows of what the software decided and why (decision.schema.json), newest first. Control Room DecisionsLog + /ask material.
+      security: [{ controlToken: [] }, { memberToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: after, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/decision_id' }, description: 'Rows newer than this id (reconnect).' }
+        - { name: actor, in: query, required: false, schema: { type: string, enum: [builder, gate, evolve, 'voice:setup', release] } }
+        - { name: kind, in: query, required: false, schema: { type: string, enum: [plan, decision, note] } }
+      responses:
+        '200':
+          description: Decision rows. Members other than the coordinator get only rows that cite them (refs member) or gate rows about them.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './schemas/decision.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /villages/{id}/messages:
+    get:
+      tags: [chat]
+      operationId: listMessages
+      summary: Village chat history (1.1.0, D16), oldest first. Members whose view is elder get 403 (their chat is the phone line).
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: after, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/message_id' }, description: 'Only rows newer than this id (reconnect / pagination).' }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: kind, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/message_kind' } }
+      responses:
+        '200':
+          description: Messages.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: './schemas/message.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [chat]
+      operationId: postMessage
+      summary: Post a chat message as the member (1.1.0, D16). Always kind chat. '@Village …' (mention) is routed to ask-why (routed ask; the answer follows as a chat row kind answer) or to a change request (routed change_request → proposal → coordinator approval). Fanned out as a WS chat frame.
+      security: [{ memberToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 2000 }
+                mention: { anyOf: [ { const: village }, { type: 'null' } ], description: 'village when the text addresses @Village; core also detects the literal @Village.' }
+                reply_to: { $ref: './schemas/common.schema.json#/$defs/message_id' }
+                client_ts: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+      responses:
+        '201':
+          description: Stored and fanned out.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [message, routed]
+                properties:
+                  message: { $ref: './schemas/message.schema.json' }
+                  routed: { type: string, enum: [none, ask, change_request] }
+        '403': { description: 'Elder view members cannot post (their chat is the phone line); or the village is draft.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}/qr:
+    get:
+      tags: [villages]
+      operationId: getVillageQr
+      summary: Per-member join QR codes (SVG) or their URLs (JSON). Join QR for the judge = role invite (D11).
+      security: [{ controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: member, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/member_id' } }
+        - { name: kind, in: query, required: false, schema: { type: string, enum: [app, join, lid], default: app }, description: 'app = /v/{id}/?m=<member_token>; join = /join?i=<invite> (Join + consent page); lid = sticker URLs /s/<slot_token>' }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, json], default: svg } }
+      responses:
+        '200':
+          description: SVG of one code (member given) or JSON list.
+          content:
+            image/svg+xml:
+              schema: { type: string }
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [member_id, kind, url]
+                  properties:
+                    member_id: { $ref: './schemas/common.schema.json#/$defs/member_id' }
+                    kind: { type: string, enum: [app, join, lid] }
+                    url: { type: string }
+                    svg: { type: string }
+        '409': { description: 'Village is draft (1.1.0): no invites or tokens exist until POST /villages/{id}/activate.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/redeem:
+    post:
+      tags: [app]
+      operationId: redeemInvite
+      summary: Join page submit (first name, mobile, AI-call consent) → member token; writes a consent ledger row (D11).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [invite, first_name, consent]
+              properties:
+                invite: { type: string, minLength: 8, maxLength: 256, description: 'From the join QR (?i=)' }
+                first_name: { type: string, minLength: 1, maxLength: 40 }
+                phone: { $ref: './schemas/common.schema.json#/$defs/e164' }
+                consent:
+                  type: object
+                  additionalProperties: false
+                  required: [ai_calls, text_version]
+                  properties:
+                    ai_calls: { type: boolean, description: '"Village may call me with an automated AI voice about Carmen’s care."' }
+                    text_version: { type: string, pattern: '^[a-z0-9_.-]{2,40}$' }
+      responses:
+        '200':
+          description: Token for the member this invite names (e.g. m_marco).
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [member_token, member_id, role, village, app_url, ws_url]
+                properties:
+                  member_token: { type: string }
+                  member_id: { $ref: './schemas/common.schema.json#/$defs/member_id' }
+                  role: { $ref: './schemas/common.schema.json#/$defs/role_key' }
+                  village: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+                  app_url: { type: string }
+                  ws_url: { type: string }
+                  consent_event: { $ref: './schemas/event.schema.json' }
+        '409': { description: 'Invite already used.' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /s/{slot_token}:
+    get:
+      tags: [app]
+      operationId: scanLid
+      summary: Lid sticker scan (D3) → gate → ledger → WS. No login; no LLM. HTML page by default, LidScanResult JSON with Accept application/json.
+      security: []
+      parameters:
+        - name: slot_token
+          in: path
+          required: true
+          schema: { $ref: './schemas/common.schema.json#/$defs/slot_token' }
+      responses:
+        '200':
+          description: Recorded (tone ok), already logged (tone report), or deduped repeat within 10 s.
+          content:
+            text/html:
+              schema: { type: string }
+            application/json:
+              schema: { $ref: './schemas/lid_scan.schema.json' }
+        '404':
+          description: Unknown or revoked token (error page, no ledger row).
+          content:
+            text/html:
+              schema: { type: string }
+
+  /v/{id}/actions/{name}:
+    post:
+      tags: [app]
+      operationId: postAction
+      summary: App action from a component → gate → ledger. Same semantics as the WS `action` message.
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - name: name
+          in: path
+          required: true
+          schema: { $ref: './schemas/common.schema.json#/$defs/action_name' }
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                arg: { type: string, maxLength: 80 }
+                element_id: { $ref: './schemas/common.schema.json#/$defs/element_id' }
+                payload: { $ref: './schemas/common.schema.json#/$defs/props' }
+                client_ts: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+      responses:
+        '200':
+          description: Gate decision (may be deny) and the ledger row written, if any.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [decision]
+                properties:
+                  decision: { $ref: './schemas/gate.schema.json#/$defs/decision' }
+                  event: { $ref: './schemas/event.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}/proposals/{pid}/approve:
+    post:
+      tags: [evolve]
+      operationId: approveProposal
+      summary: Coordinator approves a proposal (R-SPEC). On `ready` core applies the ops now → WS patch to each role; on `proposed` (1.1.0) it starts verification and auto-applies when ready. HTTP twin of the WS/app action approve_proposal.
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { $ref: '#/components/parameters/ProposalId' }
+      responses:
+        '200':
+          description: The proposal after approval (status applied with target_rev live, or verifying when it was proposed).
+          content:
+            application/json:
+              schema: { $ref: './schemas/proposal.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 'Status is verifying, approved, applied, rejected or failed.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /villages/{id}/proposals/{pid}/reject:
+    post:
+      tags: [evolve]
+      operationId: rejectProposal
+      summary: Coordinator says "Not now" (1.1.0). HTTP twin of the WS/app action reject_proposal (the voice path needs HTTP). Allowed on proposed | verifying | ready.
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { $ref: '#/components/parameters/ProposalId' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, maxLength: 300 }
+      responses:
+        '200':
+          description: The proposal with status rejected, rejected_by, rejected_at.
+          content:
+            application/json:
+              schema: { $ref: './schemas/proposal.schema.json' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 'Already approved, applied, rejected or failed.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /villages/{id}/releases:
+    get:
+      tags: [release]
+      operationId: listReleases
+      summary: Release receipts (1.1.0, FS-5), newest first. Control Room reconnect and acceptance scripts.
+      security: [{ controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Receipts.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [receipts]
+                properties:
+                  receipts: { type: array, items: { $ref: './schemas/release.schema.json' } }
+                  live_rev: { anyOf: [ { $ref: './schemas/common.schema.json#/$defs/rev' }, { type: 'null' } ] }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [release]
+      operationId: startRelease
+      summary: Start a release of a spec rev (1.1.0, FS-5). The manual / demo trigger; progress arrives as WS control{release|build_log|qa}. inject_failure=contrast reproduces the caught-and-fixed r3 receipt.
+      security: [{ controlToken: [] }]
+      parameters: [{ $ref: '#/components/parameters/VillageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [rev]
+              properties:
+                rev: { $ref: './schemas/common.schema.json#/$defs/rev' }
+                trigger: { type: string, enum: [manual, repair], default: manual }
+                repair_of: { $ref: './schemas/common.schema.json#/$defs/release_id' }
+                inject_failure: { type: string, enum: [contrast] }
+                publish: { type: boolean, default: true, description: 'false = stop before live (used for proposals).' }
+      responses:
+        '202':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [release_id]
+                properties:
+                  release_id: { $ref: './schemas/common.schema.json#/$defs/release_id' }
+                  candidate_path: { type: string, pattern: '^/v/v_[a-z0-9_]{2,40}/r/[0-9]+/$' }
+        '409': { description: 'A release of this village is already in progress.' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /villages/{id}/facts:
+    get:
+      tags: [memory]
+      operationId: listFacts
+      summary: Facts about the village as of a time (1.1.0, FS-6). Agent Memory read model; degraded=true when served from the ledger mirror.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: subject, in: query, required: false, schema: { $ref: './schemas/facts.schema.json#/$defs/entity' } }
+        - { name: key, in: query, required: false, schema: { $ref: './schemas/facts.schema.json#/$defs/fact_key' } }
+        - { name: as_of, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/datetime' }, description: 'Valid-time filter; default now (incl. time-warp).' }
+        - { name: include_superseded, in: query, required: false, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: 'Facts (coordinator / control: all; other members: facts that cite them or n_safety).'
+          content:
+            application/json:
+              schema: { $ref: './schemas/facts.schema.json#/$defs/facts_response' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /villages/{id}/facts/{entity}/{key}/history:
+    get:
+      tags: [memory]
+      operationId: factHistory
+      summary: Every version of one fact (1.1.0, FS-6), newest first, with supersession and provenance (the Fact card's "how do you know").
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: entity, in: path, required: true, schema: { $ref: './schemas/facts.schema.json#/$defs/entity' } }
+        - { name: key, in: path, required: true, schema: { $ref: './schemas/facts.schema.json#/$defs/fact_key' } }
+      responses:
+        '200':
+          description: Versions.
+          content:
+            application/json:
+              schema: { $ref: './schemas/facts.schema.json#/$defs/history_response' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /villages/{id}/uncertainties:
+    get:
+      tags: [memory]
+      operationId: listUncertainties
+      summary: Open disagreements between facts (1.1.0, FS-6) for the coordinator to resolve.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: subject, in: query, required: false, schema: { $ref: './schemas/facts.schema.json#/$defs/entity' } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, resolved, dismissed], default: open } }
+      responses:
+        '200':
+          description: Uncertainties.
+          content:
+            application/json:
+              schema: { $ref: './schemas/facts.schema.json#/$defs/uncertainties_response' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /villages/{id}/uncertainties/{uid}/resolve:
+    post:
+      tags: [memory]
+      operationId: resolveUncertainty
+      summary: Coordinator picks the right value (1.1.0, FS-6). Writes the accepted fact (source app, provenance = the coordinator), supersedes the others, logs a decision row.
+      security: [{ memberToken: [] }, { controlToken: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: uid, in: path, required: true, schema: { $ref: './schemas/common.schema.json#/$defs/uncertainty_id' } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './schemas/facts.schema.json#/$defs/resolve_request' }
+      responses:
+        '200':
+          description: Resolved.
+          content:
+            application/json:
+              schema: { $ref: './schemas/facts.schema.json#/$defs/resolve_response' }
+        '403': { description: 'Only the coordinator (or control) resolves.' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: 'Already resolved or dismissed.' }
+        '422': { $ref: '#/components/responses/Invalid' }
+
+  /tools/{name}:
+    post:
+      tags: [voice]
+      operationId: voiceTool
+      summary: ElevenLabs server tool webhook. Body = the tool's request_body_schema (no envelope). Must answer within 2 s except await_verification (≤ 30 s hold; ElevenLabs timeout 35 s).
+      security: [{ villageSecret: [] }]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { $ref: './schemas/voice_tools.schema.json#/$defs/tool_name' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: 'Select by {name}: voice_tools.schema.json#/$defs/req_<name>.'
+              oneOf:
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_log_dose' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_report_symptom' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_whats_my_schedule' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_get_today' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_ask_family' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_report_money_request' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_await_verification' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_create_village' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_block' }
+                - { $ref: './schemas/voice_tools.schema.json#/$defs/req_answer_proposal' }
+      responses:
+        '200':
+          description: '{decision, say, say_key?, rule_id, lang, data?}. data shape: voice_tools.schema.json#/$defs/data_<name>.'
+          content:
+            application/json:
+              schema: { $ref: './schemas/voice_tools.schema.json#/$defs/response' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503':
+          description: 'Core degraded. The agent speaks the fixed core_down line ("No pude anotarlo. Le aviso a su familia.") and never improvises; during a money call it speaks money_core_down (1.1.0: hold, do not send, a person will call you back).'
+
+  /voice/token:
+    get:
+      tags: [voice]
+      operationId: voiceToken
+      summary: Conversation token for a browser (WebRTC/WebSocket) call with an ElevenLabs agent (1.1.0, FS-2/FS-3). The founding page uses it for the web setup agent; also the web-call fallback when the phone line is down. Core mints it server-side (ElevenLabs API key never reaches the browser); short-lived; rate-limited per IP.
+      security: []
+      parameters:
+        - { name: agent, in: query, required: false, schema: { type: string, enum: [setup, mom-line, village-caller], default: setup } }
+        - { name: village, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/village_id' }, description: 'Required for mom-line / village-caller (dynamic variables); absent for setup (a new village).' }
+        - { name: m, in: query, required: false, schema: { type: string }, description: 'Member token when the caller is a known member.' }
+      responses:
+        '200':
+          description: Token to start the conversation from the browser.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [token, agent_id, agent, expires_at]
+                properties:
+                  token: { type: string, minLength: 16 }
+                  agent_id: { type: string }
+                  agent: { type: string, enum: [setup, mom-line, village-caller] }
+                  connection: { type: string, enum: [webrtc, websocket], default: webrtc }
+                  expires_at: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+                  session_id: { type: string, maxLength: 64, description: 'Core-minted; sent back as caller_id web:<session_id> on tool calls.' }
+        '429': { description: 'Rate limited.' }
+        '503': { description: 'ElevenLabs unreachable; the page falls back to the text founding box.' }
+
+  /hooks/elevenlabs/init:
+    post:
+      tags: [voice]
+      operationId: elevenlabsInit
+      summary: Conversation-initiation webhook (inbound Mom line). caller_id → village + member + dynamic variables.
+      security: [{ villageSecret: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              required: [caller_id, agent_id]
+              properties:
+                caller_id: { type: string }
+                agent_id: { type: string }
+                called_number: { type: string }
+                call_sid: { type: string }
+                conversation_id: { type: string }
+      responses:
+        '200':
+          description: ElevenLabs conversation_initiation_client_data. Include every dynamic variable the agent declares.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [type, dynamic_variables]
+                properties:
+                  type: { const: conversation_initiation_client_data }
+                  dynamic_variables:
+                    type: object
+                    additionalProperties: false
+                    required: [village_id, member_id, member_short_name, on_duty_name, coordinator_name, language, today_summary]
+                    properties:
+                      village_id: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+                      member_id: { $ref: './schemas/common.schema.json#/$defs/member_id' }
+                      member_short_name: { type: string }
+                      on_duty_name: { type: string }
+                      coordinator_name: { type: string }
+                      language: { type: string, enum: [es, en] }
+                      today_summary: { type: string, maxLength: 400 }
+                  conversation_config_override: { type: object }
+
+  /hooks/elevenlabs/post-call:
+    post:
+      tags: [voice]
+      operationId: elevenlabsPostCall
+      summary: HMAC-verified post-call webhook (post_call_transcription | post_call_audio | call_initiation_failure) → Agent Memory full extraction + provenance reconcile + Arize audio span. Must return 200.
+      security: [{ elevenlabsSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              required: [type, data]
+              properties:
+                type: { type: string, enum: [post_call_transcription, post_call_audio, call_initiation_failure] }
+                event_timestamp: { type: integer }
+                data:
+                  type: object
+                  additionalProperties: true
+                  properties:
+                    agent_id: { type: string }
+                    conversation_id: { type: string }
+                    transcript: { type: array, items: { type: object } }
+                    metadata: { type: object }
+                    analysis: { type: object, description: 'data_collection_results.verification_answer is the backup answer for T3 calls (keyed (verification_id, call_sid)).' }
+      responses:
+        '200': { description: 'Accepted (always, after signature check).' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /calls/outbound:
+    post:
+      tags: [voice]
+      operationId: placeOutboundCall
+      summary: Place an outbound village-caller call (gate R-CONSENT / R-VERIFY-CONSENT first). Used internally and by the operator.
+      security: [{ controlToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [member_id, reason]
+              properties:
+                member_id: { $ref: './schemas/common.schema.json#/$defs/member_id' }
+                reason: { type: string, enum: [verification, escalation, reminder] }
+                template: { type: string, enum: [T1, T2, T3] }
+                verification_id: { $ref: './schemas/common.schema.json#/$defs/verification_id' }
+                event_id: { $ref: './schemas/common.schema.json#/$defs/event_id' }
+      responses:
+        '200':
+          description: Gate decision; call placed only if decision is allow.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [decision, placed]
+                properties:
+                  decision: { $ref: './schemas/gate.schema.json#/$defs/decision' }
+                  placed: { type: boolean }
+                  conversation_id: { type: string }
+                  call_sid: { type: string }
+
+  /verifications/{vid}/answer:
+    post:
+      tags: [verification]
+      operationId: answerVerification
+      summary: Answer a money verification (yes | no | unsure). From the village-caller agent (submit_verification_answer, X-Village-Secret) or the app (member token; the WS action answer_verification is preferred). First answer wins (CAS).
+      security: [{ villageSecret: [] }, { memberToken: [] }]
+      parameters:
+        - name: vid
+          in: path
+          required: true
+          schema: { $ref: './schemas/common.schema.json#/$defs/verification_id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './schemas/voice_tools.schema.json#/$defs/verification_answer_request' }
+      responses:
+        '200':
+          description: The verification after the answer (outcome applied | dup | conflict | ignored in answers[]).
+          content:
+            application/json:
+              schema: { $ref: './schemas/verification.schema.json' }
+        '403': { description: 'Answering member is not the claimed member.' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /clock/warp:
+    post:
+      tags: [demo]
+      operationId: warpClock
+      summary: Demo time-warp (scheduler + gate use the same Clock). Broadcasts control{kind clock}.
+      security: [{ controlToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                minutes: { type: number, description: 'Relative jump.' }
+                to: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+                reset: { type: boolean }
+              minProperties: 1
+      responses:
+        '200':
+          description: New clock.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [now, offset_minutes]
+                properties:
+                  now: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+                  offset_minutes: { type: number }
+
+  /improve:
+    post:
+      tags: [evolve]
+      operationId: improve
+      summary: Run the Evolve / improve loop (Arize evals → evidence → patch_app → release verification). Produces a Proposal (status verifying, then ready) over WS.
+      security: [{ controlToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [village]
+              properties:
+                village: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+                mode: { type: string, enum: [evolve, builder_prompt], default: evolve, description: 'builder_prompt = v1→v2 Prompt Hub experiment (Q&A material)' }
+                detector: { type: string, enum: [arize_eval, memory_pattern], default: arize_eval }
+      responses:
+        '202':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [job_id]
+                properties:
+                  job_id: { type: string }
+                  proposal: { $ref: './schemas/proposal.schema.json' }
+
+  /ws:
+    get:
+      tags: [realtime]
+      operationId: websocket
+      summary: The ONE WebSocket (D4). Upgrade; then frames per contracts/schemas/ws_messages.schema.json.
+      description: |
+        Connect `wss://<host>/ws?village=<id>&m=<member_token>` (or the control token). First client frame MUST be `hello`;
+        the server answers `snapshot` (member: views[role] + data; control: the whole VillageSpec). Then server pushes
+        `patch` / `event` / `prompt` / `result` (+ `control` for the Control Room). On reconnect send hello with last_rev;
+        on any rev gap the server sends a fresh snapshot. Server pings are app-level (`ping`/`pong`) every 20 s.
+      security: []
+      parameters:
+        - { name: village, in: query, required: true, schema: { $ref: './schemas/common.schema.json#/$defs/village_id' } }
+        - { name: m, in: query, required: true, schema: { type: string } }
+        - { name: Upgrade, in: header, required: true, schema: { const: websocket } }
+      responses:
+        '101':
+          description: Switching Protocols. Messages = ws_messages.schema.json (client_message / server_message).
+          content:
+            application/json:
+              schema: { $ref: './schemas/ws_messages.schema.json' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /control:
+    get:
+      tags: [realtime]
+      operationId: controlRoom
+      summary: Control Room page (projector). Kit-built; connects to /ws with the control token.
+      security: []
+      parameters:
+        - { name: village, in: query, required: false, schema: { $ref: './schemas/common.schema.json#/$defs/village_id' } }
+        - { name: t, in: query, required: true, schema: { type: string }, description: control token }
+      responses:
+        '200':
+          description: HTML.
+          content:
+            text/html:
+              schema: { type: string }
+
+  /health:
+    get:
+      tags: [demo]
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Liveness + dependency status.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ok, contract_version, now, deps]
+                properties:
+                  ok: { type: boolean }
+                  contract_version: { $ref: './schemas/common.schema.json#/$defs/contract_version' }
+                  now: { $ref: './schemas/common.schema.json#/$defs/datetime' }
+                  clock_offset_minutes: { type: number }
+                  layers: { type: array, items: { type: integer } }
+                  deps:
+                    type: object
+                    additionalProperties: { type: string, enum: [ok, degraded, down, off] }
+
+  /v/{id}/{path}:
+    get:
+      tags: [app]
+      operationId: appProxy
+      summary: Reverse proxy to the village's Daytona preview (vite preview :4173) with X-Daytona-Preview-Token + X-Daytona-Skip-Preview-Warning. The sandbox never calls Core.
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+          description: 'Any asset path ("" = index.html). Member identity travels as ?m=<member_token> on the first load, then the app keeps it.'
+      responses:
+        '200': { description: 'Proxied asset (any content type).' }
+        '502': { description: 'Sandbox down; core serves the last good dist/ if cached.' }
+
+  /v/{id}/r/{rev}/{path}:
+    get:
+      tags: [release]
+      operationId: candidateProxy
+      summary: 'Candidate build of one spec rev while it is under test (1.1.0, FS-5): release.candidate_path. Anchor QA and the Control Room "live view" load it; the kit inside points its WS at the shadow village with ?village=<id>_qa. Never linked from member apps.'
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/VillageId' }
+        - { name: rev, in: path, required: true, schema: { $ref: './schemas/common.schema.json#/$defs/rev' } }
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+          description: 'Any asset path ("" = index.html).'
+      responses:
+        '200': { description: 'Proxied asset from the candidate sandbox (any content type).' }
+        '404': { description: 'No candidate for this rev (not built, or already promoted and the sandbox released).' }
+
+  /releases/{rel}/qa/{file}:
+    get:
+      tags: [release]
+      operationId: releaseEvidence
+      summary: 'Evidence files of a release (1.1.0, FS-5): screenshots (PNG), qa.mp4, report.json, logs. The URLs in release.stages[].evidence_urls point here.'
+      security: [{ controlToken: [] }]
+      parameters:
+        - { name: rel, in: path, required: true, schema: { $ref: './schemas/common.schema.json#/$defs/release_id' } }
+        - { name: file, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9_.-]{1,80}$' } }
+      responses:
+        '200': { description: 'The file (image/png, video/mp4, application/json or text/plain).' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  parameters:
+    VillageId:
+      name: id
+      in: path
+      required: true
+      schema: { $ref: './schemas/common.schema.json#/$defs/village_id' }
+    ProposalId:
+      name: pid
+      in: path
+      required: true
+      schema: { $ref: './schemas/common.schema.json#/$defs/proposal_id' }
+  securitySchemes:
+    memberToken: { type: http, scheme: bearer, description: 'Member token (opaque, ≥16 chars).' }
+    controlToken: { type: http, scheme: bearer, description: 'Operator / Control Room token from .env (CONTROL_TOKEN).' }
+    villageSecret: { type: apiKey, in: header, name: X-Village-Secret }
+    elevenlabsSignature: { type: apiKey, in: header, name: ElevenLabs-Signature }
+  responses:
+    Invalid:
+      description: Body or parameters do not match the contract.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or bad credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but not allowed (wrong member/role).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Unknown id.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error: { type: string, enum: [invalid, unauthorized, forbidden, not_found, conflict, degraded] }
+        message: { type: string }
+        details: { type: array, items: { type: string } }

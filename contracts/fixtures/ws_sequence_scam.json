@@ -1,0 +1,2285 @@
+{
+  "contract_version": "1.1.0",
+  "village": "v_reyes",
+  "description": "WebSocket frames each client sees during the headline scam flow, in order (t = server time). Clients are already connected at rev 4 ('connect' shows Marco's hello/snapshot). 'start' is common to every outcome; then exactly one of denied / timeout_tail / confirmed_tail follows. Matches scam_call_tool_requests.json.",
+  "clients": {
+    "carmen": {
+      "member_id": "m_carmen",
+      "role": "elder",
+      "note": "elder view on the shared tablet / projector; Carmen herself is on the phone"
+    },
+    "ana": {
+      "member_id": "m_ana",
+      "role": "coordinator"
+    },
+    "marco": {
+      "member_id": "m_marco",
+      "role": "helper",
+      "note": "the judge who joined as Marco"
+    },
+    "control": {
+      "member_id": null,
+      "role": "control"
+    }
+  },
+  "sequences": {
+    "connect": [
+      {
+        "t": "2026-10-16T14:01:40-04:00",
+        "client": "marco",
+        "dir": "c2s",
+        "msg": {
+          "type": "hello",
+          "contract_version": "1.1.0",
+          "village": "v_reyes",
+          "member_token": "mt_marco_9Qe2vLx7Rk3pZ0aB",
+          "last_rev": 4,
+          "client": "kit"
+        }
+      },
+      {
+        "t": "2026-10-16T14:01:40-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "snapshot",
+          "contract_version": "1.1.0",
+          "rev": 4,
+          "village": "v_reyes",
+          "role": "helper",
+          "member_id": "m_marco",
+          "spec": {
+            "lang": "en",
+            "theme": "family",
+            "root": "s",
+            "elements": {
+              "s": {
+                "type": "Screen",
+                "props": {
+                  "title": "Is it my turn?",
+                  "subtitle": "Reyes family"
+                },
+                "children": [
+                  "al",
+                  "vp",
+                  "ans",
+                  "b_mom"
+                ]
+              },
+              "al": {
+                "type": "Alert",
+                "props": {
+                  "source": "policy",
+                  "bind": "alerts:active",
+                  "severity_levels": [
+                    "danger",
+                    "warn"
+                  ],
+                  "dismissible": false,
+                  "empty_text": "Nothing needs you right now",
+                  "show_escalation_status": true
+                }
+              },
+              "vp": {
+                "type": "VerificationPrompt",
+                "props": {
+                  "bind": "verifications:pending?member=me",
+                  "question_template": "Did you just call {care_recipient} asking for {amount}{method}?",
+                  "yes_label": "Yes, it was me",
+                  "no_label": "That wasn't me",
+                  "show_countdown": true
+                }
+              },
+              "ans": {
+                "type": "HelperAnswer",
+                "props": {
+                  "question": "Is it my turn?",
+                  "bind": "rota:current?member=me",
+                  "subject": "m_carmen",
+                  "show_status": true,
+                  "show_next_shift": true
+                }
+              },
+              "b_mom": {
+                "type": "BigButton",
+                "props": {
+                  "label": "Call Mamá",
+                  "icon": "phone",
+                  "tone": "info",
+                  "action": "call_member",
+                  "action_arg": "m_carmen",
+                  "confirm": false
+                }
+              }
+            },
+            "needs_served": {
+              "al": [
+                "n_safety"
+              ],
+              "vp": [
+                "n_scam_calls"
+              ],
+              "ans": [
+                "n_turns",
+                "n_evening_pills"
+              ],
+              "b_mom": [
+                "n_turns"
+              ]
+            }
+          },
+          "data": {
+            "alerts:active": [],
+            "verifications:pending?member=me": null,
+            "rota:current?member=me": {
+              "is_my_turn": true,
+              "date": "2026-10-16",
+              "on_duty": {
+                "member_id": "m_marco",
+                "name": "Marco"
+              },
+              "backup": {
+                "member_id": "m_ana",
+                "name": "Ana"
+              },
+              "until": null,
+              "next_shift": "2026-10-17",
+              "answer": {
+                "en": "Yes. Tonight until 9:30. Nothing to do unless Village calls you."
+              }
+            }
+          },
+          "now": "2026-10-16T14:01:40-04:00"
+        }
+      }
+    ],
+    "start": [
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "gate",
+          "payload": {
+            "decision": {
+              "id": "dc_1016_1402_money",
+              "rule_id": "R-MONEY-VERIFY",
+              "decision": "verify_with_member",
+              "say": {
+                "es": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.",
+                "en": "I'm checking with Marco right now. Please don't send any money yet."
+              },
+              "say_key": "money_hold",
+              "say_vars": {
+                "claimed_name": "Marco"
+              },
+              "notify": [
+                {
+                  "member_id": "m_ana",
+                  "channel": "app",
+                  "severity": "warn",
+                  "reason": "money_request_pending"
+                }
+              ],
+              "verification": {
+                "id": "ver_1016_01",
+                "claimed_member": "m_marco",
+                "deadline": "2026-10-16T14:02:54-04:00",
+                "channels": [
+                  "app_prompt",
+                  "outbound_call"
+                ],
+                "state": "pending"
+              },
+              "writes": [
+                {
+                  "kind": "money_request",
+                  "payload": {
+                    "subject": "m_carmen",
+                    "claimed_member_id": "m_marco",
+                    "claimed_identity": "Marco (her son)",
+                    "amount": 2000,
+                    "currency": "USD",
+                    "method": "unknown",
+                    "urgency": "now",
+                    "red_flags": [
+                      "urgency",
+                      "emotional_pressure"
+                    ],
+                    "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+                    "verification_id": "ver_1016_01",
+                    "pattern_flag": "possible_fraud_pattern"
+                  }
+                },
+                {
+                  "kind": "verification_pending",
+                  "payload": {
+                    "verification_id": "ver_1016_01",
+                    "subject": "m_carmen",
+                    "claimed_member_id": "m_marco",
+                    "deadline": "2026-10-16T14:02:54-04:00",
+                    "channels": [
+                      "app_prompt",
+                      "outbound_call"
+                    ],
+                    "origin": "report_money_request"
+                  }
+                },
+                {
+                  "kind": "pattern",
+                  "payload": {
+                    "subject": "m_carmen",
+                    "pattern": "possible_fraud_pattern",
+                    "count": 2,
+                    "window_days": 30,
+                    "event_ids": [
+                      "ev_1009_1921_money",
+                      "ev_1016_1402_money"
+                    ]
+                  }
+                }
+              ],
+              "flags": [
+                "possible_fraud_pattern",
+                "red_flag_notify_early"
+              ],
+              "rules_fired": [
+                "R-MONEY-VERIFY",
+                "R-VERIFY-CONSENT",
+                "R-MONEY-PATTERN"
+              ]
+            },
+            "input_kind": "money_request",
+            "event_id": "ev_1016_1402_money",
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+          },
+          "at": "2026-10-16T14:02:09-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "reasoning",
+          "payload": {
+            "source": "gate",
+            "kind": "decision",
+            "text": "Money request in Marco's name → check with the real Marco by app and phone (he consented) → hold Carmen on the line.",
+            "village": "v_reyes"
+          },
+          "at": "2026-10-16T14:02:09-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_money",
+            "village": "v_reyes",
+            "kind": "money_request",
+            "payload": {
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "claimed_identity": "Marco (her son)",
+              "amount": 2000,
+              "currency": "USD",
+              "method": "unknown",
+              "urgency": "now",
+              "red_flags": [
+                "urgency",
+                "emotional_pressure"
+              ],
+              "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern"
+            },
+            "actor": "m_carmen",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "am": {
+              "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "key": "money_request"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_money",
+            "village": "v_reyes",
+            "kind": "money_request",
+            "payload": {
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "claimed_identity": "Marco (her son)",
+              "amount": 2000,
+              "currency": "USD",
+              "method": "unknown",
+              "urgency": "now",
+              "red_flags": [
+                "urgency",
+                "emotional_pressure"
+              ],
+              "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern"
+            },
+            "actor": "m_carmen",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "am": {
+              "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "key": "money_request"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_money",
+            "village": "v_reyes",
+            "kind": "money_request",
+            "payload": {
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "claimed_identity": "Marco (her son)",
+              "amount": 2000,
+              "currency": "USD",
+              "method": "unknown",
+              "urgency": "now",
+              "red_flags": [
+                "urgency",
+                "emotional_pressure"
+              ],
+              "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern"
+            },
+            "actor": "m_carmen",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "am": {
+              "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "key": "money_request"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_money",
+            "village": "v_reyes",
+            "kind": "money_request",
+            "payload": {
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "claimed_identity": "Marco (her son)",
+              "amount": 2000,
+              "currency": "USD",
+              "method": "unknown",
+              "urgency": "now",
+              "red_flags": [
+                "urgency",
+                "emotional_pressure"
+              ],
+              "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern"
+            },
+            "actor": "m_carmen",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "am": {
+              "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "key": "money_request"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_pending",
+            "village": "v_reyes",
+            "kind": "verification_pending",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "origin": "report_money_request"
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "warn",
+                "title": {
+                  "es": "No mande dinero todavía"
+                },
+                "body": {
+                  "es": "Estamos confirmando con Marco."
+                },
+                "event_id": "ev_1016_1402_ver_pending",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "pending"
+                },
+                "at": "2026-10-16T14:02:09-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_pending",
+            "village": "v_reyes",
+            "kind": "verification_pending",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "origin": "report_money_request"
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "warn",
+                "title": {
+                  "en": "Possible scam"
+                },
+                "body": {
+                  "en": "Someone claiming to be Marco asked Mamá for $2,000. Village is checking with Marco. She was told not to send money."
+                },
+                "event_id": "ev_1016_1402_ver_pending",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "pending"
+                },
+                "at": "2026-10-16T14:02:09-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_pending",
+            "village": "v_reyes",
+            "kind": "verification_pending",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "origin": "report_money_request"
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "warn",
+                "title": {
+                  "en": "Possible scam"
+                },
+                "body": {
+                  "en": "Someone claiming to be Marco asked Mamá for $2,000. Village is checking with Marco. She was told not to send money."
+                },
+                "event_id": "ev_1016_1402_ver_pending",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "pending"
+                },
+                "at": "2026-10-16T14:02:09-04:00"
+              }
+            ],
+            "verifications:pending?member=me": {
+              "verification_id": "ver_1016_01",
+              "question": {
+                "en": "Did you just call Mamá asking for $2,000?",
+                "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+              },
+              "detail": {
+                "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+              },
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "subject": "m_carmen"
+            }
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_pending",
+            "village": "v_reyes",
+            "kind": "verification_pending",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "subject": "m_carmen",
+              "claimed_member_id": "m_marco",
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "origin": "report_money_request"
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "call",
+              "ref": "conv_demo_1016_scam",
+              "secs": 9,
+              "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "prompt",
+          "verification_id": "ver_1016_01",
+          "question": {
+            "en": "Did you just call Mamá asking for $2,000?",
+            "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+          },
+          "detail": {
+            "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+          },
+          "options": [
+            {
+              "id": "no",
+              "label": {
+                "en": "That wasn't me",
+                "es": "No fui yo"
+              }
+            },
+            {
+              "id": "yes",
+              "label": {
+                "en": "Yes, it was me",
+                "es": "Sí, fui yo"
+              }
+            }
+          ],
+          "deadline": "2026-10-16T14:02:54-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_pattern",
+            "village": "v_reyes",
+            "kind": "pattern",
+            "payload": {
+              "subject": "m_carmen",
+              "pattern": "possible_fraud_pattern",
+              "count": 2,
+              "window_days": 30,
+              "event_ids": [
+                "ev_1009_1921_money",
+                "ev_1016_1402_money"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:09-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_pattern",
+            "village": "v_reyes",
+            "kind": "pattern",
+            "payload": {
+              "subject": "m_carmen",
+              "pattern": "possible_fraud_pattern",
+              "count": 2,
+              "window_days": 30,
+              "event_ids": [
+                "ev_1009_1921_money",
+                "ev_1016_1402_money"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_money",
+            "at": "2026-10-16T14:02:09-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:10-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "reasoning",
+          "payload": {
+            "source": "voice",
+            "kind": "decision",
+            "text": "Calling Marco to verify (consent on file since 13:58); in-app prompt sent at the same time.",
+            "village": "v_reyes"
+          },
+          "at": "2026-10-16T14:02:10-04:00"
+        }
+      }
+    ],
+    "denied": [
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "marco",
+        "dir": "c2s",
+        "msg": {
+          "type": "action",
+          "req_id": "r_marco_0001",
+          "name": "answer_verification",
+          "element_id": "vp",
+          "payload": {
+            "verification_id": "ver_1016_01",
+            "answer": "no"
+          },
+          "client_ts": "2026-10-16T14:02:21-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "result",
+          "req_id": "r_marco_0001",
+          "ok": true,
+          "decision": {
+            "id": "dc_1016_1402_denied",
+            "rule_id": "R-MONEY-DEFAULT",
+            "decision": "advise_do_not_send",
+            "say": {
+              "es": "Ese no era Marco. No mande dinero. Ana ya lo sabe.",
+              "en": "That wasn't Marco. Don't send any money. Ana already knows."
+            },
+            "say_key": "money_denied",
+            "say_vars": {
+              "claimed_name": "Marco"
+            },
+            "notify": [
+              {
+                "member_id": "m_ana",
+                "channel": "app",
+                "severity": "high",
+                "reason": "scam_stopped"
+              }
+            ],
+            "verification": {
+              "id": "ver_1016_01",
+              "claimed_member": "m_marco",
+              "deadline": "2026-10-16T14:02:54-04:00",
+              "channels": [
+                "app_prompt",
+                "outbound_call"
+              ],
+              "state": "denied"
+            },
+            "writes": [
+              {
+                "kind": "verification_denied",
+                "payload": {
+                  "verification_id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "answered_via": "app_prompt",
+                  "late": false,
+                  "state": "denied"
+                }
+              },
+              {
+                "kind": "incident",
+                "payload": {
+                  "incident_id": "inc_ver_1016_01",
+                  "type": "suspected_scam",
+                  "severity": "high",
+                  "status": "open",
+                  "title": {
+                    "en": "Scam stopped",
+                    "es": "Estafa detenida"
+                  },
+                  "summary": {
+                    "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                    "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+                  },
+                  "related_event_ids": [
+                    "ev_1016_1402_money",
+                    "ev_1016_1402_ver_pending",
+                    "ev_1016_1402_ver_denied"
+                  ],
+                  "verification_id": "ver_1016_01",
+                  "pattern_flag": "possible_fraud_pattern",
+                  "notified": [
+                    "m_ana",
+                    "m_marco"
+                  ]
+                }
+              }
+            ],
+            "rules_fired": [
+              "R-MONEY-DEFAULT",
+              "R-MONEY-NEVER"
+            ]
+          },
+          "event_id": "ev_1016_1402_ver_denied"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "prompt",
+          "verification_id": "ver_1016_01",
+          "question": {
+            "en": "Did you just call Mamá asking for $2,000?",
+            "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+          },
+          "detail": {
+            "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+          },
+          "options": [
+            {
+              "id": "no",
+              "label": {
+                "en": "That wasn't me",
+                "es": "No fui yo"
+              }
+            },
+            {
+              "id": "yes",
+              "label": {
+                "en": "Yes, it was me",
+                "es": "Sí, fui yo"
+              }
+            }
+          ],
+          "deadline": "2026-10-16T14:02:54-04:00",
+          "closed": true
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_denied",
+            "village": "v_reyes",
+            "kind": "verification_denied",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "app_prompt",
+              "late": false,
+              "state": "denied"
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "app",
+              "ref": "m_marco"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "danger",
+                "title": {
+                  "es": "Ese no era Marco"
+                },
+                "body": {
+                  "es": "No mande dinero. Ana ya lo sabe."
+                },
+                "event_id": "ev_1016_1402_ver_pending",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "denied"
+                },
+                "at": "2026-10-16T14:02:21-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_denied",
+            "village": "v_reyes",
+            "kind": "verification_denied",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "app_prompt",
+              "late": false,
+              "state": "denied"
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "app",
+              "ref": "m_marco"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          },
+          "data": {
+            "alerts:active": []
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_denied",
+            "village": "v_reyes",
+            "kind": "verification_denied",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "app_prompt",
+              "late": false,
+              "state": "denied"
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "app",
+              "ref": "m_marco"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          },
+          "data": {
+            "alerts:active": [],
+            "verifications:pending?member=me": null
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_denied",
+            "village": "v_reyes",
+            "kind": "verification_denied",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "app_prompt",
+              "late": false,
+              "state": "denied"
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "app",
+              "ref": "m_marco"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "suspected_scam",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Scam stopped",
+                "es": "Estafa detenida"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending",
+                "ev_1016_1402_ver_denied"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana",
+                "m_marco"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          },
+          "data": {
+            "incidents:open": [
+              {
+                "incident_id": "inc_ver_1016_01",
+                "type": "suspected_scam",
+                "severity": "high",
+                "status": "open",
+                "title": {
+                  "en": "Scam stopped",
+                  "es": "Estafa detenida"
+                },
+                "summary": {
+                  "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                  "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+                },
+                "verification_id": "ver_1016_01",
+                "verification_status": "denied",
+                "claimed_identity": "Marco (her son)",
+                "amount": 2000,
+                "method": "unknown",
+                "red_flags": [
+                  "urgency",
+                  "emotional_pressure"
+                ],
+                "pattern_flag": "possible_fraud_pattern",
+                "provenance": [
+                  {
+                    "label": "Mamá's call, at 0:09",
+                    "source": {
+                      "kind": "call",
+                      "ref": "conv_demo_1016_scam",
+                      "secs": 9
+                    }
+                  },
+                  {
+                    "label": "Marco's answer in the app",
+                    "source": {
+                      "kind": "app",
+                      "ref": "m_marco"
+                    }
+                  }
+                ],
+                "at": "2026-10-16T14:02:21-04:00"
+              }
+            ],
+            "blueprint:life_areas": [
+              {
+                "id": "health",
+                "label": "Health: pills",
+                "status": {
+                  "en": "1/2 lids today",
+                  "es": "1/2 tapas hoy"
+                }
+              },
+              {
+                "id": "money",
+                "label": "Money: scam calls",
+                "status": {
+                  "en": "1 scam stopped",
+                  "es": "1 estafa detenida"
+                },
+                "rules": [
+                  "R-MONEY-VERIFY",
+                  "R-MONEY-DEFAULT"
+                ],
+                "trusted_contacts": [
+                  "m_marco",
+                  "m_ana"
+                ]
+              },
+              {
+                "id": "people",
+                "label": "People: whose turn",
+                "status": {
+                  "en": "Ana on duty",
+                  "es": "Ana de turno"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "suspected_scam",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Scam stopped",
+                "es": "Estafa detenida"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending",
+                "ev_1016_1402_ver_denied"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana",
+                "m_marco"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "suspected_scam",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Scam stopped",
+                "es": "Estafa detenida"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending",
+                "ev_1016_1402_ver_denied"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana",
+                "m_marco"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "suspected_scam",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Scam stopped",
+                "es": "Estafa detenida"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending",
+                "ev_1016_1402_ver_denied"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana",
+                "m_marco"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_denied",
+            "at": "2026-10-16T14:02:21-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "gate",
+          "payload": {
+            "decision": {
+              "id": "dc_1016_1402_denied",
+              "rule_id": "R-MONEY-DEFAULT",
+              "decision": "advise_do_not_send",
+              "say": {
+                "es": "Ese no era Marco. No mande dinero. Ana ya lo sabe.",
+                "en": "That wasn't Marco. Don't send any money. Ana already knows."
+              },
+              "say_key": "money_denied",
+              "say_vars": {
+                "claimed_name": "Marco"
+              },
+              "notify": [
+                {
+                  "member_id": "m_ana",
+                  "channel": "app",
+                  "severity": "high",
+                  "reason": "scam_stopped"
+                }
+              ],
+              "verification": {
+                "id": "ver_1016_01",
+                "claimed_member": "m_marco",
+                "deadline": "2026-10-16T14:02:54-04:00",
+                "channels": [
+                  "app_prompt",
+                  "outbound_call"
+                ],
+                "state": "denied"
+              },
+              "writes": [
+                {
+                  "kind": "verification_denied",
+                  "payload": {
+                    "verification_id": "ver_1016_01",
+                    "claimed_member_id": "m_marco",
+                    "answered_via": "app_prompt",
+                    "late": false,
+                    "state": "denied"
+                  }
+                },
+                {
+                  "kind": "incident",
+                  "payload": {
+                    "incident_id": "inc_ver_1016_01",
+                    "type": "suspected_scam",
+                    "severity": "high",
+                    "status": "open",
+                    "title": {
+                      "en": "Scam stopped",
+                      "es": "Estafa detenida"
+                    },
+                    "summary": {
+                      "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                      "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+                    },
+                    "related_event_ids": [
+                      "ev_1016_1402_money",
+                      "ev_1016_1402_ver_pending",
+                      "ev_1016_1402_ver_denied"
+                    ],
+                    "verification_id": "ver_1016_01",
+                    "pattern_flag": "possible_fraud_pattern",
+                    "notified": [
+                      "m_ana",
+                      "m_marco"
+                    ]
+                  }
+                }
+              ],
+              "rules_fired": [
+                "R-MONEY-DEFAULT",
+                "R-MONEY-NEVER"
+              ]
+            },
+            "input_kind": "verification_answer",
+            "event_id": "ev_1016_1402_ver_denied"
+          },
+          "at": "2026-10-16T14:02:21-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:21-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "counter",
+          "payload": {
+            "name": "scams_stopped",
+            "value": 1,
+            "label": "scams stopped today"
+          },
+          "at": "2026-10-16T14:02:21-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:03:05-04:00",
+        "client": "ana",
+        "dir": "c2s",
+        "msg": {
+          "type": "ack",
+          "event_id": "ev_1016_1402_incident",
+          "status": "got_it",
+          "req_id": "r_ana_0001"
+        }
+      },
+      {
+        "t": "2026-10-16T14:03:05-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1403_ack",
+            "village": "v_reyes",
+            "kind": "ack",
+            "payload": {
+              "of_event_id": "ev_1016_1402_incident",
+              "status": "got_it",
+              "channel": "app",
+              "incident_id": "inc_ver_1016_01"
+            },
+            "actor": "m_ana",
+            "source": {
+              "kind": "app",
+              "ref": "m_ana"
+            },
+            "decision_id": "dc_1016_1403_ack",
+            "at": "2026-10-16T14:03:05-04:00"
+          },
+          "data": {
+            "incidents:open": [
+              {
+                "incident_id": "inc_ver_1016_01",
+                "type": "suspected_scam",
+                "severity": "high",
+                "status": "acked",
+                "title": {
+                  "en": "Scam stopped",
+                  "es": "Estafa detenida"
+                },
+                "summary": {
+                  "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn't him. She was told not to send money.",
+                  "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco confirmó que no fue él. Le dijimos que no mande dinero."
+                },
+                "verification_id": "ver_1016_01",
+                "verification_status": "denied",
+                "claimed_identity": "Marco (her son)",
+                "amount": 2000,
+                "method": "unknown",
+                "red_flags": [
+                  "urgency",
+                  "emotional_pressure"
+                ],
+                "pattern_flag": "possible_fraud_pattern",
+                "provenance": [
+                  {
+                    "label": "Mamá's call, at 0:09",
+                    "source": {
+                      "kind": "call",
+                      "ref": "conv_demo_1016_scam",
+                      "secs": 9
+                    }
+                  },
+                  {
+                    "label": "Marco's answer in the app",
+                    "source": {
+                      "kind": "app",
+                      "ref": "m_marco"
+                    }
+                  }
+                ],
+                "at": "2026-10-16T14:02:21-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:03:05-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1403_ack",
+            "village": "v_reyes",
+            "kind": "ack",
+            "payload": {
+              "of_event_id": "ev_1016_1402_incident",
+              "status": "got_it",
+              "channel": "app",
+              "incident_id": "inc_ver_1016_01"
+            },
+            "actor": "m_ana",
+            "source": {
+              "kind": "app",
+              "ref": "m_ana"
+            },
+            "decision_id": "dc_1016_1403_ack",
+            "at": "2026-10-16T14:03:05-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:03:05-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1403_ack",
+            "village": "v_reyes",
+            "kind": "ack",
+            "payload": {
+              "of_event_id": "ev_1016_1402_incident",
+              "status": "got_it",
+              "channel": "app",
+              "incident_id": "inc_ver_1016_01"
+            },
+            "actor": "m_ana",
+            "source": {
+              "kind": "app",
+              "ref": "m_ana"
+            },
+            "decision_id": "dc_1016_1403_ack",
+            "at": "2026-10-16T14:03:05-04:00"
+          }
+        }
+      }
+    ],
+    "timeout_tail": [
+      {
+        "t": "2026-10-16T14:02:44-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "gate",
+          "payload": {
+            "decision": {
+              "id": "dc_1016_1402_await",
+              "rule_id": "R-MONEY-DEFAULT",
+              "decision": "advise_do_not_send",
+              "say": {
+                "es": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
+                "en": "I couldn't confirm with Marco. Don't send any money. I'm letting Ana know."
+              },
+              "say_key": "money_timeout",
+              "say_vars": {
+                "claimed_name": "Marco"
+              },
+              "notify": [
+                {
+                  "member_id": "m_ana",
+                  "channel": "app",
+                  "severity": "high",
+                  "reason": "could_not_confirm"
+                }
+              ],
+              "verification": {
+                "id": "ver_1016_01",
+                "claimed_member": "m_marco",
+                "deadline": "2026-10-16T14:02:54-04:00",
+                "channels": [
+                  "app_prompt",
+                  "outbound_call"
+                ],
+                "state": "default_spoken"
+              },
+              "writes": [
+                {
+                  "kind": "incident",
+                  "payload": {
+                    "incident_id": "inc_ver_1016_01",
+                    "type": "unverified_money_request",
+                    "severity": "high",
+                    "status": "open",
+                    "title": {
+                      "en": "Couldn't confirm",
+                      "es": "No se pudo confirmar"
+                    },
+                    "summary": {
+                      "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                      "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+                    },
+                    "related_event_ids": [
+                      "ev_1016_1402_money",
+                      "ev_1016_1402_ver_pending"
+                    ],
+                    "verification_id": "ver_1016_01",
+                    "pattern_flag": "possible_fraud_pattern",
+                    "notified": [
+                      "m_ana"
+                    ]
+                  }
+                }
+              ],
+              "rules_fired": [
+                "R-MONEY-DEFAULT"
+              ]
+            },
+            "input_kind": "await_returned"
+          },
+          "at": "2026-10-16T14:02:44-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:44-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "unverified_money_request",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Couldn't confirm",
+                "es": "No se pudo confirmar"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_await",
+            "at": "2026-10-16T14:02:44-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "warn",
+                "title": {
+                  "es": "No pude confirmar con Marco"
+                },
+                "body": {
+                  "es": "No mande dinero. Le aviso a Ana."
+                },
+                "event_id": "ev_1016_1402_ver_pending",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "pending"
+                },
+                "at": "2026-10-16T14:02:44-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:44-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "unverified_money_request",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Couldn't confirm",
+                "es": "No se pudo confirmar"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_await",
+            "at": "2026-10-16T14:02:44-04:00"
+          },
+          "data": {
+            "incidents:open": [
+              {
+                "incident_id": "inc_ver_1016_01",
+                "type": "unverified_money_request",
+                "severity": "high",
+                "status": "open",
+                "title": {
+                  "en": "Couldn't confirm",
+                  "es": "No se pudo confirmar"
+                },
+                "summary": {
+                  "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                  "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+                },
+                "verification_id": "ver_1016_01",
+                "verification_status": "pending",
+                "claimed_identity": "Marco (her son)",
+                "amount": 2000,
+                "method": "unknown",
+                "red_flags": [
+                  "urgency",
+                  "emotional_pressure"
+                ],
+                "pattern_flag": "possible_fraud_pattern",
+                "provenance": [
+                  {
+                    "label": "Mamá's call, at 0:09",
+                    "source": {
+                      "kind": "call",
+                      "ref": "conv_demo_1016_scam",
+                      "secs": 9
+                    }
+                  }
+                ],
+                "at": "2026-10-16T14:02:44-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:44-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "unverified_money_request",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Couldn't confirm",
+                "es": "No se pudo confirmar"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_await",
+            "at": "2026-10-16T14:02:44-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:44-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_incident",
+            "village": "v_reyes",
+            "kind": "incident",
+            "payload": {
+              "incident_id": "inc_ver_1016_01",
+              "type": "unverified_money_request",
+              "severity": "high",
+              "status": "open",
+              "title": {
+                "en": "Couldn't confirm",
+                "es": "No se pudo confirmar"
+              },
+              "summary": {
+                "en": "Someone claiming to be Marco asked Mamá for $2,000. Marco didn't answer in time. She was told not to send money. Call her?",
+                "es": "Alguien que dijo ser Marco le pidió $2,000 a Mamá. Marco no contestó a tiempo. Le dijimos que no mande dinero."
+              },
+              "related_event_ids": [
+                "ev_1016_1402_money",
+                "ev_1016_1402_ver_pending"
+              ],
+              "verification_id": "ver_1016_01",
+              "pattern_flag": "possible_fraud_pattern",
+              "notified": [
+                "m_ana"
+              ]
+            },
+            "actor": "gate",
+            "source": {
+              "kind": "system",
+              "ref": "gate"
+            },
+            "decision_id": "dc_1016_1402_await",
+            "at": "2026-10-16T14:02:44-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "prompt",
+          "verification_id": "ver_1016_01",
+          "question": {
+            "en": "Did you just call Mamá asking for $2,000?",
+            "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+          },
+          "detail": {
+            "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+          },
+          "options": [
+            {
+              "id": "no",
+              "label": {
+                "en": "That wasn't me",
+                "es": "No fui yo"
+              }
+            },
+            {
+              "id": "yes",
+              "label": {
+                "en": "Yes, it was me",
+                "es": "Sí, fui yo"
+              }
+            }
+          ],
+          "deadline": "2026-10-16T14:02:54-04:00",
+          "closed": true
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "gate",
+          "payload": {
+            "decision": {
+              "id": "dc_1016_1402_deadline",
+              "rule_id": "R-MONEY-DEFAULT",
+              "decision": "allow",
+              "say": {
+                "es": "",
+                "en": ""
+              },
+              "notify": [],
+              "verification": {
+                "id": "ver_1016_01",
+                "claimed_member": "m_marco",
+                "deadline": "2026-10-16T14:02:54-04:00",
+                "channels": [
+                  "app_prompt",
+                  "outbound_call"
+                ],
+                "state": "timed_out"
+              },
+              "writes": [
+                {
+                  "kind": "verification_timeout",
+                  "payload": {
+                    "verification_id": "ver_1016_01",
+                    "claimed_member_id": "m_marco",
+                    "reason": "deadline",
+                    "state": "timed_out"
+                  }
+                }
+              ],
+              "rules_fired": [
+                "R-MONEY-DEFAULT"
+              ]
+            },
+            "input_kind": "tick"
+          },
+          "at": "2026-10-16T14:02:54-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_timeout",
+            "village": "v_reyes",
+            "kind": "verification_timeout",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "reason": "deadline",
+              "state": "timed_out"
+            },
+            "actor": "scheduler",
+            "source": {
+              "kind": "system",
+              "ref": "scheduler"
+            },
+            "decision_id": "dc_1016_1402_deadline",
+            "at": "2026-10-16T14:02:54-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_timeout",
+            "village": "v_reyes",
+            "kind": "verification_timeout",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "reason": "deadline",
+              "state": "timed_out"
+            },
+            "actor": "scheduler",
+            "source": {
+              "kind": "system",
+              "ref": "scheduler"
+            },
+            "decision_id": "dc_1016_1402_deadline",
+            "at": "2026-10-16T14:02:54-04:00"
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_timeout",
+            "village": "v_reyes",
+            "kind": "verification_timeout",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "reason": "deadline",
+              "state": "timed_out"
+            },
+            "actor": "scheduler",
+            "source": {
+              "kind": "system",
+              "ref": "scheduler"
+            },
+            "decision_id": "dc_1016_1402_deadline",
+            "at": "2026-10-16T14:02:54-04:00"
+          },
+          "data": {
+            "alerts:active": [],
+            "verifications:pending?member=me": null
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:54-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_timeout",
+            "village": "v_reyes",
+            "kind": "verification_timeout",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "reason": "deadline",
+              "state": "timed_out"
+            },
+            "actor": "scheduler",
+            "source": {
+              "kind": "system",
+              "ref": "scheduler"
+            },
+            "decision_id": "dc_1016_1402_deadline",
+            "at": "2026-10-16T14:02:54-04:00"
+          }
+        }
+      }
+    ],
+    "confirmed_tail": [
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "prompt",
+          "verification_id": "ver_1016_01",
+          "question": {
+            "en": "Did you just call Mamá asking for $2,000?",
+            "es": "¿Acaba de llamar a Mamá pidiendo $2,000?"
+          },
+          "detail": {
+            "en": "Someone on the phone said they were you and that you're in trouble. She hasn't sent anything."
+          },
+          "options": [
+            {
+              "id": "no",
+              "label": {
+                "en": "That wasn't me",
+                "es": "No fui yo"
+              }
+            },
+            {
+              "id": "yes",
+              "label": {
+                "en": "Yes, it was me",
+                "es": "Sí, fui yo"
+              }
+            }
+          ],
+          "deadline": "2026-10-16T14:02:54-04:00",
+          "closed": true
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "control",
+          "kind": "gate",
+          "payload": {
+            "decision": {
+              "id": "dc_1016_1402_confirmed",
+              "rule_id": "R-MONEY-DEFAULT",
+              "decision": "advise_talk_to_coordinator",
+              "say": {
+                "es": "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo.",
+                "en": "Marco says it was really him. Village never sends money; please talk to Ana before you do anything."
+              },
+              "say_key": "money_confirmed",
+              "say_vars": {
+                "claimed_name": "Marco"
+              },
+              "notify": [
+                {
+                  "member_id": "m_ana",
+                  "channel": "app",
+                  "severity": "info",
+                  "reason": "marco_confirmed"
+                }
+              ],
+              "verification": {
+                "id": "ver_1016_01",
+                "claimed_member": "m_marco",
+                "deadline": "2026-10-16T14:02:54-04:00",
+                "channels": [
+                  "app_prompt",
+                  "outbound_call"
+                ],
+                "state": "confirmed"
+              },
+              "writes": [
+                {
+                  "kind": "verification_confirmed",
+                  "payload": {
+                    "verification_id": "ver_1016_01",
+                    "claimed_member_id": "m_marco",
+                    "answered_via": "outbound_call",
+                    "late": false,
+                    "state": "confirmed",
+                    "utterance": "Yeah, that was me. I called her."
+                  }
+                }
+              ],
+              "rules_fired": [
+                "R-MONEY-DEFAULT",
+                "R-MONEY-NEVER"
+              ]
+            },
+            "input_kind": "verification_answer",
+            "event_id": "ev_1016_1402_ver_confirmed"
+          },
+          "at": "2026-10-16T14:02:30-04:00"
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "carmen",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_confirmed",
+            "village": "v_reyes",
+            "kind": "verification_confirmed",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "outbound_call",
+              "late": false,
+              "state": "confirmed",
+              "utterance": "Yeah, that was me. I called her."
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "call",
+              "ref": "conv_verify_ver_1016_01",
+              "secs": 8,
+              "quote": "Yeah, that was me. I called her."
+            },
+            "decision_id": "dc_1016_1402_confirmed",
+            "at": "2026-10-16T14:02:30-04:00"
+          },
+          "data": {
+            "alerts:active": []
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "ana",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_confirmed",
+            "village": "v_reyes",
+            "kind": "verification_confirmed",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "outbound_call",
+              "late": false,
+              "state": "confirmed",
+              "utterance": "Yeah, that was me. I called her."
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "call",
+              "ref": "conv_verify_ver_1016_01",
+              "secs": 8,
+              "quote": "Yeah, that was me. I called her."
+            },
+            "decision_id": "dc_1016_1402_confirmed",
+            "at": "2026-10-16T14:02:30-04:00"
+          },
+          "data": {
+            "alerts:active": [
+              {
+                "id": "al_ver_1016_01",
+                "severity": "info",
+                "title": {
+                  "en": "Marco confirmed it was him"
+                },
+                "body": {
+                  "en": "Marco confirmed asking Mamá for $2,000. Village never sends money. Talk with Mamá and Marco."
+                },
+                "event_id": "ev_1016_1402_ver_confirmed",
+                "verification": {
+                  "id": "ver_1016_01",
+                  "claimed_member_id": "m_marco",
+                  "deadline": "2026-10-16T14:02:54-04:00",
+                  "status": "confirmed"
+                },
+                "at": "2026-10-16T14:02:30-04:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "marco",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_confirmed",
+            "village": "v_reyes",
+            "kind": "verification_confirmed",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "outbound_call",
+              "late": false,
+              "state": "confirmed",
+              "utterance": "Yeah, that was me. I called her."
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "call",
+              "ref": "conv_verify_ver_1016_01",
+              "secs": 8,
+              "quote": "Yeah, that was me. I called her."
+            },
+            "decision_id": "dc_1016_1402_confirmed",
+            "at": "2026-10-16T14:02:30-04:00"
+          },
+          "data": {
+            "alerts:active": [],
+            "verifications:pending?member=me": null
+          }
+        }
+      },
+      {
+        "t": "2026-10-16T14:02:30-04:00",
+        "client": "control",
+        "dir": "s2c",
+        "msg": {
+          "type": "event",
+          "event": {
+            "id": "ev_1016_1402_ver_confirmed",
+            "village": "v_reyes",
+            "kind": "verification_confirmed",
+            "payload": {
+              "verification_id": "ver_1016_01",
+              "claimed_member_id": "m_marco",
+              "answered_via": "outbound_call",
+              "late": false,
+              "state": "confirmed",
+              "utterance": "Yeah, that was me. I called her."
+            },
+            "actor": "m_marco",
+            "source": {
+              "kind": "call",
+              "ref": "conv_verify_ver_1016_01",
+              "secs": 8,
+              "quote": "Yeah, that was me. I called her."
+            },
+            "decision_id": "dc_1016_1402_confirmed",
+            "at": "2026-10-16T14:02:30-04:00"
+          }
+        }
+      }
+    ]
+  }
+}

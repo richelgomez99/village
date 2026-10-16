@@ -1,0 +1,596 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-16T01:30:00Z"
+ },
+ "title": "Village Screens",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Storyboard.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1600,
+   "h": 3000,
+   "title": "The 3-minute demo (D13): Generate, Protect, Evolve",
+   "expand": "fill"
+  },
+  "Blueprint.dc.html": {
+   "x": 1760,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Act 1 · Generate: the family's safety net assembles"
+  },
+  "ThreeApps.dc.html": {
+   "x": 3280,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Act 1 · Generate: three people, three different apps"
+  },
+  "Evolve.dc.html": {
+   "x": 6320,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Act 3 · Evolve: detect, investigate, fix, verify, approve"
+  },
+  "YourTurn.dc.html": {
+   "x": 7840,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Act 3 · Same engine, different family (pre-generated)"
+  },
+  "Kit.dc.html": {
+   "x": 1760,
+   "y": 1300,
+   "w": 816,
+   "h": 1056,
+   "title": "SUPERSEDED (D22): print kit is now the fridge card only",
+   "paper": "letter"
+  },
+  "Scan.dc.html": {
+   "x": 2656,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "SUPERSEDED (D22): no lid scan"
+  },
+  "Carmen.dc.html": {
+   "x": 3126,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "Carmen: her home screen (es)"
+  },
+  "Family.dc.html": {
+   "x": 3596,
+   "y": 1300,
+   "w": 390,
+   "h": 1180,
+   "title": "Ana: incident card + life areas"
+  },
+  "Fact.dc.html": {
+   "x": 4066,
+   "y": 1300,
+   "w": 390,
+   "h": 1040,
+   "title": "Family: tap a fact to see its source"
+  },
+  "Join.dc.html": {
+   "x": 4536,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "Judge: join as Marco + consent"
+  },
+  "Marco.dc.html": {
+   "x": 5006,
+   "y": 1300,
+   "w": 390,
+   "h": 844,
+   "title": "Judge as Marco: verification prompt + call"
+  },
+  "Main.dc.html": {
+   "x": 1760,
+   "y": 3100,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector: Control Room",
+   "expand": "fill"
+  },
+  "Block.dc.html": {
+   "x": 3280,
+   "y": 3100,
+   "w": 390,
+   "h": 1100,
+   "title": "Backup closing: blackout block coordinator"
+  },
+  "System.dc.html": {
+   "x": 3750,
+   "y": 3100,
+   "w": 1200,
+   "h": 1100,
+   "title": "Design system: fixed floor + village layer"
+  },
+  "ScamMoment.dc.html": {
+   "x": 4800,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Act 2 · Protect: the scam call, on every phone"
+  },
+  "Cards.dc.html": {
+   "x": 5030,
+   "y": 3100,
+   "w": 1440,
+   "h": 1700,
+   "title": "Component cards: catalog for the kit lane"
+  },
+  "DirA.dc.html": {
+   "x": 0,
+   "y": -1500,
+   "w": 1440,
+   "h": 900,
+   "title": "Direction A · Night Watch"
+  },
+  "DirB.dc.html": {
+   "x": 1520,
+   "y": -1500,
+   "w": 1440,
+   "h": 900,
+   "title": "Direction B · Kitchen Table, elevated"
+  },
+  "DirC.dc.html": {
+   "x": 3040,
+   "y": -1500,
+   "w": 1440,
+   "h": 900,
+   "title": "Direction C · Signal"
+  },
+  "Thumb.dc.html": {
+   "x": 0,
+   "y": -4700,
+   "w": 1200,
+   "h": 800,
+   "title": "Devpost thumbnail (B)"
+  },
+  "Founding.dc.html": {
+   "x": 1280,
+   "y": -4700,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector · Founding conversation + village assembling (A)"
+  },
+  "Rebuild.dc.html": {
+   "x": 2800,
+   "y": -4700,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector · Rebuild climax (A)"
+  },
+  "ControlRoom.dc.html": {
+   "x": 4320,
+   "y": -4700,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector · Control Room (A)"
+  },
+  "Draft.dc.html": {
+   "x": 0,
+   "y": -3500,
+   "w": 390,
+   "h": 1000,
+   "title": "Ana · draft village review (B)"
+  },
+  "CarmenB.dc.html": {
+   "x": 470,
+   "y": -3500,
+   "w": 390,
+   "h": 844,
+   "title": "Carmen · elder app (B, light)"
+  },
+  "AnaB.dc.html": {
+   "x": 940,
+   "y": -3500,
+   "w": 390,
+   "h": 1180,
+   "title": "Ana · coordinator app (B)"
+  },
+  "MarcoB.dc.html": {
+   "x": 1410,
+   "y": -3500,
+   "w": 390,
+   "h": 844,
+   "title": "Marco · helper app + verification (B)"
+  },
+  "MarcoBRing.dc.html": {
+   "x": 1880,
+   "y": -3500,
+   "w": 390,
+   "h": 844,
+   "title": "Marco · after answering (B)"
+  },
+  "Chat.dc.html": {
+   "x": 2350,
+   "y": -3500,
+   "w": 390,
+   "h": 1180,
+   "title": "Village chat · Village is a participant (B)"
+  },
+  "Rounds.dc.html": {
+   "x": 5840,
+   "y": -4700,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector · Tonight's rounds (A)"
+  },
+  "CallLive.dc.html": {
+   "x": 7360,
+   "y": -4700,
+   "w": 1440,
+   "h": 900,
+   "title": "Projector · live call with captions (A)"
+  },
+  "FoundVoice.dc.html": {
+   "x": 0,
+   "y": -6400,
+   "w": 390,
+   "h": 844,
+   "title": "Ana · talking to Village (founding)"
+  },
+  "Invites.dc.html": {
+   "x": 470,
+   "y": -6400,
+   "w": 390,
+   "h": 1000,
+   "title": "Ana · invites sent, who joined"
+  },
+  "JoinFamily.dc.html": {
+   "x": 940,
+   "y": -6400,
+   "w": 390,
+   "h": 844,
+   "title": "Judge · join as family"
+  },
+  "WelcomeCall.dc.html": {
+   "x": 1410,
+   "y": -6400,
+   "w": 390,
+   "h": 900,
+   "title": "Ana · Carmen's welcome call result (P2)"
+  },
+  "LuciaB.dc.html": {
+   "x": 1880,
+   "y": -6400,
+   "w": 390,
+   "h": 900,
+   "title": "Lucía · supporter view (app only)"
+  },
+  "MarcoOff.dc.html": {
+   "x": 2350,
+   "y": -6400,
+   "w": 390,
+   "h": 844,
+   "title": "Marco · not my turn + swap"
+  },
+  "CheckIn.dc.html": {
+   "x": 0,
+   "y": -7900,
+   "w": 390,
+   "h": 1000,
+   "title": "Evening check-in call (voice surface + Ana's card)"
+  },
+  "Incident.dc.html": {
+   "x": 470,
+   "y": -7900,
+   "w": 390,
+   "h": 1100,
+   "title": "Ana · incident detail with sources"
+  },
+  "Options.dc.html": {
+   "x": 940,
+   "y": -7900,
+   "w": 390,
+   "h": 1100,
+   "title": "Ana · the three fixes Village considered"
+  },
+  "Receipt.dc.html": {
+   "x": 1410,
+   "y": -7900,
+   "w": 390,
+   "h": 1100,
+   "title": "Ana · release receipt detail"
+  },
+  "FridgeCard.dc.html": {
+   "x": 1880,
+   "y": -7900,
+   "w": 816,
+   "h": 528,
+   "title": "Print · fridge card (replaces the kit)",
+   "paper": "letter"
+  },
+  "Members.dc.html": {
+   "x": 0,
+   "y": -9400,
+   "w": 390,
+   "h": 1100,
+   "title": "Leader · members & roles (P3)"
+  },
+  "Poll.dc.html": {
+   "x": 470,
+   "y": -9400,
+   "w": 390,
+   "h": 900,
+   "title": "Chat · poll + Carmen asked by voice (P3)"
+  },
+  "Swap.dc.html": {
+   "x": 940,
+   "y": -9400,
+   "w": 390,
+   "h": 844,
+   "title": "Rota · swap negotiation (P3)"
+  },
+  "BlockVolunteer.dc.html": {
+   "x": 1410,
+   "y": -9400,
+   "w": 390,
+   "h": 844,
+   "title": "Blackout · Darnell matched (volunteer)"
+  },
+  "BlockCoord.dc.html": {
+   "x": 1880,
+   "y": -9400,
+   "w": 390,
+   "h": 1100,
+   "title": "Blackout · Tanya coordinator (B)"
+  },
+  "Cards2.dc.html": {
+   "x": 2350,
+   "y": -9400,
+   "w": 1440,
+   "h": 1600,
+   "title": "Component states · sheet 2"
+  },
+  "Motion.dc.html": {
+   "x": 3850,
+   "y": -9400,
+   "w": 1440,
+   "h": 1800,
+   "title": "Progress, working and transition states"
+  },
+  "Charter.dc.html": {
+   "x": 0,
+   "y": -11000,
+   "w": 390,
+   "h": 1250,
+   "title": "Roadmap · the village charter (P3)"
+  },
+  "Needs.dc.html": {
+   "x": 470,
+   "y": -11000,
+   "w": 390,
+   "h": 1000,
+   "title": "Roadmap · needs and offers + carer load (P3)"
+  },
+  "Modes.dc.html": {
+   "x": 940,
+   "y": -11000,
+   "w": 390,
+   "h": 1100,
+   "title": "Roadmap · modes: hospital stay (P3)"
+  },
+  "Handoff.dc.html": {
+   "x": 1410,
+   "y": -11000,
+   "w": 390,
+   "h": 900,
+   "title": "Roadmap · handoff at turn change (P2)"
+  },
+  "Digest.dc.html": {
+   "x": 1880,
+   "y": -11000,
+   "w": 390,
+   "h": 1150,
+   "title": "Roadmap · the week in the village (P2)"
+  },
+  "GuestNote.dc.html": {
+   "x": 2350,
+   "y": -11000,
+   "w": 390,
+   "h": 844,
+   "title": "Roadmap · guest note from the fridge QR (P3)"
+  },
+  "MyVillageKnows.dc.html": {
+   "x": 2820,
+   "y": -11000,
+   "w": 390,
+   "h": 1100,
+   "title": "Roadmap · what Village knows about me, elder (P3)"
+  }
+ },
+ "order": [
+  "Cards2.dc.html",
+  "Motion.dc.html",
+  "BlockCoord.dc.html",
+  "BlockVolunteer.dc.html",
+  "Swap.dc.html",
+  "Poll.dc.html",
+  "Members.dc.html",
+  "FridgeCard.dc.html",
+  "Receipt.dc.html",
+  "Options.dc.html",
+  "Incident.dc.html",
+  "CheckIn.dc.html",
+  "MarcoOff.dc.html",
+  "LuciaB.dc.html",
+  "WelcomeCall.dc.html",
+  "JoinFamily.dc.html",
+  "Invites.dc.html",
+  "FoundVoice.dc.html",
+  "CallLive.dc.html",
+  "Rounds.dc.html",
+  "Chat.dc.html",
+  "Thumb.dc.html",
+  "Founding.dc.html",
+  "Rebuild.dc.html",
+  "ControlRoom.dc.html",
+  "Draft.dc.html",
+  "CarmenB.dc.html",
+  "AnaB.dc.html",
+  "MarcoB.dc.html",
+  "MarcoBRing.dc.html",
+  "DirA.dc.html",
+  "DirB.dc.html",
+  "DirC.dc.html",
+  "Storyboard.dc.html",
+  "Blueprint.dc.html",
+  "ThreeApps.dc.html",
+  "ScamMoment.dc.html",
+  "Evolve.dc.html",
+  "YourTurn.dc.html",
+  "Kit.dc.html",
+  "Scan.dc.html",
+  "Carmen.dc.html",
+  "Family.dc.html",
+  "Fact.dc.html",
+  "Join.dc.html",
+  "Marco.dc.html",
+  "Main.dc.html",
+  "Block.dc.html",
+  "System.dc.html",
+  "Cards.dc.html",
+  "Charter.dc.html",
+  "Needs.dc.html",
+  "Modes.dc.html",
+  "Handoff.dc.html",
+  "Digest.dc.html",
+  "GuestNote.dc.html",
+  "MyVillageKnows.dc.html"
+ ],
+ "notes": {
+  "t_story": {
+   "x": 0,
+   "y": -300,
+   "text": "Earlier wireframes (superseded by the finished-product rows above)",
+   "kind": "title1",
+   "maxW": 1600
+  },
+  "t_acts": {
+   "x": 1760,
+   "y": -300,
+   "text": "What the room sees: the four acts on the projector",
+   "kind": "title1",
+   "maxW": 7520
+  },
+  "t_people": {
+   "x": 1760,
+   "y": 1000,
+   "text": "What each person holds: screens and stickers",
+   "kind": "title1",
+   "maxW": 3636
+  },
+  "t_stage": {
+   "x": 1760,
+   "y": 2800,
+   "text": "Control Room, design rules, component cards",
+   "kind": "title1",
+   "maxW": 4710
+  },
+  "s_blueprint": {
+   "x": 1760,
+   "y": 940,
+   "w": 700,
+   "text": "WHY IT MATTERS: this is where the room SEES generation. Words become people, channels and rules.",
+   "size": "s",
+   "fill": "purple"
+  },
+  "s_three": {
+   "x": 3280,
+   "y": 940,
+   "w": 700,
+   "text": "WHY IT MATTERS: same family, three different apps from capability profiles. Nobody designed these screens.",
+   "size": "s",
+   "fill": "purple"
+  },
+  "s_evolve": {
+   "x": 6320,
+   "y": 940,
+   "w": 700,
+   "text": "WHY IT MATTERS: the agent reads its own Arize evals, finds the scam pattern, proposes a fix, verifies it, and a human approves. Every phone grows the new button.",
+   "size": "s",
+   "fill": "purple"
+  },
+  "s_yourturn": {
+   "x": 7840,
+   "y": 940,
+   "w": 700,
+   "text": "WHY IT MATTERS: one 15-second reveal proves it's a platform: same pipeline, different people, different modules. Generated earlier today; build time shown.",
+   "size": "s",
+   "fill": "purple"
+  },
+  "s_scam": {
+   "x": 4800,
+   "y": 940,
+   "w": 700,
+   "text": "WHY IT MATTERS: the headline. Village acts on its own (checks with the real Marco), code draws the line (never moves money, safe default), and a judge's phone rings.",
+   "size": "s",
+   "fill": "purple"
+  },
+  "t_dirs": {
+   "x": 0,
+   "y": -1800,
+   "text": "Visual directions explored (A + B chosen)",
+   "kind": "title1",
+   "maxW": 4480
+  },
+  "t_final_a": {
+   "x": 0,
+   "y": -5000,
+   "text": "FINISHED PRODUCT · projector surfaces (Direction A)",
+   "kind": "title1",
+   "maxW": 8800
+  },
+  "t_final_b": {
+   "x": 0,
+   "y": -3800,
+   "text": "FINISHED PRODUCT · what people hold (Direction B)",
+   "kind": "title1",
+   "maxW": 2740
+  },
+  "t_j1": {
+   "x": 0,
+   "y": -6700,
+   "text": "JOURNEYS · founding and joining",
+   "kind": "title1",
+   "maxW": 2740
+  },
+  "t_j2": {
+   "x": 0,
+   "y": -8200,
+   "text": "JOURNEYS · daily, incident, evolve, print",
+   "kind": "title1",
+   "maxW": 2700
+  },
+  "t_j3": {
+   "x": 0,
+   "y": -9700,
+   "text": "GOVERNANCE (P3) · second village · component states 2",
+   "kind": "title1",
+   "maxW": 3790
+  },
+  "t_roadmap": {
+   "x": 0,
+   "y": -11180,
+   "text": "ROADMAP (D24) · designed today, built later: the village carrying weight together",
+   "kind": "title1",
+   "maxW": 3300
+  }
+ },
+ "designSystems": []
+}

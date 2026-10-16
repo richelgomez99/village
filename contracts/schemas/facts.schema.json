@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/facts.schema.json",
+  "title": "Fact views (Agent Memory read model)",
+  "description": "1.1.0 (FS-6). What core returns from the fact endpoints: GET /villages/{id}/facts (facts_response), GET /villages/{id}/facts/{entity}/{key}/history (history_response), GET /villages/{id}/uncertainties (uncertainties_response), POST /villages/{id}/uncertainties/{uid}/resolve (resolve_response). Facts come from SurrealDB Agent Memory (one fact per ledger row, labels src=<source.kind>:<source.ref>, secs, village, agent; supersession from med_change and later observations). Every response carries `degraded`: true when Agent Memory was unreachable or stale and the list was served from the ledger mirror (or is empty); callers show the data with a 'from the ledger' note and never block on it. Never on the safety path. Root = facts_response.",
+  "x-contract-version": "1.1.0",
+  "$ref": "#/$defs/facts_response",
+
+  "$defs": {
+    "fact_id": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Agent Memory fact id or key (e.g. 'fact:money_request:m_carmen:2026-10-16', 'last_dose_taken'). Opaque; also valid as a message_ref / proposal evidence ref of kind fact." },
+    "entity": { "anyOf": [ { "$ref": "common.schema.json#/$defs/member_id" }, { "type": "string", "pattern": "^(village|[a-z][a-z0-9_]{1,40})$" } ], "description": "Who or what the fact is about: a member id, 'village', or a thing id (med_lisinopril_10)." },
+    "fact_key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,60}$", "examples": ["lisinopril_dose", "last_dose_taken", "money_request", "on_duty"] },
+    "labels": {
+      "type": "object", "additionalProperties": { "type": "string", "maxLength": 200 },
+      "required": ["src", "village", "agent"],
+      "properties": {
+        "src": { "type": "string", "maxLength": 200, "description": "<source.kind>:<source.ref>, e.g. call:conv_demo_1016_scam, scan:st_reyes_morning, system:seed." },
+        "secs": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$", "description": "Call offset when src is a call." },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "agent": { "type": "string", "maxLength": 60, "description": "Which agent wrote it: memory, builder, evolve, voice:mom-line, …" }
+      }
+    },
+
+    "fact_card": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "village", "entity", "key", "value", "text", "labels", "observed_at", "recorded_at", "superseded", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/fact_id" },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "entity": { "$ref": "#/$defs/entity" },
+        "key": { "$ref": "#/$defs/fact_key" },
+        "value": { "type": "string", "maxLength": 400, "description": "Canonical value as a string ('10 mg', '2026-10-16T08:11:04-04:00', 'm_marco')." },
+        "text": { "type": "string", "maxLength": 300, "description": "Plain words for the card: 'Lisinopril is 10 mg since Oct 3 (Dr. Park).'" },
+        "labels": { "$ref": "#/$defs/labels" },
+        "observed_at": { "$ref": "common.schema.json#/$defs/datetime", "description": "When it became true (valid time)." },
+        "recorded_at": { "$ref": "common.schema.json#/$defs/datetime", "description": "When it was written (transaction time)." },
+        "valid_to": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ], "description": "null = still current." },
+        "superseded": { "type": "boolean" },
+        "superseded_by": { "$ref": "#/$defs/fact_id" },
+        "event_id": { "$ref": "common.schema.json#/$defs/event_id", "description": "Ledger row this fact was extracted from, when there is one." },
+        "source": { "$ref": "common.schema.json#/$defs/source" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "uncertainty_id": { "$ref": "common.schema.json#/$defs/uncertainty_id", "description": "Set while another fact disagrees with this one." }
+      }
+    },
+    "fact_version": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "value", "text", "observed_at", "recorded_at", "superseded", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/fact_id" },
+        "value": { "type": "string", "maxLength": 400 },
+        "text": { "type": "string", "maxLength": 300 },
+        "observed_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "recorded_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "superseded": { "type": "boolean" },
+        "event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "source": { "$ref": "common.schema.json#/$defs/source" },
+        "labels": { "$ref": "#/$defs/labels" }
+      }
+    },
+    "uncertainty": {
+      "type": "object", "additionalProperties": false,
+      "description": "Two or more facts about the same entity/key disagree (e.g. the pharmacy label says 5 mg, Ana said 10 mg). Resolved by the coordinator; resolution writes a new fact with source app and supersedes the losers.",
+      "required": ["id", "village", "entity", "key", "candidates", "status", "created_at"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/uncertainty_id" },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "entity": { "$ref": "#/$defs/entity" },
+        "key": { "$ref": "#/$defs/fact_key" },
+        "question": { "$ref": "common.schema.json#/$defs/localized", "description": "Plain-words question for the coordinator." },
+        "candidates": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/fact_version" } },
+        "status": { "enum": ["open", "resolved", "dismissed"] },
+        "created_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "resolved_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "resolved_by": { "$ref": "common.schema.json#/$defs/member_id" },
+        "accepted_value": { "type": "string", "maxLength": 400 },
+        "accepted_fact_id": { "$ref": "#/$defs/fact_id" },
+        "note": { "type": "string", "maxLength": 300 }
+      },
+      "allOf": [ { "if": { "properties": { "status": { "const": "resolved" } } }, "then": { "required": ["resolved_at", "resolved_by", "accepted_value"] } } ]
+    },
+
+    "degraded": { "type": "boolean", "description": "true = Agent Memory unreachable or stale; served from the ledger mirror (may be partial or empty). Never an error." },
+    "degraded_reason": { "enum": ["memory_unreachable", "memory_timeout", "outbox_backlog", "stale"] },
+
+    "facts_response": {
+      "type": "object", "additionalProperties": false, "required": ["village", "as_of", "facts", "degraded"],
+      "properties": {
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "as_of": { "$ref": "common.schema.json#/$defs/datetime", "description": "Valid-time filter applied (default now, incl. time-warp)." },
+        "subject": { "$ref": "#/$defs/entity" },
+        "facts": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/fact_card" } },
+        "degraded": { "$ref": "#/$defs/degraded" },
+        "degraded_reason": { "$ref": "#/$defs/degraded_reason" }
+      }
+    },
+    "history_response": {
+      "type": "object", "additionalProperties": false, "required": ["village", "entity", "key", "versions", "degraded"],
+      "properties": {
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "entity": { "$ref": "#/$defs/entity" },
+        "key": { "$ref": "#/$defs/fact_key" },
+        "versions": { "type": "array", "maxItems": 200, "items": { "$ref": "#/$defs/fact_version" }, "description": "Newest first; exactly one with superseded=false unless an uncertainty is open." },
+        "degraded": { "$ref": "#/$defs/degraded" },
+        "degraded_reason": { "$ref": "#/$defs/degraded_reason" }
+      }
+    },
+    "uncertainties_response": {
+      "type": "object", "additionalProperties": false, "required": ["village", "uncertainties", "degraded"],
+      "properties": {
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "uncertainties": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/uncertainty" } },
+        "degraded": { "$ref": "#/$defs/degraded" },
+        "degraded_reason": { "$ref": "#/$defs/degraded_reason" }
+      }
+    },
+    "resolve_request": {
+      "type": "object", "additionalProperties": false, "required": ["accepted_value"],
+      "properties": {
+        "accepted_value": { "type": "string", "minLength": 1, "maxLength": 400 },
+        "accepted_fact_id": { "$ref": "#/$defs/fact_id", "description": "Pick one candidate instead of typing a value." },
+        "note": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "resolve_response": {
+      "type": "object", "additionalProperties": false, "required": ["uncertainty", "fact", "degraded"],
+      "properties": {
+        "uncertainty": { "$ref": "#/$defs/uncertainty" },
+        "fact": { "$ref": "#/$defs/fact_card", "description": "The fact now current for entity/key." },
+        "decision_id": { "$ref": "common.schema.json#/$defs/decision_id", "description": "decision row (actor evolve, kind decision) written for the resolution." },
+        "degraded": { "$ref": "#/$defs/degraded" },
+        "degraded_reason": { "$ref": "#/$defs/degraded_reason" }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "village": "v_reyes", "as_of": "2026-10-16T14:00:00-04:00", "subject": "m_carmen", "degraded": false,
+      "facts": [
+        {
+          "id": "fact:lisinopril_dose:m_carmen:2026-10-03", "village": "v_reyes", "entity": "m_carmen", "key": "lisinopril_dose", "value": "10 mg",
+          "text": "Lisinopril is 10 mg since Oct 3 (Dr. Elena Park).",
+          "labels": { "src": "call:conv_setup_0003", "secs": "88", "village": "v_reyes", "agent": "memory" },
+          "observed_at": "2026-10-03T00:00:00-04:00", "recorded_at": "2026-10-03T17:40:00-04:00", "valid_to": null, "superseded": false,
+          "event_id": "ev_1003_1740_med_change", "source": { "kind": "call", "ref": "conv_setup_0003", "secs": 88, "quote": "The doctor changed her lisinopril from five to ten on October third." }, "confidence": 0.98
+        },
+        {
+          "id": "fact:last_dose_taken:m_carmen:2026-10-16", "village": "v_reyes", "entity": "m_carmen", "key": "last_dose_taken", "value": "2026-10-16T08:11:04-04:00",
+          "text": "Morning pills logged at 8:11 from the lid sticker.",
+          "labels": { "src": "scan:st_reyes_morning", "village": "v_reyes", "agent": "memory" },
+          "observed_at": "2026-10-16T08:11:04-04:00", "recorded_at": "2026-10-16T08:11:05-04:00", "valid_to": null, "superseded": false,
+          "event_id": "ev_1016_0811_dose_morning", "source": { "kind": "scan", "ref": "st_reyes_morning" }
+        }
+      ]
+    }
+  ]
+}

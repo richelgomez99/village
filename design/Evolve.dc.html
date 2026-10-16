@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Village learns from an attempt</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--card:#FFFFFF;--ink:#26211C;--ink2:#5B5249;--line:#E5DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--tomato:#A8331A;--ok:#2E6F42;--ok-soft:#E4F1E6;--plum:#6A3F7A;--plum-soft:#F1E7F4;--violet-soft:#ECE6F5;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 30px 40px; display: flex; flex-direction: column; gap: 20px">
+  <h1 style="margin: 0; font-family: var(--display); font-size: 34px; font-weight: 650">Second attempt this month. Village changed the app so there won’t be a third.</h1>
+
+  <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px">
+    <li style="background: var(--violet-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--plum)">1 DETECT</span><span style="font-size: 16px; line-height: 1.4">Arize session eval flags Carmen’s calls: <span style="font-weight: 700">possible_fraud</span> on Oct 9 and tonight</span></li>
+    <li style="background: var(--violet-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--plum)">2 INVESTIGATE</span><span style="font-size: 16px; line-height: 1.4">The agent reads its own traces + SurrealDB facts: both callers claimed to be Marco</span></li>
+    <li style="background: var(--violet-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--plum)">3 FIX</span><span style="font-size: 16px; line-height: 1.4">Proposes a “¿Es de verdad?” button for Carmen and scam alerts for the family</span></li>
+    <li style="background: var(--violet-soft); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--plum)">4 VERIFY</span><span style="font-size: 16px; line-height: 1.4">Daytona tests · Anchor taps it at phone size · Arize evals pass</span></li>
+    <li style="background: var(--plum); color: #fff; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: var(--mono); font-size: 13px; font-weight: 600">5 HUMAN APPROVES</span><span style="font-size: 16px; line-height: 1.4">Ana taps Approve. Every phone updates.</span></li>
+  </ol>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; flex-grow: 1; align-items: start">
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">The evidence (with sources)</span>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: var(--ink2)">Oct 9 · call at 0:21</span><span style="font-size: 17px">“Marco” asked for $1,500 in gift cards</span><span style="font-size: 13px; color: var(--ink2)">Not confirmed · Ana found out next day</span></div>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: var(--ink2)">Tonight · call at 0:14</span><span style="font-size: 17px">“Marco” asked for $2,000</span><span style="font-size: 13px; color: var(--ink2)">Real Marco: “That wasn’t me”</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Ana’s phone</span>
+      <div style="background: var(--card); border: 2px solid var(--plum); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-family: var(--display); font-size: 24px; font-weight: 650">Village suggests</span>
+        <span style="font-size: 18px"><span style="font-family: var(--mono); color: var(--plum); font-weight: 600">+</span> “¿Es de verdad?” button for Mamá</span>
+        <span style="font-size: 18px"><span style="font-family: var(--mono); color: var(--plum); font-weight: 600">+</span> Scam alerts for the family</span>
+        <span style="font-size: 18px"><span style="font-family: var(--mono); color: var(--plum); font-weight: 600">+</span> New fridge card: family word first</span>
+        <div style="display: flex; gap: 10px"><span style="flex: 1; min-height: 54px; border-radius: 14px; background: var(--plum); color: #fff; font-weight: 700; font-size: 18px; display: grid; place-items: center">Approve</span><span style="flex: 1; min-height: 54px; border-radius: 14px; border: 2px solid var(--line); font-weight: 700; font-size: 18px; display: grid; place-items: center">Not now</span></div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px; align-items: center">
+      <span style="align-self: flex-start; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Carmen’s phone, a moment later</span>
+      <div lang="es" style="width: 280px; height: 540px; box-sizing: border-box; border-radius: 36px; border: 9px solid var(--ink); background: var(--paper); padding: 20px 14px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-family: var(--display); font-size: 26px; font-weight: 650">Hola, Carmen</span>
+        <span style="min-height: 80px; border-radius: 18px; background: var(--ok); color: #fff; font-size: 22px; font-weight: 700; display: flex; align-items: center; padding: 0 16px">Ya me la tomé</span>
+        <span style="min-height: 80px; border-radius: 18px; background: var(--plum-soft); border: 3px solid var(--plum); font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">¿Es de verdad? <span style="font-size: 11px; background: var(--plum); color: #fff; border-radius: 999px; padding: 3px 8px">NUEVO</span></span>
+        <span style="min-height: 80px; border-radius: 18px; background: var(--sage-soft); border: 3px solid var(--sage); font-size: 22px; font-weight: 700; display: flex; align-items: center; padding: 0 16px">Llamar a Ana</span>
+        <span style="min-height: 80px; border-radius: 18px; background: var(--tomato); color: #fff; font-size: 22px; font-weight: 700; display: flex; align-items: center; padding: 0 16px">Necesito ayuda</span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: Mamá's village</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..750,50;1,9..144,400..600,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--tomato:#A8331A;--tomato-soft:#FBE6DF;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--ok:#2E6F42;--ok-soft:#E4F1E6;--plum:#6A3F7A;--plum-soft:#F1E7F4;--sky-soft:#E1EEF4;--sky-ink:#234C8A;--lid-blue:#2F5FA7;--lid-yellow:#E8B12F;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1180px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 22px 16px 24px; display: flex; flex-direction: column; gap: 14px">
+  <header style="display: flex; justify-content: space-between; align-items: flex-end">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Reyes · you lead</span>
+      <h1 style="margin: 0; font-family: var(--display); font-size: 30px; font-weight: 650">Mamá, tonight</h1>
+    </div>
+    <span style="font-size: 14px; color: var(--ink2)">Fri 8:53 PM</span>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <span style="background: var(--ok-soft); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--ok)">HEALTH</span><span style="font-size: 15px; font-weight: 700">pills: on track</span></span>
+    <span style="background: var(--tomato-soft); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--tomato)">MONEY</span><span style="font-size: 15px; font-weight: 700">scam stopped</span></span>
+    <span style="background: var(--sky-soft); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--sky-ink)">PEOPLE</span><span style="font-size: 15px; font-weight: 700">Marco on</span></span>
+  </div>
+
+  <section role="alert" style="background: var(--paper); border: 2px solid var(--tomato); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tomato)">Scam stopped · 8:52 PM</span>
+    <span style="font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1.25">Someone called Mamá as Marco, asking for $2,000.</span>
+    <span style="font-size: 15px; line-height: 1.45">Village held her, asked Marco, and he said it wasn’t him. She was told not to send money. Nothing was sent.</span>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink2)"><span style="background: var(--cream); border-radius: 999px; padding: 4px 10px">source: her call, 0:14</span><span style="background: var(--cream); border-radius: 999px; padding: 4px 10px">Marco answered in app</span></div>
+    <a href="Fact.dc.html" style="font-size: 15px; font-weight: 700">Why Village did this</a>
+  </section>
+
+  <section style="background: var(--paper); border: 2px solid var(--plum); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--plum)">Village proposes a change · needs your yes</span>
+    <span style="font-size: 17px; line-height: 1.4">Second attempt this month. <span style="font-weight: 700">Unknown callers on Mamá’s line would be answered by Village first.</span> Family and known numbers ring her as before. Anyone asking for money in a family name gets checked with that person before Mamá ever hears them.</span>
+    <span style="font-size: 13px; color: var(--ink2)">Evidence: Oct 9 call (0:21) · tonight (0:14) · flagged by Village’s own checks</span>
+    <div style="display: flex; gap: 8px"><button type="button" style="flex: 1; min-height: 52px; border-radius: 14px; border: 0; background: var(--plum); color: #fff; font: 700 17px var(--body)">Approve</button><button type="button" style="flex: 1; min-height: 52px; border-radius: 14px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 17px var(--body)">Not now</button></div>
+    <span style="font-size: 13px; color: var(--ink2)">Built and tested before anything reaches her phone.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 16px; font-weight: 700">Mamá’s pills</span>
+    <div style="display: flex; align-items: center; gap: 12px"><span style="flex-grow: 1; font-size: 15px">Evening check-in call</span><span style="font-size: 13px; font-weight: 700; color: var(--ok); background: var(--ok-soft); border-radius: 999px; padding: 5px 10px">taken · 8:02 PM</span></div>
+    <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--amber-soft)"><span style="font-size: 14px; font-weight: 700; color: var(--amber-ink)">Refill Sunday · Marco</span><span style="font-size: 14px; line-height: 1.4">lisinopril <span style="font-weight: 700">10 mg</span> <span style="text-decoration: line-through; color: var(--ink2)">5 mg</span> (changed Oct 3, Dr. Lee) · apixaban 5 · metformin 500 · atorvastatin 20</span></div>
+    <span style="font-size: 13px; color: var(--ink2)">She uses her weekly organizer. Village only reports what the calls say; it never advises on doses.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 16px; font-weight: 700">Who’s on</span>
+    <div style="display: flex; align-items: center; gap: 12px"><span style="flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--sage); color: #fff; display: grid; place-items: center; font-weight: 700">M</span><div style="display: flex; flex-direction: column"><span style="font-size: 15px; font-weight: 700">Marco · until 9:30</span><span style="font-size: 13px; color: var(--ink2)">then Ana (you)</span></div></div>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 16px; font-weight: 700">Ask Village</span>
+    <div style="display: flex; gap: 8px"><input type="text" id="ask" aria-label="Ask Village why" value="" placeholder="Why did you ask Marco and not Lucía?" style="flex-grow: 1; min-height: 46px; border-radius: 12px; border: 2px solid var(--line); padding: 0 12px; font: 15px var(--body); min-width: 0"><button type="button" style="min-height: 46px; border-radius: 12px; border: 0; background: var(--ink); color: #fff; font: 700 15px var(--body); padding: 0 14px">Ask</button></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

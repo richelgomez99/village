@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lucía: supporter app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--tomato:#A8331A;--tomato-soft:#FBE6DF;--plum:#6A3F7A;--plum-soft:#F1E7F4;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 12px">
+  <header style="display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Reyes village · Friday</span>
+      <h1 style="margin: 0; font-family: var(--display); font-size: 26px; font-weight: 650; line-height: 1.12">Hi Lucía. Mamá’s okay.</h1>
+    </div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--plum-soft); color: var(--plum); border-radius: 999px; padding: 6px 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--plum)"></span>Lucía · supporter</span>
+  </header>
+
+  <section style="background: var(--paper); border: 2px solid var(--tomato); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tomato)">Today 8:47 PM · scam call stopped</span>
+    <p style="margin: 0; font-size: 16px; line-height: 1.45">Someone called Mamá pretending to be Marco and asked for $2,000. Village held her on the line, asked the real Marco on his phone, and told her not to send anything. She didn’t.</p>
+    <span style="font-size: 13px; color: var(--ink2)">Ana and Marco have the details. No bank or card was touched.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 14px; font-weight: 700">Your part: insurance</span>
+    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center">
+      <span style="font-size: 15px; line-height: 1.4">Apixaban refill needs a prior authorization. Pharmacy flagged it Thursday.</span>
+      <span style="font-size: 12px; font-weight: 700; background: var(--amber-soft); color: var(--amber-ink); border-radius: 999px; padding: 5px 9px; white-space: nowrap">due Mon</span>
+    </div>
+    <button type="button" style="min-height: 48px; border-radius: 12px; border: 2px solid var(--sage); background: var(--sage-soft); color: var(--ink); font: 700 16px var(--body)">Mark it handled</button>
+    <span style="font-size: 13px; color: var(--ink2)">Village only shows you insurance and money items. Medication details stay with Ana and Marco.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700">This week</span>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Evening check-ins answered</span><span style="font-weight: 700; color: var(--ok)">5 of 5</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Who’s with her tonight</span><span style="font-weight: 700">Marco</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Next doctor visit</span><span style="font-weight: 700">Oct 28, 10:30</span></div>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Family chat</span><a href="Chat.dc.html" style="font-size: 14px; font-weight: 700">Open</a></div>
+    <div style="font-size: 14px; line-height: 1.4; color: var(--ink2)"><strong style="color: var(--ink)">Ana</strong> · 8:51 PM · “Marco, thank you for answering so fast.”</div>
+    <div style="font-size: 14px; line-height: 1.4; color: var(--ink2)"><strong style="color: var(--ink)">Village</strong> · 8:52 PM · “A proposal goes to Ana tomorrow: unknown callers on Mamá’s line answered by Village first.”</div>
+  </section>
+
+  <button type="button" style="margin-top: auto; min-height: 52px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 16px var(--body)">Call Mamá</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

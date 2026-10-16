@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>West 147th St blackout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--paper:#F6F4EF;--card:#FFFFFF;--ink:#1E1E1C;--ink2:#555149;--line:#DDD8CE;--sage:#2F6B57;--tomato:#A8331A;--tomato-soft:#FBE6DF;--ok:#2E6F42;--ok-soft:#E4F1E6;--gray-soft:#ECEAE5;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1100px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 22px 16px 24px; display: flex; flex-direction: column; gap: 14px">
+  <header style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">West 147th St · blackout</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 30px; font-weight: 650">Tanya’s block</h1>
+    <span style="font-size: 15px; color: var(--ink2)">97°F · 18 of 24 households checked in</span>
+  </header>
+
+  <section aria-labelledby="needs" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <h2 id="needs" style="margin: 0; font-size: 18px; font-weight: 700">Needs, most urgent first</h2>
+    <div style="background: var(--tomato-soft); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-weight: 700; font-size: 16px">Oxygen machine · Mrs. Alvarez, 5th floor</span>
+      <span style="font-size: 15px">Matched: Darnell’s generator. Calling Darnell now.</span>
+      <span style="font-size: 13px; color: var(--ink2)">She phoned in, in Spanish, at 4:02 PM</span>
+    </div>
+    <div style="background: var(--gray-soft); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-weight: 700; font-size: 16px">Insulin needs cold · Mr. Chen</span>
+      <span style="font-size: 15px">Matched: ice from Ramírez Deli</span>
+    </div>
+    <div style="background: var(--gray-soft); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-weight: 700; font-size: 16px">Newborn in the heat · Okafor family</span>
+      <span style="font-size: 15px">Matched: Priya can drive them to a cooling center</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="rumors" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <h2 id="rumors" style="margin: 0; font-size: 18px; font-weight: 700">What people are hearing</h2>
+    <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--line)">
+      <span style="align-self: flex-start; font-size: 13px; font-weight: 700; background: var(--gray-soft); border-radius: 999px; padding: 4px 10px">Not confirmed · not sent</span>
+      <span style="font-size: 16px; line-height: 1.4">“Power will be back by 6 PM.”</span>
+      <span style="font-size: 13px; color: var(--ink2)">Con Edison outage map shows no estimate. Checked 4:12 PM.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="align-self: flex-start; font-size: 13px; font-weight: 700; background: var(--ok-soft); color: var(--ok); border-radius: 999px; padding: 4px 10px">Checked with the city</span>
+      <span style="font-size: 16px; line-height: 1.4">“The library cooling center is closed.” It’s open until 8 PM.</span>
+      <span style="font-size: 13px; color: var(--ink2)">NYC cooling center finder. Checked 4:10 PM.</span>
+    </div>
+  </section>
+
+  <div style="background: var(--tomato); color: #FFFFFF; border-radius: 14px; padding: 14px; font-size: 17px; font-weight: 700">Signs of heat stroke? Call 911 first.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

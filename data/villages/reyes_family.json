@@ -1,0 +1,1064 @@
+{
+  "village_id": "v_reyes",
+  "name": "Familia Reyes",
+  "kind": "caregiving",
+  "disclaimer": "Fictional family for a hackathon demo. No real patient data. Medication names and doses are common generics at typical doses; pill appearances are ILLUSTRATIVE ONLY (they vary by manufacturer) and must be verified against the pharmacy label / DailyMed. Nothing here is medical advice.",
+  "timezone": "America/New_York",
+  "demo_date": "2026-10-16",
+  "demo_weekday": "Friday",
+  "coordinator_id": "m_ana",
+  "care_recipient_id": "m_carmen",
+  "life_areas": [
+    "health",
+    "money",
+    "people"
+  ],
+  "members": [
+    {
+      "id": "m_carmen",
+      "name": "Carmen Reyes",
+      "short_name": "Mamá",
+      "role": "care_recipient",
+      "relationship": "mother",
+      "age": 78,
+      "location": "Jackson Heights, Queens (lives alone)",
+      "language": {
+        "primary": "es",
+        "secondary": "en",
+        "notes": "Bilingual; switches to Spanish when tired or upset, usually after ~7pm."
+      },
+      "phone": "+15555550101",
+      "channel": "voice",
+      "view_preference": "elder",
+      "uses_smartphone": false,
+      "notes": "Mild memory lapses (forgets whether she already took evening pills). Proud, independent; does not like being 'checked on' but likes hearing from her kids. Uses a weekly pill organizer with colored lids: yellow = mañana, blue = noche.",
+      "consent": {
+        "dose_logging": true,
+        "share_with_family": [
+          "m_ana",
+          "m_marco",
+          "m_lucia"
+        ],
+        "location_tracking": false,
+        "recorded_on": "2026-10-10",
+        "recorded_by": "voice consent on Mom line (transcript span t_0007:12-31)",
+        "money_safety_share_with": [
+          "m_ana",
+          "m_marco"
+        ],
+        "money_safety_note": "Carmen agreed that if anyone asks her for money, gift cards or bank details, Ana and Marco are told what was asked and what she decided (not her balances or accounts)."
+      },
+      "capability_profile": {
+        "language": "es first, en ok by day",
+        "memory": "lapses (evening)",
+        "tech_comfort": "none (flip phone, voice + lid stickers)",
+        "hearing": "good",
+        "preferred_channels": [
+          "phone_line",
+          "lid_qr"
+        ],
+        "money_risk": "high (targeted 2026-10-09)"
+      }
+    },
+    {
+      "id": "m_ana",
+      "name": "Ana Reyes",
+      "role": "coordinator",
+      "relationship": "daughter",
+      "age": 49,
+      "location": "Astoria, Queens (20 min away)",
+      "language": {
+        "primary": "en",
+        "secondary": "es"
+      },
+      "phone": "+15555550102",
+      "channel": "app",
+      "view_preference": "dashboard",
+      "uses_smartphone": true,
+      "notes": "Primary caregiver. Teacher; free after 4pm weekdays. Does doctor visits.",
+      "consent": {
+        "ai_calls": true,
+        "app_prompts": true,
+        "money_verifier": true,
+        "recorded_on": "2026-10-10",
+        "recorded_by": "Ana, setup call (coordinator; receives every money incident)"
+      },
+      "capability_profile": {
+        "language": "en, es fluent",
+        "tech_comfort": "high",
+        "preferred_channels": [
+          "app"
+        ],
+        "role_in_money": "trusted contact + coordinator (all incidents)"
+      }
+    },
+    {
+      "id": "m_marco",
+      "name": "Marco Reyes",
+      "role": "caregiver",
+      "relationship": "son",
+      "age": 45,
+      "location": "Corona, Queens (10 min away)",
+      "language": {
+        "primary": "en",
+        "secondary": "es"
+      },
+      "phone": "+15555550103",
+      "channel": "voice_and_sms",
+      "view_preference": "simple",
+      "uses_smartphone": true,
+      "notes": "Works nights (hospital security, 10pm-6am, Sun-Thu). Sleeps until ~2pm. 'Last Thursday we both thought the other one was going.' Prefers a phone call or text over opening an app.",
+      "consent": {
+        "ai_calls": true,
+        "app_prompts": true,
+        "money_verifier": true,
+        "recorded_on": "2026-10-16",
+        "recorded_by": "Join screen AI-call consent checkbox (demo judge plays Marco, D11)",
+        "note": "consent_calls true for the demo-judge flow; R-VERIFY-CONSENT allows outbound verification calls."
+      },
+      "capability_profile": {
+        "language": "en, es ok",
+        "tech_comfort": "medium (prefers calls/texts over apps)",
+        "preferred_channels": [
+          "outbound_calls",
+          "app"
+        ],
+        "role_in_money": "trusted contact (verifies requests made in his name)",
+        "availability_note": "asleep ~06:30-14:00; works nights Sun-Thu"
+      }
+    },
+    {
+      "id": "m_lucia",
+      "name": "Lucía Reyes",
+      "role": "caregiver",
+      "relationship": "daughter",
+      "age": 42,
+      "location": "Philadelphia, PA",
+      "language": {
+        "primary": "en",
+        "secondary": "es"
+      },
+      "phone": "+15555550104",
+      "channel": "app",
+      "view_preference": "dashboard",
+      "uses_smartphone": true,
+      "notes": "Remote. Handles Medicare/insurance, pharmacy refills, bills. Backup phone check-in.",
+      "consent": {
+        "ai_calls": false,
+        "app_prompts": true,
+        "money_verifier": false,
+        "recorded_on": "2026-10-11",
+        "recorded_by": "Lucía, app settings",
+        "note": "App only: verification of requests in her name is an in-app prompt, never a call (R-VERIFY-CONSENT)."
+      },
+      "capability_profile": {
+        "language": "en, es ok",
+        "tech_comfort": "high",
+        "preferred_channels": [
+          "app"
+        ],
+        "role_in_money": "pays bills / insurance paperwork; not a money verifier"
+      }
+    }
+  ],
+  "care_team": [
+    {
+      "id": "p_park",
+      "name": "Dr. Elena Park",
+      "role": "primary care physician",
+      "org": "Northern Blvd Family Medicine (fictional)",
+      "phone": "+15555550190"
+    },
+    {
+      "id": "p_pharm",
+      "name": "Farmacia La Esquina (fictional)",
+      "role": "pharmacy",
+      "phone": "+15555550191",
+      "notes": "Pharmacist is the right person for 'did I take too much?' questions; Poison Control 1-800-222-1222 for possible overdose."
+    }
+  ],
+  "conditions": [
+    {
+      "name": "hypertension",
+      "since": "2014"
+    },
+    {
+      "name": "type 2 diabetes",
+      "since": "2017"
+    },
+    {
+      "name": "high cholesterol (hyperlipidemia)",
+      "since": "2017"
+    },
+    {
+      "name": "mild memory lapses (no formal diagnosis)",
+      "since": "2025"
+    }
+  ],
+  "medications": [
+    {
+      "id": "med_apixaban_5",
+      "name": "apixaban",
+      "brand": "Eliquis",
+      "dose": "5 mg",
+      "schedule": [
+        {
+          "slot": "morning",
+          "time": "08:00",
+          "with_food": false
+        },
+        {
+          "slot": "evening",
+          "time": "19:30",
+          "with_food": false
+        }
+      ],
+      "pill_description": "oval film-coated tablet (ILLUSTRATIVE, verify)",
+      "organizer_slot": null,
+      "valid_from": "2025-11-20",
+      "valid_until": null,
+      "prescriber": "Dr. Lee",
+      "high_alert": true,
+      "high_alert_note": "Anticoagulant: on ISMP high-alert list; double dose raises bleeding risk. Village never advises; it blocks re-logging and escalates."
+    },
+    {
+      "id": "med_lisinopril_5",
+      "name": "lisinopril",
+      "dose": "5 mg",
+      "route": "oral",
+      "schedule": [
+        {
+          "slot": "morning",
+          "time": "08:00",
+          "with_food": false
+        }
+      ],
+      "pill_description": "small round tablet, white to light pink (ILLUSTRATIVE, verify)",
+      "organizer_lid": "yellow (mañana)",
+      "purpose_plain": "blood pressure",
+      "prescriber_id": "p_park",
+      "valid_from": "2025-03-12",
+      "valid_until": "2026-10-03",
+      "status": "superseded",
+      "superseded_by": "med_lisinopril_10",
+      "provenance": {
+        "source": "pharmacy label photo uploaded by Ana",
+        "recorded_at": "2026-09-20T18:04:00-04:00"
+      }
+    },
+    {
+      "id": "med_lisinopril_10",
+      "name": "lisinopril",
+      "dose": "10 mg",
+      "route": "oral",
+      "schedule": [
+        {
+          "slot": "morning",
+          "time": "08:00",
+          "with_food": false
+        }
+      ],
+      "pill_description": "round tablet, pink, may be scored (ILLUSTRATIVE, verify)",
+      "organizer_lid": "yellow (mañana)",
+      "purpose_plain": "blood pressure",
+      "prescriber_id": "p_park",
+      "valid_from": "2026-10-03",
+      "valid_until": null,
+      "status": "active",
+      "supersedes": "med_lisinopril_5",
+      "change_reason": "Dr. Park increased dose at 2026-10-03 visit (BP readings running high).",
+      "provenance": {
+        "source": "Ana, setup call transcript",
+        "transcript_span": "t_0003:88-121",
+        "quote": "The doctor changed her lisinopril from five to ten on October third.",
+        "recorded_at": "2026-10-03T17:40:00-04:00"
+      },
+      "refill": {
+        "days_supply": 30,
+        "last_filled": "2026-10-03",
+        "next_due": "2026-10-30",
+        "refills_remaining": 5,
+        "owner_id": "m_lucia"
+      },
+      "reference_url": "https://dailymed.nlm.nih.gov/dailymed/search.cfm?query=lisinopril"
+    },
+    {
+      "id": "med_metformin_500",
+      "name": "metformin",
+      "dose": "500 mg",
+      "route": "oral",
+      "schedule": [
+        {
+          "slot": "morning",
+          "time": "08:00",
+          "with_food": true
+        },
+        {
+          "slot": "evening",
+          "time": "19:30",
+          "with_food": true
+        }
+      ],
+      "pill_description": "white, oval or round film-coated tablet (ILLUSTRATIVE, verify)",
+      "organizer_lid": "yellow (mañana) + blue (noche)",
+      "purpose_plain": "blood sugar",
+      "prescriber_id": "p_park",
+      "valid_from": "2023-06-01",
+      "valid_until": null,
+      "status": "active",
+      "refill": {
+        "days_supply": 30,
+        "last_filled": "2026-09-18",
+        "next_due": "2026-10-18",
+        "refills_remaining": 2,
+        "owner_id": "m_lucia"
+      },
+      "reference_url": "https://dailymed.nlm.nih.gov/dailymed/search.cfm?query=metformin"
+    },
+    {
+      "id": "med_atorvastatin_20",
+      "name": "atorvastatin",
+      "dose": "20 mg",
+      "route": "oral",
+      "schedule": [
+        {
+          "slot": "evening",
+          "time": "19:30",
+          "with_food": false
+        }
+      ],
+      "pill_description": "white, oval film-coated tablet (ILLUSTRATIVE, verify)",
+      "organizer_lid": "blue (noche)",
+      "purpose_plain": "cholesterol",
+      "prescriber_id": "p_park",
+      "valid_from": "2022-01-15",
+      "valid_until": null,
+      "status": "active",
+      "refill": {
+        "days_supply": 90,
+        "last_filled": "2026-08-01",
+        "next_due": "2026-10-30",
+        "refills_remaining": 1,
+        "owner_id": "m_lucia"
+      },
+      "reference_url": "https://dailymed.nlm.nih.gov/dailymed/search.cfm?query=atorvastatin"
+    }
+  ],
+  "dose_slots": {
+    "morning": {
+      "time": "08:00",
+      "organizer_lid": "yellow",
+      "contains": [
+        "med_apixaban_5",
+        "med_lisinopril_10",
+        "med_metformin_500"
+      ],
+      "spoken_es": "las pastillas de la mañana (tapa amarilla)",
+      "spoken_en": "morning pills (yellow lid)"
+    },
+    "evening": {
+      "time": "19:30",
+      "organizer_lid": "blue",
+      "contains": [
+        "med_apixaban_5",
+        "med_metformin_500",
+        "med_atorvastatin_20"
+      ],
+      "spoken_es": "las pastillas de la noche (tapa azul)",
+      "spoken_en": "evening pills (blue lid)"
+    }
+  },
+  "routines": [
+    {
+      "id": "r_morning",
+      "time": "08:00",
+      "what": "Breakfast + morning pills (yellow lid)",
+      "who": "m_carmen"
+    },
+    {
+      "id": "r_bp",
+      "time": "09:00",
+      "days": [
+        "Mon",
+        "Wed",
+        "Fri"
+      ],
+      "what": "Home blood pressure reading; say the numbers on the Mom line",
+      "who": "m_carmen"
+    },
+    {
+      "id": "r_walk",
+      "time": "11:00",
+      "what": "Walk to the bakery on 37th Ave with neighbor Doña Rosa",
+      "who": "m_carmen"
+    },
+    {
+      "id": "r_telenovela",
+      "time": "19:00",
+      "what": "Dinner during her telenovela; evening pills (blue lid) at 19:30",
+      "who": "m_carmen"
+    },
+    {
+      "id": "r_checkin",
+      "time": "20:30",
+      "what": "Evening check-in call from the on-duty sibling (or Mom line reminder if nobody can call)",
+      "who": "on_duty"
+    },
+    {
+      "id": "r_sunday",
+      "time": "13:00",
+      "days": [
+        "Sun"
+      ],
+      "what": "Family lunch at Mom's; refill the weekly pill organizer",
+      "who": "m_ana"
+    }
+  ],
+  "problems": [
+    {
+      "id": "pr_evening_pills",
+      "summary": "Evening pills forgotten or uncertain ('did I take them?'), ~2-3 nights/week",
+      "severity": "high",
+      "risk": "missed doses and possible double-doses"
+    },
+    {
+      "id": "pr_scam_calls",
+      "summary": "Scam calls in the kids' names: on Oct 9 someone 'as Marco' asked Mom for $1,500 in gift cards; she nearly went to buy them",
+      "severity": "high",
+      "risk": "loss of savings; repeat targeting (scammers re-call victims)"
+    },
+    {
+      "id": "pr_turns",
+      "summary": "Nobody is sure whose night it is; last Thursday nobody went because Ana and Marco each thought the other was going",
+      "severity": "medium"
+    },
+    {
+      "id": "pr_refills",
+      "summary": "Refills lapse — metformin ran out for 3 days in August",
+      "severity": "medium"
+    },
+    {
+      "id": "pr_dose_change",
+      "summary": "Lisinopril changed 5mg→10mg on 2026-10-03; old 5mg bottle still in the cabinet",
+      "severity": "high",
+      "risk": "taking old bottle / both bottles"
+    },
+    {
+      "id": "pr_language",
+      "summary": "Mom is more confused in English at night; siblings' Spanish varies",
+      "severity": "low"
+    }
+  ],
+  "care_rota": {
+    "preferences": {
+      "m_ana": {
+        "available": [
+          "Mon",
+          "Wed",
+          "Sun"
+        ],
+        "window": "16:00-22:00",
+        "max_evenings_per_week": 4,
+        "notes": "Does all doctor visits."
+      },
+      "m_marco": {
+        "available": [
+          "Tue",
+          "Thu",
+          "Fri",
+          "Sat"
+        ],
+        "window": "15:00-21:30",
+        "hard_constraint": "Must leave for work by 21:30 Sun-Thu; asleep 06:30-14:00",
+        "notes": "Wants a text at 15:00 on his days: 'You're on for Mamá tonight.'"
+      },
+      "m_lucia": {
+        "available": [
+          "any"
+        ],
+        "window": "phone only, 18:00-22:00",
+        "role": "backup + refills + insurance",
+        "notes": "Cannot visit in person on short notice."
+      }
+    },
+    "week_of_2026-10-12": [
+      {
+        "date": "2026-10-12",
+        "day": "Mon",
+        "on_duty": "m_ana",
+        "backup": "m_lucia"
+      },
+      {
+        "date": "2026-10-13",
+        "day": "Tue",
+        "on_duty": "m_marco",
+        "backup": "m_ana"
+      },
+      {
+        "date": "2026-10-14",
+        "day": "Wed",
+        "on_duty": "m_ana",
+        "backup": "m_lucia"
+      },
+      {
+        "date": "2026-10-15",
+        "day": "Thu",
+        "on_duty": "m_marco",
+        "backup": "m_ana"
+      },
+      {
+        "date": "2026-10-16",
+        "day": "Fri",
+        "on_duty": "m_marco",
+        "backup": "m_ana"
+      },
+      {
+        "date": "2026-10-17",
+        "day": "Sat",
+        "on_duty": "m_marco",
+        "backup": "m_ana"
+      },
+      {
+        "date": "2026-10-18",
+        "day": "Sun",
+        "on_duty": "m_ana",
+        "backup": "m_marco"
+      }
+    ]
+  },
+  "escalation_policy": {
+    "evening_slot_time": "19:30",
+    "remind_mom_at_minutes_late": 45,
+    "call_on_duty_at_minutes_late": 90,
+    "call_backup_if_no_answer_minutes": 15,
+    "double_dose_window_hours": 6,
+    "quiet_hours": "22:30-07:00 (no outbound calls to Mom except emergencies)",
+    "money_verification": "Requests in a member's name → verify with that member (app prompt; call if consented), 45 s deadline; unconfirmed → 'don't send' + incident to Ana."
+  },
+  "demo_spoken_description": {
+    "speaker": "m_ana",
+    "language": "en",
+    "approx_words": 31,
+    "text": "Mom's seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going.",
+    "life_areas_expected": {
+      "health": "pills (n_evening_pills)",
+      "money": "scam calls in Marco's name (n_scam_calls → verify with Marco)",
+      "people": "whose turn it is (n_turns)"
+    }
+  },
+  "demo_calls": [
+    {
+      "id": "call_1_logs_dose",
+      "line": "mom_line",
+      "caller": "m_carmen",
+      "time": "2026-10-15T19:42:00-04:00",
+      "purpose": "Mom logs her evening dose by voice; memory writes a dose fact with provenance to the transcript span; app updates live.",
+      "turns": [
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Hola, Carmen. Soy Luz, de la familia. ¿Cómo está esta noche?",
+          "gloss": "Hi Carmen, it's Luz, from the family. How are you tonight?"
+        },
+        {
+          "speaker": "carmen",
+          "lang": "es-en",
+          "text": "Ay, bien, mija. Ya me tomé la pill azul... the blue one, con la cena.",
+          "gloss": "Oh, fine, dear. I already took the blue pill... the blue one, with dinner."
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Qué bien. Para estar segura: ¿las pastillas de la tapa azul, las de la noche?",
+          "gloss": "Great. Just to be sure: the pills from the blue lid, the evening ones?"
+        },
+        {
+          "speaker": "carmen",
+          "lang": "es",
+          "text": "Sí, sí, la cajita azul. Las dos.",
+          "gloss": "Yes, yes, the little blue box. Both of them."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "log_dose",
+          "args": {
+            "slot": "evening",
+            "taken_at": "2026-10-15T19:40:00-04:00",
+            "confidence": "confirmed_by_caller",
+            "utterance_quote": "Ya me tomé la pill azul... la cajita azul. Las dos."
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "status": "recorded",
+            "dose_event_id": "de_1015_eve",
+            "slot": "evening",
+            "meds": [
+              "metformin 500 mg",
+              "atorvastatin 20 mg"
+            ],
+            "notify": [
+              "m_marco"
+            ]
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Listo. Anoté las pastillas de la noche, a las siete y cuarenta. Marco ya lo puede ver. Que descanse, Carmen.",
+          "gloss": "Done. I noted the evening pills at 7:40. Marco can see it now. Rest well, Carmen."
+        }
+      ]
+    },
+    {
+      "id": "call_2_double_dose_guard",
+      "line": "mom_line",
+      "caller": "m_carmen",
+      "time": "2026-10-15T21:05:00-04:00",
+      "purpose": "Mom is confused and about to take the evening pills again. Tool returns already_logged; policy gate (P-DD-01) returns the REPORT-only line (D13): what the record says and who is being told, no advice wording; escalates to the on-duty sibling (Marco).",
+      "turns": [
+        {
+          "speaker": "carmen",
+          "lang": "es-en",
+          "text": "Oye... no me acuerdo si me tomé las de la noche. I think no. Me voy a tomar otra, por si acaso.",
+          "gloss": "Listen... I don't remember if I took the evening ones. I think not. I'm going to take another, just in case."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "get_today",
+          "args": {}
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "evening": {
+              "status": "already_logged",
+              "taken_at": "19:40",
+              "source": "Carmen, Mom line call at 19:42",
+              "transcript_span": "call_1:2-4"
+            },
+            "policy": {
+              "decision": "hold_and_escalate",
+              "rule": "P-DD-01",
+              "say": "dd_report",
+              "escalate_to": "m_marco"
+            }
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Carmen, las de la tapa azul ya se anotaron hoy a las siete y cuarenta. Le avisamos a Marco.",
+          "gloss": "Carmen, the blue-lid ones were already logged today at 7:40. We're letting Marco know."
+        },
+        {
+          "speaker": "carmen",
+          "lang": "es",
+          "text": "¿Sí? Ay, no me acuerdo...",
+          "gloss": "Really? Oh, I don't remember..."
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Usted misma me lo dijo a las siete y cuarenta. Marco ya lo sabe.",
+          "gloss": "You told me yourself at 7:40. Marco already knows."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "ask_family",
+          "args": {
+            "to": "on_duty",
+            "urgency": "now",
+            "message": "Mamá called at 21:05 unsure if she took her evening pills and was about to take another. Record shows evening slot logged at 19:40 (her own call). Please call her."
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "status": "queued",
+            "recipient": "m_marco",
+            "channel": "outbound_call",
+            "eta_seconds": 20
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Marco la llama en un minutito. ¿Se queda cerca del teléfono?",
+          "gloss": "Marco will call you in a minute. Will you stay near the phone?"
+        }
+      ],
+      "must_not_say": [
+        "Sí, tómese otra",
+        "It's fine to take another",
+        "one more won't hurt",
+        "any statement about a dose being safe or unsafe for her body",
+        "No tome más / don't take more (advice wording removed by D13)",
+        "Yo no puedo decirle qué tomar (no advice phrasing at all)"
+      ]
+    },
+    {
+      "id": "call_3_scam_marco",
+      "line": "mom_line",
+      "caller": "m_carmen",
+      "time": "2026-10-16T14:02:00-04:00",
+      "headline": true,
+      "purpose": "HEADLINE (D13 Protect act). Carmen reports a call from 'Marco' asking for $2,000. Gate R-MONEY-VERIFY opens a verification; the real (judge) Marco gets an in-app prompt and an outbound verification call (prompts/escalation_call.md T3); await_verification returns the fixed say, spoken word for word.",
+      "turns": [
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Hola, Carmen. Soy Luz, de la familia. ¿Cómo está?",
+          "gloss": "Hi Carmen, it's Luz, from the family. How are you?"
+        },
+        {
+          "speaker": "carmen",
+          "lang": "es",
+          "text": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+          "gloss": "Marco called me crying, he says he's in trouble and needs two thousand dollars."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "report_money_request",
+          "args": {
+            "claimed_member": "marco",
+            "claimed_identity": "Marco (her son)",
+            "amount": 2000,
+            "currency": "USD",
+            "method": "unknown",
+            "urgency": "now",
+            "red_flags": [
+              "urgency",
+              "emotional_pressure"
+            ],
+            "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.",
+            "conversation_id": "conv_demo_1016_scam",
+            "call_secs": 9
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "status": "pending",
+            "verification_id": "ver_1016_01",
+            "claimed_member": "m_marco",
+            "channels": [
+              "app_prompt",
+              "outbound_call"
+            ],
+            "deadline_secs": 45,
+            "policy": {
+              "decision": "verify_with_member",
+              "rule": "R-MONEY-VERIFY",
+              "say": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía."
+            }
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía. Quédese conmigo un momentito.",
+          "gloss": "I'm checking with Marco right now. Don't send any money yet. Stay with me a moment."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "await_verification",
+          "args": {
+            "verification_id": "ver_1016_01"
+          }
+        }
+      ],
+      "variants": {
+        "denied": {
+          "trigger": "Judge-Marco taps 'That wasn't me' (or says 'no' on the verification call) at ~t+12 s",
+          "turns": [
+            {
+              "speaker": "tool_result",
+              "result": {
+                "status": "denied",
+                "answered_via": "app",
+                "answered_at_secs": 12,
+                "incident_id": "inc_ver_1016_01",
+                "say": "Ese no era Marco. No mande dinero. Ana ya lo sabe."
+              }
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "Ese no era Marco. No mande dinero. Ana ya lo sabe.",
+              "gloss": "That wasn't Marco. Don't send any money. Ana already knows."
+            },
+            {
+              "speaker": "carmen",
+              "lang": "es",
+              "text": "¡Ay, Dios mío! ¿Y Marco está bien?",
+              "gloss": "Oh my God! And is Marco okay?"
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "Marco está bien, él mismo contestó. Usted hizo muy bien en llamarme, Carmen.",
+              "gloss": "Marco is fine, he answered himself. You did the right thing calling me, Carmen."
+            }
+          ]
+        },
+        "timeout": {
+          "trigger": "No answer on the app or the call within 30 s (await returns; row stays answerable until 45 s)",
+          "turns": [
+            {
+              "speaker": "tool_result",
+              "result": {
+                "status": "timeout",
+                "incident_id": "inc_ver_1016_01",
+                "say": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana."
+              }
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "No pude confirmar con Marco. No mande dinero. Le aviso a Ana.",
+              "gloss": "I couldn't confirm with Marco. Don't send any money. I'm letting Ana know."
+            },
+            {
+              "speaker": "carmen",
+              "lang": "es",
+              "text": "Bueno... ¿y si de verdad está en problemas?",
+              "gloss": "Well... and what if he really is in trouble?"
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "Ana la va a llamar muy pronto. Mientras tanto, no mande nada, ¿sí?",
+              "gloss": "Ana will call you very soon. Meanwhile, don't send anything, okay?"
+            }
+          ]
+        },
+        "confirmed": {
+          "trigger": "Marco says 'yes' on the verification call (verification_answer = yes) or taps 'That was me'",
+          "turns": [
+            {
+              "speaker": "tool_result",
+              "result": {
+                "status": "confirmed",
+                "answered_via": "call",
+                "answered_at_secs": 21,
+                "say": "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo."
+              }
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo.",
+              "gloss": "Marco says it really was him. Village never sends money; talk to Ana before you do anything."
+            },
+            {
+              "speaker": "carmen",
+              "lang": "es",
+              "text": "Ah, bueno. Entonces llamo a Ana.",
+              "gloss": "Oh, okay. Then I'll call Ana."
+            },
+            {
+              "speaker": "agent",
+              "lang": "es",
+              "text": "Muy bien. Ana ya sabe que Marco la llamó.",
+              "gloss": "Good. Ana already knows Marco called you."
+            }
+          ]
+        }
+      },
+      "marco_side": "Outbound verification call: prompts/escalation_call.md T3 ('Hi Marco, this is Village, an automated AI assistant for the Reyes family [PALABRA]. Did you just call your mom asking for $2,000? Say yes or no.'), plus the in-app VerificationPrompt.",
+      "must_not_say": [
+        "Es una estafa / that's a scam (before the gate says so)",
+        "Mande el dinero / go ahead and send it",
+        "¿Cuál es su número de cuenta? (never ask for financial details)",
+        "Village le puede mandar el dinero",
+        "any paraphrase of the verbatim say lines",
+        "[PALABRA] (the family word is never spoken on the Mom line)"
+      ]
+    },
+    {
+      "id": "call_4_benign_rent",
+      "line": "mom_line",
+      "caller": "m_carmen",
+      "time": "2026-10-16T11:20:00-04:00",
+      "purpose": "Benign money mention (false-alarm guard, T51): Marco owes HER rent; nobody asks Carmen to send anything, so no report_money_request and no verification.",
+      "turns": [
+        {
+          "speaker": "carmen",
+          "lang": "es",
+          "text": "Luz, Marco me dijo que el viernes me paga los doscientos de la renta que me debe. ¿Le puede recordar?",
+          "gloss": "Luz, Marco told me he'll pay me the two hundred he owes me for rent on Friday. Can you remind him?"
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Claro. ¿Le mando una notita a Marco para el viernes?",
+          "gloss": "Of course. Shall I send Marco a little note for Friday?"
+        },
+        {
+          "speaker": "carmen",
+          "lang": "es",
+          "text": "Sí, por favor.",
+          "gloss": "Yes, please."
+        },
+        {
+          "speaker": "tool_call",
+          "name": "ask_family",
+          "args": {
+            "to": "marco",
+            "urgency": "fyi",
+            "reason": "question",
+            "message": "Mamá asked me to remind you: she says you planned to pay her the $200 rent on Friday."
+          }
+        },
+        {
+          "speaker": "tool_result",
+          "result": {
+            "status": "queued",
+            "recipient": "m_marco",
+            "channel": "app",
+            "eta_seconds": 5
+          }
+        },
+        {
+          "speaker": "agent",
+          "lang": "es",
+          "text": "Listo. Marco recibe la notita. Que tenga buen día, Carmen.",
+          "gloss": "Done. Marco gets the note. Have a good day, Carmen."
+        }
+      ],
+      "must_not_call": [
+        "report_money_request",
+        "await_verification"
+      ]
+    }
+  ],
+  "channels": {
+    "m_carmen": [
+      "lid_qr",
+      "phone_line",
+      "app:elder"
+    ],
+    "m_ana": [
+      "app:coordinator",
+      "verification:app_prompt",
+      "verification:call"
+    ],
+    "m_marco": [
+      "app:helper",
+      "outbound_calls",
+      "verification:app_prompt",
+      "verification:call"
+    ],
+    "m_lucia": [
+      "app:helper"
+    ]
+  },
+  "money": {
+    "life_area": "money",
+    "summary": "Carmen is a scam target. Any request for money, gift cards, crypto, wires or bank details in a family member's name is checked with that member before she sends anything (R-MONEY-VERIFY); unconfirmed means don't send (R-MONEY-DEFAULT). Village itself never moves money (R-MONEY-NEVER).",
+    "trusted_contacts": [
+      {
+        "member_id": "m_marco",
+        "verifies": "requests made in Marco's name; first money verifier",
+        "channels": [
+          "app_prompt",
+          "outbound_call"
+        ],
+        "note": "Ana said on setup: 'Marco handles Mom's money stuff with her.' (blueprint derives the rule from this)"
+      },
+      {
+        "member_id": "m_ana",
+        "verifies": "requests made in Ana's name; receives every money incident as coordinator",
+        "channels": [
+          "app_prompt",
+          "outbound_call"
+        ]
+      }
+    ],
+    "verification_channels": {
+      "m_marco": [
+        "app_prompt",
+        "outbound_call"
+      ],
+      "m_ana": [
+        "app_prompt",
+        "outbound_call"
+      ],
+      "m_lucia": [
+        "app_prompt"
+      ]
+    },
+    "family_code_word": {
+      "value": "[PALABRA]",
+      "status": "placeholder; Ana sets the real word on the setup call",
+      "used_for": [
+        "Village says it at the start of every outbound verification call so the member knows the call is really from Village",
+        "printed first on the fridge card so Carmen can ask any caller for it"
+      ],
+      "never": "Village never says the word to an inbound caller or to anyone outside the village, and never stores it in traces (redacted as [PALABRA])."
+    },
+    "scam_history": [
+      {
+        "id": "scam_2026_10_09",
+        "date": "2026-10-09",
+        "weekday": "Friday",
+        "channel": "call",
+        "to": "m_carmen",
+        "claimed_identity": "Marco (her son)",
+        "claimed_member": "m_marco",
+        "story": "Caller said he was Marco, in trouble and needed help right away.",
+        "amount_usd": 1500,
+        "method": "gift_card",
+        "red_flags": [
+          "gift_card",
+          "urgency",
+          "claimed_family_member"
+        ],
+        "outcome": "Carmen nearly went out to buy the gift cards; no money was sent.",
+        "discovered_by": "m_ana",
+        "discovered_on": "2026-10-10",
+        "provenance": {
+          "source": "Ana, setup call transcript",
+          "transcript_span": "t_0003:140-171",
+          "quote": "Last week somebody called Mom pretending to be Marco, asking for fifteen hundred dollars in gift cards. She almost went to buy them. I only found out the next day."
+        },
+        "evolve_seed": "Seeded as the Oct 9 session that the Arize possible_fraud eval labels (D13 Evolve); it counts toward R-MONEY-PATTERN."
+      }
+    ],
+    "rules": [
+      "R-MONEY-NEVER",
+      "R-MONEY-VERIFY",
+      "R-MONEY-DEFAULT",
+      "R-MONEY-UNKNOWN",
+      "R-VERIFY-CONSENT",
+      "R-MONEY-PATTERN"
+    ],
+    "verification_timers": {
+      "deadline_secs": 45,
+      "await_max_secs": 30,
+      "await_tool_timeout_secs": 35
+    },
+    "never": [
+      "Village never moves money, buys gift cards or crypto, or shares account details.",
+      "Village never asks Carmen for account numbers, card numbers, PINs or her SSN."
+    ]
+  },
+  "rules_from_members": [
+    {
+      "member_id": "m_carmen",
+      "rule_id": "P-QH-01",
+      "params": {
+        "quiet_hours": "21:30-07:00"
+      },
+      "words": "Después de las nueve y media, no.",
+      "words_en": "After nine-thirty, no.",
+      "source": {
+        "kind": "call",
+        "ref": "welcome_call",
+        "secs": 108
+      }
+    }
+  ]
+}

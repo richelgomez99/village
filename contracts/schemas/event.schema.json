@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/event.schema.json",
+  "title": "Ledger event",
+  "description": "One row of the SurrealDB `event` table, the append-only ledger. Written only by core (via services.record_event) after the gate decides; fanned out to clients as WS `event` messages. payload is typed per kind. Incident rows are upserts keyed by payload.incident_id (latest row wins).",
+  "x-contract-version": "1.1.0",
+  "$ref": "#/$defs/event_body",
+  "required": ["id"],
+
+  "$defs": {
+    "kind": {
+      "enum": [
+        "dose", "dose_repeat_scan", "dose_repeat", "reminder", "escalation", "ack", "symptom", "help_request", "shift", "med_change", "consent",
+        "money_request", "verification_pending", "verification_confirmed", "verification_denied", "verification_timeout", "verification_answer_conflict",
+        "incident", "pattern",
+        "spec_patch_proposed", "spec_patch_applied", "qa", "release",
+        "call_failed", "village_activated", "invite_redeemed"
+      ],
+      "description": "1.1.0 added call_failed (an outbound call could not be completed; FS-2), village_activated and invite_redeemed (FS-3 lifecycle). The SurrealDB event.kind ASSERT list must equal this enum."
+    },
+
+    "event_body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["village", "kind", "payload", "actor", "source", "at"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "village": { "$ref": "common.schema.json#/$defs/village_id" },
+        "kind": { "$ref": "#/$defs/kind" },
+        "payload": { "type": "object" },
+        "actor": { "$ref": "common.schema.json#/$defs/actor" },
+        "source": { "$ref": "common.schema.json#/$defs/source" },
+        "am": { "$ref": "common.schema.json#/$defs/am" },
+        "decision_id": { "$ref": "common.schema.json#/$defs/decision_id", "description": "Gate decision that produced this row (absent for system/seed rows)." },
+        "at": { "$ref": "common.schema.json#/$defs/datetime" }
+      },
+      "allOf": [ { "$ref": "#/$defs/payload_by_kind" } ]
+    },
+
+    "event_draft": {
+      "type": "object",
+      "description": "A row the gate asks core to write (Decision.writes[]). Core adds id, village, actor, source, decision_id and at.",
+      "additionalProperties": false,
+      "required": ["kind", "payload"],
+      "properties": { "kind": { "$ref": "#/$defs/kind" }, "payload": { "type": "object" } },
+      "allOf": [ { "$ref": "#/$defs/payload_by_kind" } ]
+    },
+
+    "payload_by_kind": {
+      "allOf": [
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "dose" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_dose" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "enum": ["dose_repeat_scan", "dose_repeat"] } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_dose_repeat" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "reminder" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_reminder" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "escalation" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_escalation" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "ack" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_ack" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "symptom" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_symptom" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "help_request" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_help_request" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "shift" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_shift" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "med_change" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_med_change" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "consent" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_consent" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "money_request" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_money_request" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "verification_pending" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_verification_pending" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "enum": ["verification_confirmed", "verification_denied"] } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_verification_answered" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "verification_timeout" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_verification_timeout" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "verification_answer_conflict" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_verification_answer_conflict" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "incident" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_incident" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "pattern" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_pattern" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "spec_patch_proposed" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_spec_patch_proposed" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "spec_patch_applied" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_spec_patch_applied" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "qa" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_qa" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "release" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_release" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "call_failed" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_call_failed" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "village_activated" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_village_activated" } } } },
+        { "if": { "required": ["kind"], "properties": { "kind": { "const": "invite_redeemed" } } }, "then": { "properties": { "payload": { "$ref": "#/$defs/payload_invite_redeemed" } } } }
+      ]
+    },
+
+    "member": { "$ref": "common.schema.json#/$defs/member_id" },
+    "localized": { "$ref": "common.schema.json#/$defs/localized" },
+
+    "payload_dose": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject", "slot", "taken_at", "confidence", "via"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/member" },
+        "slot": { "$ref": "common.schema.json#/$defs/slot" },
+        "taken_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "confidence": { "enum": ["confirmed", "uncertain"] },
+        "via": { "enum": ["lid_qr", "phone_line", "app"] },
+        "flags": { "type": "array", "uniqueItems": true, "items": { "enum": ["off_schedule", "possible_double_dose"] } }
+      }
+    },
+    "payload_dose_repeat": {
+      "type": "object", "additionalProperties": false,
+      "description": "policy_cases 'attempted_duplicate'. Never counts as a dose.",
+      "required": ["subject", "slot", "first_event_id", "first_taken_at", "attempted_at", "notified"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/member" },
+        "slot": { "$ref": "common.schema.json#/$defs/slot" },
+        "first_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "first_taken_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "attempted_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "notified": { "$ref": "#/$defs/member", "description": "On-duty member told (rota for that date)." },
+        "utterance": { "type": "string", "maxLength": 600 }
+      }
+    },
+    "payload_reminder": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "slot", "channel", "rule_id"],
+      "properties": { "subject": { "$ref": "#/$defs/member" }, "slot": { "$ref": "common.schema.json#/$defs/slot" }, "channel": { "$ref": "common.schema.json#/$defs/notify_channel" }, "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" } }
+    },
+    "payload_escalation": {
+      "type": "object", "additionalProperties": false, "required": ["to", "channel", "reason", "rule_id", "level", "status"],
+      "properties": {
+        "to": { "$ref": "#/$defs/member" },
+        "channel": { "enum": ["outbound_call", "app_banner", "both"] },
+        "reason": { "enum": ["double_dose_attempt", "missed_dose", "dose_uncertain", "possible_double_dose", "symptom", "emergency", "help_request", "money_request"] },
+        "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" },
+        "related_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 3, "description": "1 = on duty, 2 = backup, 3 = coordinator." },
+        "status": { "enum": ["placed", "ringing", "answered", "no_answer", "failed", "skipped_no_consent"] },
+        "call_id": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "payload_ack": {
+      "type": "object", "additionalProperties": false, "required": ["of_event_id", "status", "channel"],
+      "properties": {
+        "of_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "status": { "enum": ["accepted", "declined", "not_needed", "got_it"] },
+        "channel": { "enum": ["app", "outbound_call"] },
+        "incident_id": { "$ref": "common.schema.json#/$defs/incident_id" }
+      }
+    },
+    "payload_symptom": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "type", "description", "emergency_signals"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/member" },
+        "type": { "enum": ["symptom", "mood", "fall", "blood_pressure_reading", "blood_sugar_reading", "info_for_family"] },
+        "description": { "type": "string", "maxLength": 300 },
+        "value": { "type": "string", "maxLength": 40 },
+        "emergency_signals": { "type": "boolean" },
+        "utterance": { "type": "string", "maxLength": 600 }
+      }
+    },
+    "payload_help_request": {
+      "type": "object", "additionalProperties": false, "required": ["subject"],
+      "properties": { "subject": { "$ref": "#/$defs/member" }, "utterance": { "type": "string", "maxLength": 600 } }
+    },
+    "payload_shift": {
+      "type": "object", "additionalProperties": false, "required": ["date", "on_duty", "backup", "change"],
+      "properties": { "date": { "$ref": "common.schema.json#/$defs/date" }, "on_duty": { "$ref": "#/$defs/member" }, "backup": { "$ref": "#/$defs/member" }, "change": { "enum": ["assigned", "swap_requested", "swapped"] } }
+    },
+    "payload_med_change": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "med", "from", "to", "effective", "prescriber"],
+      "description": "Supersession of a medication record (P-MA-03: coordinator only, with provenance).",
+      "properties": {
+        "subject": { "$ref": "#/$defs/member" },
+        "med": { "type": "string", "maxLength": 60 },
+        "from": { "type": "object", "additionalProperties": false, "required": ["med_id", "dose"], "properties": { "med_id": { "type": "string" }, "dose": { "type": "string" } } },
+        "to": { "type": "object", "additionalProperties": false, "required": ["med_id", "dose"], "properties": { "med_id": { "type": "string" }, "dose": { "type": "string" } } },
+        "effective": { "$ref": "common.schema.json#/$defs/date" },
+        "prescriber": { "type": "string", "maxLength": 80 }
+      }
+    },
+    "payload_consent": {
+      "type": "object", "additionalProperties": false, "required": ["member_id", "scopes", "text_version"],
+      "properties": {
+        "member_id": { "$ref": "#/$defs/member" },
+        "scopes": {
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": { "ai_calls": { "type": "boolean" }, "app_prompts": { "type": "boolean" }, "dose_logging": { "type": "boolean" }, "share_with_family": { "type": "boolean" }, "money_safety_sharing": { "type": "boolean" } }
+        },
+        "text_version": { "type": "string", "pattern": "^[a-z0-9_.-]{2,40}$" }
+      }
+    },
+    "payload_money_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject", "claimed_member_id", "claimed_identity", "amount", "currency", "method", "urgency", "red_flags", "utterance", "verification_id"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/member", "description": "Who was asked for money (the care recipient)." },
+        "claimed_member_id": { "anyOf": [ { "$ref": "#/$defs/member" }, { "type": "null" } ], "description": "null = claimed identity not in the village (R-MONEY-UNKNOWN)." },
+        "claimed_identity": { "type": "string", "maxLength": 120 },
+        "amount": { "type": ["number", "null"], "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "method": { "$ref": "common.schema.json#/$defs/money_method" },
+        "urgency": { "$ref": "common.schema.json#/$defs/money_urgency" },
+        "red_flags": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/money_red_flag" } },
+        "utterance": { "type": "string", "maxLength": 600, "description": "Verbatim; digits that look like account/card numbers are redacted before storage." },
+        "verification_id": { "anyOf": [ { "$ref": "common.schema.json#/$defs/verification_id" }, { "type": "null" } ] },
+        "pattern_flag": { "const": "possible_fraud_pattern" }
+      }
+    },
+    "payload_verification_pending": {
+      "type": "object", "additionalProperties": false, "required": ["verification_id", "subject", "claimed_member_id", "deadline", "channels", "origin"],
+      "properties": {
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "subject": { "$ref": "#/$defs/member" },
+        "origin": { "enum": ["report_money_request", "start_verification"], "description": "Voice tool, or the elder ScamCheck button." },
+        "claimed_member_id": { "$ref": "#/$defs/member" },
+        "deadline": { "$ref": "common.schema.json#/$defs/datetime" },
+        "channels": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/verification_channel" }, "description": "May be [] (1.1.0): no consent for calls and no app session → the record is created unreachable (R-VERIFY-CONSENT)." }
+      }
+    },
+    "payload_verification_answered": {
+      "type": "object", "additionalProperties": false, "required": ["verification_id", "claimed_member_id", "answered_via", "late", "state"],
+      "properties": {
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "claimed_member_id": { "$ref": "#/$defs/member" },
+        "answered_via": { "$ref": "common.schema.json#/$defs/verification_channel" },
+        "late": { "type": "boolean", "description": "true = answered after await_verification already returned the safe default." },
+        "state": { "enum": ["confirmed", "late_confirmed", "denied", "late_denied"] },
+        "utterance": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "payload_verification_timeout": {
+      "type": "object", "additionalProperties": false, "required": ["verification_id", "claimed_member_id", "reason", "state"],
+      "properties": {
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "claimed_member_id": { "$ref": "#/$defs/member" },
+        "reason": { "enum": ["deadline", "unsure", "unreachable"] },
+        "state": { "enum": ["timed_out", "unsure", "unreachable"] }
+      }
+    },
+    "payload_verification_answer_conflict": {
+      "type": "object", "additionalProperties": false, "required": ["verification_id", "winner", "loser"],
+      "properties": {
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "winner": { "$ref": "#/$defs/answer_ref" },
+        "loser": { "$ref": "#/$defs/answer_ref" }
+      }
+    },
+    "answer_ref": {
+      "type": "object", "additionalProperties": false, "required": ["answer", "via"],
+      "properties": { "answer": { "$ref": "common.schema.json#/$defs/verification_answer" }, "via": { "$ref": "common.schema.json#/$defs/verification_channel" } }
+    },
+    "incident_type": { "enum": ["suspected_scam", "unverified_money_request", "money_request_confirmed", "double_dose_attempt", "missed_dose", "emergency", "call_failed"] },
+    "payload_incident": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incident_id", "type", "severity", "status", "title", "summary", "related_event_ids", "notified"],
+      "properties": {
+        "incident_id": { "$ref": "common.schema.json#/$defs/incident_id" },
+        "type": { "$ref": "#/$defs/incident_type" },
+        "severity": { "enum": ["info", "warn", "high"] },
+        "status": { "enum": ["open", "acked", "closed"] },
+        "title": { "$ref": "#/$defs/localized" },
+        "summary": { "$ref": "#/$defs/localized" },
+        "related_event_ids": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/event_id" } },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "pattern_flag": { "const": "possible_fraud_pattern" },
+        "notified": { "type": "array", "items": { "$ref": "#/$defs/member" } },
+        "acked_by": { "$ref": "#/$defs/member" }
+      }
+    },
+    "payload_pattern": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "pattern", "count", "window_days", "event_ids"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/member" },
+        "pattern": { "enum": ["possible_fraud_pattern", "repeated_symptom"] },
+        "count": { "type": "integer", "minimum": 2 },
+        "window_days": { "type": "integer", "minimum": 1 },
+        "event_ids": { "type": "array", "minItems": 2, "items": { "$ref": "common.schema.json#/$defs/event_id" } }
+      }
+    },
+    "payload_spec_patch_proposed": {
+      "type": "object", "additionalProperties": false, "required": ["proposal_id", "roles", "detected_by"],
+      "properties": { "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" }, "roles": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/role_key" } }, "detected_by": { "enum": ["arize_eval", "memory_pattern"] } }
+    },
+    "payload_spec_patch_applied": {
+      "type": "object", "additionalProperties": false, "required": ["proposal_id", "rev", "roles", "approved_by", "release_id"],
+      "properties": { "proposal_id": { "$ref": "common.schema.json#/$defs/proposal_id" }, "rev": { "$ref": "common.schema.json#/$defs/rev" }, "roles": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/role_key" } }, "approved_by": { "$ref": "#/$defs/member" }, "release_id": { "$ref": "common.schema.json#/$defs/release_id" } }
+    },
+    "payload_qa": {
+      "type": "object", "additionalProperties": false, "required": ["rev", "release_id", "stage", "status"],
+      "properties": { "rev": { "$ref": "common.schema.json#/$defs/rev" }, "release_id": { "$ref": "common.schema.json#/$defs/release_id" }, "stage": { "$ref": "release.schema.json#/$defs/stage_name" }, "status": { "$ref": "release.schema.json#/$defs/stage_status" }, "evidence_url": { "$ref": "common.schema.json#/$defs/url" } }
+    },
+    "payload_release": {
+      "type": "object", "additionalProperties": false, "required": ["rev", "release_id", "result", "live_rev"],
+      "properties": { "rev": { "$ref": "common.schema.json#/$defs/rev" }, "release_id": { "$ref": "common.schema.json#/$defs/release_id" }, "result": { "$ref": "release.schema.json#/$defs/result" }, "live_rev": { "$ref": "common.schema.json#/$defs/rev" } }
+    },
+    "payload_call_failed": {
+      "type": "object", "additionalProperties": false, "required": ["to", "reason", "cause"],
+      "description": "1.1.0. An outbound village-caller call was not completed. Also reflected on verification.channels[] (status no_answer | failed | …) and, for verifications, in the incident (type call_failed). Never on the safety path: the app prompt stays primary.",
+      "properties": {
+        "to": { "$ref": "#/$defs/member" },
+        "reason": { "enum": ["verification", "escalation", "reminder"] },
+        "cause": { "enum": ["no_answer", "busy", "voicemail", "failed", "provider_error", "no_consent", "core_down"] },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "related_event_id": { "$ref": "common.schema.json#/$defs/event_id" },
+        "conversation_id": { "$ref": "common.schema.json#/$defs/conversation_id" },
+        "call_sid": { "type": "string", "maxLength": 128 },
+        "error": { "type": "string", "maxLength": 300, "description": "Provider message, redacted." }
+      }
+    },
+    "payload_village_activated": {
+      "type": "object", "additionalProperties": false, "required": ["rev", "invites"],
+      "description": "1.1.0. POST /villages/{id}/activate succeeded: status draft → active, invites minted (ids only; tokens are never in the ledger).",
+      "properties": {
+        "rev": { "$ref": "common.schema.json#/$defs/rev" },
+        "invites": { "type": "integer", "minimum": 0, "description": "Number of join invites minted." },
+        "invite_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/invite_id" } },
+        "printables": { "type": "integer", "minimum": 0, "description": "Lid stickers + fridge cards in the print pack." },
+        "activated_by": { "$ref": "#/$defs/member" }
+      }
+    },
+    "payload_invite_redeemed": {
+      "type": "object", "additionalProperties": false, "required": ["member_id", "invite_id"],
+      "description": "1.1.0. POST /auth/redeem succeeded for this invite; the consent row (kind consent) is written in the same transaction.",
+      "properties": {
+        "member_id": { "$ref": "#/$defs/member" },
+        "invite_id": { "$ref": "common.schema.json#/$defs/invite_id" },
+        "role": { "$ref": "common.schema.json#/$defs/role_key" },
+        "consent_event_id": { "$ref": "common.schema.json#/$defs/event_id" }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "id": "ev_1016_0802_dose_morning", "village": "v_reyes", "kind": "dose",
+      "payload": { "subject": "m_carmen", "slot": "morning", "taken_at": "2026-10-16T08:02:10-04:00", "confidence": "confirmed", "via": "lid_qr" },
+      "actor": "m_carmen", "source": { "kind": "scan", "ref": "st_reyes_morning" },
+      "am": { "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "key": "last_dose_taken" },
+      "decision_id": "dc_1016_0802_a", "at": "2026-10-16T08:02:10-04:00"
+    },
+    {
+      "id": "ev_1016_1402_money", "village": "v_reyes", "kind": "money_request",
+      "payload": { "subject": "m_carmen", "claimed_member_id": "m_marco", "claimed_identity": "Marco (her son)", "amount": 2000, "currency": "USD", "method": "unknown", "urgency": "now", "red_flags": ["urgency", "emotional_pressure", "claimed_family_member"], "utterance": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", "verification_id": "ver_1016_01", "pattern_flag": "possible_fraud_pattern" },
+      "actor": "m_carmen", "source": { "kind": "call", "ref": "conv_demo_1016_scam", "secs": 9, "quote": "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares." },
+      "decision_id": "dc_1016_1402_money", "at": "2026-10-16T14:02:09-04:00"
+    },
+    {
+      "id": "ev_1016_1241_activated", "village": "v_reyes", "kind": "village_activated",
+      "payload": { "rev": 1, "invites": 3, "invite_ids": ["inv_reyes_ana", "inv_reyes_marco", "inv_reyes_lucia"], "printables": 3, "activated_by": "m_ana" },
+      "actor": "m_ana", "source": { "kind": "app", "ref": "m_ana" }, "at": "2026-10-16T12:41:10-04:00"
+    },
+    {
+      "id": "ev_1016_1358_invite_marco", "village": "v_reyes", "kind": "invite_redeemed",
+      "payload": { "member_id": "m_marco", "invite_id": "inv_reyes_marco", "role": "helper", "consent_event_id": "ev_1016_1358_consent_marco" },
+      "actor": "m_marco", "source": { "kind": "app", "ref": "m_marco" }, "at": "2026-10-16T13:58:00-04:00"
+    },
+    {
+      "id": "ev_1016_1402_call_failed", "village": "v_reyes", "kind": "call_failed",
+      "payload": { "to": "m_marco", "reason": "verification", "cause": "no_answer", "verification_id": "ver_1016_01", "conversation_id": "conv_verify_ver_1016_01", "call_sid": "CA_demo_ver_1016_01" },
+      "actor": "voice:village-caller", "source": { "kind": "system", "ref": "voice:village-caller" }, "at": "2026-10-16T14:02:40-04:00"
+    }
+  ]
+}

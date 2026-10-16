@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Fridge card (print)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+:root{--paper:#FFFFFF;--ink:#1A1511;--ink2:#4A4037;--line:#9A8C7C;--tomato:#A8331A;--sage:#2F6B57;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 816px; height: 528px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 36px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; border: 1px dashed var(--line)">
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Familia Reyes</span>
+      <span style="font-family: var(--display); font-size: 44px; font-weight: 650; line-height: 1.05">Si alguien pide dinero:</span>
+      <span style="font-size: 18px; color: var(--ink2)">If anyone asks for money:</span>
+    </div>
+    <ol style="margin: 0; padding-left: 30px; display: flex; flex-direction: column; gap: 12px; font-size: 26px; font-weight: 700; line-height: 1.2">
+      <li>Cuelgue.<span style="display: block; font-size: 15px; font-weight: 400; color: var(--ink2)">Hang up.</span></li>
+      <li>Llame a Village.<span style="display: block; font-size: 15px; font-weight: 400; color: var(--ink2)">Call Village. It checks with the real person.</span></li>
+      <li>No mande nada hoy.<span style="display: block; font-size: 15px; font-weight: 400; color: var(--ink2)">Send nothing today.</span></li>
+    </ol>
+    <div style="margin-top: auto; border: 3px solid var(--tomato); border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 24px; font-weight: 700; color: var(--tomato)">Emergencia: 911 primero.</span>
+      <span style="font-size: 15px; color: var(--ink2)">Emergency: 911 first. Village is not for emergencies.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 16px; border-left: 2px solid var(--line); padding-left: 28px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sage)">Village</span>
+      <span style="font: 600 40px var(--mono); letter-spacing: 0.02em">(347) 555-0142</span>
+      <span style="font-size: 15px; color: var(--ink2)">Contesta en español, día y noche. · Answers in Spanish, day and night.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 16px; font-weight: 700; color: var(--ink2)">Nuestra palabra familiar · family word</span>
+      <span style="font-family: var(--display); font-size: 36px; font-weight: 650; border-bottom: 3px solid var(--ink); padding-bottom: 4px; min-height: 48px">__________</span>
+      <span style="font-size: 14px; color: var(--ink2)">Escríbala a mano. Pregúntela a quien diga ser de la familia. · Write it by hand. Ask anyone who says they’re family.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 18px; margin-top: auto">
+      <span style="color: var(--ink2)">Ana</span><span style="font: 600 18px var(--mono)">(917) 555-0188</span>
+      <span style="color: var(--ink2)">Marco</span><span style="font: 600 18px var(--mono)">(718) 555-0129</span>
+      <span style="color: var(--ink2)">Lucía</span><span style="font: 600 18px var(--mono)">(267) 555-0163</span>
+      <span style="color: var(--ink2)">Dr. Patel</span><span style="font: 600 18px var(--mono)">(718) 555-0107</span>
+    </div>
+    <span style="font-size: 12px; color: var(--ink2)">Impreso por Village · 16 oct 2026 · rev 6 · Village only ever calls from the number above.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":528}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Village Control Room</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+:root{--night:#100D0A;--panel:#1B1612;--panel2:#241D17;--line:#3A3028;--text:#F3EADF;--muted:#B5A898;--amber:#F2A541;--coral:#FF7A59;--mint:#62D9A0;--sky:#7FB7E6;--plum:#C9A6E8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#F2A541}a:hover{color:#FFC37A}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--night); color: var(--text); font-family: var(--body); padding: 28px 40px; display: grid; grid-template-rows: auto 1fr; gap: 18px">
+
+  <header style="display: flex; align-items: center; gap: 24px">
+    <span style="font-family: var(--display); font-size: 30px; font-weight: 650">Village</span>
+    <span style="font: 600 13px var(--mono); letter-spacing: 0.1em; color: var(--muted)">CONTROL ROOM · REYES</span>
+    <nav aria-label="Villages" style="display: flex; gap: 8px"><span style="font: 600 13px var(--mono); padding: 8px 12px; border-radius: 999px; background: var(--text); color: var(--night)">Reyes family</span><span style="font: 600 13px var(--mono); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted)">West 147th St</span></nav>
+    <div style="margin-left: auto; display: flex; gap: 10px; align-items: center">
+      <span style="display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font: 600 28px var(--mono); color: var(--mint)">7</span><span style="font-size: 13px; color: var(--muted)">phones live</span></span>
+      <span style="display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px"><span style="font-size: 13px; color: var(--muted)">demo clock</span><span style="font: 600 20px var(--mono)">20:53</span><span style="font: 600 12px var(--mono); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px">+30m</span></span>
+    </div>
+  </header>
+
+  <div style="display: grid; grid-template-columns: 400px minmax(0, 1fr) 340px; gap: 18px; min-height: 0">
+
+    <section aria-label="Decisions" style="background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+      <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">VILLAGE’S DECISIONS TONIGHT</span>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45">
+        <div style="border-left: 3px solid var(--plum); padding-left: 10px"><span style="font-family: var(--mono); color: var(--muted)">20:53</span> Asked Ana to let Village answer unknown callers for Mamá: 2nd money request in 30 days</div>
+        <div style="border-left: 3px solid var(--coral); padding-left: 10px"><span style="font-family: var(--mono); color: var(--muted)">20:52</span> Called Marco, not Lucía: the caller used Marco’s name, and Marco agreed to calls when he joined</div>
+        <div style="border-left: 3px solid var(--coral); padding-left: 10px"><span style="font-family: var(--mono); color: var(--muted)">20:52</span> Told Carmen “don’t send money yet” in the exact reviewed words, and kept her on the line</div>
+        <div style="border-left: 3px solid var(--mint); padding-left: 10px"><span style="font-family: var(--mono); color: var(--muted)">20:02</span> Evening check-in call: she looked at her organizer, evening taken; no one needed to be called</div>
+        <div style="border-left: 3px solid var(--sky); padding-left: 10px"><span style="font-family: var(--mono); color: var(--muted)">10:41</span> Gave Carmen a phone line and an evening check-in call instead of an app: she doesn’t use apps and already uses a weekly organizer</div>
+      </div>
+      <div style="margin-top: auto; display: flex; gap: 8px"><input type="text" id="askwhy" aria-label="Ask Village why" value="" placeholder="Ask: why did you…?" style="flex-grow: 1; min-width: 0; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); padding: 10px 12px; font: 14px var(--body)"><button type="button" style="background: var(--text); color: var(--night); border: 0; border-radius: 10px; font: 700 14px var(--body); padding: 0 14px">Ask</button></div>
+    </section>
+
+    <section aria-label="Live" style="display: grid; grid-template-rows: auto 1fr; gap: 14px; min-width: 0">
+      <ol aria-label="Release pipeline" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px">
+        <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--mint)">TRACES ✓</li>
+        <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--mint)">CHANGE ✓</li>
+        <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--mint)">DAYTONA ✓ 12s</li>
+        <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--mint)">ANCHOR ✓</li>
+        <li style="background: var(--panel2); border: 1px solid var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--mint)">ARIZE ✓ 4/4</li>
+        <li style="background: var(--mint); border-radius: 12px; padding: 10px; font: 600 12px var(--mono); color: var(--night)">LIVE · rev 4</li>
+      </ol>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-height: 0">
+        <figure style="margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px"><figcaption style="font: 600 12px var(--mono); color: var(--muted)">CARMEN · ELDER</figcaption><div lang="es" style="flex-grow: 1; border-radius: 10px; background: #FFF9EF; color: #1A1511; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700"><span style="font-family: var(--display); font-size: 16px">Hola, Mamá</span><span style="padding: 9px; border-radius: 8px; background: #DCEDE3; border: 2px solid #255A48">Esta noche: Marco <span style="font-weight: 400">· Tonight: Marco</span></span><span style="padding: 9px; border-radius: 8px; background: #EFE4F3; border: 2px solid #5B3470">Llamar a Village <span style="font-weight: 400">· Call Village</span></span><span style="padding: 9px; border-radius: 8px; background: #DCEDE3">Llamar a Ana <span style="font-weight: 400">· Call Ana</span></span><span style="padding: 9px; border-radius: 8px; background: #9A2E17; color: #fff">Necesito ayuda <span style="font-weight: 400; opacity: .85">· I need help</span></span></div><span style="font: 400 11px var(--mono); color: var(--muted)">her phone shows Spanish only; captions are for the room</span></figure>
+        <figure style="margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px"><figcaption style="font: 600 12px var(--mono); color: var(--muted)">ANA + JUDGES · LEADER</figcaption><div style="flex-grow: 1; border-radius: 10px; background: #FBF6EE; color: #2A231C; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 11px"><span style="font-family: var(--display); font-size: 15px; font-weight: 650">Mamá, tonight</span><span style="padding: 8px; border-radius: 8px; background: #FBE6DF; font-weight: 700">Scam stopped · 8:52</span><span style="padding: 8px; border-radius: 8px; background: #F1E7F4; font-weight: 700">Approved: Village answers unknown callers</span><span style="padding: 8px; border-radius: 8px; background: #fff; border: 1px solid #E6DACB">Refill Sunday: lisinopril 10 mg (was 5) · Marco on</span></div></figure>
+        <figure style="margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px"><figcaption style="font: 600 12px var(--mono); color: var(--muted)">MARCO (A JUDGE) · HELPER</figcaption><div style="flex-grow: 1; border-radius: 10px; background: #FBF6EE; color: #2A231C; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 11px"><span style="padding: 8px; border-radius: 8px; background: #E4F1E6; font-weight: 700">Thanks, Marco. Mamá was told.</span><span style="font-family: var(--display); font-size: 15px; font-weight: 650">Yes. Tonight until 9:30.</span><span style="padding: 8px; border-radius: 8px; background: #2F6B57; color: #fff; font-weight: 700; text-align: center">Call Mamá</span></div></figure>
+      </div>
+    </section>
+
+    <aside style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+      <section style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">RECEIPTS · REV 4</span>
+        <span style="font-size: 13px; line-height: 1.5">Daytona build 12 s · 16 of 16 tests · contrast 7.4 to 1<br>Anchor: opened the “calls screened” card at 390×844 · recording ↗<br>Voice line: screening on · greeting + refusal lines are the reviewed originals<br>Arize: covers the need ✓ no medical advice ✓ Spanish = English ✓ readable ✓</span>
+        <span style="font-size: 13px; color: var(--coral)">rev 3 caught: contrast 4.1:1 → fixed in rev 4</span>
+      </section>
+      <section style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">RULES WRITTEN IN CODE, NOT PROMPTS</span>
+        <span style="font-size: 13px; line-height: 1.6"><span style="color: var(--mint)">●</span> Village never moves money<br><span style="color: var(--mint)">●</span> If nobody confirms, the answer is “don’t send”<br><span style="color: var(--mint)">●</span> It only calls people who said yes to calls<br><span style="color: var(--mint)">●</span> It never says how many pills to take</span>
+        <span style="font: 400 12px var(--mono); color: var(--muted)">51 tests, run with the AI switched off: all passing</span>
+      </section>
+      <section style="background: var(--panel); border: 1px solid var(--mint); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--mint)">TONIGHT’S ROUNDS · WATCHER</span>
+        <span style="font: 600 26px var(--mono); color: var(--text)">6 <span style="font-size: 13px; color: var(--muted)">done alone</span> · 1 <span style="font-size: 13px; color: var(--muted)">asked Ana</span> · 0 <span style="font-size: 13px; color: var(--muted)">refused</span></span>
+        <span style="font-size: 13px; color: var(--muted); line-height: 1.5">check-in call · “you’re on tomorrow” to Marco · refill due Sunday · scam set re-run · 2 uncertainties posted · 1 proposal</span>
+      </section>
+      <section style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font: 600 12px var(--mono); letter-spacing: 0.1em; color: var(--muted)">SCAM EVAL SET</span>
+        <span style="font: 600 30px var(--mono); color: var(--text)">[N]/30 <span style="font-size: 14px; color: var(--muted)">caught</span></span>
+        <span style="font: 400 13px var(--mono); color: var(--muted)">[M]/20 false alarms · measured today</span>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

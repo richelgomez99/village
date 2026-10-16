@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Join the Reyes village</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#CDBFAD;--sage:#2F6B57;--sage-soft:#E3EFE8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 28px 20px; display: flex; flex-direction: column; gap: 18px">
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Reyes village</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 32px; font-weight: 650; line-height: 1.15">Who are you to Carmen?</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink2)">Pick a name, or join as family. Ana will see you joined.</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <button type="button" style="min-height: 60px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 18px var(--body); text-align: left; padding: 0 16px; display: flex; justify-content: space-between; align-items: center">Marco <span style="font-size: 13px; font-weight: 400; color: var(--ink2)">son · on duty tonight</span></button>
+    <button type="button" style="min-height: 60px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 18px var(--body); text-align: left; padding: 0 16px; display: flex; justify-content: space-between; align-items: center">Lucía <span style="font-size: 13px; font-weight: 400; color: var(--ink2)">daughter · Philadelphia</span></button>
+    <button type="button" style="min-height: 60px; border-radius: 16px; border: 3px solid var(--sage); background: var(--sage-soft); color: var(--ink); font: 700 18px var(--body); text-align: left; padding: 0 16px; display: flex; justify-content: space-between; align-items: center">Family <span style="font-size: 13px; font-weight: 400; color: var(--ink2)">see what’s happening</span></button>
+  </div>
+
+  <form style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="fname" style="font-size: 16px; font-weight: 700">Your first name</label>
+      <input id="fname" type="text" value="" placeholder="Name" style="min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper); padding: 0 14px; font: 18px var(--body); color: var(--ink)">
+    </div>
+    <button type="submit" style="min-height: 60px; border-radius: 16px; border: 0; background: var(--sage); color: #fff; font: 700 20px var(--body)">Join</button>
+  </form>
+
+  <p style="margin: 0; margin-top: auto; font-size: 14px; line-height: 1.5; color: var(--ink2)">Family members see today’s updates and the village chat. Health details stay with the people Carmen chose. No calls unless you say yes later.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/lid_scan.schema.json",
+  "title": "Lid scan result",
+  "description": "What GET /s/{slot_token} decided (D3). The route renders this as a one-screen HTML page (LidStatus card) by default, or returns it as JSON when the request has Accept: application/json (tests, Anchor QA, smoke). No LLM in the path. A repeat of the same token within 10 s is collapsed (deduped: true, same decision, no new ledger row) so link prefetch or a double tap never reads as a second dose.",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["village", "subject", "slot", "token_ref", "scanned_at", "deduped", "decision", "event", "page"],
+  "properties": {
+    "village": { "$ref": "common.schema.json#/$defs/village_id" },
+    "subject": { "$ref": "common.schema.json#/$defs/member_id" },
+    "slot": { "$ref": "common.schema.json#/$defs/slot" },
+    "token_ref": { "type": "string", "pattern": "^st_[a-z0-9_]{2,60}$" },
+    "scanned_at": { "$ref": "common.schema.json#/$defs/datetime" },
+    "deduped": { "type": "boolean" },
+    "decision": { "$ref": "gate.schema.json#/$defs/decision" },
+    "event": { "anyOf": [ { "$ref": "event.schema.json" }, { "type": "null" } ], "description": "The primary ledger row written (dose or dose_repeat_scan); null when deduped." },
+    "page": {
+      "type": "object", "additionalProperties": false, "required": ["lang", "tone", "headline", "lines", "read_aloud"],
+      "properties": {
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "tone": { "enum": ["ok", "report", "error"], "description": "ok = Recorded green #2E6F42 · report = amber 'already logged' (never red, never advice) · error = bad/expired token." },
+        "headline": { "type": "string", "maxLength": 80 },
+        "lines": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 160 } },
+        "read_aloud": { "type": "string", "maxLength": 300, "description": "Text the page speaks on load (speechSynthesis)." }
+      }
+    }
+  },
+  "examples": [
+    {
+      "village": "v_reyes", "subject": "m_carmen", "slot": "morning", "token_ref": "st_reyes_morning", "scanned_at": "2026-10-15T08:02:10-04:00", "deduped": false,
+      "decision": {
+        "id": "dc_1015_0802_scan", "rule_id": "R-WINDOW", "decision": "record",
+        "say": { "es": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe.", "en": "Logged, Carmen. Morning pills at 8:02. Your family can see it." },
+        "say_key": "dose_recorded", "notify": [],
+        "writes": [ { "kind": "dose", "payload": { "subject": "m_carmen", "slot": "morning", "taken_at": "2026-10-15T08:02:10-04:00", "confidence": "confirmed", "via": "lid_qr" } } ],
+        "rules_fired": ["R-WINDOW"]
+      },
+      "event": { "id": "ev_1015_0802_dose_morning", "village": "v_reyes", "kind": "dose", "payload": { "subject": "m_carmen", "slot": "morning", "taken_at": "2026-10-15T08:02:10-04:00", "confidence": "confirmed", "via": "lid_qr" }, "actor": "m_carmen", "source": { "kind": "scan", "ref": "st_reyes_morning" }, "decision_id": "dc_1015_0802_scan", "at": "2026-10-15T08:02:10-04:00" },
+      "page": { "lang": "es", "tone": "ok", "headline": "Anotado, Carmen", "lines": ["Pastillas de la mañana a las 8:02", "Su familia ya lo sabe."], "read_aloud": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe." }
+    }
+  ]
+}

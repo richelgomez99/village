@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: members and roles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--sky:#234C8A;--sky-soft:#E1EEF4;--plum:#6A3F7A;--plum-soft:#F1E7F4;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1100px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 12px">
+  <header style="display: flex; flex-direction: column; gap: 4px">
+    <a href="AnaB.dc.html" style="font-size: 14px; font-weight: 700">‹ Today</a>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 26px; font-weight: 650; line-height: 1.12">Who’s in the village</h1>
+    <span style="font-size: 14px; color: var(--ink2)">Roles decide what each person sees and what Village may ask of them.</span>
+  </header>
+
+  <section style="background: var(--paper); border: 2px solid var(--sage); border-radius: 18px; padding: 12px 16px; display: flex; gap: 12px; align-items: center">
+    <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--sage); color: #fff; display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">C</span>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Carmen · “Mamá”</span><span style="font-size: 13px; color: var(--ink2)">Center · phone line + evening call · Spanish</span></div>
+    <a href="#carmen" style="font-size: 14px; font-weight: 700">Edit</a>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--sage-soft); color: var(--sage); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">A</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Ana (you)</span><span style="font-size: 13px; color: var(--ink2)">Leader · approves changes · sees everything</span></div>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--sky-soft); color: var(--sky); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">M</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Marco</span><span style="font-size: 13px; color: var(--ink2)">Caregiver · Tue Thu Fri Sat · agreed to calls</span></div>
+      <a href="#marco" style="font-size: 14px; font-weight: 700">Edit</a>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--plum-soft); color: var(--plum); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">L</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Lucía</span><span style="font-size: 13px; color: var(--ink2)">Supporter · insurance & money · app only, no calls</span></div>
+      <a href="#lucia" style="font-size: 14px; font-weight: 700">Edit</a>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--cream); border: 2px solid var(--line); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">P</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Dr. Patel’s office</span><span style="font-size: 13px; color: var(--ink2)">Contact · known number · rings Mamá directly</span></div>
+    </div>
+  </section>
+
+  <section style="background: var(--amber-soft); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber-ink)">Waiting for you</span>
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--paper); border: 2px dashed var(--amber-ink); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">R</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">“Rosa” scanned the fridge QR</span><span style="font-size: 13px; color: var(--ink2)">Says she’s the neighbor from 4B · 2:10 PM today</span></div>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button type="button" style="flex: 1; min-height: 44px; border-radius: 12px; border: 0; background: var(--sage); color: #fff; font: 700 15px var(--body)">Let her in as a contact</button>
+      <button type="button" style="flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 15px var(--body)">Not now</button>
+    </div>
+    <span style="font-size: 13px; color: var(--ink2)">Village asked Mamá at the 8 PM check-in: she said Rosa brings her mail. A contact sees nothing; she can be called if no family answers.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700">What each role sees</span>
+    <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px 10px; font-size: 13px; align-items: center">
+      <span></span><span style="font-weight: 700; color: var(--ink2)">Lead</span><span style="font-weight: 700; color: var(--ink2)">Care</span><span style="font-weight: 700; color: var(--ink2)">Supp</span>
+      <span>Medications & doses</span><span style="color: var(--ok)">✓</span><span style="color: var(--ok)">✓</span><span style="color: var(--ink2)">—</span>
+      <span>Money & insurance</span><span style="color: var(--ok)">✓</span><span style="color: var(--ink2)">—</span><span style="color: var(--ok)">✓</span>
+      <span>Scam incidents</span><span style="color: var(--ok)">✓</span><span style="color: var(--ok)">✓</span><span style="color: var(--ok)">summary</span>
+      <span>Approve changes</span><span style="color: var(--ok)">✓</span><span style="color: var(--ink2)">—</span><span style="color: var(--ink2)">—</span>
+      <span>Gets verification calls</span><span style="color: var(--ok)">✓</span><span style="color: var(--ok)">✓</span><span style="color: var(--ink2)">—</span>
+    </div>
+    <span style="font-size: 13px; color: var(--ink2)">Carmen decided on the welcome call who sees her health details. Change that with her, not here.</span>
+  </section>
+
+  <div style="margin-top: auto; display: flex; gap: 10px">
+    <button type="button" style="flex: 1; min-height: 52px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 16px var(--body)">Invite someone</button>
+    <button type="button" style="flex: 1; min-height: 52px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 16px var(--body)">Make Marco co-lead</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

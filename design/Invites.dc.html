@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: invites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--ok:#2E6F42;--ok-soft:#E4F1E6;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 22px 18px 22px; display: flex; flex-direction: column; gap: 14px">
+  <header style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">New village · step 3 of 3</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 28px; font-weight: 650; line-height: 1.12">Invites are out. Here’s who’s in.</h1>
+  </header>
+
+  <section style="background: var(--paper); border: 2px solid var(--sage); border-radius: 18px; padding: 14px 16px; display: flex; gap: 12px; align-items: center">
+    <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--sage); color: #fff; display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">M</span>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Mamá</span><span style="font-size: 13px; color: var(--ink2)">Village will call her at 5 PM to introduce itself and ask if that’s okay.</span></div>
+    <span style="font-size: 12px; font-weight: 700; background: var(--amber-soft); color: var(--amber-ink); border-radius: 999px; padding: 5px 9px; white-space: nowrap">call at 5 PM</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: #E1EEF4; color: #234C8A; display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">M</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Marco</span><span style="font-size: 13px; color: var(--ink2)">Joined 10:52 · agreed to calls</span></div>
+      <span style="font-size: 12px; font-weight: 700; background: var(--ok-soft); color: var(--ok); border-radius: 999px; padding: 5px 9px">joined</span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center">
+      <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--cream); border: 2px solid var(--line); display: grid; place-items: center; font-family: var(--display); font-size: 20px; font-weight: 650">L</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-weight: 700; font-size: 17px">Lucía</span><span style="font-size: 13px; color: var(--ink2)">Link sent by text 10:50</span></div>
+      <a href="#resend" style="font-size: 14px; font-weight: 700">Resend</a>
+    </div>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px">
+    <span style="font-size: 14px; font-weight: 700">Show this to anyone joining in person</span>
+    <div role="img" aria-label="QR code for the Reyes family invite" style="width: 200px; height: 200px; border: 3px solid var(--ink); border-radius: 12px; display: grid; place-items: center; font: 600 13px var(--mono); color: var(--ink2)">QR · family</div>
+    <span style="font: 500 13px var(--mono); color: var(--ink2)">village.app/j/reyes-7f3k</span>
+    <span style="font-size: 13px; color: var(--ink2); text-align: center">Each person who scans picks their name; you approve anyone you don’t recognize.</span>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700">For the fridge</span>
+    <span style="font-size: 14px; line-height: 1.45; color: var(--ink2)">A card with Village’s number, your family word, and “call 911 first” is ready to print.</span>
+    <a href="FridgeCard.dc.html" style="font-size: 15px; font-weight: 700">Print the fridge card</a>
+  </section>
+
+  <button type="button" style="margin-top: auto; min-height: 56px; border-radius: 16px; border: 0; background: var(--sage); color: #fff; font: 700 18px var(--body)">Open my village</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tanya: block coordinator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..750,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap">
+<style>
+:root{--cream:#FBF6EE;--paper:#FFFFFF;--ink:#2A231C;--ink2:#5E5246;--line:#E6DACB;--pen:#1D3F8F;--pen-soft:#E1E8F6;--ok:#2E6F42;--ok-soft:#E4F1E6;--tomato:#A8331A;--tomato-soft:#FBE6DF;--amber-soft:#FCEFD6;--amber-ink:#7A4B00;--plum:#6A3F7A;--plum-soft:#F1E7F4;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+body{margin:0}
+a{color:#1D3F8F}a:hover{color:#142C66}
+</style>
+</helmet>
+<div style="width: 390px; height: 1100px; box-sizing: border-box; background: var(--cream); color: var(--ink); font-family: var(--body); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 12px">
+  <header style="display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tomato)">West 147th St · blackout · hour 5</span>
+      <h1 style="margin: 0; font-family: var(--display); font-size: 26px; font-weight: 650; line-height: 1.12">Tanya, 9 of 12 are checked.</h1>
+    </div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--pen-soft); color: var(--pen); border-radius: 999px; padding: 6px 10px">coordinator</span>
+  </header>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; gap: 4px; height: 14px; border-radius: 7px; overflow: hidden">
+      <span style="flex: 7; background: var(--ok)" title="7 okay"></span>
+      <span style="flex: 2; background: var(--amber-ink)" title="2 need something"></span>
+      <span style="flex: 3; background: var(--line)" title="3 not yet"></span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--ink2)"><span><strong style="color: var(--ok)">7</strong> okay</span><span><strong style="color: var(--amber-ink)">2</strong> need something</span><span><strong>3</strong> not yet</span></div>
+  </section>
+
+  <section style="background: var(--tomato-soft); border: 2px solid var(--tomato); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tomato)">Do first</span>
+    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 700">Mr. Okafor · 4C · oxygen</span><span style="font-size: 13px; color: var(--ink2)">Darnell is on his way up (sent 5:41). Battery ends ~7 PM.</span></div>
+      <span style="font: 500 13px var(--mono); color: var(--tomato); white-space: nowrap">1 h 12 m</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center">
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 700">Ms. Alvarez · 2A · insulin</span><span style="font-size: 13px; color: var(--ink2)">Fridge is warm. Priya has a cooler; asked 5:38, no answer yet.</span></div>
+      <button type="button" style="min-height: 40px; border-radius: 10px; border: 2px solid var(--tomato); background: var(--paper); color: var(--tomato); font: 700 14px var(--body); padding: 0 10px; white-space: nowrap">Ask Jamal instead</button>
+    </div>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700">Not checked yet</span>
+    <div style="display: flex; justify-content: space-between; font-size: 15px; align-items: center"><span>Mrs. Chen · 5B · 84, lives alone</span><span style="font-size: 12px; font-weight: 700; background: var(--pen-soft); color: var(--pen); border-radius: 999px; padding: 4px 8px">Wei knocking</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px; align-items: center"><span>The Riveras · 3D · newborn</span><span style="font-size: 12px; font-weight: 700; background: var(--ok-soft); color: var(--ok); border-radius: 999px; padding: 4px 8px">texted back “fine”</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px; align-items: center"><span>Mr. Boateng · 1A · wheelchair</span><span style="font-size: 12px; font-weight: 700; background: var(--amber-soft); color: var(--amber-ink); border-radius: 999px; padding: 4px 8px">nobody free</span></div>
+  </section>
+
+  <section style="background: var(--plum-soft); border: 2px solid var(--plum); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--plum)">Village wants to change the app</span>
+    <p style="margin: 0; font-size: 15px; line-height: 1.45">Three volunteers went to the same floor twice. Village built a “who’s on which floor” strip for every volunteer’s card so they stop crossing. Tested; waiting for you.</p>
+    <div style="display: flex; gap: 8px">
+      <button type="button" style="flex: 1; min-height: 44px; border-radius: 12px; border: 0; background: var(--plum); color: #fff; font: 700 15px var(--body)">Turn it on</button>
+      <button type="button" style="flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 15px var(--body)">Later</button>
+    </div>
+  </section>
+
+  <section style="background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 14px; font-weight: 700">Supplies at the lobby table</span>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Water (cases)</span><span style="font-weight: 700">6</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Power banks</span><span style="font-weight: 700; color: var(--amber-ink)">1 left</span></div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Flashlights</span><span style="font-weight: 700">9</span></div>
+  </section>
+
+  <div style="margin-top: auto; display: flex; gap: 10px">
+    <button type="button" style="flex: 1; min-height: 52px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 16px var(--body)">Message everyone</button>
+    <button type="button" style="flex: 1; min-height: 52px; border-radius: 16px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font: 700 16px var(--body)">Add a neighbor</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

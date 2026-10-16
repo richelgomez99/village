@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ana: family view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--card:#FFFFFF;--ink:#26211C;--ink2:#5B5249;--line:#E5DACB;--sage:#2F6B57;--sage-soft:#E3EFE8;--tomato:#A8331A;--tomato-soft:#FBE6DF;--ok:#2E6F42;--ok-soft:#E4F1E6;--lid-blue:#2F5FA7;--lid-yellow:#E8B12F;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1180px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 22px 16px 24px; display: flex; flex-direction: column; gap: 16px">
+
+  <header style="display: flex; justify-content: space-between; align-items: center">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 14px; color: var(--ink2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em">Reyes family</span>
+      <h1 style="margin: 0; font-family: var(--display); font-size: 30px; font-weight: 650">Mamá tonight</h1>
+    </div>
+    <span style="font-size: 15px; color: var(--ink2)">Thu 8:48 PM</span>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <span style="background: var(--ok-soft); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--ok)">HEALTH</span><span style="font-size: 14px">2/2 lids</span></span>
+    <span style="background: var(--tomato-soft); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--tomato)">MONEY</span><span style="font-size: 14px">Scam stopped</span></span>
+    <span style="background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: var(--ink2)">PEOPLE</span><span style="font-size: 14px">Marco on</span></span>
+  </div>
+
+  <section role="alert" style="background: var(--tomato-soft); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+    <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--tomato); font-size: 17px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A8331A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 20h20Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      Scam stopped · 8:52 PM
+    </span>
+    <span style="font-size: 16px; line-height: 1.45">Someone claiming to be Marco asked Mamá for $2,000. Marco confirmed it wasn’t him. She was told not to send money.</span>
+    <span style="font-size: 14px; color: var(--ink2)">Second attempt this month (Oct 9: $1,500 in gift cards)</span>
+    <a href="Fact.dc.html" style="font-size: 16px; font-weight: 700">See the call and what Village did</a>
+  </section>
+
+  <section aria-labelledby="today" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <h2 id="today" style="margin: 0; font-size: 19px; font-weight: 700">Today’s pills</h2>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span aria-hidden="true" style="flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--lid-yellow)"></span>
+      <div style="display: flex; flex-direction: column; flex-grow: 1"><span style="font-weight: 700; font-size: 16px">Morning · yellow lid</span><span style="font-size: 14px; color: var(--ink2)">apixaban · lisinopril · metformin</span></div>
+      <span style="font-size: 14px; font-weight: 700; color: var(--ok); background: var(--ok-soft); border-radius: 999px; padding: 6px 10px">8:11 AM</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span aria-hidden="true" style="flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--lid-blue)"></span>
+      <div style="display: flex; flex-direction: column; flex-grow: 1"><span style="font-weight: 700; font-size: 16px">Evening · blue lid</span><span style="font-size: 14px; color: var(--ink2)">apixaban · metformin · atorvastatin</span></div>
+      <span style="font-size: 14px; font-weight: 700; color: var(--ok); background: var(--ok-soft); border-radius: 999px; padding: 6px 10px">8:02 PM</span>
+    </div>
+    <span style="font-size: 14px; color: var(--ink2)">Logged by Mamá on the phone. Village never tells anyone to change a dose.</span>
+  </section>
+
+  <section aria-labelledby="org" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h2 id="org" style="margin: 0; font-size: 19px; font-weight: 700">Her pill organizer</h2>
+      <span style="font-size: 12px; color: var(--ink2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em">made for this family</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; text-align: center">
+      <span style="font-size: 13px; font-weight: 700">M</span><span style="font-size: 13px; font-weight: 700">T</span><span style="font-size: 13px; font-weight: 700">W</span><span style="font-size: 13px; font-weight: 700; color: var(--sage)">Th</span><span style="font-size: 13px; color: var(--ink2)">F</span><span style="font-size: 13px; color: var(--ink2)">Sa</span><span style="font-size: 13px; color: var(--ink2)">Su</span>
+      <span aria-label="Monday morning taken" style="height: 30px; border-radius: 8px; background: var(--lid-yellow); opacity: 0.35"></span><span aria-label="Tuesday morning taken" style="height: 30px; border-radius: 8px; background: var(--lid-yellow); opacity: 0.35"></span><span aria-label="Wednesday morning taken" style="height: 30px; border-radius: 8px; background: var(--lid-yellow); opacity: 0.35"></span><span aria-label="Thursday morning taken" style="height: 30px; border-radius: 8px; background: var(--lid-yellow); opacity: 0.35; outline: 3px solid var(--sage); outline-offset: 1px"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-yellow)"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-yellow)"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-yellow)"></span>
+      <span aria-label="Monday evening taken" style="height: 30px; border-radius: 8px; background: var(--lid-blue); opacity: 0.35"></span><span aria-label="Tuesday evening missed, Marco covered" style="height: 30px; border-radius: 8px; background: var(--lid-blue); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700">!</span><span aria-label="Wednesday evening taken" style="height: 30px; border-radius: 8px; background: var(--lid-blue); opacity: 0.35"></span><span aria-label="Thursday evening taken" style="height: 30px; border-radius: 8px; background: var(--lid-blue); opacity: 0.35; outline: 3px solid var(--sage); outline-offset: 1px"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-blue)"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-blue)"></span><span style="height: 30px; border-radius: 8px; background: var(--lid-blue)"></span>
+    </div>
+    <span style="font-size: 14px; color: var(--ink2)">Faded lids are taken. Tuesday evening was late; Marco checked in at 9:12.</span>
+  </section>
+
+  <section aria-labelledby="duty" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+    <h2 id="duty" style="margin: 0; font-size: 19px; font-weight: 700">Who’s on</h2>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--sage); color: #fff; display: grid; place-items: center; font-weight: 700">M</span>
+      <div style="display: flex; flex-direction: column; flex-grow: 1"><span style="font-weight: 700; font-size: 16px">Marco · tonight until 9:30</span><span style="font-size: 14px; color: var(--ink2)">Leaves for work at 9:30</span></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700">A</span>
+      <div style="display: flex; flex-direction: column; flex-grow: 1"><span style="font-weight: 700; font-size: 16px">Ana · Friday</span><span style="font-size: 14px; color: var(--ink2)">Lucía is backup by phone</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="tl" style="background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <h2 id="tl" style="margin: 0; font-size: 19px; font-weight: 700">What happened</h2>
+    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line)">
+      <span style="font-size: 16px; line-height: 1.4"><span style="font-weight: 700">8:52 PM</span> Fake “Marco” asked for $2,000. Real Marco said no. Not sent.</span>
+      <span style="font-size: 13px; color: var(--ink2)">Source: Mamá’s call, at 0:14 · Marco in the app · rule R-MONEY-VERIFY</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line)">
+      <span style="font-size: 16px; line-height: 1.4"><span style="font-weight: 700">8:02 PM</span> Took her blue-lid pills.</span>
+      <span style="font-size: 13px; color: var(--ink2)">Source: Mamá’s call, at 0:42: “Ya me tomé la pastilla azul.”</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 16px; line-height: 1.4"><span style="font-weight: 700">Oct 3</span> Lisinopril changed: <span style="text-decoration: line-through; color: var(--ink2)">5 mg</span> → 10 mg.</span>
+      <span style="font-size: 13px; color: var(--ink2)">Source: Ana in the app, after Dr. Lee’s visit</span>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

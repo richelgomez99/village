@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Join as Marco</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,500..700,50&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap">
+<style>
+:root{--paper:#FBF6EE;--card:#FFFFFF;--ink:#26211C;--ink2:#5B5249;--line:#CDBFAD;--sage:#2F6B57;--sage-soft:#E3EFE8;--display:'Fraunces',Georgia,serif;--body:'Atkinson Hyperlegible','Noto Sans',system-ui,sans-serif}
+body{margin:0}
+a{color:#2F6B57}a:hover{color:#1F4A3C}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: var(--body); padding: 28px 20px; display: flex; flex-direction: column; gap: 20px">
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2)">Reyes family</span>
+    <h1 style="margin: 0; font-family: var(--display); font-size: 32px; font-weight: 650; line-height: 1.15">You’re joining as Marco</h1>
+    <p style="margin: 0; font-size: 17px; line-height: 1.5; color: var(--ink2)">Carmen’s son. On duty Tuesday, Thursday and Saturday evenings.</p>
+  </div>
+
+  <form style="display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="name" style="font-size: 16px; font-weight: 700">Your first name</label>
+      <input id="name" type="text" value="" placeholder="Name" style="min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); padding: 0 14px; font: 18px var(--body); color: var(--ink)">
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="phone" style="font-size: 16px; font-weight: 700">Mobile number</label>
+      <input id="phone" type="tel" value="" placeholder="(555) 555-0123" style="min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); padding: 0 14px; font: 18px var(--body); color: var(--ink)">
+    </div>
+    <div style="display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 2px solid var(--sage); border-radius: 14px; padding: 14px">
+      <input id="consent" type="checkbox" style="flex: none; width: 24px; height: 24px; margin: 2px 0 0; accent-color: #2F6B57">
+      <label for="consent" style="font-size: 16px; line-height: 1.45">Village may call me with an automated AI voice about Carmen’s care. I can say “stop” at any time.</label>
+    </div>
+    <button type="submit" style="min-height: 60px; border-radius: 16px; border: 0; background: var(--sage); color: #FFFFFF; font: 700 20px var(--body)">Join the family</button>
+  </form>
+
+  <p style="margin: 0; margin-top: auto; font-size: 15px; line-height: 1.5; color: var(--ink2)">Village never asks for money or codes. Real Village calls start with your family word. Your number is only used for this family.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

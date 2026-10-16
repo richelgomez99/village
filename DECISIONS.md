@@ -1,0 +1,196 @@
+# Village: architecture decisions
+
+These decisions come from the architecting phase: all research read in full, local tests run, and the design canvas built. **Where this file disagrees with SPEC.md, this file wins.** Each decision gives its evidence.
+
+Design canvas (storyboard + every screen): https://claude.ai/artifact/VVRJmDt6e4WDy2gnMHcwZz. A copy of the artboard sources is in `design/`.
+
+---
+
+## D1. Demo arc: Generate → Protect → Evolve → Anyone
+*Why:* the first design made the generative part invisible; the screens read as a hand-built caregiving app. Generation is only visible when (a) you watch words become structure, (b) the same engine makes visibly different apps per person, and (c) the app changes because life changed.
+
+| Act | t | Moment the room feels | Must work |
+|---|---|---|---|
+| Generate | 0:00–1:05 | Ana's sentence becomes a **village blueprint** (people, channels, rules), then **three different apps** (Carmen / Ana / Marco) | builder, blueprint view, per-role render, Daytona build, Anchor QA, QR join |
+| Protect | 1:05–1:50 | Blue-lid **sticker scan** turns every phone green, then Carmen's **confused call** is blocked word for word and the **judge-as-Marco's phone rings** | lid scan → gate → live; voice tool → gate → verbatim say; outbound call |
+| Evolve | 1:50–2:20 | Carmen mentions dizziness → Village remembers Tuesday's call → **proposes a change** → Ana approves → **every phone grows a new card** | memory recall with provenance, patch proposal, rebuild + QA, live patch |
+| Anyone | 2:20–2:50 | A judge says a few sentences about their real family → **their own app on their phone** | fast builder path (≤45 s), catalog-only safety; backup = prepared blackout block |
+| Close | 2:50–3:00 | "It takes a village. Now every group can have one." (autonomy line: "The agent acts on its own; code draws the lines it can't cross.") | Arize trace/eval ready for Q&A |
+
+Evolve is **core**, not stretch: it reuses the build pipeline. Anyone needs a fast path (D9).
+
+## D2. Hero medication: a blood thinner
+Carmen takes **apixaban 5 mg twice daily**: yellow lid in the morning, blue lid in the evening. Blood thinners are on ISMP's high-alert list, so the double-dose block matters. Lisinopril 5→10 mg stays for supersession. Evening blue lid = apixaban + metformin + atorvastatin. (`data/villages/reyes_family.json` is updated to match.)
+
+## D3. Input channels are chosen per person by the village (and generated)
+The builder assigns each member channels from: `app` (role view), `lid_qr` (printable sticker per organizer slot), `phone_line` (ElevenLabs inbound), `outbound_calls` (consented), `fridge_card` (printable).
+- **Lid QR sticker (primary for Carmen):** each sticker encodes `https://<host>/s/<slot_token>`, a per-slot signed token. One scan opens a one-tap "Anotado 8:02" page (no login: the token is the identity). It goes through the same gate (R-DOUBLE: a second scan in the window → report-only "Esta tapa ya se anotó a las 8:02. Le avisamos a Marco." + notify (see D13)). It's deterministic, with no LLM in the path.
+- **Phone line:** for questions and confusion ("¿ya me la tomé?"), where voice wins.
+- **Printables** (stickers + fridge card with Village number, family word, 911 line) are generated per family. They're shown on stage as a printed card.
+- NFC lid tags: roadmap. Photo of the organizer: evidence only, never decides. Screenshot-folder watching: impossible in a web app.
+
+## D4. Realtime transport: WebSockets, not SSE
+*Evidence (tested tonight, `research/public-url.md` + local tests):* through cloudflared quick tunnels, SSE and NDJSON are **fully buffered until the stream ends** (8 s for 8 events). WebSockets pass in about 10–20 ms. Phones and the Control Room use **one WebSocket per client** to Core (`/ws?village=…&m=<token>`). Messages: `snapshot`, `patch` (RFC 6902 on the view spec), `event` (ledger rows), `control` (reasoning, build log, QA, gate decisions). Reconnect with backoff; send a fresh snapshot on reconnect (rev gap).
+
+## D5. Data plane: SurrealDB Cloud is the operational store; Core fans out
+- SurrealDB Cloud (free instance) holds `village, member, view, event, dose_window, decision, consent, spec_rev`. Agent Memory holds facts with provenance (supersession, uncertainty, scopes).
+- **Core subscribes with LIVE SELECT** (Python async SDK) and fans changes out over its WebSocket hub. Phones never connect to SurrealDB directly: one origin, no browser DB auth, no second domain for venue Wi-Fi to block.
+- *Tested locally on SurrealDB 3.3.4:* the SPEC §4.1 schema applies (incl. `DEFINE ACCESS … TYPE RECORD`), LIVE notify p50 is 1.3 ms, `view` updates arrive as live UPDATEs, and **CAS works**: `UPDATE dose_window SET … WHERE version=$v` returns `[]` when stale (the query result is a list per statement; check the inner list).
+- Safety path (gate, ledger, dose windows) reads only the operational store, never Agent Memory or LLM output.
+- Fallback: `surreal start memory` locally (live queries work; embedded `mem://` does NOT support live queries).
+
+## D6. Public URL: Tailscale Funnel (stable, free), Worker fallback
+`https://richel-macbook.tail8feae0.ts.net` → Core :8787. No warning page, WebSockets fine. Enable tonight (admin click; DNS can take about 10 min). Fallback: a Cloudflare Worker on `*.workers.dev` proxying to a quick tunnel (`infra/worker-frontdoor/`, `set-target.sh`). ElevenLabs tool URLs use one env var (`system_env__core_host`), so switching hosts is one edit. Venue DNS may filter `ts.net`/`workers.dev`; test on arrival.
+
+## D7. App delivery: Daytona builds + tests + serves; Core proxies
+- The per-village build pack is: theme tokens (village layer), i18n strings, PWA manifest, the generated custom component(s) (e.g. `PillOrganizer` with this family's lid colors), and **generated tests** (floor tests: contrast, sizes, safety colors, actions → `/actions`; render tests per role).
+- `vite build && vitest` in the sandbox (snapshot `village-kit`), then `vite preview :4173`. Core reverse-proxies `/v/{id}/*` with `X-Daytona-Preview-Token` + `X-Daytona-Skip-Preview-Warning: true`. The sandbox never calls out to Core.
+- The runtime spec is live-patched from Core over the WebSocket. The build adds the identity, the custom code and the tests. Releases are blue/green on `published_rev`: if tests or Anchor QA fail, the last good rev stays live (max 2 repair attempts).
+- Prod story (explain): publish `dist/` to S3 + CloudFront, then stop sandboxes (a 24/7 sandbox costs ≈ $49–97/mo).
+
+## D8. Design system: fixed floor + village layer
+- **Floor (locked, enforced by generated vitest in Daytona):** safety colors and words (Stopped/needs help `#A8331A`, Recorded `#2E6F42`, Needs a person amber), elder text ≥ 28px, elder buttons ≥ 88px, contrast ≥ 7:1 elder / 4.5:1 others, tap targets ≥ 48px, never color alone, read-aloud on every screen, catalog-only components, safety lines pre-written.
+- **Village layer (generated):** accent from an approved range, relationship words ("Mamá", "王伯伯"), density per person, language/script/direction per person, real-world objects (lid colors), printables.
+- **Type:** Fraunces (display), Atkinson Hyperlegible (body, Latin, made for low vision), Noto Sans fallback per script (SC, Arabic, Ethiopic…), JetBrains Mono (logs). Ground `#FBF6EE`, ink `#26211C`, sage `#2F6B57`.
+- **i18n:** any language. Safety lines in a new language are translated at build time, **back-translated and checked (Arize eval)**, and fall back to simpler reviewed text if the check fails. Plan against NYC Local Law 30's 10 languages; demo es + zh + ar (RTL). Logical CSS properties; `Intl` for dates and numbers.
+
+## D9. Builder: three speeds
+1. **Blueprint first (≤8 s, streamed):** extract people, relationships, channels, needs and rules; this drives the blueprint view while the rest builds.
+2. **Per-role views in parallel** (`render_app`, catalog-only, pydantic-validated, template fallback).
+3. **Build pack** (custom component + tests) → Daytona. For **Anyone** (a judge's family), skip custom components: catalog-only views render via the already-built kit (no rebuild), so the app appears in about 20–40 s. The Daytona build + QA continue in the background and are shown as "verified" when done.
+- Builder prompt v1 (Prompt Hub label `production`) deliberately omits on-duty escalation contacts; v2 fixes it (Arize improve loop, Q&A material).
+
+## D10. VillageSpec additions (beyond SPEC §4.3)
+```jsonc
+"blueprint": {"people":[{"id","name","relation","lang","notes"}], "edges":[{"from","to","label"}],
+              "needs":[{"id","text","source_span"}], "rules":["double_dose_guard", ...]},
+"channels": {"m_carmen": ["lid_qr","phone_line","app:elder"], "m_marco": ["app:helper","outbound_calls"]},
+"printables": [{"kind":"lid_sticker","slot":"evening","color":"#2F5FA7","label_es":"NOCHE"},
+               {"kind":"fridge_card","lang":"es"}],
+"custom_components": [{"name":"PillOrganizer","props":{"slots":["morning","evening"],"lid_colors":{...}}}]
+```
+New catalog entries: `PillOrganizer` (generated custom component for the hero), `HelperAnswer` (Marco's "is it my turn?" view), `Proposal` (evolve card with Approve).
+
+## D11. Judge as Marco (consent on stage)
+The judge scans "Be Marco" → **Join** screen (first name, mobile, AI-call consent checkbox) → consent row written → becomes the on-duty sibling. Outbound calls need **an upgraded Twilio account** (trial accounts can only call verified numbers). Escalation is **both** a phone call and an in-app "Village is calling you" banner (WebSocket), so it still lands if basement cell fails.
+
+## D12. Everything else stands as in SPEC
+LLM via `AnthropicBedrockMantle` → Anthropic fallback (no Converse); ElevenLabs native Claude for voice and structured procedures for verbatim safety lines; Anchor QA with deterministic Playwright at 390×844 + live view iframe; Arize tracing with GUARDRAIL spans and the improve loop; scheduler with the dose-window state machine + time-warp (`research/real-world-architecture.md` §1).
+
+---
+
+## Build tiers (replaces SPEC §9 table rows T1–T4)
+| By | Gate | Contents |
+|---|---|---|
+| 12:00 | **G1 Protect core** | gate + tests (model off); lid-scan route → event → WS → two browser tabs update; double scan blocked |
+| 13:15 | **G2 Generate** | builder (blueprint + per-role views) → kit renders elder/family/helper; Daytona build + proxy + QR join + consent; voice tool on the real number with verbatim say; outbound call to the consented judge |
+| 14:00 | **G3 Evolve** | memory recall with provenance → proposal → approve → rebuild + Anchor QA → live patch on all phones |
+| 14:20 | **G4 Anyone** | fast path for a new family; blackout block prebuilt as backup. **Freeze 14:20.** |
+
+---
+
+# D13. Fraud spotlight on an adaptable platform (locked Oct 15, late; supersedes D1/D2 where they differ)
+*Evidence:* the four independent reviews in `review/` (A field analysis, B blind ideation, C judge simulation, D red team). All four agree: keep Village, lead with fraud, cut scope, and win the Devpost round with a measured number.
+
+**Positioning.** *Village is the platform; the scam call is the moment.* "Describe your people; Village builds what each of them needs. When someone calls Mom asking for money in her son's name, it checks with the real son before she sends a dollar, and it learns from every attempt." (tagline superseded by D14) For finance judges: banks and brokers already ask seniors for a *trusted contact* (FINRA Rule 4512); Village makes the trusted contact active. Elder fraud was $7.75B in 2025 (+59%); quote the 2025 figure, not 2024's.
+
+**What still proves the platform:** (1) Ana's one sentence spans health, money and people, so the blueprint shows three life areas, each with generated modules, plus three different per-person apps; (2) Evolve: the family hits a new problem and the software grows; (3) a second family generated earlier in the day by the same pipeline (the blackout block, `data/villages/block_blackout.json`), revealed in about 15 s with its build time and trace. The live "judge's family" act is CUT.
+
+**Ana's sentence (new):** "Mom's seventy-eight and alone in Queens. She mixes up her pills, she almost wired money to someone pretending to be Marco last week, and last Thursday nobody went to see her because Marco and I each thought the other was going."
+
+## The scam flow (headline, Protect act)
+1. Carmen calls the Mom line: "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares."
+2. The voice agent calls the tool `report_money_request{claimed_member, amount, method, urgency, utterance, conversation_id, call_secs}` → Core → gate **R-MONEY-VERIFY** → creates `verification{id, claimed_member, status: pending, deadline: now+45s}`. The agent says, word for word: "Voy a confirmar con Marco ahora mismo. No mande dinero todavía."
+3. **Out-of-band check** with the claimed member (consented): (a) an in-app prompt over WebSocket, "Did you just call Mamá asking for $2,000? [That was me] [That wasn't me]", and (b) an outbound ElevenLabs call with the same question. Either answer counts. A countdown shows on the projector and in Carmen's view.
+4. The voice agent calls the blocking tool `await_verification{verification_id}` (waits up to 30 s; tool timeout 35 s) and speaks the returned `say` word for word:
+   - `denied` → "Ese no era Marco. No mande dinero. Ana ya lo sabe."
+   - `timeout` / no answer → **safe default**: "No pude confirmar con Marco. No mande dinero. Le aviso a Ana."
+   - `confirmed` → "Marco dice que sí fue él. Village nunca envía dinero; hable con Ana antes de hacer algo."
+5. An incident card goes to Ana; events `money_request`, `verification_*` and `incident` go to the ledger; Agent Memory records the fact with provenance (call + seconds); Arize gets GUARDRAIL + TOOL spans.
+
+**New gate rules** (pure, model-off tests): **R-MONEY-NEVER** Village never moves money, buys gift cards or crypto, or shares account details; **R-MONEY-VERIFY** any money/gift-card/crypto/account request attributed to a family member is verified with that member through a known channel; **R-MONEY-DEFAULT** unconfirmed means "don't send" and notify the coordinator; **R-MONEY-UNKNOWN** a claimed identity not in the village is treated as unverified; **R-VERIFY-CONSENT** outbound verification calls only go to members with consent (otherwise app prompt only).
+
+**Pills become a quick beat:** a lid scan turns every phone green. A second scan only **reports**: "Esta tapa ya se anotó a las 8:02. Le avisamos a Marco." (no advice wording). The double-dose rule stays in the gate and its tests.
+
+**Evolve (in Arize's loop words: detect → investigate → fix → verify → human approves):** an Arize session eval labels Carmen's calls `possible_fraud` (one seeded Oct 9 call + tonight's) → the agent queries its own traces (Arize SDK) plus SurrealDB facts with sources → proposes an `ScamCheck` "¿Es de verdad?" button for Carmen + a "Scam alerts" card for the family + a fridge card that puts the family word first → verify (Daytona build+tests, Anchor phone-size run, Arize evals) → Ana approves → live patch on every phone.
+
+**Measured number:** a scam eval set (30 scam scripts across voice, text and "bank" variants + 20 benign family calls asking for money/help) run as an Arize experiment against the money gate + extraction prompt → "N/30 caught, M/20 false alarms". Built by the evals lane from 11:00.
+
+**Release receipts instead of live builds on stage:** builds run during the day; the Control Room shows receipts (Daytona build + tests, Anchor run video, Arize eval scores), including **one deliberately failing build that was caught, fixed and released**, traced end to end.
+
+**Prize focus:** Arize, SurrealDB, Daytona, AWS deep; ElevenLabs and Anchor honest. On stage, name three sponsors; the rest go on Devpost.
+
+**Cut:** the live judge's-family act; all of L6 (voice design, live Medicare task, rota negotiation); live Daytona builds on stage; Chinese/Arabic (Spanish + English only; the i18n architecture stays). Stretch only if V4 is green by 14:00: Anchor checks the caller's story on public sites (e.g. NYC inmate lookup) and safely opens a texted link inside a sandbox.
+
+**Backup idea (only if tonight's phone-loop spike fails):** "Callback": the same verify-by-calling-back loop for vendor bank-detail changes (B2B payment fraud); it reuses about 70% of the build.
+
+
+# D14. Positioning is general (Oct 15, late; refines D13)
+Village builds and runs software for **any specific group of people**; the Reyes family is the *demo group*. No "safety net" wording. **Tagline: "Describe your people. Village builds what each of them needs."** **Opening: "Apps are built for millions. Village builds one for your people."** Closing: "It takes a village. Now every group can have one." The blueprint shows the detected group type; the blackout-block reveal proves generality. See EXPERIENCE.md.
+
+# D15. The hero is the self-building software (Oct 16, ~1am; supersedes D13/D14 positioning, keeps their mechanics)
+**Identity:** *Village: software that builds itself around your people.* Supporting: *Describe your people; it builds what each of them needs, runs it, and rebuilds itself as life changes, without ever acting alone.* Close: *It takes a village. Now every group can have one.*
+**Why:** the scam-call headline made the product feel small and blurry; the genuinely new part is the engine: software generated per person and per group that safely rewrites itself live (agent reads its own traces → writes the change → Daytona tests → Anchor clicks → Arize scores → a human approves → every phone changes). It also matches the judges' own theses (Daytona generate→test→fix, Arize detect→fix→verify, Anchor browser QA, SurrealDB shared memory).
+**Arc: Build → Run → Rebuild (climax) → Anyone.** The scam call stays as the **life event** that triggers the rebuild (and still shows verification + safe default), but it's compressed; the rebuild gets the most stage time and is shown **live** (pre-warmed sandbox; the change adds an already-cataloged component so the build+tests take about 20 s; the pipeline is narrated on screen). Receipts remain as the fallback.
+**Priority shift:** V3 (release pipeline) + V4 (Evolve) are now the heart, not polish. Protect their time: keep V1 lean (the in-app prompt is required; the outbound call is required but simple), no extras before V4.
+
+## D15 addendum: conversation, not a form, plus guardrails
+**Village is built and improved through ongoing conversation, not one sentence.** Founding is a short dialogue (Ana talks; Village asks 1–2 follow-ups: "Anyone else who helps?", "What does she like to be called?"). After that, every conversation refines the village: Carmen's calls, Ana's updates ("Marco switched to day shifts" → rota rebuild), Marco's answers. Line: *"Talk to Village about your people. It builds what each of them needs, and gets better every time anyone talks to it."*
+**The Rebuild trigger is conversational + self-detected:** Arize session evals + SurrealDB facts surface the pattern → Village raises it with Ana ("Mom's had two of these calls. Want me to change her app?") → Ana says yes (voice or tap) → generate → Daytona test → Anchor click → Arize score → live on every phone.
+**Guardrails for D15:** (1) human stakes in the first 20 s (Carmen, the $2,000 call, $7.75B) and the fraud/trusted-contact line in the close; (2) V3+V4 get protected time; the rebuild is a small catalog-based change with a pre-warmed sandbox, and recorded receipts are the fallback; (3) say the industry once: "caregiving and consumer fraud protection today; any group tomorrow."
+
+# D16. Village chat (Oct 16, ~2:30am)
+Every village (except its center, whose chat is the phone line) has a **group chat with Village as a participant**. Village posts incidents, proposals (Approve/Not now inline), release receipts and rota nudges; members talk to each other and to Village (`@Village …`). "@Village" messages route to: ask-why (read-only answer with sources), or a change request → proposal → leader approval → rebuild. Data: `message{village, author (member|village|system), text, kind: chat|incident|proposal|receipt|nudge|answer, refs[], at}`; WS message type `chat`. The chat replaces separate incident/proposal/decisions cards in member apps (they remain components for the Control Room). V2 for the feed + Village posts; `@Village` change requests V4.
+
+# D17. Orchestrator answers to spec open questions (Oct 16 ~3am)
+- **Elder text floor (refines D8):** actionable text (BigButton labels, status headline) ≥ 28 px; nothing on the elder view under 22 px; contrast ≥ 7:1. FS-5's generated floor test asserts exactly this split.
+- **Control Room palette:** Direction A (dark) tokens from `design/ControlRoom.dc.html` / `Rebuild.dc.html` / `Founding.dc.html`. `Main.dc.html` (paper) is superseded. If the JFK27 projector washes out dark, the fallback is the same layout on paper tokens (one CSS variable set), decided at the 9:30 projector test.
+- **Demo clock:** pinned to **Friday 2026-10-16 20:50 ET** (Marco on duty; the scam call at 20:52). `DEMO_CLOCK=2026-10-16T20:50:00-04:00` in `.env.example`; `reset_demo.sh` warps to it. All fixtures/policy already use Friday.
+- **Reset helpers (names fixed now):** `POST /admin/reset` with body `{scopes: ["events_today","verifications","proposals","tokens","counters"]}` (requires `X-Admin-Key`); `uv run python -m core.tools.seed` (fixtures → SurrealDB), `uv run python -m core.tools.warm` (pre-warm Daytona sandbox + Anchor session + model grammar). `scripts/reset_demo.sh` calls these in order.
+- **Round-1 clip at 12:15:** the pitch lane records it (10 min with the Marco phone + speaker); the orchestrator keeps merging.
+
+# D18. Stage language and copy rules (Oct 16 ~3:20am)
+- **Bilingual on stage, monolingual on the device.** Carmen's phone and voice line stay Spanish. Everything the *room* sees carries English: every Spanish line on the projector (Control Room, Founding, Rebuild, scam moment, chat mirror) gets an English caption directly beneath it in muted type; the live call on speaker is captioned in both languages in real time on the Control Room (ElevenLabs transcript → Claude translation, ≤1 s). The judge playing Marco only ever sees English. Pitch line: "Carmen hears Spanish; you're reading the captions."
+- **Concrete, not abstract.** No vague verbs on screen ("reads its traces", "writes the change", "what could go wrong"). Every panel states the specific thing: *"Found the pattern: 2 calls in 7 days claiming to be Marco"*, *"Added a button for Mamá: ¿Es de verdad? (Is this real?)"*, *"16 of 16 tests passed · contrast 7.4:1"*. Numbers and names over adjectives. No "AI-speak" (agentic, seamless, intelligent, leverage, empower).
+- **One idea per screen region.** If a judge can't repeat a panel's point after one glance, it's too much.
+
+# D19. The rebuild proposes a receptionist, not a button (Oct 16 ~3:45am; refines D15/D16)
+**Why:** an "Is this real?" button relies on Carmen remembering to press it under pressure. Generic call screeners filter by number reputation, which a spoofed/voice-cloned "Marco" defeats. The only thing that works is checking with the real person through a channel the scammer doesn't control, and the stronger software change is to run that check *before the call reaches her*.
+**The change Village proposes after the 2nd attempt:** *"Let me answer unknown callers for Mamá."* Carmen's line gets a **receptionist mode**: unknown/unrecognized callers are answered by Village first ("Carmen's phone, this is Village. Who's calling?"); known family (caller-id match + family word) passes through; a caller who claims to be family or asks for money is held while Village verifies with the real member **on their own device** (app prompt + outbound call to the number on file; never a callback to the incoming number). Not confirmed → "Marco says this isn't him. I won't put you through." Carmen is told afterward (voice, Spanish) and the family chat gets the incident.
+**Demo:** Act 2 (Run) = the first attempt reaches Carmen directly; she calls Village; hold + verify (existing). Act 3 (Rebuild, climax) = Village proposes the receptionist; Ana approves; pipeline runs (voice-line behavior + a "Village answers unknown calls first" card for the family + the fridge card line); then **live**: the presenter plays the scammer from a second phone calling Carmen's line; Village screens, the judge-Marco taps "That wasn't me", the scammer is refused; captions in English. Carmen's app keeps a plain "Llamar a Village" button; the "¿Es de verdad?" button is dropped.
+**Production note:** one conditional-forwarding code on her real phone (no-answer/unknown → Village number); in the demo her line *is* the Twilio number. Still never a dialing or money action by Village.
+**Honest market line for Q&A:** carrier blocking, Google Call Screen and Nomorobo filter numbers; bank trusted-contact programs act after a transfer attempt. Village verifies with the family *before* the call gets through, and it's woven into everything else the family already coordinates.
+
+# D20. The agent, defined (Oct 16 ~4:20am)
+See AGENT.md. One hand-written tool-use loop over Claude (Bedrock Mantle) with five roles (Founder, Watcher, Verifier, Builder, Explainer); every effectful tool call is a proposal intercepted by the pure gate; three memory layers (operational store, Agent Memory, working context); every run = a decision record + an Arize trace. Quality levers adopted: **capabilities catalog** (needs → capabilities → components, scored per person with reasons), **plan → critique → commit**, **consider_options before proposing** (2–3 candidates with tradeoffs; shown on the Rebuild screen), evals as triggers and feedback. **Custom components** are allowed through `create_component` + the release gate + a component contract; a village catalog grows per family, and a shared catalog (roadmap) promotes components with provenance. Hero: PillOrganizer already takes this path. Build/explain split in AGENT.md §6.
+
+# D21. One site, one person at a time: how recognition and per-person software are shown (Oct 16 ~4:30am)
+**Mechanics.** One URL per village (`/v/reyes/`). Identity rides in the invite: the QR/link carries a signed member token in the URL fragment → redeemed once → an httpOnly cookie on Core's origin. The same site then serves *that person's view*: Core looks up the member → role + profile → the `view` row generated for them (components, language, theme, read-aloud) and streams it over the WebSocket. Carmen is recognized differently: by caller ID on the phone line and by the per-slot token on each lid sticker. So one bundle, one URL, N different pieces of software.
+**What differs is structural, not cosmetic:** Carmen: 3 big buttons, Spanish, read-aloud, no chat, light high-contrast theme; Ana: dashboard + chat + approvals + Ask Village; Marco: one question ("Is it my turn?") + verification prompts; Lucía: app-only, no calls. Each difference traces to a profile fact and a capability choice (AGENT.md §4), so "why does Marco get a different screen?" has an answer.
+**How we show it on stage (and in the product):**
+1. The three-apps screen prints **the same URL above all three phones**: "village.app/v/reyes · one site · three people".
+2. **"View as" on the Control Room:** tapping Carmen / Ana / Marco morphs the live app on the projector (same URL, same session; Core re-issues the view for that member). The room watches the software change because the *person* changed.
+3. **A small identity chip** on every member app: "You're Marco · Reyes village". Judges who scanned the family QR see "You're family".
+4. **Ask Village:** "Why does Marco's screen differ from Ana's?" → the Explainer cites the profile facts and the capability choice.
+5. Pitch line: *"Same address. Different software, because it's a different person."*
+
+# D22. Pills: the organizer is the tool; Village guides refills and carries the state (Oct 16 ~4:45am; supersedes D3's lid stickers)
+**Why:** a weekly pill organizer already answers "did I take it?" (the compartment is empty) better than any app, and a sticker to scan adds a task. The real problems are: (1) the organizer's state doesn't reach the family; (2) **refills** are where errors happen (a dose change like lisinopril 5→10 mg is missed and repeated seven times); (3) double doses come from the bottle, not the organizer.
+**Decisions:** no lid stickers, no "I took it" button for Carmen. Health capability = **prescription record with history + sources** (supersession shown where it prevents a real error), a **refill checklist** for whoever is on duty on refill day ("lisinopril is 10 mg now, changed Oct 3 by Dr. Lee; was 5"), an **optional evening check-in call** (Village asks; Carmen looks at the organizer; the family sees the answer; she can decline), and the voice-path rule "already recorded, I won't advise on doses; I'll tell Marco" when she asks about another one. Print kit = fridge card only. The elder view keeps 3 buttons: Llamar a Village · Llamar a Ana · Necesito ayuda.
+**Demo:** pills are a 10 s beat: Marco's refill card with the superseded dose (SurrealDB history, concrete). Live-sync proof = judges joining. `/s/{token}` stays in FS-1 as an optional generic check-in scan, not on the demo path. `lid_qr` leaves the channel list; `refill_day` and `check_in_call` join the capabilities catalog.
+
+## D22 addendum: how Village beats the organizer, and the refill photo check
+Village owns what the organizer is blind to: dose **changes** (refill checklist shows "10 mg now, was 5"), **conflicting sources** (uncertainty for a human), **coordination** (refill task with an owner, nudge, visible result), **patterns** (missed slots, symptoms after a slot), and **verification with people**. New capability (V4+ stretch): **refill photo check**: after refilling, the on-duty member photographs the organizer; a vision pass counts pills per compartment against the current schedule and reports mismatches as an *assist* with uncertainty ("Thursday evening: I count 2, expected 3; please check"), never a verdict; the result is an event with the photo as its source. Line: "The tray tells her whether she took it. Village makes sure the tray was filled right."
+
+# D23. Make the agency visible (Oct 16 ~5:10am)
+First-round judges read the Devpost page and the video only. Village must *read* as an autonomous, technically deep, scalable system. Adopted, ranked by impact per hour:
+1. **Village's rounds (V4, ~45 min):** a nightly autonomous Watcher run on the clock with an action budget: evening check-in call (if enabled), "you're on tomorrow" nudge, refill-due reminder, open uncertainties, re-run of the scam eval set, pattern detection → proposals. Control Room and Devpost show: "Tonight Village did N things on its own and asked you about M." Scale story: rounds run per village on a schedule (EventBridge in prod).
+2. **The agent fixes its own failing build (V3, ~30 min):** the Builder reads the failing floor test (contrast 4.1:1), patches the theme token, re-runs, ships; the trace (AGENT → TOOL daytona_build ✗ → LLM → TOOL daytona_build ✓) is a Devpost screenshot. Daytona's generate → test → fix with the agent in the loop.
+3. **Autonomy ledger (V2, ~15 min):** every decision record tagged `mode: acted_alone | asked_human | refused`; counts per day on the Control Room, the family chat ("Village's week") and Devpost.
+4. **Founder does work (V2, ~30 min):** during founding Village checks the listed medications against DailyMed (REST) for interactions and places the consent/availability call to Marco before showing the draft ("Marco confirmed Tue/Thu/Fri/Sat and agreed to calls").
+5. **Devpost + video rebuilt around autonomy (tonight):** hero GIF = receptionist refusing the scammer; architecture diagram = five roles, the loop, the gate, the release gate, three memory layers, sponsors in place; autonomy counts; the measured scam number; a four-line scale section; the chat positioned as "the agent as a participant; joins your WhatsApp next".
+Role names (Founder, Watcher, Verifier, Builder, Explainer) appear on screen and on the page: they are real, and judges should see a multi-role agent, not a chatbot.
+
+## D24: "It takes a village" features, sized so scope stays flat (Oct 16)
+Fourteen features raised after the screen pass (needs/offers, carer load, handoffs, modes, Carmen's own rules, the charter, outward calls, guest notes, weekly digest, "what Village knows about me", incident→test, village types, governance escalation, consent per affected person). Plan: `docs/VILLAGE-FEATURES.md`. **Today:** #5 Carmen's rules (data + copy, V2), #11 every incident becomes a test (V4, 30 min, 006 T035), #2 carer-load check in the nightly round (V4, 20 min, 006 T036). **P2** (designed; build only if V4 green by 14:00): handoff message, weekly digest, consent per affected person. **P3:** boards + Devpost sentences only. No new tables or contract changes today; no new stage time. **Why:** the demo proves the center is protected; the village is the people carrying weight together, and the page must show that shape without moving today's cut lines.
+

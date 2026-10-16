@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/message.schema.json",
+  "title": "Village chat message",
+  "description": "One row of the SurrealDB `message` table (D16, contracts 1.1.0): the village group chat with Village as a participant. Members write only kind=chat (POST /villages/{id}/messages); `village` posts are created by core from ledger rows (incident, proposal, receipt, nudge) or by the builder's ask() (answer) and always carry at least one ref; `system` posts are lifecycle lines ('Ana invited everyone', 'Marco joined'). Append-only: a correction is a new message, never an edit. Chat rows are NOT ledger events; Village posts cite ledger rows by id in refs[]. Fanned out as WS `chat` frames to every member socket whose view is not elder, plus control; bound as chat:village (last 50). Never on the safety path.",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "village", "author", "kind", "text", "refs", "source", "at"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/message_id" },
+    "village": { "$ref": "common.schema.json#/$defs/village_id" },
+    "author": { "$ref": "#/$defs/author" },
+    "kind": { "$ref": "common.schema.json#/$defs/message_kind" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 2000, "description": "Plain words in the village's family language (the coordinator's lang). Village/system posts may add text_i18n." },
+    "text_i18n": { "$ref": "common.schema.json#/$defs/localized", "description": "Optional localized copies of text for village/system posts." },
+    "mention": { "anyOf": [ { "const": "village" }, { "type": "null" } ], "description": "Member posts: 'village' when the text addresses @Village (routed to ask-why or a change request); null otherwise." },
+    "reply_to": { "anyOf": [ { "$ref": "common.schema.json#/$defs/message_id" }, { "type": "null" } ], "description": "The message this one answers (kind answer replies to the @Village message)." },
+    "refs": { "type": "array", "maxItems": 12, "items": { "$ref": "common.schema.json#/$defs/message_ref" }, "description": "Source chips. Village posts: ≥ 1. proposal posts carry {kind: proposal}; receipt posts carry {kind: release}; incident posts carry the money_request event and/or {kind: incident}." },
+    "routed": { "enum": ["none", "ask", "change_request"], "description": "Member @Village posts only: how core routed the mention (also returned by POST /villages/{id}/messages)." },
+    "source": { "$ref": "common.schema.json#/$defs/source", "description": "app: ref = member_id or ws req_id · system: ref = gate | evolve | release | builder | scheduler · call: a message created from a call (ref = conversation_id)." },
+    "trace_id": { "$ref": "common.schema.json#/$defs/trace_id", "description": "answer posts: the ask() trace." },
+    "at": { "$ref": "common.schema.json#/$defs/datetime" }
+  },
+  "allOf": [
+    { "if": { "properties": { "author": { "pattern": "^[a-z]_" } } }, "then": { "properties": { "kind": { "const": "chat" } }, "description": "Members write only chat." } },
+    { "if": { "properties": { "author": { "const": "village" } } }, "then": { "properties": { "refs": { "minItems": 1 }, "kind": { "enum": ["incident", "proposal", "receipt", "nudge", "answer"] } } } },
+    { "if": { "properties": { "author": { "const": "system" } } }, "then": { "properties": { "kind": { "enum": ["chat", "nudge"] } } } },
+    { "if": { "properties": { "kind": { "const": "answer" } } }, "then": { "required": ["reply_to"], "properties": { "reply_to": { "type": "string" } } } },
+    { "if": { "properties": { "kind": { "const": "proposal" } } }, "then": { "properties": { "refs": { "contains": { "properties": { "kind": { "const": "proposal" } } } } } } },
+    { "if": { "properties": { "kind": { "const": "receipt" } } }, "then": { "properties": { "refs": { "contains": { "properties": { "kind": { "const": "release" } } } } } } }
+  ],
+
+  "$defs": {
+    "author": {
+      "description": "A member id, or Village itself, or the system (lifecycle lines).",
+      "anyOf": [
+        { "$ref": "common.schema.json#/$defs/member_id" },
+        { "enum": ["village", "system"] }
+      ]
+    }
+  },
+
+  "examples": [
+    {
+      "id": "msg_1016_1402_incident", "village": "v_reyes", "author": "village", "kind": "incident",
+      "text": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.",
+      "text_i18n": { "en": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.", "es": "Alguien llamó a Mamá diciendo ser Marco y pidió $2,000. Le pregunté a Marco; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada." },
+      "mention": null, "reply_to": null,
+      "refs": [
+        { "kind": "event", "id": "ev_1016_1402_money", "label": "her call, 0:14" },
+        { "kind": "event", "id": "ev_1016_1402_ver_denied", "label": "Marco answered in app" },
+        { "kind": "incident", "id": "inc_ver_1016_01", "label": "why" }
+      ],
+      "source": { "kind": "system", "ref": "gate" }, "at": "2026-10-16T14:02:40-04:00"
+    },
+    {
+      "id": "msg_1016_1405_ana", "village": "v_reyes", "author": "m_ana", "kind": "chat",
+      "text": "Approved. @Village why Marco and not Lucía?",
+      "mention": "village", "reply_to": null, "refs": [], "routed": "ask",
+      "source": { "kind": "app", "ref": "m_ana" }, "at": "2026-10-16T14:05:40-04:00"
+    },
+    {
+      "id": "msg_1016_1405_answer", "village": "v_reyes", "author": "village", "kind": "answer",
+      "text": "The caller claimed to be Marco, so I checked with Marco. Lucía isn’t set up for calls (her choice at joining).",
+      "mention": null, "reply_to": "msg_1016_1405_ana",
+      "refs": [
+        { "kind": "decision", "id": "dc_1016_1402_money", "label": "rule R-MONEY-VERIFY" },
+        { "kind": "event", "id": "ev_1011_2005_consent_lucia", "label": "consent record" }
+      ],
+      "source": { "kind": "system", "ref": "builder" }, "trace_id": "7c1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f", "at": "2026-10-16T14:05:48-04:00"
+    }
+  ]
+}

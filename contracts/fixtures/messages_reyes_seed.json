@@ -1,0 +1,80 @@
+{
+  "contract_version": "1.1.0",
+  "village": "v_reyes",
+  "description": "Village chat rows (D16, message.schema.json) for the Reyes village across the Protect → Evolve arc, chronological; mirrors design/Chat.dc.html frame by frame (nudge · Marco · scam stopped · Lucía · suggests a change · Ana @Village · answer · updated). Times follow the contract clock (scam at Fri 2026-10-16 14:02, see contracts/README.md 'Decisions made in v1' #1; the design mock shows the same beats on the D17 evening clock) and refs point at ids in events_reyes_seed.json / ws_sequence_scam.json / proposal.schema.json / release.schema.json. The first nudge cites the morning lid scan the seed ledger actually has (ev_1016_0811_dose_morning) in place of the mock's evening lid. Load after events_reyes_seed.json; kit renders it as the chat:village binding (fake WS) and replays rows after `at` 14:02 as chat frames; core reset_demo seeds the first two rows and lets the live flow write the rest.",
+  "clients_that_see_it": ["ana", "marco", "lucia", "control"],
+  "messages": [
+    {
+      "id": "msg_1016_0811_nudge", "village": "v_reyes", "author": "village", "kind": "nudge",
+      "text": "Mamá scanned her morning lid. All done for this morning.",
+      "text_i18n": { "en": "Mamá scanned her morning lid. All done for this morning.", "es": "Mamá escaneó la tapa de la mañana. Listo por esta mañana." },
+      "mention": null, "reply_to": null,
+      "refs": [ { "kind": "event", "id": "ev_1016_0811_dose_morning", "label": "from her phone" } ],
+      "source": { "kind": "system", "ref": "scheduler" }, "at": "2026-10-16T08:11:06-04:00"
+    },
+    {
+      "id": "msg_1016_1355_marco", "village": "v_reyes", "author": "m_marco", "kind": "chat",
+      "text": "On it tonight. Leaving for work at 9:30.",
+      "mention": null, "reply_to": null, "refs": [], "routed": "none",
+      "source": { "kind": "app", "ref": "m_marco" }, "at": "2026-10-16T13:55:12-04:00"
+    },
+    {
+      "id": "msg_1016_1402_incident", "village": "v_reyes", "author": "village", "kind": "incident",
+      "text": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.",
+      "text_i18n": { "en": "Someone called Mamá as Marco, asking for $2,000. I asked Marco; he said it wasn’t him. I told her not to send money. Nothing was sent.", "es": "Alguien llamó a Mamá diciendo ser Marco y pidió $2,000. Le pregunté a Marco; dijo que no fue él. Le dije a ella que no mande dinero. No se envió nada." },
+      "mention": null, "reply_to": null,
+      "refs": [
+        { "kind": "event", "id": "ev_1016_1402_money", "label": "her call, 0:09" },
+        { "kind": "event", "id": "ev_1016_1402_ver_denied", "label": "Marco answered in app" },
+        { "kind": "incident", "id": "inc_ver_1016_01", "label": "why" }
+      ],
+      "source": { "kind": "system", "ref": "gate" }, "at": "2026-10-16T14:02:40-04:00"
+    },
+    {
+      "id": "msg_1016_1404_lucia", "village": "v_reyes", "author": "m_lucia", "kind": "chat",
+      "text": "That’s the second time?? Calling her now.",
+      "mention": null, "reply_to": null, "refs": [], "routed": "none",
+      "source": { "kind": "app", "ref": "m_lucia" }, "at": "2026-10-16T14:04:02-04:00"
+    },
+    {
+      "id": "msg_1016_1405_proposal", "village": "v_reyes", "author": "village", "kind": "proposal",
+      "text": "Yes, second attempt this month. Want me to give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.",
+      "text_i18n": { "en": "Yes, second attempt this month. Want me to give Mamá a “¿Es de verdad?” button and alert you all on any new attempt? Ana decides.", "es": "Sí, segundo intento este mes. ¿Quieren que le ponga a Mamá un botón “¿Es de verdad?” y les avise a todos de cualquier intento nuevo? Ana decide." },
+      "mention": null, "reply_to": "msg_1016_1404_lucia",
+      "refs": [
+        { "kind": "proposal", "id": "prop_reyes_scamcheck", "label": "Approve · Not now" },
+        { "kind": "event", "id": "ev_1009_1921_money", "label": "Oct 9 · call at 0:21" },
+        { "kind": "event", "id": "ev_1016_1402_pattern", "label": "2 in 30 days" }
+      ],
+      "source": { "kind": "system", "ref": "evolve" }, "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "at": "2026-10-16T14:05:00-04:00"
+    },
+    {
+      "id": "msg_1016_1405_ana", "village": "v_reyes", "author": "m_ana", "kind": "chat",
+      "text": "Approved. @Village why Marco and not Lucía?",
+      "mention": "village", "reply_to": null, "refs": [], "routed": "ask",
+      "source": { "kind": "app", "ref": "m_ana" }, "at": "2026-10-16T14:05:40-04:00"
+    },
+    {
+      "id": "msg_1016_1405_answer", "village": "v_reyes", "author": "village", "kind": "answer",
+      "text": "The caller claimed to be Marco, so I checked with Marco. Lucía isn’t set up for calls (her choice at joining).",
+      "text_i18n": { "en": "The caller claimed to be Marco, so I checked with Marco. Lucía isn’t set up for calls (her choice at joining).", "es": "Quien llamó dijo ser Marco, así que confirmé con Marco. Lucía no está configurada para llamadas (lo eligió al unirse)." },
+      "mention": null, "reply_to": "msg_1016_1405_ana",
+      "refs": [
+        { "kind": "decision", "id": "dc_1016_1402_money", "label": "rule R-MONEY-VERIFY" },
+        { "kind": "event", "id": "ev_1011_2005_consent_lucia", "label": "consent record" }
+      ],
+      "source": { "kind": "system", "ref": "builder" }, "trace_id": "7c1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f", "at": "2026-10-16T14:05:48-04:00"
+    },
+    {
+      "id": "msg_1016_1409_receipt", "village": "v_reyes", "author": "village", "kind": "receipt",
+      "text": "Mamá’s phone now has “¿Es de verdad?”. Built and tested first (16/16 · tapped on a real phone).",
+      "text_i18n": { "en": "Mamá’s phone now has “¿Es de verdad?”. Built and tested first (16/16 · tapped on a real phone).", "es": "El teléfono de Mamá ya tiene “¿Es de verdad?”. Primero se construyó y se probó (16/16 · probado en un teléfono real)." },
+      "mention": null, "reply_to": "msg_1016_1405_proposal",
+      "refs": [
+        { "kind": "release", "id": "rel_reyes_r5", "label": "receipt" },
+        { "kind": "proposal", "id": "prop_reyes_scamcheck", "label": "approved by Ana" }
+      ],
+      "source": { "kind": "system", "ref": "release" }, "at": "2026-10-16T14:09:30-04:00"
+    }
+  ]
+}

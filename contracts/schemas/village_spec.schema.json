@@ -1,0 +1,566 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/village_spec.schema.json",
+  "title": "VillageSpec",
+  "description": "The whole generated village: blueprint (people + capability profiles, needs, life areas, rules), per-member channels, per-role views (flat adjacency lists, builder render_app shape), policies, voice lines, printables and custom components. Produced by builder (or the fixture), stored by core, rendered by kit, built by release. Cross-field invariants that JSON Schema cannot express are listed in contracts/README.md §Invariants and are enforced by core's pydantic model.",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "rev", "village", "blueprint", "channels", "views", "policies", "voice_lines", "printables", "custom_components"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/contract_version" },
+    "rev": { "$ref": "common.schema.json#/$defs/rev" },
+    "village": { "$ref": "#/$defs/village" },
+    "blueprint": { "$ref": "#/$defs/blueprint" },
+    "channels": {
+      "type": "object",
+      "description": "member_id → channels. Every blueprint person appears here (possibly with []).",
+      "propertyNames": { "$ref": "common.schema.json#/$defs/member_id" },
+      "additionalProperties": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/member_channel" } }
+    },
+    "views": {
+      "type": "object",
+      "description": "role_key → view. The WS snapshot for a member carries only views[person.view].",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "common.schema.json#/$defs/role_key" },
+      "additionalProperties": { "$ref": "#/$defs/view" }
+    },
+    "policies": { "type": "array", "items": { "$ref": "#/$defs/policy" } },
+    "voice_lines": { "type": "array", "items": { "$ref": "#/$defs/voice_line" } },
+    "printables": { "type": "array", "items": { "$ref": "#/$defs/printable" } },
+    "custom_components": { "type": "array", "maxItems": 3, "items": { "$ref": "#/$defs/custom_component" } },
+    "official_sources": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["topic", "name", "url"],
+        "properties": { "topic": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" }, "name": { "type": "string" }, "url": { "$ref": "common.schema.json#/$defs/url" } }
+      }
+    },
+    "refusals": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["rule_id", "request", "alternative"],
+        "properties": { "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" }, "request": { "type": "string" }, "alternative": { "type": "string" } }
+      }
+    },
+    "needs_clarification": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 200 } },
+    "invites": { "type": "array", "maxItems": 24, "items": { "$ref": "#/$defs/invite" }, "description": "1.1.0. Join invites minted by POST /villages/{id}/activate (ids + status only; the token is never in the spec). Present only in coordinator / control snapshots; stripped for other roles." }
+  },
+
+  "$defs": {
+    "invite": {
+      "type": "object", "additionalProperties": false,
+      "description": "1.1.0 (FS-3). One join invite per member with a view. The secret invite_token travels only in the QR URL (/join?i=…) returned by activate and /qr?kind=join.",
+      "required": ["id", "member_id", "kind", "status", "created_at"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/invite_id" },
+        "member_id": { "$ref": "common.schema.json#/$defs/member_id" },
+        "kind": { "enum": ["join"] },
+        "status": { "enum": ["active", "redeemed", "revoked"] },
+        "created_at": { "$ref": "common.schema.json#/$defs/datetime" },
+        "redeemed_at": { "anyOf": [ { "$ref": "common.schema.json#/$defs/datetime" }, { "type": "null" } ] },
+        "url": { "$ref": "common.schema.json#/$defs/url", "description": "https://<host>/join?i=<invite_token>. Only in the activate / qr responses, never persisted in the spec." },
+        "svg": { "type": "string", "description": "QR code SVG; activate / qr responses only." }
+      }
+    },
+    "village": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "lang", "timezone", "coordinator_id"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/village_id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "kind": { "enum": ["care", "block"] },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "timezone": { "type": "string", "pattern": "^[A-Za-z]+(/[A-Za-z_]+)+$" },
+        "coordinator_id": { "$ref": "common.schema.json#/$defs/member_id" },
+        "care_recipient_id": { "$ref": "common.schema.json#/$defs/member_id" },
+        "status": { "$ref": "common.schema.json#/$defs/village_status", "default": "active", "description": "1.1.0 (FS-3). Absent = active, so 1.0.0 fixtures stay valid. draft: PATCH /villages/{id}/draft allowed; /qr and outbound calls/prompts answer 409; POST /villages/{id}/activate flips it and mints invites." },
+        "activated_at": { "$ref": "common.schema.json#/$defs/datetime", "description": "Set by activate (1.1.0)." },
+        "village_number": { "$ref": "common.schema.json#/$defs/e164", "description": "Inbound Mom/Block line number (Twilio, via ElevenLabs)." },
+        "theme": {
+          "type": "object", "additionalProperties": false,
+          "description": "Village layer tokens (D8). The floor (safety colors, sizes, contrast) is not here and cannot be changed.",
+          "properties": {
+            "accent": { "$ref": "common.schema.json#/$defs/hex_color" },
+            "relationship_words": { "type": "object", "propertyNames": { "$ref": "common.schema.json#/$defs/member_id" }, "additionalProperties": { "$ref": "common.schema.json#/$defs/localized" }, "description": "How the family names a person, e.g. m_carmen → {es: Mamá, en: Mamá}." }
+          }
+        }
+      }
+    },
+
+    "blueprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "people", "edges", "needs", "rules", "life_areas"],
+      "properties": {
+        "description": {
+          "type": "object", "additionalProperties": false, "required": ["text", "speaker", "lang"],
+          "description": "The coordinator's sentence, verbatim. needs[].source_span indexes into text.",
+          "properties": {
+            "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+            "speaker": { "$ref": "common.schema.json#/$defs/member_id" },
+            "lang": { "$ref": "common.schema.json#/$defs/lang" }
+          }
+        },
+        "people": { "type": "array", "minItems": 1, "maxItems": 24, "items": { "$ref": "#/$defs/person" } },
+        "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+        "needs": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/need" } },
+        "rules": {
+          "type": "array", "uniqueItems": true,
+          "description": "Human-level safety rules switched on (blueprint chips). Each maps to gate rule ids in policies.",
+          "items": { "enum": ["double_dose_guard", "no_dose_advice", "missed_dose_ladder", "emergency_911_first", "consent_before_calls", "ai_disclosure_family_word", "money_verify_with_member", "money_never_moves", "money_default_dont_send", "quiet_hours", "rumor_check", "medical_priority_matching", "address_privacy"] }
+        },
+        "life_areas": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "#/$defs/life_area" } }
+      }
+    },
+
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "relation", "role", "view", "profile", "consent"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/member_id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "short_name": { "type": "string", "maxLength": 40 },
+        "relation": { "type": "string", "maxLength": 80, "description": "Relative to the care recipient or block, e.g. mother, son, neighbor." },
+        "role": { "enum": ["coordinator", "care_recipient", "caregiver", "professional_caregiver", "resident", "volunteer", "business", "peer"] },
+        "view": { "anyOf": [ { "$ref": "common.schema.json#/$defs/role_key" }, { "type": "null" } ], "description": "Key in views this person opens; null = phone-only." },
+        "phone": { "$ref": "common.schema.json#/$defs/e164", "description": "Stripped from non-coordinator snapshots." },
+        "notes": { "type": "string", "maxLength": 400 },
+        "life_areas": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/life_area_id" } },
+        "profile": { "$ref": "#/$defs/capability_profile" },
+        "consent": { "$ref": "#/$defs/consent" }
+      }
+    },
+
+    "capability_profile": {
+      "type": "object",
+      "description": "Typed capability profile (LAYERS §3.1). Drives theme, density, language and channels. Values are inferred and can be updated by memory facts.",
+      "additionalProperties": false,
+      "required": ["lang", "script", "reading_level", "vision", "hearing", "memory", "mobility", "tech_comfort", "availability"],
+      "properties": {
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "secondary_langs": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/lang" } },
+        "script": { "$ref": "common.schema.json#/$defs/script" },
+        "dir": { "enum": ["ltr", "rtl"], "default": "ltr" },
+        "reading_level": { "enum": ["simple", "standard", "advanced"] },
+        "vision": { "enum": ["typical", "reduced", "low_vision", "blind"] },
+        "hearing": { "enum": ["typical", "reduced", "deaf"] },
+        "memory": { "enum": ["typical", "mild_lapses", "significant"] },
+        "mobility": { "enum": ["typical", "limited", "wheelchair", "homebound"] },
+        "tech_comfort": { "enum": ["phone", "app", "both"], "description": "phone = voice/phone only; app = uses the app; both." },
+        "availability": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["days", "window"],
+            "properties": {
+              "days": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/weekday" } },
+              "window": { "$ref": "common.schema.json#/$defs/time_window" },
+              "note": { "type": "string", "maxLength": 200 }
+            }
+          }
+        },
+        "quiet_hours": { "$ref": "common.schema.json#/$defs/time_window" },
+        "notes": { "type": "string", "maxLength": 300 },
+        "evidence": {
+          "type": "array",
+          "description": "Where profile values came from (shown as provenance on blueprint chips).",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["field", "source"],
+            "properties": {
+              "field": { "enum": ["lang", "script", "reading_level", "vision", "hearing", "memory", "mobility", "tech_comfort", "availability", "quiet_hours"] },
+              "source": { "$ref": "common.schema.json#/$defs/source" }
+            }
+          }
+        }
+      }
+    },
+
+    "consent": {
+      "type": "object",
+      "description": "Consent flags (P-CO-01, R-VERIFY-CONSENT). ai_calls gates every outbound AI call to this person.",
+      "additionalProperties": false,
+      "required": ["ai_calls", "app_prompts", "recorded_on", "recorded_by"],
+      "properties": {
+        "ai_calls": { "type": ["boolean", "null"], "description": "null = not asked yet; R-CONSENT/R-VERIFY-CONSENT treat null as false." },
+        "app_prompts": { "type": ["boolean", "null"] },
+        "dose_logging": { "type": "boolean" },
+        "share_with": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+        "money_safety_share_with": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+        "money_verifier": { "type": "boolean", "description": "May be asked to verify money requests made in their name." },
+        "location_tracking": { "const": false, "description": "Always false (P-CO-02)." },
+        "recorded_on": { "$ref": "common.schema.json#/$defs/date" },
+        "recorded_by": { "type": "string", "maxLength": 200 }
+      }
+    },
+
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["from", "to", "label", "kind"],
+      "properties": {
+        "from": { "$ref": "common.schema.json#/$defs/member_id" },
+        "to": { "$ref": "common.schema.json#/$defs/member_id" },
+        "kind": { "enum": ["cares_for", "on_duty", "backup", "trusted_contact", "helps", "neighbor", "coordinates"] },
+        "label": { "type": "string", "maxLength": 60 }
+      }
+    },
+
+    "life_area_id": { "enum": ["health", "money", "people", "home", "daily_living", "information"], "description": "Same ids as builder_system.md BLUEPRINT." },
+    "life_area": {
+      "type": "object",
+      "description": "Shape of builder render_app blueprint.life_areas[] (verbatim), plus optional label_i18n.",
+      "additionalProperties": false,
+      "required": ["id", "label", "need_ids", "modules", "rules"],
+      "properties": {
+        "id": { "$ref": "#/$defs/life_area_id" },
+        "label": { "type": "string", "maxLength": 40, "description": "In the coordinator's language, e.g. 'Money: scam calls'." },
+        "label_i18n": { "$ref": "common.schema.json#/$defs/localized" },
+        "need_ids": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/need_id" } },
+        "modules": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^([a-z][a-z_]{1,23}:[a-z][a-z0-9_]{0,23}|voice:(mom-line|block-line|village-caller)|outbound:T[0-9]+)$" }, "description": "'<role>:<element id>' | 'voice:<agent>' | 'outbound:<template>' (prompts/escalation_call.md)." },
+        "rules": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/rule_id" } },
+        "trusted_contacts": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/member_id" }, "description": "money only: members the input names for money." }
+      }
+    },
+
+    "need": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "priority", "domain", "life_area", "source_span"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/need_id" },
+        "text": { "type": "string", "maxLength": 160 },
+        "priority": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "domain": { "enum": ["medication", "scheduling", "health_observation", "safety", "money", "information", "resources", "logistics", "social"] },
+        "life_area": { "$ref": "#/$defs/life_area_id" },
+        "subject_member_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+        "source_span": {
+          "description": "[start, end) character offsets into blueprint.description.text, or null when the need came from a follow-up answer or data.",
+          "anyOf": [
+            { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "type": "integer", "minimum": 0 }, "end": { "type": "integer", "minimum": 1 } } },
+            { "type": "null" }
+          ]
+        },
+        "origin": { "enum": ["description", "follow_up", "data", "memory", "evolve"], "default": "description" }
+      }
+    },
+
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lang", "theme", "root", "elements"],
+      "properties": {
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "theme": { "enum": ["elder", "family", "dashboard"] },
+        "dir": { "enum": ["ltr", "rtl"] },
+        "root": { "const": "s" },
+        "elements": {
+          "type": "object", "minProperties": 2, "maxProperties": 24,
+          "propertyNames": { "$ref": "common.schema.json#/$defs/element_id" },
+          "additionalProperties": { "$ref": "#/$defs/element" }
+        },
+        "needs_served": {
+          "type": "object",
+          "description": "element id → need ids (n_safety always valid). Required for every non-layout element.",
+          "propertyNames": { "$ref": "common.schema.json#/$defs/element_id" },
+          "additionalProperties": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/need_id" } }
+        }
+      }
+    },
+
+    "catalog_type": {
+      "enum": [
+        "Screen", "Stack", "Header", "Text", "BigButton", "Alert", "StatusGrid", "ContactCard", "SourceCard",
+        "DoseTracker", "CareRota", "Timeline", "SymptomLog", "CallLog",
+        "NeedBoard", "ResourceBoard", "VerifiedInfoFeed", "CheckIn", "Checklist",
+        "ScamCheck", "IncidentCard", "LifeAreas", "VerificationPrompt", "HelperAnswer", "Proposal", "PillOrganizer",
+        "VillageChat"
+      ],
+      "description": "26 catalog types of 1.0.0 + VillageChat (1.1.0, D16)."
+    },
+    "component_type": {
+      "anyOf": [ { "$ref": "#/$defs/catalog_type" }, { "type": "string", "pattern": "^Custom[A-Z][A-Za-z0-9]{2,28}$" } ]
+    },
+
+    "bind": {
+      "type": "string",
+      "description": "Binding grammar = builder_system.md DATA BINDINGS (incl. verifications:mine, verifications:pending?member=me, incidents:open|subject=<id>, blueprint:life_areas) + contract additions proposals:pending, rota:current?member=me, valid_at=week. Core resolves binds into snapshot.data / event.data keyed by the exact bind string.",
+      "pattern": "^(facts:[a-z_]+(\\?[a-z_]+=[A-Za-z0-9_]+(&[a-z_]+=[A-Za-z0-9_]+)*)?|timeline:subject=[a-z]_[a-z0-9_]+|rota:(current|week)(\\.(on_duty|backup))?(\\?member=me)?|alerts:active(\\?count)?|needs:(open|matched)(\\?count)?|resources:available(\\?count)?|claims:(topic=[a-z_]+)(\\?count)?|checkins:(village|overdue)(\\?count)?|calls:line=[a-z-]+|decisions:recent|member:[a-z]_[a-z0-9_]+|incidents:(open|all|subject=[a-z]_[a-z0-9_]+)(\\?count)?|verifications:(mine|pending\\?member=me)|proposals:pending(\\?count)?|blueprint:life_areas|chat:village(\\?count)?)$"
+    },
+
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "props"],
+      "properties": {
+        "type": { "$ref": "#/$defs/component_type" },
+        "props": { "$ref": "common.schema.json#/$defs/props" },
+        "children": { "type": "array", "maxItems": 12, "items": { "$ref": "common.schema.json#/$defs/element_id" } }
+      },
+      "allOf": [
+        { "if": { "required": ["type"], "properties": { "type": { "enum": ["Screen", "Stack"] } } }, "then": { "required": ["children"] }, "else": { "not": { "required": ["children"] } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Screen" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Screen" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Stack" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Stack" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Header" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Header" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Text" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Text" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "BigButton" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_BigButton" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Alert" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Alert" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "StatusGrid" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_StatusGrid" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "ContactCard" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_ContactCard" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "SourceCard" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_SourceCard" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "DoseTracker" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_DoseTracker" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "CareRota" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_CareRota" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Timeline" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Timeline" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "SymptomLog" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_SymptomLog" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "CallLog" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_CallLog" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "NeedBoard" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_NeedBoard" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "ResourceBoard" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_ResourceBoard" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "VerifiedInfoFeed" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_VerifiedInfoFeed" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "CheckIn" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_CheckIn" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Checklist" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Checklist" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "ScamCheck" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_ScamCheck" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "IncidentCard" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_IncidentCard" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "LifeAreas" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_LifeAreas" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "VerificationPrompt" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_VerificationPrompt" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "HelperAnswer" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_HelperAnswer" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "Proposal" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_Proposal" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "PillOrganizer" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_PillOrganizer" } } } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "VillageChat" } } }, "then": { "properties": { "props": { "$ref": "#/$defs/props_VillageChat" } } } }
+      ]
+    },
+
+    "text_tone": { "enum": ["neutral", "muted", "info", "ok", "warn", "danger"] },
+    "button_tone": { "enum": ["ok", "info", "warn", "danger"] },
+    "icon": { "enum": ["pill", "sos", "phone", "check", "heart", "home", "help", "water", "bolt", "car", "shield", "question"] },
+    "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "string_list": { "type": "array", "maxItems": 24, "items": { "type": "string", "maxLength": 80 } },
+    "member_list": { "type": "array", "maxItems": 24, "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+    "slot_list": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "common.schema.json#/$defs/slot" } },
+
+    "props_Screen": { "type": "object", "additionalProperties": false, "required": ["title"], "properties": { "title": { "$ref": "#/$defs/label" }, "subtitle": { "$ref": "#/$defs/label" }, "read_aloud": { "type": "boolean" } } },
+    "props_Stack": { "type": "object", "additionalProperties": false, "properties": { "direction": { "enum": ["vertical", "horizontal"] }, "gap": { "enum": ["s", "m", "l"] }, "title": { "$ref": "#/$defs/label" } } },
+    "props_Header": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "$ref": "#/$defs/label" }, "level": { "enum": [1, 2, 3] } } },
+    "props_Text": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "minLength": 1, "maxLength": 280 }, "size": { "enum": ["m", "l", "xl"] }, "tone": { "$ref": "#/$defs/text_tone" } } },
+    "props_BigButton": {
+      "type": "object", "additionalProperties": false, "required": ["label", "action"],
+      "properties": {
+        "label": { "$ref": "#/$defs/label" }, "action": { "$ref": "common.schema.json#/$defs/action_name" }, "action_arg": { "type": "string", "maxLength": 80 },
+        "icon": { "$ref": "#/$defs/icon" }, "tone": { "$ref": "#/$defs/button_tone" }, "confirm": { "type": "boolean" }, "confirm_text": { "type": "string", "maxLength": 120 },
+        "speak": { "type": "string", "maxLength": 120 }
+      },
+      "if": { "required": ["tone"], "properties": { "tone": { "const": "danger" } } }, "then": { "required": ["confirm", "confirm_text"], "properties": { "confirm": { "const": true } } }
+    },
+    "props_Alert": {
+      "type": "object", "additionalProperties": false, "required": ["source", "bind"],
+      "properties": {
+        "source": { "enum": ["policy", "official", "coordinator"] }, "bind": { "$ref": "#/$defs/bind" },
+        "severity_levels": { "type": "array", "uniqueItems": true, "items": { "enum": ["danger", "warn", "info"] } },
+        "dismissible": { "type": "boolean" }, "empty_text": { "type": "string", "maxLength": 80 },
+        "show_escalation_status": { "type": "boolean" },
+        "show_countdown": { "type": "boolean", "description": "Render a pending verification's deadline countdown (D13: Carmen's view + projector)." }
+      }
+    },
+    "props_StatusGrid": { "type": "object", "additionalProperties": false, "required": ["labels", "binds"], "properties": { "labels": { "$ref": "#/$defs/string_list" }, "binds": { "type": "array", "maxItems": 24, "items": { "$ref": "#/$defs/bind" } }, "title": { "$ref": "#/$defs/label" } } },
+    "props_ContactCard": {
+      "type": "object", "additionalProperties": false, "required": ["name", "kind"],
+      "properties": {
+        "name": { "$ref": "#/$defs/label" }, "kind": { "enum": ["family", "clinician", "pharmacy", "emergency", "hotline", "utility", "volunteer"] },
+        "phone": { "$ref": "common.schema.json#/$defs/phone_or_short_code" }, "member_id": { "$ref": "common.schema.json#/$defs/member_id" },
+        "bind": { "$ref": "#/$defs/bind" }, "label": { "$ref": "#/$defs/label" }, "big": { "type": "boolean" }
+      },
+      "anyOf": [ { "required": ["phone"] }, { "required": ["member_id"] }, { "required": ["bind"] } ]
+    },
+    "props_SourceCard": { "type": "object", "additionalProperties": false, "required": ["source_name", "url"], "properties": { "source_name": { "$ref": "#/$defs/label" }, "url": { "$ref": "common.schema.json#/$defs/url" }, "refresh_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 }, "bind": { "$ref": "#/$defs/bind" } } },
+    "props_DoseTracker": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "slots", "bind"],
+      "properties": { "subject": { "$ref": "common.schema.json#/$defs/member_id" }, "slots": { "$ref": "#/$defs/slot_list" }, "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "show_med_names": { "type": "boolean" }, "allow_log": { "type": "boolean" }, "big": { "type": "boolean" } }
+    },
+    "props_CareRota": { "type": "object", "additionalProperties": false, "required": ["bind"], "properties": { "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "period": { "enum": ["day", "week"] }, "highlight_current_user": { "type": "boolean" }, "allow_swap": { "type": "boolean" }, "show_backup": { "type": "boolean" } } },
+    "props_Timeline": {
+      "type": "object", "additionalProperties": false, "required": ["bind"],
+      "properties": { "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "subject": { "$ref": "common.schema.json#/$defs/member_id" }, "event_kinds": { "type": "array", "maxItems": 24, "items": { "anyOf": [ { "$ref": "event.schema.json#/$defs/kind" }, { "enum": ["verification", "dose_blocked"], "description": "Builder aliases: verification = all verification_* kinds; dose_blocked = dose_repeat_scan + dose_repeat." } ] } }, "show_superseded": { "type": "boolean" }, "show_provenance": { "type": "boolean" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }
+    },
+    "props_SymptomLog": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "fields", "bind"],
+      "properties": { "subject": { "$ref": "common.schema.json#/$defs/member_id" }, "fields": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["blood_pressure", "blood_sugar", "mood", "dizziness", "pain", "sleep", "free_text"] } }, "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "options": { "type": "array", "maxItems": 6, "items": { "type": "string", "maxLength": 40 } }, "allow_voice_entry": { "type": "boolean" }, "big": { "type": "boolean" } }
+    },
+    "props_CallLog": { "type": "object", "additionalProperties": false, "required": ["line_ids", "bind"], "properties": { "line_ids": { "type": "array", "minItems": 1, "items": { "enum": ["mom-line", "block-line", "village-caller"] } }, "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "show_policy_decisions": { "type": "boolean" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } } },
+    "props_NeedBoard": { "type": "object", "additionalProperties": false, "required": ["bind", "priority_order"], "properties": { "bind": { "$ref": "#/$defs/bind" }, "priority_order": { "$ref": "#/$defs/string_list" }, "title": { "$ref": "#/$defs/label" }, "show_fields": { "$ref": "#/$defs/string_list" }, "redact_for_roles": { "$ref": "#/$defs/string_list" }, "allow_match": { "type": "boolean" } } },
+    "props_ResourceBoard": { "type": "object", "additionalProperties": false, "required": ["bind"], "properties": { "bind": { "$ref": "#/$defs/bind" }, "resource_types": { "$ref": "#/$defs/string_list" }, "title": { "$ref": "#/$defs/label" }, "show_constraints": { "type": "boolean" } } },
+    "props_VerifiedInfoFeed": { "type": "object", "additionalProperties": false, "required": ["bind", "topics"], "properties": { "bind": { "$ref": "#/$defs/bind" }, "topics": { "$ref": "#/$defs/string_list" }, "title": { "$ref": "#/$defs/label" }, "trust_levels_shown": { "type": "array", "items": { "enum": ["official", "verified_volunteer", "unverified_neighbor"] } }, "hide_unverified_for_roles": { "$ref": "#/$defs/string_list" } } },
+    "props_CheckIn": { "type": "object", "additionalProperties": false, "required": ["subjects", "bind"], "properties": { "subjects": { "$ref": "#/$defs/member_list" }, "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "interval_minutes": { "type": "integer", "minimum": 5 }, "escalate_after_minutes": { "type": "integer", "minimum": 5 }, "big": { "type": "boolean" } } },
+    "props_Checklist": { "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "$ref": "#/$defs/string_list" }, "title": { "$ref": "#/$defs/label" }, "owners": { "type": "array", "maxItems": 24, "items": { "type": "string", "pattern": "^([a-z]_[a-z0-9_]{1,40})?$" } }, "recurring": { "type": "boolean" }, "bind": { "$ref": "#/$defs/bind" } } },
+
+    "props_ScamCheck": {
+      "type": "object", "additionalProperties": false, "required": ["label", "choices_member_ids", "bind"],
+      "description": "Elder '¿Es de verdad?' (builder catalog). Tap → '¿Quién dice que es?' with one big choice per trusted contact + other_label → built-in action start_verification (action_arg = member id, or 'other' → R-MONEY-UNKNOWN). Renders the verification states from bind (idle · checking with countdown · denied · couldn't confirm · confirmed) using the gate's say lines only. Counts as the elder view's one extra interactive card, not as a BigButton.",
+      "properties": {
+        "label": { "$ref": "#/$defs/label" },
+        "choices_member_ids": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+        "bind": { "const": "verifications:mine" },
+        "other_label": { "$ref": "#/$defs/label" },
+        "speak": { "type": "string", "maxLength": 120 },
+        "big": { "type": "boolean" }
+      }
+    },
+    "props_IncidentCard": {
+      "type": "object", "additionalProperties": false, "required": ["bind"],
+      "description": "Family scam-alert card (builder catalog). Built-in action ack_incident when allow_ack.",
+      "properties": {
+        "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "subject": { "$ref": "common.schema.json#/$defs/member_id" },
+        "show_red_flags": { "type": "boolean" }, "show_verification": { "type": "boolean" }, "show_provenance": { "type": "boolean" },
+        "allow_ack": { "type": "boolean" }, "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+      }
+    },
+    "props_LifeAreas": {
+      "type": "object", "additionalProperties": false, "required": ["bind", "areas"],
+      "properties": { "bind": { "const": "blueprint:life_areas" }, "areas": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/life_area_id" } }, "title": { "$ref": "#/$defs/label" }, "show_rules": { "type": "boolean" }, "show_contacts": { "type": "boolean" } }
+    },
+    "props_VerificationPrompt": {
+      "type": "object", "additionalProperties": false, "required": ["bind", "yes_label", "no_label"],
+      "description": "Shown only to the member a pending verification names; renders nothing otherwise. The same question also arrives as a WS 'prompt' message (overlay). Built-in action answer_verification (yes | no).",
+      "properties": {
+        "bind": { "const": "verifications:pending?member=me" }, "yes_label": { "$ref": "#/$defs/label" }, "no_label": { "$ref": "#/$defs/label" },
+        "question_template": { "type": "string", "maxLength": 160, "description": "Placeholders {care_recipient} {amount} {method}." },
+        "show_countdown": { "type": "boolean" }
+      }
+    },
+    "props_HelperAnswer": {
+      "type": "object", "additionalProperties": false, "required": ["question", "bind"],
+      "description": "Marco's 'Is it my turn?': one question answered from live data (bind rota:current?member=me; kit also reads today's doses). Not in the builder catalog yet (kit + fixture only).",
+      "properties": { "question": { "$ref": "#/$defs/label" }, "bind": { "$ref": "#/$defs/bind" }, "subject": { "$ref": "common.schema.json#/$defs/member_id" }, "show_status": { "type": "boolean" }, "show_next_shift": { "type": "boolean" } }
+    },
+    "props_Proposal": {
+      "type": "object", "additionalProperties": false, "required": ["bind"],
+      "description": "Evolve card with evidence and Approve / Not now (coordinator only; R-SPEC).",
+      "properties": { "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" }, "allow_approve": { "type": "boolean" }, "show_evidence": { "type": "boolean" }, "show_release_status": { "type": "boolean" } }
+    },
+    "props_VillageChat": {
+      "type": "object", "additionalProperties": false, "required": ["bind", "composer"],
+      "description": "1.1.0 (D16). The village group chat with Village as a participant: feed of message rows by kind (chat / incident / proposal with inline Approve · Not now via approve_proposal · reject_proposal / receipt / nudge / answer) with source chips from refs[]. composer = members can post (and '@Village …'). Invariant (validate.py): never in a theme elder view; at most one per view. Data: bind chat:village → [message] (last 50), updated by WS chat frames.",
+      "properties": {
+        "bind": { "const": "chat:village" },
+        "composer": { "type": "boolean", "description": "Show the composer. false = read-only mirror (Control Room)." },
+        "title": { "$ref": "#/$defs/label" },
+        "mention_label": { "type": "string", "maxLength": 20, "description": "Composer chip text, default '@Village'." },
+        "allow_approve": { "type": "boolean", "description": "Render Approve / Not now on proposal posts (coordinator only; R-SPEC)." },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+      }
+    },
+    "props_PillOrganizer": {
+      "type": "object", "additionalProperties": false, "required": ["subject", "slots", "lid_colors", "labels", "bind"],
+      "description": "Generated custom component (built + tested in Daytona). lid_colors/labels are parallel to slots.",
+      "properties": {
+        "subject": { "$ref": "common.schema.json#/$defs/member_id" }, "slots": { "$ref": "#/$defs/slot_list" },
+        "lid_colors": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "common.schema.json#/$defs/hex_color" } },
+        "labels": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "type": "string", "maxLength": 20 } },
+        "bind": { "$ref": "#/$defs/bind" }, "title": { "$ref": "#/$defs/label" },
+        "days": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/weekday" } }, "show_today_only": { "type": "boolean" }
+      }
+    },
+
+    "policy": {
+      "type": "object", "additionalProperties": false, "required": ["rule_id", "params"],
+      "properties": { "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" }, "params": { "$ref": "common.schema.json#/$defs/props" }, "applies_to_member_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/member_id" } } }
+    },
+    "voice_line": {
+      "type": "object", "additionalProperties": false, "required": ["agent", "member_ids", "languages", "tools"],
+      "properties": {
+        "agent": { "enum": ["mom-line", "block-line", "village-caller", "setup"] },
+        "member_ids": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/member_id" } },
+        "languages": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/lang" } },
+        "tools": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "voice_tools.schema.json#/$defs/tool_name" } },
+        "escalation_targets": { "type": "array", "items": { "type": "string", "pattern": "^(on_duty|backup|[a-z]_[a-z0-9_]{1,40})$" } }
+      }
+    },
+
+    "printable": {
+      "type": "object",
+      "required": ["id", "kind", "member_id", "lang"],
+      "properties": { "kind": { "enum": ["lid_sticker", "fridge_card"] } },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "lid_sticker" } } }, "then": { "$ref": "#/$defs/printable_lid_sticker" } },
+        { "if": { "properties": { "kind": { "const": "fridge_card" } } }, "then": { "$ref": "#/$defs/printable_fridge_card" } }
+      ]
+    },
+    "printable_lid_sticker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "member_id", "lang", "slot", "color", "label", "token_ref", "instructions"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^pr_[a-z0-9_]{2,40}$" }, "kind": { "const": "lid_sticker" },
+        "member_id": { "$ref": "common.schema.json#/$defs/member_id" }, "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "slot": { "$ref": "common.schema.json#/$defs/slot" }, "color": { "$ref": "common.schema.json#/$defs/hex_color" },
+        "label": { "type": "string", "maxLength": 20 },
+        "token_ref": { "type": "string", "pattern": "^st_[a-z0-9_]{2,60}$", "description": "Non-secret id of the slot token; core mints the QR URL https://<host>/s/<slot_token> at print time." },
+        "instructions": { "type": "string", "maxLength": 120 }
+      }
+    },
+    "printable_fridge_card": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "member_id", "lang", "village_number", "family_word", "family_word_first", "lines", "emergency_line"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^pr_[a-z0-9_]{2,40}$" }, "kind": { "const": "fridge_card" },
+        "member_id": { "$ref": "common.schema.json#/$defs/member_id" }, "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "village_number": { "anyOf": [ { "$ref": "common.schema.json#/$defs/e164" }, { "const": "[NÚMERO]" } ] },
+        "family_word": { "type": "string", "maxLength": 40, "description": "'[PALABRA]' until Ana sets it. Only in coordinator/control snapshots and the print pack; never in traces." },
+        "family_word_first": { "type": "boolean", "description": "Evolve flips this to true (family word printed first)." },
+        "lines": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "string", "maxLength": 160 } },
+        "emergency_line": { "type": "string", "maxLength": 80 }
+      }
+    },
+
+    "custom_component": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "purpose", "props_schema", "config", "needs_served", "why_kit_insufficient", "status"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^(PillOrganizer|Custom[A-Z][A-Za-z0-9]{2,28})$" },
+        "purpose": { "type": "string", "maxLength": 200 },
+        "props_schema": { "type": "object", "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,31}$" }, "additionalProperties": { "enum": ["string", "number", "boolean", "string[]"] } },
+        "config": { "type": "object", "description": "Build-pack configuration (any JSON), e.g. lid colors by slot. Not sent to clients." },
+        "needs_served": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/need_id" } },
+        "why_kit_insufficient": { "type": "string", "maxLength": 200 },
+        "status": { "enum": ["planned", "built", "failed"] },
+        "built_rev": { "$ref": "common.schema.json#/$defs/rev" }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "contract_version": "1.1.0",
+      "rev": 1,
+      "village": { "id": "v_demo", "name": "Demo family", "kind": "care", "lang": "en", "timezone": "America/New_York", "coordinator_id": "m_sam", "care_recipient_id": "m_rose" },
+      "blueprint": {
+        "description": { "text": "My grandma Rose forgets her night pills.", "speaker": "m_sam", "lang": "en" },
+        "people": [
+          { "id": "m_rose", "name": "Rose", "relation": "grandmother", "role": "care_recipient", "view": "elder",
+            "profile": { "lang": "en", "script": "Latn", "reading_level": "simple", "vision": "reduced", "hearing": "typical", "memory": "mild_lapses", "mobility": "typical", "tech_comfort": "phone", "availability": [ { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "window": "08:00-21:00" } ] },
+            "consent": { "ai_calls": true, "app_prompts": false, "dose_logging": true, "share_with": ["m_sam"], "recorded_on": "2026-10-16", "recorded_by": "voice consent" } },
+          { "id": "m_sam", "name": "Sam", "relation": "grandson", "role": "coordinator", "view": "coordinator",
+            "profile": { "lang": "en", "script": "Latn", "reading_level": "advanced", "vision": "typical", "hearing": "typical", "memory": "typical", "mobility": "typical", "tech_comfort": "app", "availability": [ { "days": ["Mon", "Wed"], "window": "17:00-22:00" } ] },
+            "consent": { "ai_calls": true, "app_prompts": true, "recorded_on": "2026-10-16", "recorded_by": "join page" } }
+        ],
+        "edges": [ { "from": "m_sam", "to": "m_rose", "kind": "cares_for", "label": "coordinates" } ],
+        "needs": [ { "id": "n_night_pills", "text": "Night pills forgotten", "priority": 1, "domain": "medication", "life_area": "health", "subject_member_ids": ["m_rose"], "source_span": { "start": 16, "end": 39 } } ],
+        "rules": ["double_dose_guard", "no_dose_advice"],
+        "life_areas": [ { "id": "health", "label": "Health: night pills", "need_ids": ["n_night_pills"], "modules": ["elder:b_pill", "coordinator:dose", "voice:mom-line"], "rules": ["R-DOUBLE", "P-DD-01"] } ]
+      },
+      "channels": { "m_rose": ["phone_line", "app:elder"], "m_sam": ["app:coordinator"] },
+      "views": {
+        "elder": { "lang": "en", "theme": "elder", "root": "s", "elements": {
+          "s": { "type": "Screen", "props": { "title": "Hi, Rose", "read_aloud": true }, "children": ["b_pill", "e911"] },
+          "b_pill": { "type": "BigButton", "props": { "label": "I took it", "action": "log_dose", "action_arg": "slot:current", "icon": "pill", "tone": "ok" } },
+          "e911": { "type": "ContactCard", "props": { "name": "911", "kind": "emergency", "phone": "911", "big": true } } },
+          "needs_served": { "b_pill": ["n_night_pills"], "e911": ["n_safety"] } },
+        "coordinator": { "lang": "en", "theme": "dashboard", "root": "s", "elements": {
+          "s": { "type": "Screen", "props": { "title": "Rose today" }, "children": ["al", "dose"] },
+          "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active" } },
+          "dose": { "type": "DoseTracker", "props": { "subject": "m_rose", "slots": ["evening"], "bind": "facts:dose_event?subject=m_rose&valid_at=today" } } },
+          "needs_served": { "al": ["n_safety"], "dose": ["n_night_pills"] } }
+      },
+      "policies": [ { "rule_id": "P-DD-01", "params": { "window_hours": 6 } } ],
+      "voice_lines": [ { "agent": "mom-line", "member_ids": ["m_rose"], "languages": ["en"], "tools": ["log_dose", "get_today"] } ],
+      "printables": [],
+      "custom_components": []
+    }
+  ]
+}

@@ -1,0 +1,751 @@
+{
+  "contract_version": "1.1.0",
+  "village": "v_reyes",
+  "description": "Lid sticker flow (D3, policy_cases T28), Thu 2026-10-15 with Marco on duty: first scan records (every phone turns green), a prefetch/double-open 4 s later is deduped, a second scan 38 min later only reports and escalates to Marco (app banner + call), an invalid token gets an error page. The QR encodes https://<host>/s/<slot_token>; the token is the identity (no login).",
+  "token": {
+    "token_ref": "st_reyes_morning",
+    "slot_token_example": "st1.v_reyes.morning.Kq3v9xLm2Pz8RfTw",
+    "slot": "morning",
+    "subject": "m_carmen"
+  },
+  "steps": [
+    {
+      "t": "2026-10-15T08:02:10-04:00",
+      "request": {
+        "method": "GET",
+        "path": "/s/st1.v_reyes.morning.Kq3v9xLm2Pz8RfTw",
+        "accept": "text/html"
+      },
+      "http_status": 200,
+      "result": {
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "slot": "morning",
+        "token_ref": "st_reyes_morning",
+        "scanned_at": "2026-10-15T08:02:10-04:00",
+        "deduped": false,
+        "decision": {
+          "id": "dc_1015_0802_scan",
+          "rule_id": "R-WINDOW",
+          "decision": "record",
+          "say": {
+            "es": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe.",
+            "en": "Logged, Carmen. Morning pills at 8:02. Your family can see it."
+          },
+          "say_key": "dose_recorded",
+          "notify": [],
+          "writes": [
+            {
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              }
+            }
+          ],
+          "rules_fired": [
+            "R-WINDOW"
+          ]
+        },
+        "event": {
+          "id": "ev_1015_0802_dose_morning",
+          "village": "v_reyes",
+          "kind": "dose",
+          "payload": {
+            "subject": "m_carmen",
+            "slot": "morning",
+            "taken_at": "2026-10-15T08:02:10-04:00",
+            "confidence": "confirmed",
+            "via": "lid_qr"
+          },
+          "actor": "m_carmen",
+          "source": {
+            "kind": "scan",
+            "ref": "st_reyes_morning"
+          },
+          "am": {
+            "key": "last_dose_taken"
+          },
+          "decision_id": "dc_1015_0802_scan",
+          "at": "2026-10-15T08:02:10-04:00"
+        },
+        "page": {
+          "lang": "es",
+          "tone": "ok",
+          "headline": "Anotado, Carmen",
+          "lines": [
+            "Pastillas de la mañana a las 8:02",
+            "Su familia ya lo sabe."
+          ],
+          "read_aloud": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe."
+        }
+      },
+      "ws": [
+        {
+          "client": "carmen",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0802_dose_morning",
+              "village": "v_reyes",
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "am": {
+                "key": "last_dose_taken"
+              },
+              "decision_id": "dc_1015_0802_scan",
+              "at": "2026-10-15T08:02:10-04:00"
+            },
+            "data": {
+              "facts:dose_event?subject=m_carmen&valid_at=today": {
+                "date": "2026-10-15",
+                "slots": [
+                  {
+                    "slot": "morning",
+                    "status": "taken",
+                    "taken_at": "2026-10-15T08:02:10-04:00",
+                    "via": "lid_qr",
+                    "lid_color": "#E8B12F"
+                  },
+                  {
+                    "slot": "evening",
+                    "status": "upcoming",
+                    "taken_at": null,
+                    "via": null,
+                    "lid_color": "#2F5FA7"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "client": "ana",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0802_dose_morning",
+              "village": "v_reyes",
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "am": {
+                "key": "last_dose_taken"
+              },
+              "decision_id": "dc_1015_0802_scan",
+              "at": "2026-10-15T08:02:10-04:00"
+            },
+            "data": {
+              "facts:dose_event?subject=m_carmen&valid_at=today": {
+                "date": "2026-10-15",
+                "slots": [
+                  {
+                    "slot": "morning",
+                    "status": "taken",
+                    "taken_at": "2026-10-15T08:02:10-04:00",
+                    "via": "lid_qr",
+                    "lid_color": "#E8B12F",
+                    "meds": [
+                      "apixaban 5 mg",
+                      "lisinopril 10 mg",
+                      "metformin 500 mg"
+                    ]
+                  },
+                  {
+                    "slot": "evening",
+                    "status": "upcoming",
+                    "taken_at": null,
+                    "via": null,
+                    "lid_color": "#2F5FA7",
+                    "meds": [
+                      "apixaban 5 mg",
+                      "metformin 500 mg",
+                      "atorvastatin 20 mg"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "client": "marco",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0802_dose_morning",
+              "village": "v_reyes",
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "am": {
+                "key": "last_dose_taken"
+              },
+              "decision_id": "dc_1015_0802_scan",
+              "at": "2026-10-15T08:02:10-04:00"
+            }
+          }
+        },
+        {
+          "client": "control",
+          "msg": {
+            "type": "control",
+            "kind": "gate",
+            "payload": {
+              "decision": {
+                "id": "dc_1015_0802_scan",
+                "rule_id": "R-WINDOW",
+                "decision": "record",
+                "say": {
+                  "es": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe.",
+                  "en": "Logged, Carmen. Morning pills at 8:02. Your family can see it."
+                },
+                "say_key": "dose_recorded",
+                "notify": [],
+                "writes": [
+                  {
+                    "kind": "dose",
+                    "payload": {
+                      "subject": "m_carmen",
+                      "slot": "morning",
+                      "taken_at": "2026-10-15T08:02:10-04:00",
+                      "confidence": "confirmed",
+                      "via": "lid_qr"
+                    }
+                  }
+                ],
+                "rules_fired": [
+                  "R-WINDOW"
+                ]
+              },
+              "input_kind": "dose",
+              "event_id": "ev_1015_0802_dose_morning"
+            },
+            "at": "2026-10-15T08:02:10-04:00"
+          }
+        },
+        {
+          "client": "control",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0802_dose_morning",
+              "village": "v_reyes",
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "am": {
+                "key": "last_dose_taken"
+              },
+              "decision_id": "dc_1015_0802_scan",
+              "at": "2026-10-15T08:02:10-04:00"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "t": "2026-10-15T08:02:14-04:00",
+      "request": {
+        "method": "GET",
+        "path": "/s/st1.v_reyes.morning.Kq3v9xLm2Pz8RfTw",
+        "accept": "text/html"
+      },
+      "http_status": 200,
+      "result": {
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "slot": "morning",
+        "token_ref": "st_reyes_morning",
+        "scanned_at": "2026-10-15T08:02:14-04:00",
+        "deduped": true,
+        "decision": {
+          "id": "dc_1015_0802_scan",
+          "rule_id": "R-WINDOW",
+          "decision": "record",
+          "say": {
+            "es": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe.",
+            "en": "Logged, Carmen. Morning pills at 8:02. Your family can see it."
+          },
+          "say_key": "dose_recorded",
+          "notify": [],
+          "writes": [
+            {
+              "kind": "dose",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "taken_at": "2026-10-15T08:02:10-04:00",
+                "confidence": "confirmed",
+                "via": "lid_qr"
+              }
+            }
+          ],
+          "rules_fired": [
+            "R-WINDOW"
+          ]
+        },
+        "event": null,
+        "page": {
+          "lang": "es",
+          "tone": "ok",
+          "headline": "Anotado, Carmen",
+          "lines": [
+            "Pastillas de la mañana a las 8:02",
+            "Su familia ya lo sabe."
+          ],
+          "read_aloud": "Anotado, Carmen. Pastillas de la mañana a las 8:02. Su familia ya lo sabe."
+        }
+      },
+      "ws": [],
+      "note": "Same token within 10 s: same page, no ledger row, no WS traffic."
+    },
+    {
+      "t": "2026-10-15T08:40:00-04:00",
+      "request": {
+        "method": "GET",
+        "path": "/s/st1.v_reyes.morning.Kq3v9xLm2Pz8RfTw",
+        "accept": "application/json"
+      },
+      "http_status": 200,
+      "result": {
+        "village": "v_reyes",
+        "subject": "m_carmen",
+        "slot": "morning",
+        "token_ref": "st_reyes_morning",
+        "scanned_at": "2026-10-15T08:40:00-04:00",
+        "deduped": false,
+        "decision": {
+          "id": "dc_1015_0840_scan",
+          "rule_id": "R-DOUBLE",
+          "decision": "report_already_logged",
+          "say": {
+            "es": "Esta tapa ya se anotó a las 8:02. Le avisamos a Marco.",
+            "en": "This lid was already logged at 8:02. We're letting Marco know."
+          },
+          "say_key": "dd_report",
+          "say_vars": {
+            "logged_time": "8:02",
+            "on_duty_name": "Marco"
+          },
+          "escalate": {
+            "member_id": "m_marco",
+            "channel": "both",
+            "level": 1
+          },
+          "notify": [],
+          "writes": [
+            {
+              "kind": "dose_repeat_scan",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "first_event_id": "ev_1015_0802_dose_morning",
+                "first_taken_at": "2026-10-15T08:02:10-04:00",
+                "attempted_at": "2026-10-15T08:40:00-04:00",
+                "notified": "m_marco"
+              }
+            },
+            {
+              "kind": "escalation",
+              "payload": {
+                "to": "m_marco",
+                "channel": "both",
+                "reason": "double_dose_attempt",
+                "rule_id": "R-DOUBLE",
+                "related_event_id": "ev_1015_0840_dose_repeat",
+                "level": 1,
+                "status": "placed"
+              }
+            }
+          ],
+          "flags": [
+            "attempted_duplicate"
+          ],
+          "rules_fired": [
+            "R-DOUBLE",
+            "R-CONSENT"
+          ]
+        },
+        "event": {
+          "id": "ev_1015_0840_dose_repeat",
+          "village": "v_reyes",
+          "kind": "dose_repeat_scan",
+          "payload": {
+            "subject": "m_carmen",
+            "slot": "morning",
+            "first_event_id": "ev_1015_0802_dose_morning",
+            "first_taken_at": "2026-10-15T08:02:10-04:00",
+            "attempted_at": "2026-10-15T08:40:00-04:00",
+            "notified": "m_marco"
+          },
+          "actor": "m_carmen",
+          "source": {
+            "kind": "scan",
+            "ref": "st_reyes_morning"
+          },
+          "decision_id": "dc_1015_0840_scan",
+          "at": "2026-10-15T08:40:00-04:00"
+        },
+        "page": {
+          "lang": "es",
+          "tone": "report",
+          "headline": "Esta tapa ya se anotó a las 8:02.",
+          "lines": [
+            "Le avisamos a Marco."
+          ],
+          "read_aloud": "Esta tapa ya se anotó a las 8:02. Le avisamos a Marco."
+        }
+      },
+      "ws": [
+        {
+          "client": "carmen",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_dose_repeat",
+              "village": "v_reyes",
+              "kind": "dose_repeat_scan",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "first_event_id": "ev_1015_0802_dose_morning",
+                "first_taken_at": "2026-10-15T08:02:10-04:00",
+                "attempted_at": "2026-10-15T08:40:00-04:00",
+                "notified": "m_marco"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            }
+          }
+        },
+        {
+          "client": "ana",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_dose_repeat",
+              "village": "v_reyes",
+              "kind": "dose_repeat_scan",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "first_event_id": "ev_1015_0802_dose_morning",
+                "first_taken_at": "2026-10-15T08:02:10-04:00",
+                "attempted_at": "2026-10-15T08:40:00-04:00",
+                "notified": "m_marco"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            }
+          }
+        },
+        {
+          "client": "marco",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_dose_repeat",
+              "village": "v_reyes",
+              "kind": "dose_repeat_scan",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "first_event_id": "ev_1015_0802_dose_morning",
+                "first_taken_at": "2026-10-15T08:02:10-04:00",
+                "attempted_at": "2026-10-15T08:40:00-04:00",
+                "notified": "m_marco"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            }
+          }
+        },
+        {
+          "client": "control",
+          "msg": {
+            "type": "control",
+            "kind": "gate",
+            "payload": {
+              "decision": {
+                "id": "dc_1015_0840_scan",
+                "rule_id": "R-DOUBLE",
+                "decision": "report_already_logged",
+                "say": {
+                  "es": "Esta tapa ya se anotó a las 8:02. Le avisamos a Marco.",
+                  "en": "This lid was already logged at 8:02. We're letting Marco know."
+                },
+                "say_key": "dd_report",
+                "say_vars": {
+                  "logged_time": "8:02",
+                  "on_duty_name": "Marco"
+                },
+                "escalate": {
+                  "member_id": "m_marco",
+                  "channel": "both",
+                  "level": 1
+                },
+                "notify": [],
+                "writes": [
+                  {
+                    "kind": "dose_repeat_scan",
+                    "payload": {
+                      "subject": "m_carmen",
+                      "slot": "morning",
+                      "first_event_id": "ev_1015_0802_dose_morning",
+                      "first_taken_at": "2026-10-15T08:02:10-04:00",
+                      "attempted_at": "2026-10-15T08:40:00-04:00",
+                      "notified": "m_marco"
+                    }
+                  },
+                  {
+                    "kind": "escalation",
+                    "payload": {
+                      "to": "m_marco",
+                      "channel": "both",
+                      "reason": "double_dose_attempt",
+                      "rule_id": "R-DOUBLE",
+                      "related_event_id": "ev_1015_0840_dose_repeat",
+                      "level": 1,
+                      "status": "placed"
+                    }
+                  }
+                ],
+                "flags": [
+                  "attempted_duplicate"
+                ],
+                "rules_fired": [
+                  "R-DOUBLE",
+                  "R-CONSENT"
+                ]
+              },
+              "input_kind": "dose",
+              "event_id": "ev_1015_0840_dose_repeat"
+            },
+            "at": "2026-10-15T08:40:00-04:00"
+          }
+        },
+        {
+          "client": "control",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_dose_repeat",
+              "village": "v_reyes",
+              "kind": "dose_repeat_scan",
+              "payload": {
+                "subject": "m_carmen",
+                "slot": "morning",
+                "first_event_id": "ev_1015_0802_dose_morning",
+                "first_taken_at": "2026-10-15T08:02:10-04:00",
+                "attempted_at": "2026-10-15T08:40:00-04:00",
+                "notified": "m_marco"
+              },
+              "actor": "m_carmen",
+              "source": {
+                "kind": "scan",
+                "ref": "st_reyes_morning"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            }
+          }
+        },
+        {
+          "client": "marco",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_escalation",
+              "village": "v_reyes",
+              "kind": "escalation",
+              "payload": {
+                "to": "m_marco",
+                "channel": "both",
+                "reason": "double_dose_attempt",
+                "rule_id": "R-DOUBLE",
+                "related_event_id": "ev_1015_0840_dose_repeat",
+                "level": 1,
+                "status": "placed"
+              },
+              "actor": "gate",
+              "source": {
+                "kind": "system",
+                "ref": "gate"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            },
+            "data": {
+              "alerts:active": [
+                {
+                  "id": "al_esc_1015_0840",
+                  "severity": "warn",
+                  "title": {
+                    "en": "Village is calling you"
+                  },
+                  "body": {
+                    "en": "Mamá scanned her yellow lid again at 8:40. It was already logged at 8:02."
+                  },
+                  "event_id": "ev_1015_0840_escalation",
+                  "escalation": {
+                    "to": "m_marco",
+                    "channel": "both",
+                    "status": "placed"
+                  },
+                  "at": "2026-10-15T08:40:00-04:00"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "client": "ana",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_escalation",
+              "village": "v_reyes",
+              "kind": "escalation",
+              "payload": {
+                "to": "m_marco",
+                "channel": "both",
+                "reason": "double_dose_attempt",
+                "rule_id": "R-DOUBLE",
+                "related_event_id": "ev_1015_0840_dose_repeat",
+                "level": 1,
+                "status": "placed"
+              },
+              "actor": "gate",
+              "source": {
+                "kind": "system",
+                "ref": "gate"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            },
+            "data": {
+              "alerts:active": [
+                {
+                  "id": "al_esc_1015_0840",
+                  "severity": "warn",
+                  "title": {
+                    "en": "Second scan of the yellow lid"
+                  },
+                  "body": {
+                    "en": "Mamá scanned her yellow lid again at 8:40 (logged at 8:02). Village is calling Marco."
+                  },
+                  "event_id": "ev_1015_0840_escalation",
+                  "escalation": {
+                    "to": "m_marco",
+                    "channel": "both",
+                    "status": "placed"
+                  },
+                  "at": "2026-10-15T08:40:00-04:00"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "client": "control",
+          "msg": {
+            "type": "event",
+            "event": {
+              "id": "ev_1015_0840_escalation",
+              "village": "v_reyes",
+              "kind": "escalation",
+              "payload": {
+                "to": "m_marco",
+                "channel": "both",
+                "reason": "double_dose_attempt",
+                "rule_id": "R-DOUBLE",
+                "related_event_id": "ev_1015_0840_dose_repeat",
+                "level": 1,
+                "status": "placed"
+              },
+              "actor": "gate",
+              "source": {
+                "kind": "system",
+                "ref": "gate"
+              },
+              "decision_id": "dc_1015_0840_scan",
+              "at": "2026-10-15T08:40:00-04:00"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "t": "2026-10-15T08:41:30-04:00",
+      "request": {
+        "method": "GET",
+        "path": "/s/st1.v_reyes.morning.REVOKEDxxxxxxxxxx",
+        "accept": "text/html"
+      },
+      "http_status": 404,
+      "result": null,
+      "ws": [],
+      "note": "Bad or revoked token: error page (tone error) 'Esta etiqueta no funciona. Llame a Village.' No ledger row."
+    }
+  ]
+}

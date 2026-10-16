@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://village.contracts/v1/decision.schema.json",
+  "title": "Decision log entry",
+  "description": "One row of the SurrealDB `decision` table (contracts 1.1.0; FS-1 owns the table, builder / evolve / voice:setup / release emit rows, gate rows are written by core from each Decision). Plain-words record of a choice the software made and why, with refs to the objects it was about. Material for POST /villages/{id}/ask (citations) and the Control Room DecisionsLog (control{reasoning kind: decision}). Read with GET /villages/{id}/decisions. Ids share the dc_* namespace with gate.schema.json Decision.id: a gate row carries the full Decision under `gate`.",
+  "x-contract-version": "1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "village_id", "at", "actor", "kind", "text", "refs", "source"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/decision_id" },
+    "village_id": { "$ref": "common.schema.json#/$defs/village_id" },
+    "at": { "$ref": "common.schema.json#/$defs/datetime" },
+    "actor": { "enum": ["builder", "gate", "evolve", "voice:setup", "release"] },
+    "kind": { "enum": ["plan", "decision", "note"], "description": "plan = the plan string of a render (verbatim, ≤ 280) · decision = a choice (channel, role/view, trusted contact, consent state, rule switched on, refusal, gate outcome) · note = follow-up asked/answered, repair, template fallback, prompt version, village_activated." },
+    "text": { "type": "string", "minLength": 1, "maxLength": 400, "description": "Plain words, e.g. 'Carmen: phone line + lid stickers. She uses a flip phone and mixes up her pills.'" },
+    "rule_id": { "$ref": "common.schema.json#/$defs/rule_id" },
+    "refs": {
+      "type": "array", "maxItems": 12,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["kind", "id"],
+        "properties": {
+          "kind": { "enum": ["need", "member", "event", "fact", "policy"] },
+          "id": { "type": "string", "minLength": 1, "maxLength": 128, "description": "need_id · member_id · event_id · Agent Memory fact key · rule_id of the policy." },
+          "label": { "type": "string", "maxLength": 80 }
+        }
+      }
+    },
+    "source": { "$ref": "common.schema.json#/$defs/source", "description": "{kind: system, ref: builder | gate | evolve | release | voice:setup}; a call-driven decision may use kind call with the conversation_id." },
+    "trace_id": { "$ref": "common.schema.json#/$defs/trace_id" },
+    "gate": { "$ref": "gate.schema.json#/$defs/decision", "description": "actor gate only: the full Decision this row records (same id)." },
+    "rev": { "$ref": "common.schema.json#/$defs/rev", "description": "Spec rev the decision applied to (builder / evolve / release rows)." }
+  },
+  "allOf": [
+    { "if": { "properties": { "actor": { "const": "gate" } } }, "then": { "required": ["rule_id"] } },
+    { "if": { "properties": { "kind": { "const": "plan" } } }, "then": { "properties": { "text": { "maxLength": 280 } } } }
+  ],
+
+  "examples": [
+    {
+      "id": "dc_1016_1240_consent", "village_id": "v_reyes", "at": "2026-10-16T12:40:21-04:00",
+      "actor": "builder", "kind": "decision",
+      "text": "Lucía: no AI calls (she chose app only). Verification prompts reach her in the app; outbound calls are skipped.",
+      "rule_id": "R-VERIFY-CONSENT",
+      "refs": [ { "kind": "member", "id": "m_lucia", "label": "Lucía" }, { "kind": "policy", "id": "R-VERIFY-CONSENT" }, { "kind": "event", "id": "ev_1011_2005_consent_lucia", "label": "consent record" } ],
+      "source": { "kind": "system", "ref": "builder" }, "trace_id": "9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a", "rev": 1
+    },
+    {
+      "id": "dc_1016_1240_marco_channel", "village_id": "v_reyes", "at": "2026-10-16T12:40:19-04:00",
+      "actor": "builder", "kind": "decision",
+      "text": "Marco checks money asks in his name: Ana said 'pretending to be Marco'. He gets the in-app prompt and a call (he consented).",
+      "refs": [ { "kind": "member", "id": "m_marco" }, { "kind": "need", "id": "n_scam_calls", "label": "pretending to be Marco" }, { "kind": "policy", "id": "R-MONEY-VERIFY" } ],
+      "source": { "kind": "system", "ref": "builder" }, "trace_id": "9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a", "rev": 1
+    },
+    {
+      "id": "dc_1016_1241_activate", "village_id": "v_reyes", "at": "2026-10-16T12:41:10-04:00",
+      "actor": "builder", "kind": "note",
+      "text": "village_activated: 3 invites (Ana, Marco, Lucía). Carmen is phone-only: lid stickers + fridge card printed instead.",
+      "refs": [ { "kind": "event", "id": "ev_1016_1241_activated" } ],
+      "source": { "kind": "system", "ref": "builder" }, "rev": 1
+    },
+    {
+      "id": "dc_1016_1402_money", "village_id": "v_reyes", "at": "2026-10-16T14:02:09-04:00",
+      "actor": "gate", "kind": "decision",
+      "text": "Money request in Marco's name ($2,000, urgent): verify with Marco (app prompt + call), tell Mamá not to send yet, warn Ana early. Second request in 30 days: pattern flagged.",
+      "rule_id": "R-MONEY-VERIFY",
+      "refs": [ { "kind": "event", "id": "ev_1016_1402_money", "label": "her call, 0:09" }, { "kind": "member", "id": "m_marco" }, { "kind": "policy", "id": "R-MONEY-PATTERN" } ],
+      "source": { "kind": "call", "ref": "conv_demo_1016_scam", "secs": 9 }, "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "gate": {
+        "id": "dc_1016_1402_money", "rule_id": "R-MONEY-VERIFY", "decision": "verify_with_member",
+        "say": { "es": "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.", "en": "I'm checking with Marco right now. Please don't send any money yet." },
+        "say_key": "money_hold", "say_vars": { "claimed_name": "Marco" },
+        "notify": [ { "member_id": "m_ana", "channel": "app", "severity": "warn", "reason": "money_request_pending" } ],
+        "verification": { "id": "ver_1016_01", "claimed_member": "m_marco", "deadline": "2026-10-16T14:02:54-04:00", "channels": ["app_prompt", "outbound_call"], "state": "pending" },
+        "writes": [],
+        "flags": ["possible_fraud_pattern", "red_flag_notify_early"],
+        "rules_fired": ["R-MONEY-VERIFY", "R-VERIFY-CONSENT", "R-MONEY-PATTERN"]
+      }
+    }
+  ]
+}
