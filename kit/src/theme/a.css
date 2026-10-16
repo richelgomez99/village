@@ -193,3 +193,5 @@
 /* captions layer (projector) */
 .captions-layer { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(16, 13, 10, 0.94); border-top: 1px solid var(--line); padding: 10px 28px; display: flex; flex-direction: column; gap: 4px; z-index: 5; }
 .caption-line { margin: 0; font-size: 1.2em; display: flex; gap: 12px; align-items: baseline; }
+.control .phone .bigbutton .caption, .control .phone .tonight .caption, .control .phone .alert .caption { color: inherit; opacity: 0.8; }
+.control .phone .bigbutton-label { display: inline-flex; flex-direction: column; }

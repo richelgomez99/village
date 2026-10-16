@@ -89,8 +89,12 @@ export class VillageSocket {
     };
   }
 
-  /** Every validated server frame, in order (Control Room scene reducer). */
+  private frameLog: ServerFrame[] = [];
+
+  /** Every validated server frame, in order (Control Room scene reducer). Frames that arrived before the
+   *  listener subscribed (e.g. the snapshot, before React mounted) are replayed to it first. */
   onFrame(fn: FrameListener) {
+    this.frameLog.forEach(fn);
     this.frameListeners.add(fn);
     return () => {
       this.frameListeners.delete(fn);
@@ -194,6 +198,10 @@ export class VillageSocket {
       return;
     }
     this.handle(parsed.data);
+    if (this.o.client === "control") {
+      this.frameLog.push(parsed.data);
+      if (this.frameLog.length > 500) this.frameLog.splice(0, this.frameLog.length - 500);
+    }
     this.frameListeners.forEach((l) => l(parsed.data));
   }
 

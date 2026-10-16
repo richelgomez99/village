@@ -49,19 +49,13 @@ function founding(): Timed[] {
 function scam(): Timed[] {
   const seqs = (wsScam as any).sequences;
   const base = Date.parse(seqs.start[0].t);
+  // the fixture's own control/event frames come from the hub's start + tail replay; this adds what the room sees on top
   const frames: Timed[] = [];
-  for (const name of ["start", "denied"]) {
-    for (const f of seqs[name]) {
-      if (f.client !== "control" || f.dir !== "s2c") continue;
-      frames.push({ ms: Date.parse(f.t) - base, msg: f.msg });
-    }
-  }
   const t0 = seqs.start[0].t;
-  const tDenied = seqs.denied.find((f: any) => f.msg.type === "control")?.t ?? t0;
+  void base;
   frames.push({ ms: 0, msg: ctl("counter", { name: "phones_live", value: 4, label: "phones live" }, t0) });
   frames.push({ ms: 1, msg: ctl("caption", { speaker: "Carmen", es: "Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", en: "Marco called me crying, he says he's in trouble and needs two thousand dollars.", final: true }, t0) });
   frames.push({ ms: 400, msg: ctl("caption", { speaker: "Village", es: "Voy a confirmar con Marco ahora mismo. No mande dinero todavía.", en: "I'm checking with Marco right now. Please don't send any money yet.", final: true }, t0) });
-  frames.push({ ms: Date.parse(tDenied) - base + 300, msg: ctl("caption", { speaker: "Village", es: "Ese no era Marco. No mande dinero. Ana ya lo sabe.", en: "That wasn't Marco. Don't send any money. Ana already knows.", final: true }, tDenied) });
   return frames.sort((a, b) => a.ms - b.ms);
 }
 
