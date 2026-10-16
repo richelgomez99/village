@@ -148,7 +148,7 @@ def prescriptions_current(subject: str = "m_carmen") -> dict[str, Any]:
         change = changes.get(med["id"])
         if change:
             payload = change["payload"]
-            item["changed_by"] = "Dr. Lee"
+            item["changed_by"] = "Dr. Park"
             item["superseded"] = {"dose_text": payload["from"]["dose"], "valid_until": payload.get("effective", item["valid_from"])}
             item["source"] = change["source"]
             item["source_label"] = {"en": "Ana's call, Oct 3", "es": "Llamada de Ana, 3 oct"}

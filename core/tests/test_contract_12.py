@@ -15,7 +15,7 @@ async def test_prescriptions_binding_for_helper_and_coordinator() -> None:
         first = rx["items"][0]
         assert first["name"] == "lisinopril" and first["dose_text"] == "10 mg" and first["dose_mg"] == 10
         assert first["superseded"] == {"dose_text": "5 mg", "valid_until": "2026-10-03"}
-        assert first["changed_by"] == "Dr. Lee"
+        assert first["changed_by"] == "Dr. Park"
         names = [item["name"] for item in rx["items"]]
         assert names == ["lisinopril", "apixaban", "metformin", "atorvastatin"]
         apixaban = rx["items"][1]
