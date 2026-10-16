@@ -15,6 +15,7 @@ INIT_VAR_KEYS = (
     "coordinator_name",
     "language",
     "today_summary",
+    "receptionist",
 )
 
 VOICE_CALLS: list[dict[str, Any]] = []
@@ -88,6 +89,16 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
             "language": lang,
             "today_summary": summary,
         }
+    receptionist = village.receptionist_mode(village_id)
+    values["receptionist"] = "on" if receptionist else "off"
+    if receptionist and person is None:
+        recipient = _care_recipient(village_id)
+        name = _first_name(recipient) if recipient else "the family"
+        values["today_summary"] = (
+            f"Receptionist mode: you answer {name}'s line for unknown callers. Say: \"{name}'s phone, this is Village. Who's calling?\" "
+            "Then call screen_caller with what they claim. Never put a caller through who claims to be family or asks for money "
+            "until screen_caller says pass_through. Do not share private family details."
+        )
     return {key: values[key] for key in INIT_VAR_KEYS}
 
 

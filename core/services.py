@@ -527,6 +527,11 @@ async def _handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
             await db.put_idem(idem_key, {"decision_id": decision["id"], "decision": copy.deepcopy(decision), "response": copy.deepcopy(response), "at": clock.now().isoformat()})
         return response
 
+    if name == "screen_caller":
+        from core.evolve.receptionist import screen_caller
+
+        return await screen_caller(request, idem_key=idem_key)
+
     if name == "await_verification":
         result = await await_verification(request["verification_id"], max_wait_s=int(request.get("max_wait_s", 30)))
         row = db.verifications.get(request["verification_id"], {})
@@ -705,7 +710,16 @@ async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> 
         return result
     if name in {"check_in_ok", "need_help"}:
         return {"type": "result", "req_id": req_id, "ok": True, "decision": {"decision": "allow", "data": {"action": name}}}
+    if name in {"approve_proposal", "reject_proposal"}:
+        return await approve_proposal(village_id, name, request)
     raise KeyError(name)
+
+
+async def approve_proposal(village_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
+    """Evolve seam: WS/app action approve_proposal | reject_proposal (leader only) -> core.evolve.proposals."""
+    from core.evolve.proposals import handle_action as evolve_action
+
+    return await evolve_action(village_id, name, request)
 
 
 async def start_verification(
@@ -844,10 +858,20 @@ async def apply_verification_step(
         if row.get("state") in {"denied", "late_denied"}:
             _COUNTERS["scams_stopped"] = _COUNTERS.get("scams_stopped", 0) + 1
             await control(village, "counter", {"name": "scams_stopped", "value": _COUNTERS["scams_stopped"], "label": "scams stopped today"})
+        _evolve_port(village, row)
     for ev in written:
         if ev["kind"] == "incident":
             await _incident_message(village, ev)
     return row, written
+
+
+def _evolve_port(village_id: str, row: dict[str, Any]) -> None:
+    """Watcher trigger port (evolve lane): a money verification resolved -> maybe propose (background, never raises)."""
+    try:
+        from core.evolve.trigger import on_verification_resolved
+    except ImportError:
+        return
+    on_verification_resolved(village_id, row)
 
 
 async def _incident_message(village_id: str, event: dict[str, Any]) -> None:
