@@ -175,9 +175,7 @@ function kindMatches(kinds: string[] | undefined, kind: string): boolean {
 
 export function Timeline({ props }: CatalogProps) {
   const ctx = useCtx();
-  // a short timeline (limit ≤ 3) shows "since your last turn" when Core sends it, else the latest rows
-  const since = (props.limit ?? 50) <= 3 ? ctx.data["events:since_last_turn?member=me"] : undefined;
-  const items = arr<TimelineItem>(Array.isArray(since) ? since : ctx.data[props.bind])
+  const items = arr<TimelineItem>(ctx.data[props.bind])
     .filter((i) => kindMatches(props.event_kinds, i.kind))
     .filter((i) => props.show_superseded || !i.superseded)
     .slice(0, props.limit ?? 50);

@@ -70,7 +70,7 @@
         "consent": { "ai_calls": true, "app_prompts": true, "money_verifier": true, "recorded_on": "2026-10-16", "recorded_by": "Join screen AI-call consent checkbox (demo judge plays Marco, D11)" }
       },
       {
-        "id": "m_lucia", "name": "Lucía Reyes", "relation": "daughter", "role": "caregiver", "view": "supporter",
+        "id": "m_lucia", "name": "Lucía Reyes", "relation": "daughter", "role": "caregiver", "view": "helper",
         "phone": "+15555550104",
         "notes": "Remote in Philadelphia. Refills, Medicare/insurance, bills. Backup by phone.",
         "life_areas": ["health", "people"],
@@ -99,7 +99,7 @@
     ],
     "rules": ["double_dose_guard", "no_dose_advice", "missed_dose_ladder", "emergency_911_first", "consent_before_calls", "ai_disclosure_family_word", "money_verify_with_member", "money_never_moves", "money_default_dont_send", "quiet_hours"],
     "life_areas": [
-      { "id": "health", "label": "Health: pills", "label_i18n": { "en": "Health", "es": "Salud" }, "need_ids": ["n_evening_pills", "n_dose_change", "n_refills"], "modules": ["coordinator:refill", "helper:refill", "supporter:refill", "coordinator:dose", "coordinator:org", "coordinator:tl", "voice:mom-line"], "rules": ["P-DD-01", "P-MA-01", "P-ME-02", "P-911-01", "R-DOUBLE"] },
+      { "id": "health", "label": "Health: pills", "label_i18n": { "en": "Health", "es": "Salud" }, "need_ids": ["n_evening_pills", "n_dose_change", "n_refills"], "modules": ["coordinator:refill", "helper:refill", "coordinator:dose", "coordinator:org", "coordinator:tl", "voice:mom-line"], "rules": ["P-DD-01", "P-MA-01", "P-ME-02", "P-911-01", "R-DOUBLE"] },
       { "id": "money", "label": "Money: scam calls", "label_i18n": { "en": "Money", "es": "Dinero" }, "need_ids": ["n_scam_calls"], "modules": ["voice:mom-line", "coordinator:inc", "coordinator:vp", "helper:vp", "outbound:T3"], "rules": ["R-MONEY-NEVER", "R-MONEY-VERIFY", "R-MONEY-DEFAULT", "R-MONEY-UNKNOWN", "R-VERIFY-CONSENT", "R-MONEY-PATTERN"], "trusted_contacts": ["m_marco", "m_ana"] },
       { "id": "people", "label": "People: whose turn", "label_i18n": { "en": "People", "es": "Familia" }, "need_ids": ["n_turns"], "modules": ["coordinator:rota", "helper:ans", "elder:tonight", "elder:b_village", "elder:b_call"], "rules": ["P-ME-02", "P-QH-01"] }
     ]
@@ -108,7 +108,7 @@
     "m_carmen": ["phone_line", "app:elder", "fridge_card"],
     "m_ana": ["app:coordinator", "verification:app_prompt", "verification:call"],
     "m_marco": ["app:helper", "outbound_calls", "verification:app_prompt", "verification:call", "refill_day"],
-    "m_lucia": ["app:supporter"]
+    "m_lucia": ["app:helper"]
   },
   "views": {
     "elder": {
@@ -170,17 +170,15 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Is it my turn?", "subtitle": "Reyes family" }, "children": ["al", "vp", "ans", "since", "refill", "b_mom", "chat"] },
+        "s": { "type": "Screen", "props": { "title": "Is it my turn?", "subtitle": "Reyes family" }, "children": ["al", "vp", "ans", "refill", "b_mom", "chat"] },
         "al": { "type": "Alert", "props": { "source": "policy", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "Nothing needs you right now", "show_escalation_status": true } },
         "vp": { "type": "VerificationPrompt", "props": { "bind": "verifications:pending?member=me", "question_template": "Did you just call {care_recipient} asking for {amount}{method}?", "yes_label": "Yes, it was me", "no_label": "That wasn't me", "show_countdown": true } },
         "ans": { "type": "HelperAnswer", "props": { "question": "Is it my turn?", "bind": "rota:current?member=me", "subject": "m_carmen", "show_status": true, "show_next_shift": true } },
-        "since": { "type": "Timeline", "props": { "title": "Since your last turn", "bind": "timeline:subject=m_carmen", "subject": "m_carmen", "event_kinds": ["dose", "reminder", "escalation", "shift", "money_request", "verification", "incident"], "show_superseded": false, "show_provenance": false, "limit": 3 } },
         "refill": { "type": "RefillCard", "props": { "title": "Refill checklist", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": true, "show_source": true } },
         "b_mom": { "type": "BigButton", "props": { "label": "Call Mamá", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_carmen", "confirm": false } },
         "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } }
       },
       "needs_served": {
-        "since": ["n_turns", "n_scam_calls"],
         "al": ["n_safety"],
         "vp": ["n_scam_calls"],
         "ans": ["n_turns", "n_evening_pills"],
@@ -188,8 +186,7 @@
         "b_mom": ["n_turns"],
         "chat": ["n_safety"]
       }
-    },
-    "supporter": {"lang": "en", "theme": "family", "root": "s", "elements": {"s": {"type": "Screen", "props": {"title": "Your area: insurance & refills", "subtitle": "Reyes family"}, "children": ["area", "refill", "week", "b_mom", "chat"]}, "area": {"type": "Checklist", "props": {"title": "Your area", "items": ["Order lisinopril at 10 mg, not 5 (changed Oct 3)", "Keep metformin from running out (lapsed 3 days in Aug)", "Medicare and insurance paperwork"]}}, "refill": {"type": "RefillCard", "props": {"title": "Refill orders", "bind": "prescriptions:current", "show_superseded": true, "show_schedule": false, "show_source": true}}, "week": {"type": "Timeline", "props": {"title": "Mamá this week", "bind": "timeline:subject=m_carmen", "subject": "m_carmen", "event_kinds": ["dose", "shift", "incident"], "show_superseded": false, "show_provenance": false, "limit": 3}}, "b_mom": {"type": "BigButton", "props": {"label": "Call Mamá", "icon": "phone", "tone": "info", "action": "call_member", "action_arg": "m_carmen", "confirm": false}}, "chat": {"type": "VillageChat", "props": {"bind": "chat:village", "composer": true, "title": "Village chat", "mention_label": "@Village", "allow_approve": false, "limit": 50}}}, "needs_served": {"area": ["n_refills", "n_dose_change"], "refill": ["n_dose_change", "n_refills"], "week": ["n_evening_pills", "n_scam_calls", "n_turns"], "b_mom": ["n_turns"], "chat": ["n_safety"]}}
+    }
   },
   "policies": [
     { "rule_id": "P-MA-01", "params": {}, "applies_to_member_ids": ["m_carmen"] },

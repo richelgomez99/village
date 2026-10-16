@@ -86,6 +86,23 @@ export function WhatVillageDid({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+interface SinceRow { event_id?: string; id?: string; at?: string; text?: unknown }
+
+/** "Since your last turn": core-glue's events:since_last_turn?member=me (3 lines in words). Absent = hidden. */
+export function SinceLastTurn({ data, lang }: { data: Record<string, unknown>; lang: string }) {
+  const rows = arr<SinceRow>(data["events:since_last_turn?member=me"]).slice(0, 3);
+  if (!rows.length) return null;
+  return (
+    <Card test="since-last-turn" title="Since your last turn">
+      <ul className="right-now">
+        {rows.map((r, i) => (
+          <li key={r.event_id ?? r.id ?? i} data-test="since-row">{text(r.text, lang)}{r.at ? <span className="small muted"> · {fmtTime(r.at, lang)}</span> : null}</li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { life_areas?: any[] } | null }) {
   const [tab, setTab] = useState("home");
   const [draft, setDraft] = useState<string | undefined>();
@@ -144,6 +161,7 @@ export function TabbedApp({ ctx, blueprint }: { ctx: RenderCtx; blueprint?: { li
                 </div>
               ) : null}
               {plan.headline ? <div className="headline" data-test="headline"><Node id={plan.headline} /></div> : null}
+              <SinceLastTurn data={ctx.data} lang={ctx.lang} />
               <WhatVillageDid data={ctx.data} />
               {plan.homeRest.map((id) => <Node key={id} id={id} />)}
               {plan.chat ? <ChatPreview chatId={plan.chat} onOpen={() => setTab("chat")} /> : null}
