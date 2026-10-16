@@ -3,6 +3,7 @@
 import reyesSpec from "../../../contracts/fixtures/reyes_spec.json";
 import wsScam from "../../../contracts/fixtures/ws_sequence_scam.json";
 import blockSpec from "../../../contracts/fixtures/block_spec.json";
+import chatSeed from "../../../contracts/fixtures/messages_reyes_seed.json";
 import type { View } from "../renderer/view";
 
 export type FakeClient = "carmen" | "ana" | "marco" | "lucia" | "control";
@@ -59,11 +60,24 @@ const timeline = [
   { event_id: "ev_0901_med_lisinopril_5", kind: "med_change", at: "2026-09-01T10:00:00-04:00", text: { en: "Lisinopril 5 mg" }, source: { kind: "system", ref: "seed" }, source_label: { en: "Prescription on file (FAKE seed)" }, superseded: true }
 ];
 
-const lifeAreas = [
+/** D16 seed rows (Core's messages_reyes_seed.json): rows up to the snapshot clock are in the snapshot; later rows replay as chat frames. */
+export const SEED_MESSAGES = (chatSeed as any).messages as { id: string; at: string }[];
+export function chatAt(nowIso = SNAPSHOT_NOW) {
+  return SEED_MESSAGES.filter((m) => Date.parse(m.at) <= Date.parse(nowIso));
+}
+export function chatAfter(nowIso = SNAPSHOT_NOW) {
+  return SEED_MESSAGES.filter((m) => Date.parse(m.at) > Date.parse(nowIso));
+}
+
+/** need_ids per life area, straight from the fixture blueprint: the field the kit asks Core to add to bv_life_area (LD-M1). */
+const NEED_IDS = new Map<string, string[]>(((reyesSpec as any).blueprint.life_areas as { id: string; need_ids: string[] }[]).map((a) => [a.id, a.need_ids]));
+
+const lifeAreasBase = [
   { id: "health", label: "Pills", status: { en: "morning pills taken · refill Friday · Marco", es: "pastillas de la mañana tomadas · relleno el viernes · Marco" } },
   { id: "money", label: "Money: scam calls", status: { en: "1 scam stopped · Marco checks money calls", es: "1 estafa detenida · Marco confirma llamadas de dinero" }, rules: ["R-MONEY-VERIFY", "R-MONEY-DEFAULT"], trusted_contacts: ["m_marco", "m_ana"] },
   { id: "people", label: "People: whose turn", status: { en: "Marco on duty tonight", es: "Marco de turno esta noche" } }
 ];
+const lifeAreas = lifeAreasBase.map((a) => ({ ...a, need_ids: NEED_IDS.get(a.id) ?? [] }));
 
 export function baseData(client: FakeClient): Record<string, unknown> {
   switch (client) {
@@ -85,13 +99,20 @@ export function baseData(client: FakeClient): Record<string, unknown> {
         "facts:dose_event?subject=m_carmen&valid_at=week": doseWeek,
         "rota:week": rotaWeek,
         "timeline:subject=m_carmen": timeline,
-        "prescriptions:current": PRESCRIPTIONS
+        "prescriptions:current": PRESCRIPTIONS,
+        "chat:village": chatAt(),
+        // MOCK until core-glue sends it to member snapshots (LD-M2)
+        "rounds:latest": ROUNDS
       };
     case "marco":
     case "lucia": {
       const snap = connectSnapshot();
-      const data = { ...(snap?.data ?? {}), "member:m_carmen": memberRecords()["member:m_carmen"] } as Record<string, unknown>;
+      const data = { ...(snap?.data ?? {}), ...memberRecords(), "chat:village": chatAt() } as Record<string, unknown>;
       if (client === "lucia") {
+        // Lucía is not a money contact (consent ai_calls false): Core never sends her a prompt
+        delete data["verifications:pending?member=me"];
+        delete data["alerts:active"];
+        data["timeline:subject=m_carmen"] = timeline;
         data["rota:current?member=me"] = {
           is_my_turn: false, date: "2026-10-16", on_duty: marcoPerson, backup: anaPerson, until: null, next_shift: "2026-10-17",
           answer: { en: "No. Marco is on tonight; you're next on Saturday." }

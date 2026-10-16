@@ -115,18 +115,50 @@ function slotLabel(slot: string, lang: string): string {
   return (lang === "es" ? es : en)[slot] ?? slot;
 }
 
-interface RotaMe { is_my_turn: boolean; on_duty: { name: string }; backup: { name: string }; until: string | null; next_shift: string | null; answer: unknown; status_line?: unknown }
+interface RotaMe { is_my_turn: boolean; date?: string; on_duty: { name: string }; backup: { name: string }; until: string | null; next_shift: string | null; answer: unknown; status_line?: unknown }
+
+const WD_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Weekday name of an ISO date/datetime in the village clock ("2026-10-17" → "Saturday"). */
+export function weekdayName(iso: string | null | undefined, lang = "en"): string {
+  if (!iso) return "";
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00-04:00` : iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(lang === "es" ? "es-US" : "en-US", { weekday: "long", timeZone: "America/New_York" }).format(d);
+}
+
+/** Short weekday ("Fri") of now in the village clock: the refill-day rule compares it with prescriptions.refill_day. */
+export function todayShort(nowMs: number): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/New_York" }).format(new Date(nowMs));
+}
+
+/** "Yes · tonight until 9:30" / "No · Ana tonight · you're on Thursday", composed from bv_rota_me; Core's answer stays under it. */
+export function turnHeadline(v: RotaMe, lang: string): string {
+  if (v.is_my_turn) {
+    const said = text(v.answer, "en").match(/until (\d{1,2}(:\d{2})?\s?([AaPp]\.?[Mm]\.?)?)/);
+    const until = v.until ? fmtTime(v.until, lang) : said ? said[1].trim() : "";
+    return `Yes · tonight${until ? ` until ${until}` : ""}`;
+  }
+  const who = v.on_duty?.name ? `${v.on_duty.name} tonight` : "not tonight";
+  const next = v.next_shift ? ` · you're on ${weekdayName(v.next_shift, lang) || WD_EN[0]}` : "";
+  return `No · ${who}${next}`;
+}
 
 export function HelperAnswer({ props }: CatalogProps) {
   const ctx = useCtx();
   const v = ctx.data[props.bind] as RotaMe | null | undefined;
+  const swapDay = v ? (v.is_my_turn ? weekdayName(v.date ?? null, "en") || "tonight" : weekdayName(v.next_shift, "en")) : "";
   return (
     <Card test="helper-answer" title={<Bi value={props.question} />} tone={v?.is_my_turn ? "sage" : undefined} extra={{ "data-my-turn": v ? String(v.is_my_turn) : undefined }}>
       {v ? (
         <>
-          <p className="helper-answer" data-test="helper-answer-text"><Bi value={v.answer} /></p>
+          <p className="helper-answer helper-headline" data-test="helper-headline" data-say="">{turnHeadline(v, ctx.lang)}</p>
+          <p className="muted" data-test="helper-answer-text"><Bi value={v.answer} /></p>
           {props.show_status && v.status_line ? <p className="muted"><Bi value={v.status_line} /></p> : null}
-          {props.show_next_shift && v.next_shift ? <p className="muted" data-say="">{k("next_shift", ctx.lang, { date: fmtDay(v.next_shift, ctx.lang) })}</p> : null}
+          {props.show_next_shift && v.next_shift && v.is_my_turn ? <p className="muted" data-say="">{k("next_shift", ctx.lang, { date: fmtDay(v.next_shift, ctx.lang) })}</p> : null}
+          {ctx.openChat && swapDay ? (
+            <button type="button" className="btn btn-link" data-test="swap-my-night" disabled={ctx.disabled} onClick={() => ctx.openChat?.(`@Village can someone swap ${swapDay}?`)}>Swap my night</button>
+          ) : null}
         </>
       ) : (
         <p className="muted">{k("nothing_yet", ctx.lang)}</p>
@@ -291,6 +323,10 @@ export function RefillCard({ props }: CatalogProps) {
   const showSched = props.show_schedule !== false;
   const showSrc = props.show_source !== false;
   const sub = k("refill_title", ctx.lang, { day, owner });
+  // D22 refill-day rule: the owner sees the checklist only on refill day; other days, one line ("Refill Friday · you")
+  if (ctx.memberId && v.owner_member_id === ctx.memberId && v.refill_day !== todayShort(ctx.nowMs())) {
+    return <p className="refill-line" data-test="refill-line" data-day={v.refill_day}>Refill {day} · you</p>;
+  }
   return (
     <Card test="refill-card" title={props.title ? <Bi value={props.title} /> : sub} extra={{ "data-owner": owner, "data-day": v.refill_day }}>
       {props.title ? <p className="small muted" data-test="refill-owner">{sub}</p> : null}
@@ -329,7 +365,7 @@ function FactToggle({ entity, med }: { entity: string; med: string }) {
       </button>
       {open ? (
         <div className="fact-card" data-test="fact-card">
-          <FactHistoryCard api={ctx.api} village={ctx.village} entity={entity} factKey={key} />
+          <FactHistoryCard api={ctx.api} village={ctx.village} entity={entity} factKey={key} plain />
           <p className="small muted">{MEMORY_CAPTION}</p>
         </div>
       ) : null}

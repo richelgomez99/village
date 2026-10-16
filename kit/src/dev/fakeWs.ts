@@ -4,7 +4,7 @@
 // BroadcastChannel), else timeout_tail at the fixture's own times. ?speed=<x> scales time. Every frame (sent and
 // received) is on window.__frames. Control Room: ?fake=control&seq=founding|scam|release|evolve replays that scene
 // (dev/fakeControl.ts); hello{village:"v_w147"} gets the block_spec control snapshot; window.__fake.warp(min) ticks the clock.
-import { FAKE_CLIENTS, blockControlSnapshot, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
+import { FAKE_CLIENTS, SNAPSHOT_NOW, blockControlSnapshot, chatAfter, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
 import { addCaption } from "../i18n/captions";
 import { blockFounding, controlHelloSnapshot, controlSequence, isControlSeq, type ControlSeq, type TimelineLine } from "./fakeControl";
 
@@ -80,6 +80,12 @@ class FakeHub {
     const frames = sequence("start");
     this.playFrames(frames, 0);
     const base = ms(frames[0].t);
+    // the seeded chat keeps going on the fixture clock (D16): later rows arrive as chat frames on every non-elder phone
+    for (const m of chatAfter(SNAPSHOT_NOW)) {
+      const delay = Math.max(0, (ms((m as any).at) - base) / this.speed);
+      const fire = () => this.sockets.forEach((s) => { if (s.target !== "carmen") s.emitChat(m); });
+      this.timers.push(setTimeout(fire, delay));
+    }
     if (this.opts.tail) {
       const tail = sequence(this.opts.tail);
       const delay = (ms(tail[0].t) - base) / this.speed;
@@ -269,6 +275,10 @@ class FakeSocket extends EventTarget {
         this.emit({ type: "result", req_id: f.req_id, ok: true });
       }
     }
+  }
+
+  emitChat(message: unknown) {
+    this.emit({ type: "chat", message });
   }
 
   deliver(f: SeqFrame) {

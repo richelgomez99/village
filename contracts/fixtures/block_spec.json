@@ -103,7 +103,7 @@
       "theme": "dashboard",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "W 147th St — blackout", "subtitle": "Block coordinator" }, "children": ["al", "st", "nb", "rb", "vf", "ci", "cl", "src", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "W 147th St — blackout", "subtitle": "Block coordinator" }, "children": ["al", "st", "areas", "nb", "rb", "vf", "ci", "cl", "src", "chat", "e911"] },
         "al": { "type": "Alert", "props": { "source": "official", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No active alerts", "show_escalation_status": true } },
         "st": { "type": "StatusGrid", "props": { "title": "Right now", "labels": ["Open needs", "Matched", "Overdue check-ins", "Unverified claims"], "binds": ["needs:open?count", "needs:matched?count", "checkins:overdue?count", "claims:topic=all?count"] } },
         "nb": { "type": "NeedBoard", "props": { "title": "Needs by priority", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status", "matched_resource", "language"], "redact_for_roles": ["resident", "volunteer"], "allow_match": true } },
@@ -111,6 +111,8 @@
         "vf": { "type": "VerifiedInfoFeed", "props": { "title": "Rumor check", "bind": "claims:topic=all", "topics": ["power_restoration", "cooling_centers", "water", "heat_alerts"], "trust_levels_shown": ["official", "verified_volunteer", "unverified_neighbor"], "hide_unverified_for_roles": ["resident", "volunteer"] } },
         "ci": { "type": "CheckIn", "props": { "title": "Check-ins", "subjects": ["b_alvarez", "b_chen", "b_james", "b_okafor"], "bind": "checkins:village", "interval_minutes": 60, "escalate_after_minutes": 90, "big": false } },
         "cl": { "type": "CallLog", "props": { "title": "Block line calls", "line_ids": ["block-line"], "bind": "calls:line=block-line", "show_policy_decisions": true, "limit": 10 } },
+        "areas": { "type": "LifeAreas", "props": { "title": "The block", "bind": "blueprint:life_areas", "areas": ["health", "information", "home", "daily_living"], "show_rules": false, "show_contacts": true } },
+        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": true, "limit": 50 } },
         "src": { "type": "SourceCard", "props": { "source_name": "Con Edison Outage Map", "url": "https://outagemap.coned.com/", "refresh_minutes": 15 } },
         "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": false } }
       },
@@ -123,6 +125,8 @@
         "ci": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "cl": ["n_powered_medical_device", "n_refrigerated_medication"],
         "src": ["n_rumors"],
+        "areas": ["n_powered_medical_device", "n_refrigerated_medication", "n_rumors", "n_infant", "n_mobility"],
+        "chat": ["n_safety"],
         "e911": ["n_safety"]
       }
     },
@@ -149,16 +153,18 @@
       "theme": "family",
       "root": "s",
       "elements": {
-        "s": { "type": "Screen", "props": { "title": "Who needs help first" }, "children": ["al", "nb", "rb", "e911"] },
+        "s": { "type": "Screen", "props": { "title": "Who needs help first" }, "children": ["al", "nb", "rb", "chat", "e911"] },
         "al": { "type": "Alert", "props": { "source": "coordinator", "bind": "alerts:active", "severity_levels": ["danger", "warn"], "dismissible": false, "empty_text": "No requests for you right now", "show_escalation_status": true } },
         "nb": { "type": "NeedBoard", "props": { "title": "Open needs (by priority)", "bind": "needs:open", "priority_order": ["powered_medical_device", "refrigerated_medication", "infant", "mobility", "other"], "show_fields": ["need_type", "priority", "status"], "redact_for_roles": ["resident", "volunteer"], "allow_match": false } },
         "rb": { "type": "ResourceBoard", "props": { "title": "What neighbors offered", "bind": "resources:available", "resource_types": ["generator", "vehicle", "ice", "cooling_center"], "show_constraints": true } },
+        "chat": { "type": "VillageChat", "props": { "bind": "chat:village", "composer": true, "title": "Block chat", "mention_label": "@Village", "allow_approve": false, "limit": 50 } },
         "e911": { "type": "ContactCard", "props": { "name": "911", "label": "Life-threatening: call 911 first", "phone": "911", "kind": "emergency", "big": false } }
       },
       "needs_served": {
         "al": ["n_safety"],
         "nb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
         "rb": ["n_powered_medical_device", "n_refrigerated_medication", "n_infant", "n_mobility"],
+        "chat": ["n_safety"],
         "e911": ["n_safety"]
       }
     }

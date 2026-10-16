@@ -3,6 +3,7 @@ import { BigButton, ContactCard, Header, Screen, Stack, StatusGrid, Text } from 
 import { Alert, CareRota, DoseTracker, HelperAnswer, LifeAreas, PillOrganizer, RefillCard, Timeline, TonightCard } from "../components/care";
 import { IncidentCard, Proposal, ScamCheck, VerificationPrompt } from "../components/money";
 import { GenericBoard, Checklist, VillageChat } from "../components/generic";
+import { FactCard, PlanBoard, RightNow, ScreenedCalls, SinceYourTurn, WhatVillageDidEl } from "../components/brief";
 
 export interface CatalogProps {
   id: string;
@@ -18,5 +19,7 @@ export const CATALOG: Record<string, ComponentType<CatalogProps>> = {
   ResourceBoard: GenericBoard, VerifiedInfoFeed: GenericBoard, CheckIn: GenericBoard,
   Checklist, VillageChat,
   // 1.3.0 (D22)
-  RefillCard, TonightCard
+  RefillCard, TonightCard,
+  // 1.3.0 (UX-UPGRADE)
+  RightNow, WhatVillageDid: WhatVillageDidEl, SinceYourTurn, PlanBoard, ScreenedCalls, FactCard
 };

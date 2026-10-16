@@ -37,6 +37,12 @@ export interface RenderCtx {
   phoneFor?: (target: string) => string | null;
   /** REST access for read-only lookups inside components (fact history); absent = those affordances hide. */
   api?: ApiConfig;
+  /** tabbed member app: jump to the Chat tab, optionally with a composer prefill ("@Village can someone swap Friday?"). */
+  openChat?: (prefill?: string) => void;
+  /** composer prefill handed to VillageChat by openChat */
+  chatDraft?: string;
+  /** VillageChat is the full-height Chat tab panel */
+  chatFull?: boolean;
 }
 
 const LITERAL_PHONE = /^(\+[1-9][0-9]{6,14}|911|988|18002221222)$/;

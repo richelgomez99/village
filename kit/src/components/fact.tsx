@@ -21,9 +21,24 @@ const day = (iso: string) => {
 };
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
-export function sourceLabel(src: FactVersion["source"]): string {
-  if (src.kind === "call") return `call ${src.ref}${src.secs != null ? ` · ${mmss(src.secs)}` : ""}`;
-  return `${src.kind} · ${src.ref}`;
+export function sourceLabel(src: FactVersion["source"], plain = false): string {
+  if (!plain) {
+    if (src.kind === "call") return `call ${src.ref}${src.secs != null ? ` · ${mmss(src.secs)}` : ""}`;
+    return `${src.kind} · ${src.ref}`;
+  }
+  // words only on phones: never the call / ledger id
+  if (src.kind === "call") return `from a call${src.secs != null ? ` · ${mmss(src.secs)}` : ""}`;
+  const words: Record<string, string> = { scan: "from her pill check", system: "on file", seed: "on file", app: "from the app", phone_line: "from her line" };
+  return words[src.kind] ?? src.kind;
+}
+
+const AGENT_WORDS: Record<string, string> = { founder: "Founder", builder: "Builder", watcher: "Watcher", verifier: "Verifier", explainer: "Explainer", voice: "voice", "mom-line": "voice", memory: "Agent Memory", seed: "seed", system: "seed" };
+/** "written by": the fact's agent= label in words, else its source kind (SurrealDB "shared across agents"). */
+export function writtenBy(v: { labels?: Record<string, string>; source: { kind: string } }): string {
+  const a = v.labels?.agent;
+  if (a) return AGENT_WORDS[a.toLowerCase()] ?? a;
+  const k = v.source?.kind ?? "";
+  return k === "call" || k === "phone_line" ? "voice" : k === "system" || k === "seed" ? "seed" : k || "seed";
 }
 
 /** The day before the current version became true, at noon (the "before the change" as-of). */
@@ -38,7 +53,7 @@ function localAsOf(h: FactHistory, asOf: string): FactVersion | null {
   return h.versions.filter((v) => Date.parse(v.observed_at) <= t).sort((a, b) => Date.parse(b.observed_at) - Date.parse(a.observed_at))[0] ?? null;
 }
 
-export function FactHistoryCard({ api, village, entity, factKey, title }: { api: ApiConfig | undefined; village: string; entity: string; factKey: string; title?: string }) {
+export function FactHistoryCard({ api, village, entity, factKey, title, plain = false }: { api: ApiConfig | undefined; village: string; entity: string; factKey: string; title?: string; /** phones: source chips in words, no ids */ plain?: boolean }) {
   const [h, setH] = useState<FactHistory | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -89,8 +104,9 @@ export function FactHistoryCard({ api, village, entity, factKey, title }: { api:
   const Source = ({ v }: { v: FactVersion }) => (
     <>
       <button type="button" className="fact-source" data-test="fact-source" aria-expanded={open === v.id} onClick={() => setOpen(open === v.id ? null : v.id)}>
-        {sourceLabel(v.source)}
+        {sourceLabel(v.source, plain)}
       </button>
+      <span className="chip chip-gray fact-by" data-test="fact-written-by"> written by {writtenBy(v as FactVersion & { labels?: Record<string, string> })}</span>
       {open === v.id ? <q className="fact-quote" data-test="fact-quote">{v.source.quote ?? "No quote recorded for this source."}</q> : null}
     </>
   );
