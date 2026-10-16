@@ -50,3 +50,7 @@
 | Arize experiment `scam-model-20261016T153959Z` (dataset `village-scam-eval`) | 30/30 | 0/20 | 49/50 |
 | Model off + Reyes incident set (D24 #11) | 29/31 | 0/20 | 48/51 |
 - Caveat for the pitch: a 50-case hand-written set, say "on our 50-case eval set". Session eval labels the Oct 9 call `possible_fraud` (0.95); detector yields one pattern with 5 evidence rows.
+
+## Platform (D30 sweep, 12:30)
+- `grep -ri -E "carmen|marco|lucia|reyes" core --exclude-dir=tests` → 0 hits outside `core/watcher/fixtures/` (was 231 in 35 files). `data/villages/index.json` lists villages; `core/village.py` resolves people/roles/rules from the spec. One Core serves both villages (`/ws?village=v_w147&m=b_tanya` → Tanya's coordinator view; `v_reyes` → Familia Reyes). Two-village gate test: P-QH-01 suppresses a 21:50 reminder for Reyes (quiet hours 21:30–07:00), not for the block; R-MONEY-DEFAULT names each village's own coordinator. 249 tests.
+- Voice: ElevenLabs mom-line calls failed instantly twice ("Missing required dynamic variables in first message") because the init webhook was not mounted on Core (405 at /) → webhooks grafted onto Core at /hooks/elevenlabs/{init,post-call}; agent now has default dynamic variables so a webhook failure can never drop a call.
