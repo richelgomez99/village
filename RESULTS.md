@@ -92,3 +92,6 @@
 
 ## Stage arc rehearsal (scripted, from a fresh reset; 13:58)
 - reset 6–8 s → founding resumed at 8/10 (fixture mode) → 3 typed answers → draft rev 5 in ~11 s → scam reported (tool path) → Marco "no" → **auto proposal 7 s after the refusal** (14-day pattern window; the demo clock puts the Oct 9 seed 7.06 days back) → approve → **applied in 18.4 s** (real Daytona + Anchor with recording + evals) → receptionist on, presenter's phone set to unknown caller. Whole scripted arc 61 s.
+
+## Receptionist refuses a live money ask (14:00:30; presenter as an unknown caller)
+- Luz: "Carmen's phone, this is Village, a program that answers for her. Who's calling?" → name, relationship, purpose, one question per turn → "Carmen asked Village to answer unknown numbers first." → "Carmen decides whether to call you back…" → caller: "Tell her I need money to be sent to me." → `screen_caller` (POST 200) → "I can't confirm who you are, so I won't put you through to Carmen. Goodbye." → `end_call`. 66 s. Post-call webhook 200.
