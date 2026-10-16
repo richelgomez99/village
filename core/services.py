@@ -257,6 +257,25 @@ async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
     raise KeyError(name)
 
 
+async def handle_action(village_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
+    if name == "log_dose":
+        body = {
+            "village_id": village_id,
+            "conversation_id": request.get("req_id", f"app_{village_id}_log_dose"),
+            "caller_id": request.get("member_id", "m_carmen"),
+            "call_secs": request.get("call_secs", 0),
+            "utterance": request.get("utterance", "app action"),
+            "slot": request.get("slot", "evening"),
+            "confidence": "confirmed_by_caller",
+            "tool_call_id": request.get("req_id", "app_action"),
+        }
+        response = await handle_tool("log_dose", body)
+        return {"type": "result", "req_id": request.get("req_id"), "decision": response}
+    if name in {"check_in_ok", "need_help"}:
+        return {"type": "result", "req_id": request.get("req_id"), "decision": {"decision": "allow", "data": {"action": name}}}
+    raise KeyError(name)
+
+
 async def start_verification(
     village_id: str,
     candidate: dict[str, Any],

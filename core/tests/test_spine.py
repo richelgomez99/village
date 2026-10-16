@@ -54,3 +54,23 @@ def test_prescriptions_show_lisinopril_history() -> None:
         prescriptions = client.get("/villages/v_reyes/prescriptions").json()["prescriptions"]
     assert [row["dose"] for row in prescriptions if row["name"] == "lisinopril"] == ["5 mg", "10 mg"]
     assert prescriptions[0]["valid_until"] == "2026-10-03"
+
+
+def test_http_action_log_dose_uses_shared_handler() -> None:
+    with TestClient(app) as client:
+        response = client.post("/v/v_reyes/actions/log_dose", json={"req_id": "req_http_action", "slot": "evening"})
+    assert response.status_code == 200
+    assert response.json()["decision"]["decision"] == "record"
+
+
+def test_ws_action_log_dose_returns_result() -> None:
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as ws:
+            ws.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_id": "m_carmen"})
+            assert ws.receive_json()["type"] == "snapshot"
+            ws.send_json({"type": "action", "name": "log_dose", "req_id": "req_ws_action", "body": {"slot": "evening"}})
+            frames = [ws.receive_json(), ws.receive_json()]
+            assert {frame["type"] for frame in frames} == {"result", "event"}
+            result = next(frame for frame in frames if frame["type"] == "result")
+            assert result["req_id"] == "req_ws_action"
+            assert result["decision"]["decision"] == "record"

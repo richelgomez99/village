@@ -1,5 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from core import services
 from core.settings import CONTRACT_VERSION
 from core.ws_hub import hub, role_for_member
 
@@ -27,5 +28,12 @@ async def websocket_endpoint(ws: WebSocket, village: str = "v_reyes", m: str = "
             incoming = await ws.receive_json()
             if incoming.get("type") == "ping":
                 await ws.send_json({"type": "pong"})
+            elif incoming.get("type") == "action":
+                result = await services.handle_action(
+                    village,
+                    incoming.get("name", incoming.get("action", "")),
+                    {**incoming.get("body", {}), "req_id": incoming.get("req_id"), "member_id": member_id},
+                )
+                await ws.send_json(result)
     except WebSocketDisconnect:
         hub.disconnect(ws)
