@@ -60,7 +60,7 @@ Each slide lists: what's on screen, the stage lines (word for word), and the fal
 - "Found the pattern: 2 calls in 7 days claiming to be Marco"
 - Options considered: a check button (she has to remember under pressure) · a daily check-in call (doesn't stop the call) · **answer unknown callers first (chosen)**
 - Daytona: "[MEASURE: n] of [MEASURE: n] floor tests passed" (Reyes count not in RESULTS yet)
-- Timer on screen: Ana's yes → every phone patched (measured 7.7 s with the real pipeline; RESULTS.md evolve)
+- Timer on screen: Ana's yes → every phone patched (live on the demo Core at 13:00: 12 s; RESULTS.md)
 - Anchor: live view of a phone-sized browser tapping Carmen's screen
 - Arize: "evals passed" (score per release from the receipt: [MEASURE: score])
 - "Ana approved" → every phone changes

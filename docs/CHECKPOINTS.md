@@ -122,29 +122,44 @@ Target: V2 tag: conversation → three apps → QR join; Ask Village why
 
 Target: V3 tag: Daytona build+tests, Anchor run, Arize evals, caught failure, blackout block; record the draft video now
 
+Filled by the pitch lane at ~13:35 from `RESULTS.md`, `LANE-REPORT.md` and `scripts/acceptance_summary.sh` (SurrealDB URL empty, model off, fake dialer). Orchestrator corrects "works on real phones".
+
 | | |
 |---|---|
-| Filled at | |
-| Acceptance (`scripts/acceptance_summary.sh`) | V0 _ · V1 _ · V2 _ · V3 _ · V4 _ |
-| Tags present | |
-| Version we would pitch right now | |
+| Filled at | ~13:35 (pitch lane, from documents; orchestrator to confirm) |
+| Acceptance (`scripts/acceptance_summary.sh`) | V0 PASS · V1 PASS · V2 PASS · V3 absent (release T024 cut; smoke receipts are the evidence) · V4 PASS |
+| Tags present | V0-green, V1-green; lane tags incl. release-v3, room-v3, evolve-v4, memory-v4, evals-v4, platform-v1, builder-1.3, thanksgiving, voice-v4, kit-members, ana-view |
+| Version we would pitch right now | V4 arc minus the live receptionist call (V3 + live rebuild) |
 
 **Works on real phones** (who held which phone, what they saw):
-- 
+- First live call (12:23): operator as Carmen on +1 848 257 9221 → hold line at 18 s → Marco's tap on the operator's phone → "Ese no era Marco…" at 31 s. Watcher proposed the receptionist 7 s later.
+- Live rebuild (13:00): operator tapped Approve on Ana's phone → "Released rev 6 and patched every phone" 12 s later, six stages passed.
+- Hero screenshots captured from the live Core on 8790 (`docs/hero/`): Ana (brief, What Village did, fact card), Marco, Carmen, Control Room.
 
 **Mocked or faked** (what, and how the pitch words it honestly):
-- 
+- Founding on stage is this morning's real intake, replayed at its own pace to 9 of 10; only the last answer is typed live. Say so.
+- Thanksgiving (D36) ran end to end on a test Core (model off, fake release), not yet on the demo Core.
+- Receptionist mode: built behind a flag (`screen_caller`); the live refusal call not yet run.
+- Anchor: static view checks; recording MP4 not on the receipt yet.
+- Rounds counts on screen come from seeded data.
 
 **Measured since last checkpoint** (copy into `RESULTS.md` first):
-- 
+- Live rebuild on the demo Core: 12 s from yes to every phone (RESULTS).
+- Founding intake, Sonnet 5.5: 65.8 s for 11 answers; resume path from 8 of 10 to "Draft ready · rev 5" (RESULTS).
+- D30 sweep: 0 Reyes hits in `core/` outside watcher fixtures (RESULTS).
+- Tests: 379 Python, 114 kit, 114 gate (pitch lane run at merge).
 
 **Risks** (what breaks the next version, and the fallback):
-- 
+- The receptionist live call (not yet run end to end). Fallback: the `evolve` fake sequence's refusal, "recorded this afternoon".
+- The evolve receptionist patch targets children by position; re-check against the new 11/7-child views after `reset_demo.sh` (kit-members open risk).
+- Proposals live in memory: a Core restart mid-rehearsal clears them; re-trigger with `POST /villages/{id}/evolve/trigger` (D34).
+- Live ElevenLabs agent is frozen (D31): any config change (evaluation criteria) needs the orchestrator's OK and a re-test call.
 
 **Cuts** (what's dropped, LAYERS.md cut order, D-number):
-- 
+- `acceptance/v3.sh` (release T024): smoke output + receipts instead.
+- Thanksgiving on stage: table demo only unless green by 13:50 (D36).
 
-**Devpost section current:** V_ · `[MEASURE]` left: _ · `[PENDING]` left: _
+**Devpost section current:** V1 ready (clip URL pending); V2–V4 numbers filled, pending confirmation · `[MEASURE]` left: Reyes floor count, phones joined, rebuild timed at the pitch, Arize score per release (slides), cost · `[PENDING]` left: draft URL, V1 clip, receptionist GIF, caught-build receipt screenshot, sponsor audit items (Daytona line, Anchor MP4, Bedrock chip, ElevenLabs criteria pushed), V2–V4 confirmations
 
 ---
 
