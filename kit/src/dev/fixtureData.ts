@@ -24,7 +24,7 @@ export const SNAPSHOT_NOW = "2026-10-16T14:01:40-04:00";
 const marcoPerson = { member_id: "m_marco", name: "Marco" };
 const anaPerson = { member_id: "m_ana", name: "Ana" };
 
-/** bv_prescriptions straight from the fixture's connect snapshot (contract 1.2.0, D22). */
+/** bv_prescriptions straight from the fixture's connect snapshot (contract 1.2.1, D22). */
 export const PRESCRIPTIONS = (connectSnapshot()?.data?.["prescriptions:current"] ?? null) as unknown;
 
 const doseToday = (withMeds: boolean) => ({
@@ -108,7 +108,7 @@ function connectSnapshot(): any {
 
 export const VILLAGE_NAME = "Familia Reyes";
 
-/** snapshot.identity (contract 1.2.0, D21). */
+/** snapshot.identity (contract 1.2.1, D21). */
 export function fakeIdentity(client: FakeClient, viewAs = false) {
   const meta = FAKE_CLIENTS[client];
   const lang = meta.role === "elder" ? "es" : "en";

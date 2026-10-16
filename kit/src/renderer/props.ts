@@ -1,4 +1,4 @@
-// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.2.0).
+// Hand-written zod mirror of contracts/schemas/village_spec.schema.json#/$defs/props_* (contract 1.2.1).
 // Strict objects = additionalProperties:false. Keep in sync with the contract; tests parse both fixtures.
 import { z } from "zod";
 
@@ -116,7 +116,7 @@ export const propsByType = {
     bind: z.literal("chat:village"), composer: z.boolean(), title: label.optional(), mention_label: z.string().max(20).optional(),
     allow_approve: z.boolean().optional(), limit: z.number().int().min(1).max(50).optional()
   }),
-  // 1.2.0 (D22)
+  // 1.2.1 (D22)
   RefillCard: s({
     bind: z.literal("prescriptions:current"), title: label.optional(), owner: label.optional(), day: label.optional(),
     show_superseded: z.boolean().optional(), show_schedule: z.boolean().optional(), show_source: z.boolean().optional()

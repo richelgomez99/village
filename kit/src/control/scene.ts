@@ -1,6 +1,6 @@
 // Control Room scene reducer (T020). Pure: (scene, server frame) → scene. Every region reads from this.
 // Inputs are contract frames (ws_messages.schema.json control{kind}, event, snapshot). Two kit-tolerated kinds that
-// are NOT in contract 1.2.0 yet (LANE-REPORT LD-9): control{kind:"caption", payload:{es,en,speaker?,final?}} and
+// are NOT in contract 1.2.1 yet (LANE-REPORT LD-9): control{kind:"caption", payload:{es,en,speaker?,final?}} and
 // control{kind:"ledger", payload:{id,status,what,result?,role?,attempt?}}. Unknown kinds are ignored.
 import type { ServerFrame } from "../live/messages";
 
