@@ -111,6 +111,23 @@
   </div>
 </section>
 
+
+<!-- advantages -->
+<section class="one">
+  <div style="display:grid; grid-template-columns: 40fr 60fr; gap:3vw; align-items:center;">
+    <div>
+      <p class="eyebrow">Why this did not exist</p>
+      <h2>Not an app. Software that is different for each person, and rewrites itself.</h2>
+      <p class="muted">Three things had to be true at once.</p>
+    </div>
+    <div class="nums" style="grid-template-columns:1fr;">
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">Generated per person, from a catalog</strong><span>The model composes each app from fixed, validated parts. Carmen gets three buttons; Ana gets a dashboard; Marco gets one question. Unknown parts render nothing.</span></div>
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">An agent with labelled autonomy</strong><span>Every decision says whether Village did it on its own, asked a person, or refused itself. Code, not prompts, draws the lines.</span></div>
+      <div class="num"><strong style="font-size:clamp(26px,2.6vw,44px)">A release pipeline for software an AI wrote</strong><span>Sandbox build, generated floor tests, a real phone-size browser, evals, then a blue/green switch. Twelve seconds, with a receipt.</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- 4 -->
 <section>
   <div>
@@ -207,12 +224,12 @@
   </div>
   <div>
     <table class="tools">
-      <tr><td>Daytona</td><td>Every version built and tested in a sandbox from snapshot <code>village-kit</code>; floor tests generated per village; egress blocked.</td></tr>
-      <tr><td>Anchor</td><td>A real browser at 390×844 clicks through each build; the recording sits on the receipt.</td></tr>
-      <tr><td>Arize</td><td>Every step a span, every gate a guardrail span; the scam set as an experiment; the Builder prompt versioned on Prompt Hub.</td></tr>
-      <tr><td>SurrealDB</td><td>Live fan-out to every phone; Agent Memory facts with history and sources.</td></tr>
-      <tr><td>ElevenLabs</td><td>Carmen's whole product: a Spanish phone line whose tools call the gate mid-call.</td></tr>
-      <tr><td>AWS</td><td>Claude on Bedrock behind one <code>llm()</code> factory; it carried the morning.</td></tr>
+      <tr><td>Daytona</td><td>Every version built in a sandbox from snapshot <code>village-kit</code> (cold 1.0 s, warm reuse by label); floor tests generated per village (58 for the family, 33 for the block); egress blocked; the one failed build caught and rebuilt in the same sandbox.</td></tr>
+      <tr><td>Anchor</td><td>A real browser at 390×844 clicks through every build before release; the MP4 recording sits on the receipt; a build Anchor has not passed never reaches a phone.</td></tr>
+      <tr><td>Arize</td><td>Every step a span, every gate a GUARDRAIL span, every release eval an EVALUATOR span; the scam set as an experiment (30/30, 0/20); the Builder prompt on Prompt Hub with <code>production</code> on v2; Ana's yes written as a <code>human_approval</code> annotation.</td></tr>
+      <tr><td>SurrealDB</td><td>LIVE SELECT fans every change to every phone in about 130 ms; Agent Memory facts supersede instead of overwrite and carry their source, so "as of Oct 2" still answers 5 mg.</td></tr>
+      <tr><td>ElevenLabs</td><td>Carmen's whole product: a real Spanish number; mid-call tools call the gate and speak its sentences word for word; the receptionist Village built at 13:00 screened a live unknown caller at 13:28.</td></tr>
+      <tr><td>AWS</td><td>Claude on Bedrock behind one <code>llm()</code> factory as the always-on fallback; it ran every role for the first hours and the scam evals.</td></tr>
     </table>
   </div>
 </section>
@@ -228,14 +245,14 @@
 </section>
 
 </div>
-<div class="foot"><span id="pos"></span><span class="dots" id="dots"></span><span>← → · F fullscreen</span></div>
+<div class="foot"><span id="pos"></span><span class="dots" id="dots"></span><span>← → · 1–9, 0 jump · F fullscreen</span></div>
 <script>
   const slides=[...document.querySelectorAll('section')];
   const dots=document.getElementById('dots'); slides.forEach(()=>dots.appendChild(document.createElement('i')));
   let i=Math.max(0, Math.min(slides.length-1, parseInt(location.hash.slice(1)||'0',10)||0));
   function show(n){ slides.forEach((s,k)=>s.classList.toggle('on',k===n)); i=n; location.hash=n;
     document.getElementById('pos').textContent=(n+1)+' / '+slides.length; [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===n)); }
-  addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault(); show(Math.min(i+1,slides.length-1));} else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault(); show(Math.max(i-1,0));} else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); });
+  addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault(); show(Math.min(i+1,slides.length-1));} else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault(); show(Math.max(i-1,0));} else if(e.key==='f'||e.key==='F') document.documentElement.requestFullscreen?.(); else if(/^[0-9]$/.test(e.key)){ const n=e.key==='0'?9:parseInt(e.key,10)-1; if(n<slides.length) show(n); } else if(e.key==='-'||e.key==='=') { show(slides.length-1); } });
   document.querySelector('.deck').addEventListener('click',e=>{ if(e.target.closest('a')) return; if(e.clientX>innerWidth/2) show(Math.min(i+1,slides.length-1)); else show(Math.max(i-1,0)); });
   addEventListener('hashchange',()=>{ const n=parseInt(location.hash.slice(1)||'0',10)||0; if(n!==i && n>=0 && n<slides.length) show(n); });
   show(i);
