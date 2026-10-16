@@ -331,3 +331,6 @@ a.contact[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 .fact-asof button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
 .fact-quote { display: block; margin-top: 4px; font-style: italic; color: var(--ink2); }
 .fact-by { margin-left: 6px; font-size: 12px; }
+.chat-demo { padding: 0 6px; border-radius: 6px; background: var(--gray-soft); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--ink2); }
+.chat-ask { display: flex; gap: 8px; }
+.chat-ask-status { font-style: italic; }

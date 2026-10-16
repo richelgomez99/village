@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CatalogProps } from "../renderer/catalog";
 import { useCtx } from "../renderer/context";
 import { text } from "../renderer/view";
@@ -69,6 +69,7 @@ export function clip(t: string, max = 140): string {
 export interface ChatRow {
   id: string; kind: string; author: string; text: string; text_i18n?: Record<string, string>;
   refs?: { kind: string; id: string; label?: string }[]; source?: { kind: string; ref?: string }; source_label?: unknown; at?: string; mention?: string | null;
+  reply_to?: string | null; answer?: string; ask_status?: string; demo?: boolean;
   /** optimistic local row (not yet confirmed by Core) */
   pending?: boolean;
 }
@@ -84,6 +85,38 @@ export function chipLabel(ref: { kind: string; label?: string }): string {
   if (l && !ID_RE.test(l)) return l;
   return REF_WORDS[ref.kind] ?? "source";
 }
+
+function isDemoRef(r: { kind: string; id: string; label?: string }): boolean {
+  return /^demo$/i.test(r.label ?? "") || r.id === "demo";
+}
+/** Demo-actor posts ("[demo] …" or a demo flag in refs) carry a small "demo" tag. */
+export function demoOf(m: ChatRow): { demo: boolean; text: string } {
+  const t = m.text_i18n?.en ?? m.text;
+  const tagged = /^\s*\[demo\]\s*/i.test(m.text) || !!m.demo || (m.refs ?? []).some(isDemoRef);
+  return { demo: tagged, text: t };
+}
+const stripDemo = (t: string) => t.replace(/^\s*\[demo\]\s*/i, "");
+
+/** D39: a Village nudge addressed to a member (refs {kind: member}) is an ask with Yes · Can't on that member's phone. */
+export function askOf(m: ChatRow): { addressee: string; askId: string } | null {
+  if (m.kind !== "nudge" || (m.author !== "village" && m.author !== "system")) return null;
+  const who = m.refs?.find((r) => r.kind === "member")?.id;
+  if (!who) return null;
+  const askRef = m.refs?.find((r) => /^ask_/.test(r.id));
+  return { addressee: who, askId: askRef?.id ?? m.id };
+}
+
+/** The ask's answer: the message's own answer/ask_status, else a later reply from the addressee. */
+function askAnswer(m: ChatRow, addressee: string, rows: ChatRow[]): "yes" | "no" | null {
+  const own = (m.answer ?? m.ask_status ?? "").toLowerCase();
+  if (["yes", "accepted", "can_do", "yes_can"].includes(own)) return "yes";
+  if (["no", "declined", "cant", "can't"].includes(own)) return "no";
+  const reply = rows.find((r) => r.reply_to === m.id && r.author === addressee);
+  if (!reply) return null;
+  return /^(no|can'?t|cannot)/i.test(reply.text.trim()) ? "no" : "yes";
+}
+
+const UNDO_RE = /\s*Undo within 10 ?s\.?/i;
 
 /** Relayed from a call: a Village post whose source is a phone call and that carries the caller's Spanish words. */
 function isRelayed(m: ChatRow): boolean {
@@ -102,7 +135,9 @@ const RAW = /[A-Za-z][:_][A-Za-z0-9]/;
 const CALL_KINDS = new Set(["call", "phone_line", "voice"]);
 function Chips({ m }: { m: ChatRow }) {
   const ctx = useCtx();
-  const refs = (m.refs ?? []).filter((r) => !(m.kind === "proposal" && r.kind === "proposal"));
+  const names = new Set(Object.entries(ctx.data).filter(([k]) => k.startsWith("member:")).flatMap(([, v]) => { const n = (v as { name?: string } | null)?.name; return n ? [n, n.split(" ")[0]] : []; }));
+  // D39: no evidence chips that are just a name; no demo flags as chips (they get their own tag)
+  const refs = (m.refs ?? []).filter((r) => !(m.kind === "proposal" && r.kind === "proposal") && r.kind !== "member" && !names.has((r.label ?? "").trim()) && !isDemoRef(r));
   const srcLabel = m.source_label ? text(m.source_label, ctx.lang) : m.author === "village" && m.source && CALL_KINDS.has(m.source.kind) ? "from her check-in call" : "";
   if (!refs.length && !srcLabel) return null;
   return (
@@ -117,12 +152,25 @@ function Chips({ m }: { m: ChatRow }) {
 
 /** One chat row, rendered by kind (D16): member · Village (sage, third person, source chips) · relayed (amber, Spanish + English)
  *  · proposal (title + one sentence + Approve · Not now for leaders) · receipt · nudge · answer (citation chips in words). */
-export function ChatMessage({ m, elementId, allowApprove, compact = false }: { m: ChatRow; elementId: string; allowApprove: boolean; compact?: boolean }) {
+export function ChatMessage({ m, elementId, allowApprove, compact = false, rows = [] }: { m: ChatRow; elementId: string; allowApprove: boolean; compact?: boolean; rows?: ChatRow[] }) {
   const ctx = useCtx();
+  const [localAnswer, setLocalAnswer] = useState<"yes" | "no" | null>(null);
+  const ask = askOf(m);
+  const demo = demoOf(m).demo;
+  // a receipt's "Undo within 10 s" expires to "Kept." (re-render once at the deadline)
+  const undoAge = m.at ? ctx.nowMs() - Date.parse(m.at) : Infinity;
+  const hasUndo = m.kind === "receipt" && UNDO_RE.test(m.text_i18n?.[ctx.lang] ?? m.text);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!hasUndo || undoAge >= 10_000) return;
+    const t = setTimeout(() => tick((x) => x + 1), 10_000 - undoAge + 50);
+    return () => clearTimeout(t);
+  }, [hasUndo, undoAge]);
   const pendingData = ctx.data["proposals:pending"];
   const pending = Array.isArray(pendingData) ? new Map((pendingData as { proposal_id: string; status: string; title?: unknown }[]).map((p) => [p.proposal_id, p])) : null;
   const village = m.author === "village" || m.author === "system";
-  const body = m.text_i18n?.[ctx.lang] ?? m.text;
+  let body = stripDemo(m.text_i18n?.[ctx.lang] ?? m.text);
+  if (hasUndo) body = undoAge >= 60_000 ? body.replace(UNDO_RE, "") : undoAge >= 10_000 ? body.replace(UNDO_RE, " Kept.") : body;
   const relayed = isRelayed(m);
   const kind = relayed ? "relayed" : m.kind;
   const pid = m.kind === "proposal" ? m.refs?.find((r) => r.kind === "proposal")?.id : undefined;
@@ -139,6 +187,7 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false }: { m
         <strong data-test="chat-author">{authorName(m.author, ctx.data)}</strong>
         {m.at ? <time className="chat-time">{msgTime(m.at)}</time> : null}
         {m.pending ? <span className="chat-time"> · sending</span> : null}
+        {demo ? <span className="chat-demo" data-test="chat-demo">demo</span> : null}
       </span>
       <span className="chat-bubble">
         {kind === "relayed" ? (
@@ -157,6 +206,20 @@ export function ChatMessage({ m, elementId, allowApprove, compact = false }: { m
           <span className="chat-text">{body}</span>
         )}
         {!compact ? <Chips m={m} /> : null}
+        {ask ? (() => {
+          const ans = localAnswer ?? askAnswer(m, ask.addressee, rows);
+          const name = memberName(ask.addressee, ctx.data);
+          if (ctx.memberId === ask.addressee && !ans && !compact) {
+            const answer = (a: "yes" | "no") => { setLocalAnswer(a); ctx.send({ name: "answer_ask", arg: ask.askId, payload: { ask_id: ask.askId, answer: a }, element_id: elementId }); };
+            return (
+              <span className="row chat-ask" data-test="chat-ask">
+                <button type="button" className="btn btn-primary" data-test="ask-yes" disabled={ctx.disabled} onClick={() => answer("yes")}>Yes</button>
+                <button type="button" className="btn btn-soft" data-test="ask-no" disabled={ctx.disabled} onClick={() => answer("no")}>Can't</button>
+              </span>
+            );
+          }
+          return <span className="chat-ask-status small muted" data-test="ask-status">{ans ? `${ctx.memberId === ask.addressee ? "You" : name}: ${ans === "yes" ? "can do" : "can't"}` : `waiting for ${name}…`}</span>;
+        })() : null}
         {allowApprove && pid && open && !compact ? (
           <span className="row" data-test="chat-proposal-actions">
             <button type="button" className="btn btn-primary" data-test="chat-proposal-approve" disabled={ctx.disabled || prop?.status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: elementId })}>{k("approve", ctx.lang)}</button>
@@ -228,7 +291,7 @@ export function VillageChat({ id, props }: CatalogProps) {
   return (
     <Card test="village-chat" title={props.title ? <Bi value={props.title} /> : undefined} extra={{ "data-full": ctx.chatFull ? "true" : undefined }}>
       <ol className="chat">
-        {shown.map((m) => <ChatMessage key={m.id} m={m} elementId={id} allowApprove={!!props.allow_approve} />)}
+        {shown.map((m) => <ChatMessage key={m.id} m={m} elementId={id} allowApprove={!!props.allow_approve} rows={shown} />)}
       </ol>
       {shown.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
       {props.composer ? (
@@ -251,7 +314,7 @@ export function ChatPreview({ chatId, onOpen }: { chatId: string; onOpen: () => 
   return (
     <Card test="chat-preview" title={el?.props.title ? <Bi value={el.props.title} /> : "Chat"}>
       <ol className="chat chat-compact">
-        {byTime(rows).slice(-2).map((m) => <ChatMessage key={m.id} m={m} elementId={chatId} allowApprove={false} compact />)}
+        {byTime(rows).slice(-2).map((m) => <ChatMessage key={m.id} m={m} elementId={chatId} allowApprove={false} compact rows={rows} />)}
       </ol>
       {rows.length === 0 ? <p className="muted">{k("nothing_yet", ctx.lang)}</p> : null}
       <button type="button" className="btn btn-link" data-test="chat-open" onClick={onOpen}>Open chat</button>

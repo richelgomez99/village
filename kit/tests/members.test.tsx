@@ -250,3 +250,35 @@ describe("block apps through the fake (same renderer, another village)", () => {
     expect([...d.container.querySelectorAll("[data-test='nav-tab']")].map((b) => b.textContent)).toEqual(["Home", "Chat"]);
   });
 });
+
+describe("D39 chat: Village as a participant", () => {
+  const ask = { id: "msg_ask1", village: "v_reyes", author: "village", kind: "nudge", text: "Lucía, can you cover Saturday for Marco?", refs: [{ kind: "member", id: "m_lucia", label: "Lucía" }, { kind: "event", id: "ask_sat_1", label: "Marco asked" }], source: { kind: "system", ref: "watcher" }, at: "2026-10-16T13:50:00-04:00" };
+  const names = { "member:m_lucia": { name: "Lucía" }, "member:m_marco": { name: "Marco" } };
+  it("the addressee gets Yes · Can't → answer_ask; others see the status", () => {
+    const send = vi.fn(() => "r1");
+    const mine = renderView(R.views.helper, { ...names, "chat:village": [ask] }, { memberId: "m_lucia", send });
+    fireEvent.click(mine.container.querySelector("[data-test='ask-yes']")!);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ name: "answer_ask", arg: "ask_sat_1", payload: { ask_id: "ask_sat_1", answer: "yes" } }));
+    mine.unmount();
+    const other = renderView(R.views.coordinator, { ...names, "chat:village": [ask] }, { memberId: "m_ana" });
+    expect(other.container.querySelector("[data-test='ask-yes']")).toBeNull();
+    expect(other.container.querySelector("[data-test='village-chat'] [data-test='ask-status']")?.textContent).toBe("waiting for Lucía…");
+    other.unmount();
+    const reply = { id: "msg_r", village: "v_reyes", author: "m_lucia", kind: "chat", text: "Yes, I can", reply_to: "msg_ask1", refs: [], source: { kind: "app", ref: "m_lucia" }, at: "2026-10-16T13:51:00-04:00" };
+    const after = renderView(R.views.coordinator, { ...names, "chat:village": [ask, reply] }, { memberId: "m_ana" });
+    expect(after.container.querySelector("[data-test='village-chat'] [data-test='ask-status']")?.textContent).toBe("Lucía: can do");
+    // no chip that is just a name
+    expect([...after.container.querySelectorAll("[data-test='village-chat'] [data-test='chat-chip']")].map((c) => c.textContent)).not.toContain("Lucía");
+  });
+  it("receipt undo expires to Kept; demo posts get a tag", () => {
+    const now = Date.parse("2026-10-16T14:00:30-04:00");
+    const rc = { id: "msg_rc", village: "v_reyes", author: "village", kind: "receipt", text: "Done. Saturday: Lucía covers. Undo within 10 s.", refs: [{ kind: "release", id: "rel_1", label: "receipt" }], source: { kind: "system", ref: "builder" }, at: "2026-10-16T14:00:00-04:00" };
+    const dm = { id: "msg_dm", village: "v_reyes", author: "m_marco", kind: "chat", text: "[demo] Can someone take Saturday?", refs: [], source: { kind: "app", ref: "m_marco" }, at: "2026-10-16T13:49:00-04:00" };
+    const { container } = renderView(R.views.coordinator, { "chat:village": [dm, rc] }, { memberId: "m_ana", nowMs: () => now });
+    const chat = container.querySelector("[data-test='village-chat']")!;
+    expect(chat.querySelector("[data-test='chat-receipt']")?.textContent).toContain("Kept.");
+    expect(chat.textContent).not.toContain("Undo within");
+    expect(chat.querySelector("[data-test='chat-demo']")).not.toBeNull();
+    expect(chat.textContent).not.toContain("[demo]");
+  });
+});
