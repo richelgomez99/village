@@ -9,14 +9,14 @@ def test_health_reports_llm_off() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["contract_version"] == "1.1.0"
+    assert body["contract_version"] == "1.2.0"
     assert body["deps"]["llm"] == "off"
 
 
 def test_log_dose_writes_decision_and_event_frame() -> None:
     with TestClient(app) as client:
         with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as ws:
-            ws.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_id": "m_carmen"})
+            ws.send_json({"type": "hello", "contract_version": "1.2.0", "village": "v_reyes", "member_id": "m_carmen"})
             assert ws.receive_json()["type"] == "snapshot"
             response = client.post(
                 "/tools/log_dose",
@@ -66,7 +66,7 @@ def test_http_action_log_dose_uses_shared_handler() -> None:
 def test_ws_action_log_dose_returns_result() -> None:
     with TestClient(app) as client:
         with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as ws:
-            ws.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_id": "m_carmen"})
+            ws.send_json({"type": "hello", "contract_version": "1.2.0", "village": "v_reyes", "member_id": "m_carmen"})
             assert ws.receive_json()["type"] == "snapshot"
             ws.send_json({"type": "action", "name": "log_dose", "req_id": "req_ws_action", "body": {"slot": "evening"}})
             frames = [ws.receive_json(), ws.receive_json()]

@@ -6,6 +6,7 @@ from typing import Any
 from core.gate.models import GateInput, append_rule, copy_payload, member_name
 from core.gate.rules.common import coordinator_notify, finish, local_hm, on_duty_name, parse_dt
 from core.gate.rules.money import decide_money
+from core.gate.sm_dose_window import step_dose_window
 
 EMERGENCY_WORDS = (
     "chest hurts",
@@ -72,6 +73,11 @@ def decide_safety(inp: GateInput) -> dict[str, Any]:
     if kind == "spec_patch":
         return finish(inp, "R-SPEC", "require_approval", rules=["P-CO-01"])
 
+    if kind == "tick" and payload.get("reason") == "dose_window":
+        tick_decision = _dose_window_tick(inp)
+        if tick_decision is not None:
+            return tick_decision
+
     if kind in {"dose", "dose_question"}:
         double = _double_dose_window(inp)
         if double and (kind == "dose" or payload.get("intent") in {"take_another", "double_already_taken"}):
@@ -102,6 +108,20 @@ def decide_safety(inp: GateInput) -> dict[str, Any]:
                 }
                 out["writes"] = [{"kind": _repeat_kind(kind, payload), "payload": _repeat_payload(inp, payload, double)}]
                 out["flags"] = ["possible_double_dose", "attempted_duplicate"]
+                if double.get("confidence") == "uncertain":
+                    out["writes"].append(
+                        {
+                            "kind": "escalation",
+                            "payload": {
+                                "to": state["rota_today"]["on_duty"],
+                                "channel": "both",
+                                "reason": "dose_uncertain",
+                                "rule_id": "R-DOUBLE",
+                                "level": 1,
+                                "status": "placed",
+                            },
+                        }
+                    )
             return out
 
         if kind == "dose_question" and payload.get("intent") in {"change_dose", "skip"}:
@@ -131,6 +151,39 @@ def decide_safety(inp: GateInput) -> dict[str, Any]:
         return out
 
     return finish(inp, "R-NOOP", "allow")
+
+
+def _dose_window_tick(inp: GateInput) -> dict[str, Any] | None:
+    now = inp.event["at"]
+    for window in inp.village_state.get("dose_windows", []):
+        sm_window = {
+            **window,
+            "on_duty": window.get("on_duty") or inp.village_state.get("rota_today", {}).get("on_duty"),
+            "backup": window.get("backup") or inp.village_state.get("rota_today", {}).get("backup"),
+            "quiet_hours": window.get("quiet_hours") or inp.village_state.get("quiet_hours"),
+        }
+        _, actions = step_dose_window(sm_window, inp.event, now)
+        if not actions:
+            continue
+        action = actions[0]
+        draft = action.get("event")
+        if not draft:
+            continue
+        if draft["kind"] == "reminder":
+            out = finish(inp, "R-MISSED", "remind", rules=["P-ME-01"])
+            out["writes"] = [draft]
+            return out
+        if draft["kind"] == "escalation":
+            member_id = draft["payload"]["to"]
+            out = finish(inp, "R-MISSED", "escalate_family", "family_notified", {"on_duty_name": member_name(inp.village_state, member_id)}, ["P-ME-02"])
+            out["escalate"] = {
+                "member_id": member_id,
+                "channel": draft["payload"]["channel"],
+                "level": draft["payload"]["level"],
+            }
+            out["writes"] = [draft]
+            return out
+    return None
 
 
 def _has_emergency(kind: str, payload: dict[str, Any], text: str) -> bool:
@@ -171,7 +224,7 @@ def _double_dose_window(inp: GateInput) -> dict[str, Any] | None:
 
 
 def _repeat_kind(kind: str, payload: dict[str, Any]) -> str:
-    return "dose_repeat_scan" if payload.get("via") == "lid_qr" or kind == "dose" else "dose_repeat"
+    return "dose_repeat_scan" if payload.get("via") == "lid_qr" else "dose_repeat"
 
 
 def _repeat_payload(inp: GateInput, payload: dict[str, Any], window: dict[str, Any]) -> dict[str, Any]:

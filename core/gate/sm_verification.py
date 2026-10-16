@@ -40,7 +40,24 @@ def step_verification(verification: dict[str, Any], event: dict[str, Any], now: 
         return next_v, answer_emits
 
     if ev["type"] == "await_returned":
-        if current["state"] == "pending" and _seconds_since_created(current, now_s) >= 30:
+        if current["state"] == "pending" and parse_dt(now_s) >= parse_dt(current["deadline"]):
+            _transition(current, "timed_out", now_s, "deadline")
+            current["resolved_at"] = now_s
+            current["spoken_say_key"] = "money_timeout"
+            current["incident_id"] = current.get("incident_id") or f"inc_{current['id']}"
+            emits.append(
+                {
+                    "kind": "verification_timeout",
+                    "payload": {
+                        "verification_id": current["id"],
+                        "claimed_member_id": current["claimed_member_id"],
+                        "reason": "deadline",
+                        "state": "timed_out",
+                    },
+                }
+            )
+            emits.append(_incident(current, "unverified_money_request", "warn"))
+        elif current["state"] == "pending" and _seconds_since_created(current, now_s) >= 30:
             _transition(current, "default_spoken", now_s, "await_returned")
             current["await_returned_at"] = now_s
             current["spoken_say_key"] = "money_timeout"

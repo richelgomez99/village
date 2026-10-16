@@ -128,6 +128,8 @@ def spec_invariants(label: str, spec: dict) -> None:
             for eid, e in els.items():
                 if e["props"].get("show_med_names"):
                     errors.append(f"{label}: elder view {role} {eid} shows med names")
+                if e["type"] == "RefillCard":  # 1.2.0 invariant 9: med names never on the elder view
+                    errors.append(f"{label}: elder view {role} has a RefillCard ({eid})")
     for la in bp["life_areas"]:
         for n in la["need_ids"]:
             if n not in need_ids:

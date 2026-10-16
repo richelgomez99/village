@@ -154,10 +154,10 @@ export function withRefill(view: View, role: string): View {
 export function fakeSnapshot(client: FakeClient, rev = 4) {
   const meta = FAKE_CLIENTS[client];
   if (client === "control") {
-    return { type: "snapshot", contract_version: "1.1.0", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: {}, now: SNAPSHOT_NOW };
+    return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: "control", member_id: null, spec: reyesSpec, data: {}, now: SNAPSHOT_NOW };
   }
   const view = d22Overlay((reyesSpec as any).views[meta.role] as View, meta.role);
-  return { type: "snapshot", contract_version: "1.1.0", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW };
+  return { type: "snapshot", contract_version: "1.2.0", rev, village: "v_reyes", role: meta.role, member_id: meta.member_id, spec: view, data: baseData(client), now: SNAPSHOT_NOW };
 }
 
 export interface SeqFrame { t: string; client: string; dir: "s2c" | "c2s"; msg: any }

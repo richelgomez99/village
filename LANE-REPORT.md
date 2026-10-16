@@ -1,6 +1,19 @@
 READY FOR MERGE V1
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
+## contracts
+READY FOR MERGE 1.2.0
+C001 · done · `uv run --with jsonschema --with pyyaml --with openapi-spec-validator python contracts/validate.py` · `OK contract 1.2.0: 13 schemas, 30 examples, 7 fixtures, openapi 3.1.0 with 33 paths`
+
+Core/kit follow-up required:
+- core must serve `prescriptions:current` data for helper/coordinator `RefillCard` bindings.
+- core must accept `hello.view_as` only for coordinator/control tokens and keep view-as sockets read-only.
+- core must send optional `snapshot.identity {member_id, name, role, village_name}`.
+- core must read the contract version from `contracts/VERSION` instead of hardcoding `1.1.0` in `core/tests/test_spine.py`.
+- kit must render the contract catalog types `RefillCard` and `TonightCard` from `village_spec.schema.json`.
+
+LD-1: Contracts 1.2.0 is additive: D22 changes are expressed as catalog/binding additions plus Reyes rev 5 fixture changes; no existing schema field or fixture id was renamed.
+
 ## gate
 READY FOR MERGE V0
 G001 · done · uv run pytest core/gate -k roundtrip -q · mocked none
@@ -112,3 +125,12 @@ LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated
 T001 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · tool registry contains extract_blueprint/render_app/patch_app/cite_answer/classify_intent; fixed-shape schemas require `additionalProperties:false`
 T003 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · mapping covers care/block roles, builder→contract profile enums, D22 channels with no `lid_qr`, fridge-card-only printables, and idempotent non-elder `VillageChat`
 T004 · done · `VILLAGE_LLM=off uv run pytest core/builder -q` · template fallback loads full care/block fixtures, applies D22 normalization, and remaps village/member ids across structured references
+## gate
+READY FOR MERGE V1
+G008 · done · deadline-during-await closes TIMED_OUT; consent-revoked dial is no-op; T32/T33 and ignored terminal answer covered.
+G009 · done · tick{dose_window} returns reminder/escalation decisions with event_draft-valid writes; T04 uncertain prior dose escalates with dose_uncertain.
+G010 · done · say_vars is always present; deciding R-id remains rules_fired[0] (T28 asserts R-DOUBLE).
+Audit · T01-T51 have gate test status; deferred to later lanes: T21-T26 rumor/resource matching source-verification cases.
+Verify · uv run pytest core/gate -q · 110 passed offline.
+LD-2: Scheduler-facing dose ticks use R-MISSED as the gate rule and policy IDs P-ME-01/P-ME-02 for reminder/escalation attribution.
+LD-3: T21-T26 are tracked but deferred because rumor verification/resource matching are not in G008-G010 and require non-gate source/matching services.
