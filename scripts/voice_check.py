@@ -162,6 +162,16 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
                 r = http.post(f"{tunnel}/hooks/elevenlabs/tools/{name}", headers=headers, json=params)
                 core_responses[name] = r.json() if r.status_code < 400 else {"error": r.status_code, "body": r.text[:200]}
         second = _run_sim(c, agent_id, {k: v for k, v in core_responses.items() if "say" in v})
+        timeout_resp = None
+        if "await_verification" in core_responses and "say" in core_responses["await_verification"]:
+            from core.gate.say import say as gate_say
+
+            line = gate_say("money_timeout", claimed_name="Marco", coordinator_name="Ana")
+            timeout_resp = {**core_responses["await_verification"], "say": line["es"], "say_key": "money_timeout",
+                            "data": {**core_responses["await_verification"].get("data", {}), "status": "timeout", "say_es": line["es"], "say_en": line["en"]}}
+            third = _run_sim(c, agent_id, {**{k: v for k, v in core_responses.items() if "say" in v}, "await_verification": timeout_resp})
+        else:
+            third = []
     finally:
         if not keep:
             c.delete(f"/convai/agents/{agent_id}")
@@ -174,6 +184,15 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
 
     norm = lambda x: "".join(_re.sub(r"\[[^\]]*\]", "", str(x)).split())  # TTS transcripts split words and add [tags]
     verbatim = {k: bool(v) and norm(v) in norm(spoken) for k, v in says.items()}
+    def guardrails(turns: list[dict[str, Any]]) -> list[str]:
+        hits = []
+        for t in turns:
+            blob = json.dumps(t, ensure_ascii=False)
+            if "guardrail" in blob.lower():
+                hits.append(blob[:300])
+        return hits
+
+    timeout_spoken = bool(timeout_resp) and norm(timeout_resp["say"]) in norm(" ".join(t.get("message") or "" for t in third if t.get("role") == "agent"))
     decisions = httpx.get(f"{core}/villages/v_reyes/decisions", params={"limit": 50}, timeout=5).json().get("decisions", [])
     return {
         "pass1_tool_calls": [{"tool": n, "params": p} for n, p in calls],
@@ -182,8 +201,10 @@ def simulate(tunnel: str, core: str, keep: bool = False) -> dict[str, Any]:
         "pass2_tool_calls": [n for n, _ in _calls(second)],
         "pass2_agent_lines": agent_lines,
         "verbatim_spoken": verbatim,
+        "timeout_line_spoken_verbatim": timeout_spoken,
+        "guardrail_events": guardrails(second) + guardrails(third),
         "core_decisions": [{k: d.get(k) for k in ("rule_id", "decision", "say_key", "kind", "tool") if k in d} for d in decisions][-6:],
-        "ok": "report_money_request" in core_responses and "say" in core_responses.get("report_money_request", {}) and all(verbatim.values()) and bool(verbatim),
+        "ok": "report_money_request" in core_responses and "say" in core_responses.get("report_money_request", {}) and all(verbatim.values()) and bool(verbatim) and timeout_spoken and not (guardrails(second) + guardrails(third)),
     }
 
 

@@ -101,8 +101,13 @@ async def test_screen_caller_fallback_never_puts_unknown_through() -> None:
 
 
 def test_init_hook_receptionist_override(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
     body = client.post("/hooks/elevenlabs/init", json={"caller_id": "+19998887777"}).json()
-    assert body["dynamic_variables"]["receptionist"] == "off" and "conversation_config_override" not in body
+    assert body["dynamic_variables"]["receptionist"] == "off"
+    assert body["conversation_config_override"]["agent"]["first_message"].startswith("Hola, soy Luz, la línea de la familia Reyes. Soy un programa")
+    import deploy_elevenlabs as dep  # noqa: F401  (path added below)
+    missing = set(dep.referenced_vars(dep.AGENTS_DIR / "agent_configs" / "mom-line.json")) - set(body["dynamic_variables"])
+    assert not missing, missing
     monkeypatch.setenv("VILLAGE_RECEPTIONIST", "on")
     body = client.post("/hooks/elevenlabs/init", json={"caller_id": "+19998887777"}).json()
     assert body["conversation_config_override"]["agent"]["first_message"] == "Carmen's phone, this is Village. Who's calling?"

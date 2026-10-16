@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -19,7 +21,16 @@ INIT_VAR_KEYS = (
     "receptionist",
     "caller_known",
     "greeting",
+    "village_name",
 )
+
+
+def village_name_spoken(village_id: str) -> str:
+    """'Familia Reyes' -> 'la familia Reyes' (first message: "la línea de {{village_name}}")."""
+    name = str(village.village_name(village_id) or "").strip()
+    if not name:
+        return "la familia"
+    return f"la {name[0].lower()}{name[1:]}" if name.lower().startswith("familia") else name
 
 
 def greeting(village_id: str, values: dict[str, str]) -> str:
@@ -54,6 +65,24 @@ def receptionist_mode(village_id: str | None = None) -> str:
     return "off"
 
 VOICE_CALLS: list[dict[str, Any]] = []
+AGENT_CONFIG = Path(__file__).resolve().parents[2] / "agents" / "agent_configs" / "mom-line.json"
+
+
+def agent_defaults() -> dict[str, str]:
+    """Every dynamic variable the mom-line agent references, with its default (agents/agent_configs/mom-line.json).
+    ElevenLabs does NOT fill placeholders for variables missing from a webhook response (simulate proved it:
+    "Missing required dynamic variables in first message"), so the init hook always returns the full set."""
+    try:
+        config = json.loads(AGENT_CONFIG.read_text())
+        return {k: str(v) for k, v in config["conversation_config"]["agent"]["dynamic_variables"]["dynamic_variable_placeholders"].items()}
+    except Exception:
+        return {}
+
+
+def first_message(values: dict[str, str]) -> str:
+    if values["receptionist"] == "on" and values["caller_known"] == "false":
+        return values["greeting"]
+    return f"Hola, soy Luz, la línea de {values['village_name']}. Soy un programa, no una persona. ¿Cómo está?"
 
 
 def _people(village_id: str | None = None) -> list[dict[str, Any]]:
@@ -138,6 +167,7 @@ def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str
             "until screen_caller says pass_through. Do not share private family details."
         )
     values["greeting"] = greeting(village_id, values)
+    values["village_name"] = village_name_spoken(village_id)
     return {key: values[key] for key in INIT_VAR_KEYS}
 
 
@@ -173,10 +203,13 @@ async def init_hook(
         watch_inbound(payload, variables)
     except Exception:
         pass
-    body: dict[str, Any] = {"type": "conversation_initiation_client_data", "dynamic_variables": variables}
+    body: dict[str, Any] = {"type": "conversation_initiation_client_data", "dynamic_variables": {**agent_defaults(), **variables}}
+    # The agent's static first message ("la línea de la familia") is the fallback if this hook fails; here it names the
+    # village, or (D19, receptionist on + unknown caller) Village answers first in English.
+    agent: dict[str, Any] = {"first_message": first_message(variables)}
     if variables["receptionist"] == "on" and variables["caller_known"] == "false":
-        # D19: Village answers first. The agent's static bilingual first message stays the fallback if this hook fails.
-        body["conversation_config_override"] = {"agent": {"first_message": variables["greeting"], "language": "en"}}
+        agent["language"] = "en"
+    body["conversation_config_override"] = {"agent": agent}
     return body
 
 
