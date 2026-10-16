@@ -66,3 +66,13 @@
 
 ## First live call on the mom line (12:23; operator as Carmen, in English)
 - Core log: `POST /hooks/elevenlabs/init` 200 (from 34.59.11.47) → `POST /tools/report_money_request` 200 → Marco's socket connected (operator's phone) → `POST /tools/await_verification` 200. Transcript: 1 s greeting; 18 s report → "Voy a confirmar con Marco ahora mismo. No mande dinero todavía."; 31 s await returned (Marco tapped "That wasn't me") → "Ese no era Marco. No mande dinero. Ana ya lo sabe."; 99 s `ask_family` → 404 (handler missing; fixed 12:55). Verification `ver_0001` state `denied`. Watcher auto-triggered at 12:23:58: weighed 3 options, proposed the receptionist (`asked_human`). Three prompt-guardrail events fired on Village's own refusal lines (passed; guardrail narrowed, D31). Call duration 109 s.
+
+## Founding intake (builder lane, 12:40; Sonnet 5.5 via Anthropic API, full A0–A12 replay)
+| Step | Time |
+|---|---|
+| Blueprint, first finding | 3.8 s |
+| Blueprint, complete | 11.5 s |
+| Render elder / coordinator / helper | 8.8 s / 9.7 s / 16.8 s (one repair) |
+| DailyMed, 4 medications | 0.22 s |
+| Whole 11-question intake | 65.8 s (~3.4 s per answer; earlier runs 59.4 s, 81.3 s) |
+- Bedrock Haiku 4.5: first finding 1.1 s, blueprint 8.8 s. `--resume 8` through the routes: starts at 8/10, A10, A11, review edit (RefillCard for Lucía), "Draft ready · rev 5". Block village born through the same intake (`w147_intake.jsonl`).
