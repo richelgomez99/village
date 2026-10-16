@@ -37,3 +37,31 @@ def test_dont_know_marks_unknown_gap_never_reasked() -> None:
     assert st.fields["members"]["members"] == UNKNOWN
     assert "Who is in the village" in st.gaps()
     assert next_question(st).topic != "members"
+
+
+def test_model_record_answer_never_overwrites_known_fields() -> None:
+    import asyncio
+
+    from core.builder.conversation import record_answer
+    from core.builder.llm_port import FakeLLM
+
+    st = IntakeState(opener="x")
+    st.fields["availability"]["helper_days"] = {"days": ["Tue", "Thu"]}
+    q = Question("availability", "speaker_days", "And you?", 2)
+    fake = FakeLLM(responses=[{"fields": {"availability": {"helper_days": {"days": ["Mon"]}, "speaker_days": "Monday and Wednesday"}, "money": {"family_word": "secret"}}}])
+    found = asyncio.run(record_answer("Monday, Wednesday, Sunday, after four.", q, st, fake))
+    assert "helper_days" not in found.get("availability", {})
+    assert found["availability"]["speaker_days"]["days"] == ["Mon", "Wed", "Sun"]
+    assert "money" not in found
+
+
+def test_partially_filled_topic_still_gets_its_lead_question() -> None:
+    rows = load_intake()
+    st = IntakeState(opener=rows[0]["text"])
+    merge(st, extract(rows[0]["text"], None, st))
+    st.fields["routine"]["how_taken"] = "weekly organizer"
+    for t in ("members", "availability", "meds"):
+        for f in st.topics[[x["id"] for x in st.topics].index(t)]["required"]:
+            st.fields[t][f] = "x"
+    q = next_question(st)
+    assert q.topic == "routine"

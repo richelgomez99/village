@@ -121,11 +121,15 @@ def helper_name(state: IntakeState) -> str:
 
 
 def next_question(state: IntakeState) -> Question | Review:
+    covered = set(state.covered())
     for t in state.topics:
-        for q in t["questions"]:
+        for i, q in enumerate(t["questions"]):
             key = f"{t['id']}.{q['field']}"
             val = state.fields[t["id"]].get(q["field"])
-            if key in state.asked or val not in (None, "", []):
+            if key in state.asked:
+                continue
+            # a filled field skips its question, unless it is the topic's lead question and the topic is still a gap
+            if val not in (None, "", []) and (t["id"] in covered or i > 0):
                 continue
             if t["id"] == "center" and t["id"] in state.covered():
                 continue
@@ -441,7 +445,7 @@ async def record_answer(answer: str, q: Question | None, state: IntakeState, llm
             if t in state.fields and isinstance(vals, dict):
                 for k, v in vals.items():
                     v = _coerce(t, k, v)
-                    if v is not None:
+                    if v is not None and state.fields[t].get(k) in (None, "", []):  # never overwrite what we know
                         merged.setdefault(t, {}).setdefault(k, v)
         return merged
     except Exception:
