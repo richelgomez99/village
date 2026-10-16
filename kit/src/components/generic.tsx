@@ -45,15 +45,34 @@ export function Checklist({ props }: CatalogProps) {
   );
 }
 
-export function VillageChat({ props }: CatalogProps) {
+interface ChatRow { id: string; kind: string; author: string; text: string; text_i18n?: Record<string, string>; refs?: { kind: string; id: string }[] }
+
+/** VillageChat (D16): the village group chat. Proposal posts carry inline Approve · Not now (approve_proposal /
+ *  reject_proposal, arg = proposal_id) when allow_approve; once proposals:pending is known, only open ones keep the buttons. */
+export function VillageChat({ id, props }: CatalogProps) {
   const ctx = useCtx();
-  const rows = Array.isArray(ctx.data[props.bind]) ? (ctx.data[props.bind] as any[]) : [];
+  const rows = Array.isArray(ctx.data[props.bind]) ? (ctx.data[props.bind] as ChatRow[]) : [];
+  const pendingData = ctx.data["proposals:pending"];
+  const pending = Array.isArray(pendingData) ? new Map((pendingData as { proposal_id: string; status: string }[]).map((p) => [p.proposal_id, p.status])) : null;
   return (
     <Card test="village-chat" title={props.title ? <Bi value={props.title} /> : undefined}>
       <ol className="chat">
-        {rows.slice(-(props.limit ?? 50)).map((m) => (
-          <li key={m.id} data-kind={m.kind} data-author={m.author}><strong>{m.author === "village" ? "Village" : m.author}</strong> {m.text}</li>
-        ))}
+        {rows.slice(-(props.limit ?? 50)).map((m) => {
+          const pid = m.kind === "proposal" ? m.refs?.find((r) => r.kind === "proposal")?.id : undefined;
+          const status = pid && pending ? pending.get(pid) : undefined;
+          const open = !!pid && (pending === null || status !== undefined);
+          return (
+            <li key={m.id} data-kind={m.kind} data-author={m.author}>
+              <strong>{m.author === "village" ? "Village" : m.author}</strong> {m.text_i18n?.[ctx.lang] ?? m.text}
+              {props.allow_approve && pid && open ? (
+                <span className="row" data-test="chat-proposal-actions">
+                  <button type="button" className="btn btn-primary" data-test="chat-proposal-approve" disabled={ctx.disabled || status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: id })}>{k("approve", ctx.lang)}</button>
+                  <button type="button" className="btn btn-soft" data-test="chat-proposal-reject" disabled={ctx.disabled} onClick={() => ctx.send({ name: "reject_proposal", arg: pid, element_id: id })}>{k("not_now", ctx.lang)}</button>
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
       </ol>
     </Card>
   );
