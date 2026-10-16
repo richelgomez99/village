@@ -14,6 +14,7 @@ from typing import Any
 _RUNTIME: set[str] | None = None
 CANNED = {
     "cover_yes": ["Sure, I can take {day}.", "Yes, I've got {day}.", "Okay, {day} is mine.", "I can do {day}, no problem."],
+    "plan_yes": ["Yes, I can {what} on {day}.", "I've got it: {what}, {day}.", "Sure, I'll {what} {day}."],
     "on_duty_no": ["Can't this time, sorry. Work.", "I can't {day}, sorry.", "Not this {day}, something came up.", "Can't make it {day}."],
 }
 
@@ -55,7 +56,7 @@ def on_ask(village_id: str, ask_id: str, member: str, *, role: str) -> None:
 
 
 async def _reply(village_id: str, ask_id: str, member: str, role: str) -> None:
-    from core import services
+    from core import village as villages
     from . import asks
 
     await asyncio.sleep(delay_s())
@@ -63,9 +64,12 @@ async def _reply(village_id: str, ask_id: str, member: str, role: str) -> None:
     ask = asks.ASKS.get(gid)
     if not ask or ask["status"] != "open":
         return
-    key = "cover_yes" if role == "cover" else "on_duty_no"
-    line = random.choice(CANNED[key]).format(day=ask["day"])
+    if role == "plan" or ask.get("type") == "plan":  # answer the actual ask: the what + when that was extracted
+        line = random.choice(CANNED["plan_yes"]).format(day=ask["day"], what=ask.get("what") or "do it")
+    else:
+        key = "cover_yes" if role == "cover" else "on_duty_no"
+        line = random.choice(CANNED[key]).format(day=ask["day"])
     gid = asks.BY_MEMBER_ASK.get(ask_id, (ask_id, member))[0]
-    await asks.post(village_id, author=member, kind="chat", text=f"[demo] {line}", refs=[{"kind": "member", "id": member}, {"kind": "ask", "id": ask_id}],
+    await asks.post(village_id, author=member, kind="chat", text=f"[demo] {line}", refs=[{"kind": "member", "id": member, "label": villages.first_name(village_id, member)}, {"kind": "ask", "id": ask_id, "label": "demo actor"}],
                     source={"kind": "system", "ref": "demo_actor"}, reply_to=(asks.ASKS.get(gid) or {}).get("message_id"))
-    await asks.answer(ask_id, member, "yes" if role == "cover" else "no")
+    await asks.answer(ask_id, member, "yes" if role in ("cover", "plan") else "no")

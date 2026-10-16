@@ -156,7 +156,77 @@ def test_demo_actors_answer_with_the_demo_mark_and_ask_refs() -> None:
             assert {m["author"] for m in demo} == {"m_lucia", "m_marco"}
             for m in demo:
                 assert m["source"] == {"kind": "system", "ref": "demo_actor"}
-                assert {"kind": "member", "id": m["author"]} in m["refs"] and any(r["kind"] == "ask" for r in m["refs"])
+                assert any(r["kind"] == "member" and r["id"] == m["author"] for r in m["refs"]) and any(r["kind"] == "ask" for r in m["refs"])
     finally:
         set_actors([])
         os.environ.pop("DEMO_ACTOR_DELAY_S", None)
+
+
+# ---- CORE-GLUE-7: a need that is not a night cover → open plan item + ask, model off ----
+
+def test_weekday_resolution_relative_to_the_clock() -> None:
+    from datetime import date
+
+    from core.builder.plan_need import extract_rules, resolve_day
+
+    assert resolve_day("friday", None, date(2026, 10, 14)) == ("2026-10-16", "Friday")
+    assert resolve_day("lunes", None, date(2026, 10, 16)) == ("2026-10-19", "Monday")
+    assert resolve_day("Fri", None, date(2026, 10, 16)) == ("2026-10-16", "Friday")
+    assert resolve_day(None, "tomorrow", date(2026, 10, 16)) == ("2026-10-17", "Saturday")
+    n = extract_rules("Hey fam, I need someone to take mom to the doctor's on friday")
+    assert n["what"] == "take mom to the doctor" and n["weekday"] == "friday" and n["needs_on_site"] and not n["is_night_cover"] and n["time"] == ""
+    assert extract_rules("can anyone cover tomorrow night")["is_night_cover"]
+    r = extract_rules("can someone call the pharmacy on Tuesday at 10am")
+    assert not r["needs_on_site"] and r["time"] == "10:00 AM" and not r["is_night_cover"]
+
+
+def test_group_agnostic_classify_model_off() -> None:
+    assert asyncio.run(classify("the library cooling center closed early. We're moving everyone who needs cool air to the Hamilton Grange center on 145th at 3")) == "change"
+    assert asyncio.run(classify("Hey fam, I need someone to take mom to the doctor's on friday")) == "need"
+
+
+def test_doctor_on_friday_is_a_plan_item_and_ask_not_a_cover_and_yes_sets_owner() -> None:
+    os.environ["ASK_TIMEOUT_S"] = "30"
+    from datetime import timedelta
+
+    from core.bindings_v3 import plan
+    from core.builder.actors import set_actors
+    from core.clock import clock
+    from core.db import db
+
+    set_actors([])
+    with _app() as c:
+        n, nevents = len(db.messages), len(db.events)
+        before = len(plan("v_reyes", "needs").get("items", []))
+        _post(c, "Hey fam, I need someone to take mom to the doctor's on friday")
+        msg = _wait(lambda: _ask_msgs(db, n))[0]
+        assert msg["text"].startswith("Friday: Ana needs someone to take ") and "doctor" in msg["text"]
+        assert "night" not in msg["text"] and "Saturday" not in msg["text"] and "cover" not in msg["text"]
+        asked = [r for r in msg["refs"] if r["kind"] == "ask"]
+        assert asked and "m_ana" not in [r["member"] for r in asked] and "m_carmen" not in [r["member"] for r in asked]
+        items = plan("v_reyes", "needs")["items"]
+        assert len(items) == before + 1
+        it = items[-1]
+        today = clock.now().date()
+        friday = (today + timedelta(days=(4 - today.weekday()) % 7)).isoformat()
+        assert it["status"] == "open" and it["owner"] == "" and it["kind"] == "appointment" and it["when"] == friday and it["note"] == "who?"
+        who = asked[0]["member"]
+        r = c.post(f"/villages/v_reyes/asks/{asked[0]['id']}/answer", json={"answer": "yes"}, headers={"Authorization": f"Bearer {who}"}).json()
+        assert r["status"] == "resolved"
+        assert plan("v_reyes", "needs")["items"][-1]["owner"] == who
+        out = _wait(lambda: [m for m in _village_msgs(db, n) if m["text"].startswith("Friday: ") and " takes " in m["text"]])
+        assert out and "doctor" in out[0]["text"]
+        assert not [e for e in db.events[nevents:] if e.get("kind") == "shift"], "the rota is untouched"
+
+
+def test_cover_tomorrow_night_keeps_the_cover_path() -> None:
+    os.environ["ASK_TIMEOUT_S"] = "30"
+    from core.builder.actors import set_actors
+    from core.db import db
+
+    set_actors([])
+    with _app() as c:
+        n = len(db.messages)
+        _post(c, "can anyone cover tomorrow night")
+        msg = _wait(lambda: _ask_msgs(db, n))[0]
+        assert msg["text"].startswith("Tomorrow's Saturday, Marco's night.")
