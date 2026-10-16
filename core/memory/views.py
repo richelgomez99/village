@@ -11,11 +11,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Awaitable, Callable
 
+from core import village as village_reg
 from core.memory import conventions as cv
 from core.memory.client import MemoryClient
 from core.memory.ledger_subscriber import facts_from_event
 
-COORDINATOR = "m_ana"
+# default-village coordinator (header default in memory/routes.py); resolve_view derives it per village
+COORDINATOR = village_reg.coordinator_id(village_reg.default_village_id()) or ""
 
 
 @dataclass
@@ -269,8 +271,9 @@ async def uncertainties_view(deps: MemoryDeps, village: str) -> dict[str, Any]:
     return resp
 
 
-async def resolve_view(deps: MemoryDeps, village: str, uid: str, req: dict[str, Any], by: str = COORDINATOR) -> tuple[int, dict[str, Any]]:
+async def resolve_view(deps: MemoryDeps, village: str, uid: str, req: dict[str, Any], by: str | None = None) -> tuple[int, dict[str, Any]]:
     """Returns (http_status, body). 404 unknown uid; 503 + degraded when memory is down."""
+    by = by or village_reg.coordinator_id(village) or COORDINATOR
     listing = await uncertainties_view(deps, village)
     if listing["degraded"]:
         return 503, {"degraded": True, "degraded_reason": listing.get("degraded_reason", "memory_unreachable")}

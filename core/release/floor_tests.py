@@ -2,7 +2,7 @@
 
 The tests run inside the Daytona sandbox against the bundle (src/village/{spec,theme}.json
 plus the catalog renderer). They import the same `styleFor()` the components use, so a
-token that renders 4.1:1 fails here exactly as it would on Carmen's phone.
+token that renders 4.1:1 fails here exactly as it would on the elder's phone.
 """
 from __future__ import annotations
 

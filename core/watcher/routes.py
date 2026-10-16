@@ -3,7 +3,7 @@
 
   POST /villages/{id}/rounds/run   (X-Admin-Key) -> counts + rows
   GET  /villages/{id}/rounds/latest
-  POST /admin/rounds/run           (X-Admin-Key) -> runs v_reyes (or body.village)
+  POST /admin/rounds/run           (X-Admin-Key) -> runs the demo village (or body.village)
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from typing import Any
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
 
+from core import village as village_reg
 from core.settings import ROOT, get_settings
 from core.watcher import rounds as R
 
@@ -109,13 +110,14 @@ async def latest(village_id: str) -> dict[str, Any]:
 async def admin_run(body: dict[str, Any] | None = Body(default=None), x_admin_key: str = Header(default=""),
                     deps: dict[str, Any] = Depends(get_rounds_deps)) -> dict[str, Any]:
     _check_admin(x_admin_key)
-    village = (body or {}).get("village", "v_reyes")
+    village = (body or {}).get("village") or village_reg.default_village_id()
     at = datetime.fromisoformat(body["at"]) if body and body.get("at") else None
     return await run_and_store(village, deps, at)
 
 
-async def on_reset(village_id: str = "v_reyes") -> dict[str, Any]:
+async def on_reset(village_id: str | None = None) -> dict[str, Any]:
     """Hook for core.fixtures.reset_demo: run tonight's round on the fresh seed."""
+    village_id = village_id or village_reg.default_village_id()
     return await run_and_store(village_id, default_deps())
 
 

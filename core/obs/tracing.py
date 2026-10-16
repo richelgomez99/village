@@ -3,8 +3,8 @@
     from core.obs.tracing import init_tracing, span, traced
 
     init_tracing()                       # arize_otel.register when ARIZE_* keys exist
-    with span("GUARDRAIL", "gate.decide", village_id="v_reyes", node_id="gate", parent_id="voice",
-              user_id="m_carmen", input=req) as s:
+    with span("GUARDRAIL", "gate.decide", village_id=village_id, node_id="gate", parent_id="voice",
+              user_id=member_id, input=req) as s:
         s.set_output(decision)
         s.set_attribute("gate.rule_id", decision["rule_id"])
 

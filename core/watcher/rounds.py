@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Protocol
 from zoneinfo import ZoneInfo
 
+from core import village as village_reg
 from core.settings import ROOT
 
 ET = ZoneInfo("America/New_York")
@@ -307,8 +308,8 @@ async def run_round(village_id: str, clock: Any, services: Services, memory: Any
         events = [e for e in history_events(village_id) if e.get("id") not in known] + events
     members = {m["id"]: m for m in village.get("members", [])}
     name = lambda mid: first(members.get(mid, {}).get("name", mid))  # noqa: E731
-    recipient = village.get("care_recipient_id", "m_carmen")
-    coord = village.get("coordinator_id", "m_ana")
+    recipient = village.get("care_recipient_id") or village_reg.care_recipient_id(village_id)
+    coord = village.get("coordinator_id") or village_reg.coordinator_id(village_id)
     rota = rota_days(village)
     tonight_on = night_owner(today.isoformat(), events, rota)
     r = _Round(village_id, at, budget, ports)

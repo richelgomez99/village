@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
-ROOT = Path(__file__).resolve().parents[2]
-REYES_SPEC = ROOT / "contracts" / "fixtures" / "reyes_spec.json"
+from core import village
 
 INIT_VAR_KEYS = (
     "village_id",
@@ -23,58 +20,73 @@ INIT_VAR_KEYS = (
 VOICE_CALLS: list[dict[str, Any]] = []
 
 
-def _reyes_spec() -> dict[str, Any]:
-    return json.loads(REYES_SPEC.read_text())
-
-
-def _people() -> list[dict[str, Any]]:
-    return _reyes_spec()["blueprint"]["people"]
+def _people(village_id: str | None = None) -> list[dict[str, Any]]:
+    return village.people(village_id)
 
 
 def _first_name(person: dict[str, Any]) -> str:
     return str(person.get("name", "Guest")).split()[0]
 
 
-def _find_by_phone(caller_id: str) -> dict[str, Any] | None:
-    demo_carmen = os.getenv("DEMO_CARMEN_CALLER_ID", "")
-    if demo_carmen and caller_id == demo_carmen:
-        return next(person for person in _people() if person["id"] == "m_carmen")
-    for person in _people():
+def _care_recipient(village_id: str | None = None) -> dict[str, Any] | None:
+    return village.person(village_id, village.care_recipient_id(village_id))
+
+
+def _demo_elder_caller_ids(village_id: str | None = None) -> set[str]:
+    """DEMO_ELDER_CALLER_ID, plus the per-village form DEMO_<RECIPIENT FIRST NAME>_CALLER_ID (derived from the spec)."""
+    ids = {os.getenv("DEMO_ELDER_CALLER_ID", "")}
+    recipient = _care_recipient(village_id)
+    if recipient:
+        ids.add(os.getenv(f"DEMO_{_first_name(recipient).upper()}_CALLER_ID", ""))
+    return {value for value in ids if value}
+
+
+def _find_by_phone(caller_id: str, village_id: str | None = None) -> dict[str, Any] | None:
+    if caller_id in _demo_elder_caller_ids(village_id):
+        return _care_recipient(village_id)
+    for person in _people(village_id):
         if person.get("phone") == caller_id:
             return person
     return None
 
 
-def _care_recipient() -> dict[str, Any]:
-    return next(person for person in _people() if person["id"] == "m_carmen")
-
-
-def dynamic_vars(caller_id: str, village_id: str = "v_reyes") -> dict[str, str]:
+def dynamic_vars(caller_id: str, village_id: str | None = None) -> dict[str, str]:
+    village_id = village_id or village.default_village_id()
     if caller_id == "":
-        person = _care_recipient()
+        person = _care_recipient(village_id)
     else:
-        person = _find_by_phone(caller_id)
+        person = _find_by_phone(caller_id, village_id)
 
+    coordinator = village.first_name(village_id, village.coordinator_id(village_id))
+    on_duty = coordinator  # init vars name the coordinator as the escalation contact (as before)
+    village_lang = village.spec(village_id).get("village", {}).get("lang", "en")
     if person is None:
         values = {
             "village_id": village_id,
             "member_id": "m_unknown",
             "member_short_name": "there",
-            "on_duty_name": "Ana",
-            "coordinator_name": "Ana",
-            "language": "es",
+            "on_duty_name": on_duty,
+            "coordinator_name": coordinator,
+            "language": village_lang,
             "today_summary": "Guest caller. Do not share private family details. Money requests still go through the gate.",
         }
     else:
-        lang = person.get("lang") or person.get("language") or ("es" if person["id"] == "m_carmen" else "en")
+        is_recipient = person["id"] == village.care_recipient_id(village_id)
+        lang = person.get("lang") or person.get("language") or (village_lang if is_recipient else "en")
+        verifier = village.default_verifier(village_id)
+        verifier_name = village.first_name(village_id, verifier) if verifier else ""
+        summary = f"{village.village_name(village_id)}."
+        if verifier_name:
+            summary += f" {verifier_name} is the money verifier for requests claiming to be {verifier_name}."
+        summary += " Use the gate-owned say text."
         values = {
             "village_id": village_id,
             "member_id": person["id"],
             "member_short_name": _first_name(person),
-            "on_duty_name": "Ana",
-            "coordinator_name": "Ana",
+            "on_duty_name": on_duty,
+            "coordinator_name": coordinator,
             "language": lang,
-            "today_summary": "Reyes village. Marco is the money verifier for requests claiming to be Marco. Use the gate-owned say text.",
+            "today_summary": summary,
         }
     return {key: values[key] for key in INIT_VAR_KEYS}
 
@@ -105,7 +117,7 @@ async def init_hook(
         raise HTTPException(status_code=401, detail="bad voice secret")
 
     payload = await request.json()
-    variables = dynamic_vars(payload.get("caller_id", ""), payload.get("village_id", "v_reyes"))
+    variables = dynamic_vars(payload.get("caller_id", ""), payload.get("village_id") or village.default_village_id())
     record_voice_call(payload, variables)
     return {"dynamic_variables": variables}
 

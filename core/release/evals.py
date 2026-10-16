@@ -85,10 +85,14 @@ def _safety_lines() -> dict[str, dict[str, str]]:
         from core.gate.say import TEMPLATES  # read-only import of gate-owned lines
     except Exception:
         return {}
+    from core import village as village_reg
+
+    vid = village_reg.default_village_id()
+    claimed = village_reg.first_name(vid, village_reg.default_verifier(vid))
     out = {}
     for k in SAFETY_KEYS:
         if k in TEMPLATES:
-            out[k] = {"es": TEMPLATES[k].es.replace("{claimed_name}", "Marco"), "en": TEMPLATES[k].en.replace("{claimed_name}", "Marco")}
+            out[k] = {"es": TEMPLATES[k].es.replace("{claimed_name}", claimed), "en": TEMPLATES[k].en.replace("{claimed_name}", claimed)}
     return out
 
 
