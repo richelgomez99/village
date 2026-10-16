@@ -33,6 +33,11 @@ class PrintingServices(MemoryServices):
         super().__init__()
         self.quiet = quiet
 
+    async def broadcast_patch(self, village_id, frame):  # type: ignore[no-untyped-def]
+        await super().broadcast_patch(village_id, frame)
+        if not self.quiet:
+            print(f"  [patch {frame['role']} rev {frame['base_rev']}→{frame['rev']}] + {', '.join(frame['highlight'])}")
+
     async def broadcast_control(self, village_id, frame):  # type: ignore[no-untyped-def]
         await super().broadcast_control(village_id, frame)
         if self.quiet:
@@ -40,6 +45,9 @@ class PrintingServices(MemoryServices):
         p = frame["payload"]
         if frame["kind"] == "reasoning":
             print(f"  [{p['source']}/{p['kind']}] {p['text']}")
+        elif frame["kind"] == "blueprint" and p["stage"] == "will_build":
+            for it in p["items"]:
+                print(f"  [will build] {it['display_name']} · {it['component']} · {it['reason']}")
         elif frame["kind"] == "ledger" and p["status"] not in ("running", "queued"):
             print(f"  [ledger] {p['status']:8} {p['what']} · {p.get('result', '')}"[:220])
 
@@ -51,6 +59,7 @@ async def amain() -> int:
     ap.add_argument("--replay", action="store_true", help="play the recorded intake transcript for --kind")
     ap.add_argument("--resume", type=int, help="replay until the meter reaches N, then read answers from stdin")
     ap.add_argument("--text", help="opener only (no transcript)")
+    ap.add_argument("--pace", type=float, default=5.0, help="seconds between replayed answers (D33); 0 for tests")
     ap.add_argument("--dailymed", choices=["live", "fixture", "off"], default="live")
     ap.add_argument("--time", action="store_true")
     ap.add_argument("--quiet", action="store_true")
@@ -64,7 +73,7 @@ async def amain() -> int:
         inp, answers = FoundingInput(description=args.text or "Mom forgets her pills.", kind=args.kind), []
     svc = PrintingServices(args.quiet)
     llm_client = get_llm(args.llm, "sonnet") if args.llm == "on" else None
-    opts = demo_options(args.kind, llm=args.llm, replay=answers or None, resume=args.resume, dailymed=args.dailymed, llm_client=llm_client)
+    opts = demo_options(args.kind, llm=args.llm, replay=answers or None, resume=args.resume, dailymed=args.dailymed, llm_client=llm_client, replay_delay_s=args.pace if (args.replay or args.resume) else 0.0)
     if args.resume:
         opts.clarify_wait_s = 600
     vid = kind_config(args.kind)["village_id"]

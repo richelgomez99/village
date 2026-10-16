@@ -168,5 +168,123 @@
  ],
  "review": {
   "text": "Here is the draft. What is wrong?"
+ },
+ "builds": {
+  "situation": [
+   {
+    "role": "coordinator",
+    "element": "al",
+    "reason": "the blackout and the heat, in one line"
+   },
+   {
+    "role": "coordinator",
+    "element": "st",
+    "reason": "right now: power out, 97 degrees"
+   },
+   {
+    "role": "resident",
+    "element": "al",
+    "reason": "the blackout and the heat, in one line"
+   },
+   {
+    "role": "volunteer",
+    "element": "al",
+    "reason": "the blackout and the heat, in one line"
+   }
+  ],
+  "medical": [
+   {
+    "role": "coordinator",
+    "element": "nb",
+    "reason": "oxygen and insulin come first"
+   },
+   {
+    "role": "volunteer",
+    "element": "nb",
+    "reason": "open needs, medical first"
+   }
+  ],
+  "resources": [
+   {
+    "role": "coordinator",
+    "element": "rb",
+    "reason": "a generator and a car are on offer"
+   },
+   {
+    "role": "volunteer",
+    "element": "rb",
+    "reason": "what neighbors offered"
+   }
+  ],
+  "info": [
+   {
+    "role": "coordinator",
+    "element": "vf",
+    "reason": "the group chat is full of rumors: checked facts only"
+   },
+   {
+    "role": "coordinator",
+    "element": "src",
+    "reason": "where the real updates come from"
+   },
+   {
+    "role": "resident",
+    "element": "vf",
+    "reason": "checked facts, not rumors"
+   }
+  ],
+  "residents": [
+   {
+    "role": "coordinator",
+    "element": "ci",
+    "reason": "check-ins floor by floor"
+   },
+   {
+    "role": "resident",
+    "element": "ci",
+    "reason": "one tap: are you OK?"
+   }
+  ],
+  "phones": [
+   {
+    "role": "coordinator",
+    "element": "cl",
+    "reason": "landline and flip-phone neighbors call the block line"
+   }
+  ],
+  "volunteers": [
+   {
+    "role": "coordinator",
+    "element": "chat",
+    "reason": "volunteers and Village coordinate here"
+   },
+   {
+    "role": "volunteer",
+    "element": "chat",
+    "reason": "volunteers and Village coordinate here"
+   },
+   {
+    "role": "resident",
+    "element": "chat",
+    "reason": "neighbors and Village talk here"
+   }
+  ],
+  "emergencies": [
+   {
+    "role": "coordinator",
+    "element": "e911",
+    "reason": "911 first, then {speaker}"
+   },
+   {
+    "role": "resident",
+    "element": "e911",
+    "reason": "911 first, nobody waits"
+   },
+   {
+    "role": "volunteer",
+    "element": "e911",
+    "reason": "911 first, nobody waits"
+   }
+  ]
  }
 }

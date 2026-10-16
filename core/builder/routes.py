@@ -41,6 +41,10 @@ class CoreServices(MemoryServices):
             from core.db import db
 
             db.specs[village_id] = deepcopy(stored)
+            views = getattr(db, "views", None)
+            if isinstance(views, dict):  # role snapshots read db.views first
+                for role, view in stored.get("views", {}).items():
+                    views[(village_id, role)] = deepcopy(view)
         except Exception:
             pass
         return stored
@@ -62,6 +66,39 @@ class CoreServices(MemoryServices):
             from core import services as core_services
 
             await core_services.control(village_id, frame["kind"], frame["payload"])
+        except Exception:
+            pass
+
+    async def broadcast_patch(self, village_id: str, frame: dict[str, Any]) -> None:
+        """D33: the role's draft-view patch to that role's sockets (phones + Control Room mirrors viewing
+        as the role); every other socket gets a fresh snapshot (one draft rev for all)."""
+        await super().broadcast_patch(village_id, frame)
+        try:
+            from core.ws_hub import hub, snapshot
+
+            for client in list(hub.clients):
+                if client.village != village_id:
+                    continue
+                try:
+                    if client.role == frame["role"]:
+                        await client.ws.send_json(frame)
+                    else:  # other roles + Control Room: re-snapshot so every socket tracks the one draft rev
+                        await client.ws.send_json(snapshot(village_id, client.role, client.member_id, view_as=client.view_as))
+                except Exception:
+                    hub.disconnect(client.ws)
+        except Exception:
+            pass
+
+    async def push_snapshot(self, village_id: str) -> None:
+        try:
+            from core.ws_hub import hub, snapshot
+
+            for client in list(hub.clients):
+                if client.village == village_id:
+                    try:
+                        await client.ws.send_json(snapshot(village_id, client.role, client.member_id, view_as=client.view_as))
+                    except Exception:
+                        hub.disconnect(client.ws)
         except Exception:
             pass
 
@@ -136,7 +173,7 @@ async def create_village(body: dict, request: Request, resume: int | None = None
         inp = FoundingInput(description=description, language=body.get("language", "en"), channel=body.get("channel", "text"), kind=body.get("kind"), medications=body.get("medications"), members=body.get("members") or [])
         village_id = body.get("village_id") or f"v_{uuid.uuid4().hex[:8]}"
     llm_mode = "off" if body.get("mode") == "fixture" else body.get("llm")
-    opts = demo_options(kind, llm=llm_mode, mode="fixture" if body.get("mode") == "fixture" else "full", replay=answers or None, resume=resume, clarify_wait_s=float(body.get("clarify_wait_s", 30)), dailymed=body.get("dailymed", "live"))
+    opts = demo_options(kind, llm=llm_mode, replay_delay_s=float(body.get("pace", 0)), mode="fixture" if body.get("mode") == "fixture" else "full", replay=answers or None, resume=resume, clarify_wait_s=float(body.get("clarify_wait_s", 30)), dailymed=body.get("dailymed", "live"))
     if not body.get("scripted_dialer", replay):
         opts.dialer = None  # live founding: the real Dialer (core.voice.outbound) when FOUNDER_LIVE_CALLS=1
     run = BuilderRun(village_id=village_id, trace_id=uuid.uuid4().hex, mode=opts.mode)
