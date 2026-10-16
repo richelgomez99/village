@@ -4,6 +4,13 @@ import "../theme/fonts.css";
 import "../theme/floor.css";
 
 const TOKEN_KEY = "village_member_token";
+function storeVillage(v: string) {
+  try {
+    localStorage.setItem("village_id", v);
+  } catch {
+    /* the app URL from Core carries it too */
+  }
+}
 function store(v: string) {
   try {
     localStorage.setItem(TOKEN_KEY, v);
@@ -54,6 +61,7 @@ export function JoinPage({ search = location.search, hash = location.hash, fetch
       if (!res.ok) throw new Error(res.status === 409 ? "This invite was already used. Ask your coordinator for a new one." : `Join failed (${res.status})`);
       const data = await res.json();
       if (data.member_token) store(data.member_token);
+      if (data.village) storeVillage(data.village);
       go(data.app_url ?? "./");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Join failed");

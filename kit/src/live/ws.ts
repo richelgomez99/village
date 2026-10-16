@@ -111,7 +111,7 @@ export class VillageSocket {
     clearTimeout(this.reconnectTimer);
     this.set({ status: "connecting" });
     const Impl = this.o.WebSocketImpl ?? (globalThis as any).WebSocket;
-    const ws: WebSocket = new Impl(this.o.url);
+    const ws: WebSocket = new Impl(this.url());
     this.ws = ws;
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
@@ -144,11 +144,23 @@ export class VillageSocket {
     this.set({ status: "closed", closedReason: this.s.closedReason ?? "closed" });
   }
 
+  /** Village this socket is for: the one the server named in the last snapshot, else the configured one. */
+  get village(): string {
+    return this.s.village || this.o.village;
+  }
+
+  /** Socket URL with the current village filled in (never `?village=&m=…` on a reconnect). */
+  url(): string {
+    const v = this.village;
+    if (!v || !/[?&]village=/.test(this.o.url)) return this.o.url;
+    return this.o.url.replace(/([?&])village=[^&]*/, `$1village=${encodeURIComponent(v)}`);
+  }
+
   hello() {
     const frame: ClientHello = {
       type: "hello",
       contract_version: CONTRACT_VERSION,
-      village: this.o.village,
+      village: this.village,
       member_token: this.o.token,
       client: this.o.client
     };
@@ -230,6 +242,12 @@ export class VillageSocket {
         return;
       }
       case "patch": {
+        // patches are per role (Core sends each socket its own role's ops); one for another role means our view is stale
+        if (f.role && this.s.role && f.role !== this.s.role) {
+          this.set({ status: "resync" });
+          this.hello();
+          return;
+        }
         if (!this.s.view || f.base_rev !== this.s.rev) {
           this.set({ status: "resync" });
           this.hello();
