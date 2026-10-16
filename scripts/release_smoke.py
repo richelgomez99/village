@@ -1,0 +1,139 @@
+"""Run the real release pipeline once against the Reyes fixture and print measured timings.
+
+  uv run --with daytona --with anchorbrowser --with playwright python scripts/release_smoke.py [--break-contrast] [--cold]
+
+Real Daytona sandbox (reuses RELEASE_SANDBOX_ID when set and not --cold), real Anchor when a public
+URL answers (TUNNEL_URL candidate, else the Daytona signed preview of the same build), else local
+Playwright (degraded). Evals in-process (model only if VILLAGE_LLM != off). Spans → Arize when keys exist.
+Never prints keys."""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+os.chdir(ROOT)
+
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(ROOT / ".env")
+
+
+def register_arize() -> str:
+    if not (os.environ.get("ARIZE_SPACE_ID") and os.environ.get("ARIZE_API_KEY")):
+        return "off (no keys)"
+    try:
+        from arize.otel import register
+
+        register(space_id=os.environ["ARIZE_SPACE_ID"], api_key=os.environ["ARIZE_API_KEY"],
+                 project_name=os.environ.get("ARIZE_PROJECT_NAME", "village"), set_global_tracer_provider=True)
+        return f"on (project {os.environ.get('ARIZE_PROJECT_NAME', 'village')})"
+    except Exception as exc:
+        return f"off ({type(exc).__name__})"
+
+
+async def serve_local(port: int):
+    import uvicorn
+    from fastapi import FastAPI
+
+    from core.release.routes import router
+
+    app = FastAPI()
+    app.include_router(router)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    task = asyncio.create_task(server.serve())
+    for _ in range(50):
+        if server.started:
+            break
+        await asyncio.sleep(0.05)
+    return server, task
+
+
+async def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--break-contrast", action="store_true", help="inject a 4.1:1 theme token; the Builder must fix it")
+    ap.add_argument("--cold", action="store_true", help="create a fresh sandbox instead of reusing RELEASE_SANDBOX_ID")
+    ap.add_argument("--rev", type=int, default=None)
+    ap.add_argument("--port", type=int, default=8788)
+    ap.add_argument("--no-preview", action="store_true")
+    args = ap.parse_args()
+
+    arize = register_arize()
+    from core.llm import llm
+    from core.release import run_release
+    from core.release.anchor_qa import AnchorQA
+    from core.release.daytona_svc import DaytonaBuilder
+    from core.release.evals import ReleaseEvals
+    from core.release.pipeline import LAST_TIMINGS
+
+    if args.cold:
+        os.environ.pop("RELEASE_SANDBOX_ID", None)
+    model_on = os.environ.get("VILLAGE_LLM", "off") != "off"
+    spec = json.loads((ROOT / "contracts/fixtures/reyes_spec.json").read_text())
+    rev = args.rev or (3 if args.break_contrast else 4)
+    local = f"http://127.0.0.1:{args.port}"
+    server, server_task = await serve_local(args.port)
+    daytona = DaytonaBuilder(preview=not args.no_preview)
+    anchor = AnchorQA()
+    t0 = time.perf_counter()
+
+    async def broadcast(village: str, kind: str, payload: dict) -> None:
+        dt = time.perf_counter() - t0
+        if kind == "release":
+            r = payload["receipt"]
+            cur = [s for s in r["stages"] if s["status"] in ("running", "passed", "failed")]
+            s = cur[-1] if cur else r["stages"][0]
+            print(f"  +{dt:5.1f}s {r['id']} a{r['attempt']} {s['name']:<13} {s['status']:<8} {s['details'].get('summary', '')}", flush=True)
+        elif kind == "build_log":
+            print(f"  +{dt:5.1f}s   log[{payload['level']}] {payload['line'][:150]}", flush=True)
+
+    print(f"arize={arize} model={'on' if model_on else 'off'} sandbox={'cold' if not os.environ.get('RELEASE_SANDBOX_ID') else 'reuse'} rev={rev} inject={'contrast' if args.break_contrast else None}")
+    history: list[dict] = []
+    try:
+        receipt = await run_release(
+            "v_reyes", spec, rev, broadcast=broadcast, llm=llm if model_on else None, daytona=daytona, anchor=anchor,
+            evals=ReleaseEvals(llm=llm if model_on else None), local_base=local,
+            inject="contrast" if args.break_contrast else None, history=history,
+        )
+    finally:
+        total = time.perf_counter() - t0
+        server.should_exit = True
+        await asyncio.wait_for(server_task, 5)
+    timings = dict(LAST_TIMINGS.get("v_reyes", {}))
+    timings["wall_total"] = int(total * 1000)
+    print("\nReceipts:")
+    for r in history:
+        print(f"  {r['id']} attempt={r['attempt']} trigger={r['trigger']} result={r['result']} live_rev={r['live_rev']} "
+              f"stages={'/'.join(s['status'][0].upper() for s in r['stages'])} trace={r.get('trace_id')}")
+        for s in r["stages"]:
+            if s["details"].get("summary"):
+                print(f"     {s['name']:<13} {s['status']:<7} {s['details'].get('duration_ms', '')!s:>6} ms  {s['details']['summary']}")
+    qa = receipt["stages"][3]["details"]
+    print(f"\nAnchor: session={qa.get('anchor_session_id')} live_view={'yes' if qa.get('live_view_url') else 'no'}")
+    print("\nTimings (ms):")
+    for k, v in timings.items():
+        print(f"  {k:<18} {v}")
+    print(f"\nSANDBOX_ID={getattr(daytona._sb, 'id', None)}")
+    out = ROOT / "var" / "releases" / f"smoke_{int(time.time())}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({"timings_ms": timings, "receipts": history, "anchor_timings": anchor.last_timings,
+                               "daytona_timings": daytona.last_timings}, indent=1, ensure_ascii=False))
+    print(f"wrote {out.relative_to(ROOT)}")
+    try:
+        from opentelemetry import trace
+
+        trace.get_tracer_provider().force_flush()  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    await daytona.close(delete=False)
+    return 0 if receipt["result"] == "released" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(main()))

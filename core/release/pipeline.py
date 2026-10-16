@@ -150,7 +150,8 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
     run = _Run(village_id, broadcast, store, strict)
     local_base = (local_base or os.environ.get("RELEASE_LOCAL_BASE") or "http://127.0.0.1:8787").rstrip("/")
     public_base = (public_base or os.environ.get("TUNNEL_URL") or local_base).rstrip("/")
-    theme = bundle.village_theme(spec)
+    # The bundle's theme as built (an injected bad token is part of it, so the Builder must patch it).
+    theme = bundle.inject_failure(bundle.village_theme(spec), inject)
     repair_of: str | None = None
     spec_note: str | None = None
     attempt = 1
@@ -178,7 +179,7 @@ async def _run(village_id: str, spec: dict[str, Any], rev: int, *, broadcast: Br
                 await run.block(r)
                 obs.finish(root, False, error="spec invalid")
                 return r
-            files = bundle.build(spec, rev, theme=theme, inject=inject if attempt == 1 else None)
+            files = bundle.build(spec, rev, theme=theme)
             await run.end(r, "spec", True, t0, summary=spec_note or _spec_summary(spec))
 
             # ── daytona_build + tests ──
