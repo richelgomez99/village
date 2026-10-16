@@ -39,6 +39,15 @@ def test_log_dose_writes_decision_and_event_frame() -> None:
         assert decisions[-1]["gate"]["decision"] == "record"
 
 
+def test_ws_contract_mismatch_closes_with_error() -> None:
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as ws:
+            ws.send_json({"type": "hello", "contract_version": "0.9.0", "village": "v_reyes", "member_id": "m_carmen"})
+            error = ws.receive_json()
+            assert error["type"] == "error"
+            assert error["code"] == "contract_mismatch"
+
+
 def test_prescriptions_show_lisinopril_history() -> None:
     with TestClient(app) as client:
         prescriptions = client.get("/villages/v_reyes/prescriptions").json()["prescriptions"]

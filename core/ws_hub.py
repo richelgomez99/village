@@ -46,6 +46,22 @@ class Hub:
             if client.village == village and client.role == "control":
                 await client.ws.send_json({"type": "control", "kind": kind, "payload": payload})
 
+    async def broadcast_chat(self, message: dict[str, Any]) -> None:
+        for client in list(self.clients):
+            if client.village != message.get("village"):
+                continue
+            if client.role == "elder":
+                continue
+            await client.ws.send_json({"type": "chat", "contract_version": CONTRACT_VERSION, "message": message})
+
+    async def broadcast_verification(self, verification: dict[str, Any]) -> None:
+        claimed = verification.get("claimed_member_id") or verification.get("claimed_member")
+        for client in list(self.clients):
+            if client.village != verification.get("village"):
+                continue
+            if client.member_id == claimed:
+                await client.ws.send_json({"type": "prompt", "contract_version": CONTRACT_VERSION, "verification": verification})
+
 
 def role_for_member(member_id: str | None) -> str:
     if member_id == "control":

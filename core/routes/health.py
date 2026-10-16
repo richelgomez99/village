@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Request
 
+from core.live import live_status
 from core.settings import CONTRACT_VERSION, get_settings
 
 
@@ -20,7 +21,7 @@ async def health(request: Request) -> dict:
         "layers": settings.layers,
         "deps": {
             "surreal": "configured" if settings.surreal_db_url else "memory",
-            "live": "stub",
+            "live": live_status.status,
             "llm": "off" if settings.village_llm == "off" else "configured",
         },
     }

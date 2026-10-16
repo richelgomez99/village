@@ -151,7 +151,6 @@ async def record_event(
         "at": draft.get("at") or (await now()).isoformat(),
     }
     await db.create_event(event)
-    await hub.broadcast_event(event)
     return event
 
 
