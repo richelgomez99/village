@@ -82,3 +82,9 @@ export async function getFactsAsOf(cfg: ApiConfig, village: string, entity: stri
   const q = new URLSearchParams({ subject: entity, key, as_of: asOf });
   return call(cfg, "GET", `/villages/${encodeURIComponent(village)}/facts?${q}`);
 }
+
+/** Undo an applied proposal within its window (POST /villages/{id}/proposals/{pid}/undo). */
+export async function undoProposal(cfg: ApiConfig, village: string, pid: string): Promise<unknown> {
+  if (cfg.fake) return { ok: true };
+  return call(cfg, "POST", `/villages/${encodeURIComponent(village)}/proposals/${encodeURIComponent(pid)}/undo`);
+}

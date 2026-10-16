@@ -5,6 +5,8 @@ import { text } from "../renderer/view";
 import { k } from "../i18n/strings";
 import { fmtTime, mmss } from "../util/time";
 import { Countdown } from "./care";
+import { ProposalBlocks, ReleaseStepper, useAppliedBanner, type ProposalLike } from "./proposal";
+import { undoProposal } from "../control/api";
 import { Bi, Card, Icon, memberName } from "./shared";
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -147,31 +149,50 @@ export function ScamCheck({ id, props }: CatalogProps) {
   );
 }
 
-interface BvProposal { proposal_id: string; title: unknown; changes: unknown[]; evidence_labels: string[]; status: string; release_id?: string }
-
+/** "Village proposes a change · needs your yes": the four plain-word blocks, then Approve · Not now (· Ask <name> first);
+ *  verifying → release stepper in words; applied → "Done · every phone updated" for 10 s with Undo. */
 export function Proposal({ id, props }: CatalogProps) {
   const ctx = useCtx();
-  const items = arr<BvProposal>(ctx.data[props.bind]);
-  if (!items.length) return null;
+  const items = arr<ProposalLike>(ctx.data[props.bind]);
+  const [done, clearDone] = useAppliedBanner(items);
+  const names = Object.entries(ctx.data).filter(([key]) => key.startsWith("member:")).map(([, v]) => String((v as { name?: string } | null)?.name ?? "")).filter(Boolean);
+  const open = items.filter((p) => p.status !== "applied" && p.status !== "rejected" && p.status !== "failed");
+  if (!open.length && !done) return null;
+  const undo = async (pid: string) => {
+    clearDone();
+    if (ctx.api && !ctx.disabled) await undoProposal(ctx.api, ctx.village, pid).catch(() => undefined);
+  };
   return (
-    <Card test="proposals" title={props.title ? <Bi value={props.title} /> : undefined}>
-      {items.map((p) => (
-        <article key={p.proposal_id} className="proposal" data-test="proposal" data-status={p.status}>
-          <h3><Bi value={p.title} /></h3>
-          {props.show_release_status ? <p className="chip">{p.status}</p> : null}
-          <details className="proposal-why" data-test="proposal-why">
-            <summary>{k("why", ctx.lang)}</summary>
-            <ul>{p.changes.map((c, i) => <li key={i}><Bi value={c} /></li>)}</ul>
-            {props.show_evidence ? <p className="small muted">{p.evidence_labels.join(" · ")}</p> : null}
-          </details>
-          {props.allow_approve ? (
-            <div className="row">
-              <button type="button" className="btn btn-primary" data-test="proposal-approve" disabled={ctx.disabled || p.status === "verifying"} onClick={() => ctx.send({ name: "approve_proposal", arg: p.proposal_id, element_id: id })}>{k("approve", ctx.lang)}</button>
-              <button type="button" className="btn btn-soft" data-test="proposal-reject" disabled={ctx.disabled} onClick={() => ctx.send({ name: "reject_proposal", arg: p.proposal_id, element_id: id })}>{k("not_now", ctx.lang)}</button>
-            </div>
-          ) : null}
-        </article>
-      ))}
+    <Card test="proposals" title={props.title ? <Bi value={props.title} /> : k("proposal_title", ctx.lang)}>
+      {done ? (
+        <div className="proposal-done" data-test="proposal-done" role="status">
+          <span>{k("proposal_done", ctx.lang)}</span>
+          {ctx.api ? <button type="button" className="btn btn-soft" data-test="proposal-undo" disabled={ctx.disabled} onClick={() => undo(done.id)}>{k("undo", ctx.lang)}</button> : null}
+        </div>
+      ) : null}
+      {open.map((p) => {
+        const pid = p.proposal_id ?? p.id ?? "";
+        const ask = p.allow_ask_other ? (typeof p.allow_ask_other === "string" ? p.allow_ask_other : p.ask_other_name ?? memberName(p.ask_other, ctx.data)) : "";
+        return (
+          <article key={pid} className="proposal" data-test="proposal" data-status={p.status}>
+            {p.title ? <h3><Bi value={p.title} /></h3> : null}
+            <ProposalBlocks p={p} lang={ctx.lang} names={names} />
+            {p.status === "verifying" ? (
+              <ReleaseStepper stage={p.release_stage} />
+            ) : props.allow_approve ? (
+              <div className="row proposal-actions">
+                <button type="button" className="btn btn-primary" data-test="proposal-approve" disabled={ctx.disabled} onClick={() => ctx.send({ name: "approve_proposal", arg: pid, element_id: id })}>{k("approve", ctx.lang)}</button>
+                <button type="button" className="btn btn-soft" data-test="proposal-reject" disabled={ctx.disabled} onClick={() => ctx.send({ name: "reject_proposal", arg: pid, element_id: id })}>{k("not_now", ctx.lang)}</button>
+                {ask ? (
+                  <button type="button" className="btn btn-link" data-test="proposal-ask-other" disabled={ctx.disabled} onClick={() => ctx.send({ name: "ask_proposal_other", arg: pid, element_id: id, payload: p.ask_other ? { member_id: p.ask_other } : undefined })}>
+                    {k("ask_first", ctx.lang, { name: ask })}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
     </Card>
   );
 }

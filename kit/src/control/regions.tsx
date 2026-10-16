@@ -7,6 +7,8 @@ import { makePhoneFor, type RenderCtx } from "../renderer/context";
 import { viewSchema, type View } from "../renderer/view";
 import { useNow } from "../util/time";
 import { plural } from "../i18n/plural";
+import { ProposalBlocks, ReleaseStepper } from "../components/proposal";
+import { text } from "../renderer/view";
 import { FactHistoryCard, MEMORY_CAPTION, factTarget } from "../components/fact";
 import { askVillage, getQr, type ApiConfig, type AskAnswer, type QrEntry } from "./api";
 import { displayName, memberDisplay, nameCtx, type AnswerBlock, type CaptionLine, type DecisionRow, type GateRow, type LedgerRow, type LiveMoment, type Mode, type SceneState, type TranscriptLine } from "./scene";
@@ -546,6 +548,22 @@ export function KnowsRegion({ api, village, data, spec }: { api: ApiConfig; vill
         <p className="empty">Nothing has changed yet. When a fact changes (a dose, a phone number), its history shows here.</p>
       )}
       <p className="caption knows-caption" data-test="knows-caption">{MEMORY_CAPTION}</p>
+    </Region>
+  );
+}
+
+/* ---------------- Proposal (same four blocks as Ana's card) ---------------- */
+
+export function ProposalRegion({ proposal, release, spec }: { proposal: any; release: any; spec: any }) {
+  const names = (spec?.blueprint?.people ?? []).map((p: any) => displayName(p, spec));
+  const running = (release?.stages ?? []).find((s: any) => s.status === "running")?.name;
+  return (
+    <Region test="proposal-region" title="Village proposes a change · needs your yes" className="r-proposal" extra={{ "data-status": proposal.status }}>
+      {proposal.title ? <p className="proposal-title">{text(proposal.title, "en")}</p> : null}
+      <ProposalBlocks p={proposal} lang="en" names={names} />
+      {proposal.status === "verifying" ? <ReleaseStepper stage={running} /> : null}
+      {proposal.status === "applied" ? <p className="mint" data-test="proposal-done">Done · every phone updated</p> : null}
+      {proposal.status === "proposed" || proposal.status === "ready" ? <p className="muted small">Waiting for the coordinator's yes.</p> : null}
     </Region>
   );
 }
