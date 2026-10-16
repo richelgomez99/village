@@ -6,7 +6,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from core.clock import clock
+from core.db import db
+from core.gate_fallback import decide as fallback_decide
 from core.settings import ROOT
+from core.ws_hub import hub
 
 
 FIXTURES = ROOT / "contracts" / "fixtures"
@@ -34,7 +38,64 @@ def _scam_exchanges() -> dict[str, Any]:
 
 
 async def now() -> datetime:
-    return datetime.now().astimezone()
+    return clock.now()
+
+
+def _next_id(prefix: str, rows: list[dict[str, Any]]) -> str:
+    return f"{prefix}_{len(rows) + 1:04d}"
+
+
+def _gate_decide(inp: dict[str, Any]) -> dict[str, Any]:
+    try:
+        from core.gate import decide as real_decide  # type: ignore
+    except (ImportError, AttributeError):
+        real_decide = fallback_decide
+    return real_decide(inp)
+
+
+def _village_state(village_id: str) -> dict[str, Any]:
+    spec = db.specs.get(village_id, {})
+    members = []
+    for person in spec.get("blueprint", {}).get("people", []):
+        consent = person.get("consent", {})
+        members.append({
+            "id": person["id"],
+            "name": person["name"].split()[0],
+            "aliases": [person["name"].split()[0].lower()],
+            "role": person["role"],
+            "pronoun": "she" if person["id"] in {"m_carmen", "m_ana", "m_lucia"} else "he",
+            "has_app_session": person["id"] != "m_carmen",
+            "consent": {
+                "ai_calls": bool(consent.get("ai_calls")),
+                "app_prompts": bool(consent.get("app_prompts")),
+                "dose_logging": bool(consent.get("dose_logging", False)),
+                "money_verifier": bool(consent.get("money_verifier", False)),
+                "share_with": consent.get("share_with", []),
+                "money_safety_share_with": consent.get("money_safety_share_with", []),
+            },
+        })
+    shift = next((ev for ev in reversed(db.events) if ev["kind"] == "shift"), None)
+    today = clock.now().date().isoformat()
+    return {
+        "village_id": village_id,
+        "now": clock.now().isoformat(),
+        "timezone": "America/New_York",
+        "kill_switch": False,
+        "coordinator_id": "m_ana",
+        "care_recipient_id": "m_carmen",
+        "quiet_hours": "22:30-07:00",
+        "rota_today": {
+            "date": today,
+            "on_duty": shift["payload"].get("on_duty") if shift else "m_marco",
+            "backup": shift["payload"].get("backup") if shift else "m_ana",
+        },
+        "members": members,
+        "dose_windows": [],
+        "open_verifications": [],
+        "recent_money_requests": [
+            {"event_id": ev["id"], "at": ev["at"]} for ev in db.events if ev["kind"] == "money_request"
+        ],
+    }
 
 
 async def decide(
@@ -44,22 +105,31 @@ async def decide(
     idempotency_key: str | None = None,
     actor_token: str | None = None,
 ) -> dict[str, Any]:
-    """Stub gate seam: return the matching contract example decision."""
-    del village_id, idempotency_key, actor_token
-    kind = candidate.get("kind")
-    for example in _gate_examples():
-        if example.get("input", {}).get("event", {}).get("kind") == kind:
-            return copy.deepcopy(example["decision"])
-    return {
-        "id": candidate.get("alloc", {}).get("decision_id", "dc_stub"),
-        "rule_id": "R-NOOP",
-        "decision": "allow",
-        "say": {"es": "", "en": ""},
-        "notify": [],
-        "writes": [],
-        "flags": [],
-        "rules_fired": ["R-NOOP"],
+    del actor_token
+    alloc = {
+        "decision_id": _next_id("dc", db.decisions),
+        "verification_id": _next_id("ver", []),
+        "incident_id": "inc_stub",
     }
+    inp = {"village_state": _village_state(village_id), "event": candidate, "alloc": alloc}
+    if idempotency_key:
+        inp["idempotency_key"] = idempotency_key
+    decision = _gate_decide(inp)
+    decision["id"] = decision.get("id") or alloc["decision_id"]
+    await db.create_decision({
+        "id": decision["id"],
+        "village_id": village_id,
+        "at": clock.now().isoformat(),
+        "actor": "gate",
+        "kind": "decision",
+        "text": decision["decision"],
+        "rule_id": decision["rule_id"],
+        "refs": [{"kind": "mode", "id": "acted_alone"}],
+        "source": candidate.get("source", {"kind": "system", "ref": "gate"}),
+        "gate": decision,
+    })
+    await control(village_id, "gate", {"decision": decision})
+    return decision
 
 
 async def record_event(
@@ -71,20 +141,76 @@ async def record_event(
     decision_id: str | None = None,
 ) -> dict[str, Any]:
     event = {
-        "id": draft.get("id", f"ev_stub_{len(_BROADCAST_LOG) + 1}"),
+        "id": draft.get("id", _next_id("ev", db.events)),
         "village": village_id,
         "kind": draft["kind"],
         "payload": draft.get("payload", {}),
         "actor": actor,
         "source": source,
         "decision_id": decision_id,
-        "at": (await now()).isoformat(),
+        "at": draft.get("at") or (await now()).isoformat(),
     }
-    await broadcast(village_id, {"type": "event", "event": event, "data": {}})
+    await db.create_event(event)
+    await hub.broadcast_event(event)
     return event
 
 
 async def handle_tool(name: str, request: dict[str, Any]) -> dict[str, Any]:
+    if name == "log_dose":
+        village_id = request.get("village_id", "v_reyes")
+        taken_at = request.get("taken_at") or clock.now().isoformat()
+        candidate = {
+            "village": village_id,
+            "kind": "dose",
+            "payload": {
+                "subject": "m_carmen",
+                "slot": request.get("slot") if request.get("slot") not in (None, "current") else "evening",
+                "taken_at": taken_at,
+                "confidence": "confirmed" if request.get("confidence") == "confirmed_by_caller" else "uncertain",
+                "via": "phone_line",
+            },
+            "actor": "m_carmen",
+            "source": {
+                "kind": "call",
+                "ref": request.get("conversation_id", "conv_stub"),
+                "secs": int(request.get("call_secs", 0)),
+                "quote": request.get("utterance", ""),
+            },
+            "at": taken_at,
+        }
+        decision = await decide(
+            village_id,
+            candidate,
+            idempotency_key=f"{request.get('conversation_id', 'conv_stub')}:{request.get('tool_call_id', name)}",
+        )
+        events = []
+        for draft in decision.get("writes", []):
+            events.append(
+                await record_event(
+                    village_id,
+                    draft,
+                    actor=candidate["actor"],
+                    source=candidate["source"],
+                    decision_id=decision["id"],
+                )
+            )
+        first_event = events[0] if events else None
+        say = decision.get("say", {}).get("es", "")
+        return {
+            "decision": decision["decision"],
+            "say": say,
+            "say_key": decision.get("say_key"),
+            "rule_id": decision["rule_id"],
+            "lang": "es",
+            "decision_id": decision["id"],
+            "data": {
+                "status": "recorded" if decision["decision"] == "record" else decision["decision"],
+                "slot": candidate["payload"]["slot"],
+                "dose_event_id": first_event["id"] if first_event else None,
+                "taken_at": candidate["payload"]["taken_at"],
+            },
+        }
+
     for example in _voice_examples():
         if example.get("tool") == name:
             response = copy.deepcopy(example["response"])
@@ -169,6 +295,7 @@ async def broadcast(village_id: str, msg: dict[str, Any], *, to: str = "all") ->
 
 async def control(village_id: str, kind: str, payload: dict[str, Any]) -> None:
     await broadcast(village_id, {"type": "control", "kind": kind, "payload": payload}, to="control")
+    await hub.control(village_id, kind, payload)
 
 
 async def post_message(

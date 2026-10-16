@@ -1,0 +1,46 @@
+from fastapi.testclient import TestClient
+
+from core.app import app
+
+
+def test_health_reports_llm_off() -> None:
+    with TestClient(app) as client:
+        response = client.get("/health")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True
+    assert body["contract_version"] == "1.1.0"
+    assert body["deps"]["llm"] == "off"
+
+
+def test_log_dose_writes_decision_and_event_frame() -> None:
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws?village=v_reyes&m=m_carmen") as ws:
+            ws.send_json({"type": "hello", "contract_version": "1.1.0", "village": "v_reyes", "member_id": "m_carmen"})
+            assert ws.receive_json()["type"] == "snapshot"
+            response = client.post(
+                "/tools/log_dose",
+                json={
+                    "conversation_id": "conv_test_dose",
+                    "caller_id": "+15555550101",
+                    "call_secs": 31,
+                    "utterance": "Ya me la tome.",
+                    "slot": "evening",
+                    "confidence": "confirmed_by_caller",
+                },
+            )
+            assert response.status_code == 200
+            assert response.json()["decision"] == "record"
+            frame = ws.receive_json()
+            assert frame["type"] == "event"
+            assert frame["event"]["kind"] == "dose"
+
+        decisions = client.get("/villages/v_reyes/decisions").json()["decisions"]
+        assert decisions[-1]["gate"]["decision"] == "record"
+
+
+def test_prescriptions_show_lisinopril_history() -> None:
+    with TestClient(app) as client:
+        prescriptions = client.get("/villages/v_reyes/prescriptions").json()["prescriptions"]
+    assert [row["dose"] for row in prescriptions if row["name"] == "lisinopril"] == ["5 mg", "10 mg"]
+    assert prescriptions[0]["valid_until"] == "2026-10-03"

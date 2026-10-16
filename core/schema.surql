@@ -1,0 +1,1 @@
+-- V0 schema placeholder. core.db uses the in-process fallback until SurrealDB is configured.
