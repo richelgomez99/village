@@ -43,29 +43,46 @@ Target: V0 tag: gate tests model-off, spine to 3 phones, refill card 5→10 mg
 
 Target: V1 tag: real call → verification → Marco prompt + call → spoken outcome; timeout safe default; record the 30 s clip now
 
+Filled by the pitch lane at 11:59 from `RESULTS.md`, `LANE-REPORT.md` and `scripts/acceptance_summary.sh` (run with SurrealDB URL empty, model off). The orchestrator corrects "works on real phones" from what was actually held.
+
 | | |
 |---|---|
-| Filled at | |
-| Acceptance (`scripts/acceptance_summary.sh`) | V0 _ · V1 _ · V2 _ · V3 _ · V4 _ |
-| Tags present | |
-| Version we would pitch right now | |
+| Filled at | 11:59 (pitch lane, from documents; orchestrator to confirm) |
+| Acceptance (`scripts/acceptance_summary.sh`) | V0 PASS · V1 PASS · V2 absent · V3 absent · V4 absent |
+| Tags present | V0-green (10:50), V1-green (11:49); lane tags gate-v0, spine-v0, voice-v1, kit-v0, kit-v2, release-v3, memory-v4, evals-v4, core-v2 |
+| Version we would pitch right now | V1 (V0 page if the real call isn't confirmed on phones) |
 
 **Works on real phones** (who held which phone, what they saw):
-- 
+- Carmen's view opens on the operator's phone through the public Funnel URL; `/health` answers from Anchor's browser outside the Mac (RESULTS "Public URL").
+- [PENDING: orchestrator, did a real call to Carmen's line reach Core and did Marco's phone show the prompt?]
 
 **Mocked or faked** (what, and how the pitch words it honestly):
-- 
+- Outbound call to Marco: fake dialer; Twilio geo permissions block live calls. Pitch: "Marco's phone gets the check in the app; the call is the second channel."
+- ElevenLabs agent, tool and procedure pushes: dry-run. TTS is live.
+- Founding intake (D29): not in main; Control Room has a recorded founding sequence offline.
+- Anchor: static view checks only (no scam/scan taps); reached the build via Daytona's signed preview, not Core's URL.
+- Rounds: seeded data.
 
 **Measured since last checkpoint** (copy into `RESULTS.md` first):
-- 
+- Scam eval set: 30/30 caught, 0/20 false alarms (model on, Bedrock Haiku 4.5); 28/30, 0/20 rules only; Arize experiment `scam-model-20261016T153959Z`.
+- Release: Reyes warm 14957 ms, warm with caught failure 19908 ms, cold with caught failure 29731 ms; West 147th 13409 ms, 33 floor tests.
+- Caught-and-fixed build: contrast 4.1:1 → #4C80B4 to #2D5A8C → released.
+- Agent Memory: write p50 630 ms, history p50 248 ms, recall 3.7 s.
+- Nightly round: 3 alone · 1 asked · 1 refused ("Blocked by code: Carmen's rule, no calls after 9:30 PM").
+- Tests: 245 Python (110 gate), 57 kit.
 
 **Risks** (what breaks the next version, and the fallback):
-- 
+- Live outbound call (Twilio geo permissions). Fallback: in-app prompt is primary (ARCHITECTURE-VALIDATION §4).
+- Anthropic API key 400 without workspace id. Fallback: Bedrock Haiku 4.5 (all measured runs used it).
+- Founding intake not merged; V2 cutoff at 13:00. Fallback: recorded replay (D29 `--replay`) on the Control Room.
+- Release router not mounted on the live Core at the release run; Anchor via tunnel not exercised end to end.
+- Platform sweep (D30): Reyes-specific strings in core/kit outside `data/` still being removed.
 
 **Cuts** (what's dropped, LAYERS.md cut order, D-number):
-- 
+- Daytona snapshot (denied): one warm sandbox from the default image instead (release T003).
+- `acceptance/v3.sh` not written; release smoke output is the evidence (release T024).
 
-**Devpost section current:** V_ · `[MEASURE]` left: _ · `[PENDING]` left: _
+**Devpost section current:** V0 ready; V1 pending phone confirmation · `[MEASURE]` left: 6 (report→prompt, intake time, Reyes floor count, live rebuild, cost, phones joined) · `[PENDING]` left: draft URL, V1 clip, platform sweep, V1–V4 confirmations, receptionist GIF
 
 ---
 

@@ -74,12 +74,13 @@ LD-10: Tests and acceptance force `SURREAL_DB_URL=` + `VILLAGE_MEMORY=off` + `VI
 LD-11: Contract 1.2.1: decision rows carry top-level `mode` (no more `refs` mode); `control{gate}` stays schema-clean (kit derives mode); ledger `role`/caption `speaker` are lowercase enums.
 
 ## pitch
+READY FOR MERGE PITCH-2
 READY FOR MERGE V0
 P001 · done · README.md (identity, arc, architecture, run, sponsors, safety rules with test names, real vs mocked, measured numbers, D25 pointer, team) · numbers only from RESULTS.md; 3 [MEASURE] rows
 P002 · done · docs/DEVPOST.md (V0 ready; V1–V4 [PENDING Vn]; numbers table; video shot list; 10 Q&A) · [MEASURE]/[PENDING] left in V1–V4 and shared tables only
 P003 · done · `CORE_URL=http://127.0.0.1:8799 scripts/reset_demo.sh` twice against a throwaway Core (SURREAL_DB_URL empty): exit 0, identical checklists; wrong ADMIN_KEY → exit 1 with manual command · warm is a stub
-LD-1 (mismatch): `POST /admin/reset` ignores `scopes` and runs the full `core.fixtures.reset_demo("v_reyes")`, so step 3 (`core.tools.seed`) repeats the same reset in a separate process. With `SURREAL_DB_URL` set, seed clears and reloads SurrealDB Cloud but cannot touch the running Core's in-process mirror; harmless today, but the scopes are cosmetic.
-LD-2 (mismatch): `core.tools.warm` is a stub (`print("warm OK (stub)")`); reset_demo.sh flags it as STUB in the checklist until the release lane replaces it.
+LD-1 (resolved after merge: admin reset now honours scopes): `POST /admin/reset` ignored `scopes` and runs the full `core.fixtures.reset_demo("v_reyes")`, so step 3 (`core.tools.seed`) repeats the same reset in a separate process. With `SURREAL_DB_URL` set, seed clears and reloads SurrealDB Cloud but cannot touch the running Core's in-process mirror; harmless today, but the scopes are cosmetic.
+LD-2 (resolved: warm now calls the release lane; reset flags absent/failed): `core.tools.warm` was a stub (`print("warm OK (stub)")`); reset_demo.sh flags it as STUB in the checklist until the release lane replaces it.
 LD-3 (mismatch): `/clock/warp` takes `{"to": iso}` (also `minutes`, `reset`); reset uses `to`, which is absolute, so repeated runs land on the same clock.
 LD-4: `kit/` is not in main yet; README's `cd kit && npm run dev` says so.
 ## voice
@@ -149,6 +150,10 @@ P004 · done · `scripts/acceptance_summary.sh --list` and full run (SURREAL_DB_
 P005 · done · docs/CHECKPOINTS.md template (11:00/12:15/13:00/13:40/14:15/14:20)
 P006 · done · docs/SLIDES.md (6 slides, stage lines, fallbacks; [MEASURE] where numbers go)
 LD-5: merged main (voice-v1) into 007-pitch-kit; README "real vs mocked" updated: voice code merged, live ElevenLabs pushes dry-run, outbound via FakeDialer (Twilio geo permissions).
+P007 · done · PITCH-2: merged main; README + DEVPOST "How Village builds any group" with both villages' numbers; every [MEASURE] RESULTS answers filled; challenges and team per D26/D28; SLIDES + shot list per D29/D30; CHECKPOINTS 12:15 filled; reset_demo.sh defaults to :8790 (D27)
+LD-6: "245 Python tests" measured by the pitch lane: `SURREAL_DB_URL= VILLAGE_LLM=off VILLAGE_MEMORY=off uv run pytest -q` → 245 passed at 2c8c3db. Not yet in RESULTS.md.
+LD-7: Spine is "about 130 ms" (RESULTS); the brief's "100–130 ms" has no source, so the pages say about 130 ms.
+LD-8: "Sonnet 5.5 + Haiku 5.5 via the Anthropic API" has no measured run in RESULTS/LANE-REPORT (release LD-3: key 400 without workspace id). Pages say Core uses them with Bedrock Haiku 4.5 fallback, and that every measured run used Haiku 4.5.
 ## gate
 READY FOR MERGE V1
 G008 · done · deadline-during-await closes TIMED_OUT; consent-revoked dial is no-op; T32/T33 and ignored terminal answer covered.
