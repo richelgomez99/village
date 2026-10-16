@@ -29,9 +29,34 @@ def spec(
     return out
 
 
-def view(kind: str, role: str) -> dict[str, Any]:
-    fixture = spec(kind)
+def view(kind: str, role: str, *, member_id_map: dict[str, str] | None = None) -> dict[str, Any]:
+    """Fixture view for `(kind, role)` with member ids remapped (props like subject/member_id)."""
+    fixture = spec(kind, member_id_map=member_id_map)
+    if role not in fixture["views"]:
+        raise KeyError(f"no template view for {kind}/{role}")
     return deepcopy(fixture["views"][role])
+
+
+def template_decision(village_id: str, role: str, reason: str) -> dict[str, Any]:
+    """Decision row recorded whenever a role falls back to its template."""
+    from .decisions import builder_decision
+
+    return builder_decision(village_id, f"template {role}: {reason}"[:400], kind="note")
+
+
+def fixture_mode(kind: str, village_id: str) -> dict[str, Any]:
+    """`mode: fixture`: the whole fixture (normalized), no model calls."""
+    return spec(kind, village_id=village_id, status="draft")
+
+
+def name_map(old_to_new: dict[str, dict[str, str]], spec_obj: dict[str, Any]) -> dict[str, Any]:
+    """Rename people (name/short_name) after an id remap: {member_id: {name, short_name?}}."""
+    out = deepcopy(spec_obj)
+    for person in out.get("blueprint", {}).get("people", []):
+        new = old_to_new.get(person["id"])
+        if new:
+            person.update({k: v for k, v in new.items() if k in ("name", "short_name") and v})
+    return out
 
 
 def remap_ids(

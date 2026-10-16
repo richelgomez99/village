@@ -180,3 +180,30 @@ def _dedupe(values: Any) -> list[str]:
         if value not in out:
             out.append(value)
     return out
+
+
+ELDER_BUTTONS_D22 = 3
+
+
+def elder_view_problems(view: dict[str, Any]) -> list[str]:
+    """D22 elder view: TonightCard + exactly 3 BigButtons + a 911 ContactCard, no chat, no med names."""
+    els = view.get("elements", {})
+    types = [e.get("type") for e in els.values()]
+    problems = []
+    if view.get("theme") != "elder":
+        problems.append("theme is not elder")
+    if "TonightCard" not in types:
+        problems.append("missing TonightCard")
+    if types.count("BigButton") != ELDER_BUTTONS_D22:
+        problems.append(f"{types.count('BigButton')} BigButtons, D22 wants 3")
+    if not any(e.get("type") == "ContactCard" and "911" in json_text(e) for e in els.values()):
+        problems.append("missing 911 ContactCard")
+    if "VillageChat" in types:
+        problems.append("VillageChat in elder view")
+    return problems
+
+
+def json_text(value: Any) -> str:
+    import json
+
+    return json.dumps(value, ensure_ascii=False)
