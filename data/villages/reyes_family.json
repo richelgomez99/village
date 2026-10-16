@@ -1060,5 +1060,23 @@
         "secs": 108
       }
     }
+  ],
+  "memory_seed": [
+    {"id": "rf_quiet_hours", "area": "house", "entity": "m_carmen", "key": "quiet_hours", "value": "21:30-07:00", "text": "Quiet hours after 9:30 pm, in her words.", "source": {"kind": "call", "ref": "welcome_call", "secs": 108, "quote": "Después de las nueve y media, no."}},
+    {"id": "rf_prescriber", "area": "health", "entity": "m_carmen", "key": "prescriber", "value": "Dr. Elena Park", "text": "Dr. Elena Park (Northern Blvd Family Medicine) is her primary care physician and prescribes her medicines.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_pharmacy", "area": "health", "entity": "m_carmen", "key": "pharmacy", "value": "Farmacia La Esquina", "text": "Pharmacy is Farmacia La Esquina; the pharmacist is the right person for 'did I take too much?' questions.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_apixaban", "area": "health", "entity": "m_carmen", "key": "apixaban_schedule", "value": "5 mg at 08:00 and 19:30", "text": "Apixaban (Eliquis) 5 mg, morning 8:00 and evening 7:30 pm; high-alert blood thinner, Village blocks re-logging.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_lids", "area": "health", "entity": "m_carmen", "key": "organizer_lids", "value": "yellow = mañana, blue = noche", "text": "Weekly pill organizer: yellow lid is morning, blue lid is evening.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_organizer_refill", "area": "house", "entity": "m_ana", "key": "organizer_refill", "value": "Sunday 13:00", "text": "Ana refills the weekly pill organizer at Sunday family lunch at Mom's (1 pm).", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_bp", "area": "health", "entity": "m_carmen", "key": "bp_readings", "value": "Mon/Wed/Fri 09:00", "text": "Home blood pressure reading Mon, Wed, Fri at 9:00; she says the numbers on the Mom line.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_money_rule", "area": "money", "entity": "m_carmen", "key": "money_rule", "value": "verify with the named member first", "text": "Any request for money, gift cards or bank details in a family member's name is checked with that member before she sends anything; Village never moves money.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_money_marco", "area": "money", "entity": "m_marco", "key": "money_verifier", "value": "first money verifier", "text": "Marco checks money calls made in his name; he handles Mom's money stuff with her.", "source": {"kind": "system", "ref": "seed", "quote": "Marco handles Mom's money stuff with her."}},
+    {"id": "rf_scam", "area": "money", "entity": "m_carmen", "key": "scam_2026_10_09", "value": "$1,500 gift cards, claimed Marco", "text": "Oct 9: a caller pretending to be Marco asked her for $1,500 in gift cards; no money was sent.", "observed_at": "2026-10-10T18:00:00-04:00", "source": {"kind": "call", "ref": "t_0003", "secs": 140, "quote": "Last week somebody called Mom pretending to be Marco, asking for fifteen hundred dollars in gift cards."}},
+    {"id": "rf_language", "area": "people", "entity": "m_carmen", "key": "language", "value": "es first, en ok by day", "text": "Bilingual; switches to Spanish when tired or upset, usually after about 7 pm.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_marco_nights", "area": "people", "entity": "m_marco", "key": "work_hours", "value": "22:00-06:00 Sun-Thu", "text": "Marco works nights (hospital security, 10 pm-6 am, Sun-Thu) and sleeps until about 2 pm; prefers a call or text.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_lucia", "area": "people", "entity": "m_lucia", "key": "role", "value": "remote, Philadelphia", "text": "Lucía is in Philadelphia; handles Medicare/insurance, pharmacy refills and bills, and is the backup phone check-in.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_ana", "area": "people", "entity": "m_ana", "key": "role", "value": "coordinator, Astoria", "text": "Ana is the primary caregiver, 20 min away in Astoria; teacher, free after 4 pm weekdays, does doctor visits.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_evening_checkin", "area": "house", "entity": "village", "key": "evening_checkin", "value": "20:30 on-duty sibling", "text": "Evening check-in call at 8:30 pm from the on-duty sibling (Mom line reminder if nobody can call).", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "rf_walk", "area": "house", "entity": "m_carmen", "key": "daily_walk", "value": "11:00 bakery on 37th Ave", "text": "Walks to the bakery on 37th Ave at 11:00 with neighbor Doña Rosa.", "source": {"kind": "system", "ref": "seed"}}
   ]
 }

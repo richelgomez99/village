@@ -600,5 +600,15 @@
         "duration_s": 1.0
       }
     }
+  ],
+  "memory_seed": [
+    {"id": "bb_911_first", "area": "safety", "entity": "village", "key": "emergency_rule", "value": "call 911 first", "text": "LIFE-THREATENING (can't breathe, chest pain, unresponsive, confusion in heat, oxygen running out with symptoms, fall with injury) → tell them to call 911 FIRST. The agent never replaces 911 and never waits on a volunteer match for an emergency.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_priority", "area": "safety", "entity": "village", "key": "matching_priority", "value": "oxygen > insulin > infant > mobility > everyone", "text": "Medical-priority matching order: oxygen/powered medical device > insulin/refrigerated medication > infant (<12 months) > mobility (can't do stairs) > everyone else.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_rumors", "area": "information", "entity": "village", "key": "rumor_rule", "value": "label official / verified-volunteer / unverified-neighbor", "text": "Rumors are never repeated as fact. Each claim is labeled official / verified-volunteer / unverified-neighbor and checked against the named official source before any broadcast.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_privacy", "area": "people", "entity": "village", "key": "address_rule", "value": "addresses only to the matched volunteer", "text": "Volunteers are matched by the coordinator-approved list only; no home addresses or apartment numbers are shared beyond the matched volunteer.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_generator", "area": "resources", "entity": "b_darnell", "key": "resource_generator", "value": "~2000W, ~6h fuel", "text": "Darnell has a generator (~2000W, ~6h fuel); outdoor use only (carbon monoxide); extension cord run needed for upper floors.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_car", "area": "resources", "entity": "b_priya", "key": "resource_car", "value": "3 passengers", "text": "Priya has a car (3 passengers); no power-wheelchair transport.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_ice", "area": "resources", "entity": "b_bodega", "key": "resource_ice", "value": "~40 bags", "text": "Ramírez Deli has ice (~40 bags); medical needs first.", "source": {"kind": "system", "ref": "seed"}},
+    {"id": "bb_cooling", "area": "resources", "entity": "village", "key": "cooling_center", "value": "https://finder.nyc.gov/coolingcenters/", "text": "Look up nearest open site at the NYC Cooling Center Finder; do not assume a specific site is open.", "source": {"kind": "system", "ref": "seed"}}
   ]
 }

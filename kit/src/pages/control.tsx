@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import { createRoot } from "react-dom/client";
 import { useSocketState } from "../app/MemberApp";
 import { answerFollowUp, apiConfig, apiRequest, createVillage, getQr, listDecisions, listVillages, warpClock, type ApiConfig } from "../control/api";
-import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, type VillageTab } from "../control/regions";
+import { ArcStrip, AutonomyHeadline, ChatMirror, type ArcBeat, AskWhyRegion, BlueprintRegion, CaptionsLayer, FoundingWorkRegion, GateRegion, Header, KnowsRegion, ProposalRegion, LedgerRegion, LiveMomentRegion, NEW_VILLAGE, PhonesRegion, TranscriptRegion, resolveAs, type VillageTab } from "../control/regions";
 import { displayName, initialScene, nameCtx, sceneReducer, type SceneState } from "../control/scene";
 import { FAKE_VILLAGES } from "../dev/fixtureData";
 import { addCaption } from "../i18n/captions";
@@ -163,7 +163,10 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
   useEffect(() => () => Object.entries(sockets).forEach(([v, s]) => v !== home && s.close()), []); // eslint-disable-line react-hooks/exhaustive-deps
   if (typeof window !== "undefined") (window as any).__villages = sockets;
   const names = useVillageNames(sockets);
-  const tabs: VillageTab[] = list.map((id) => ({ id, label: names[id] ?? id.replace(/^v_/, "") }));
+  const people = useVillagePeople(sockets);
+  const asMe = resolveAs(typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("as") : null, people);
+  const tabs: VillageTab[] = list.map((id) => ({ id, label: names[id] ?? id.replace(/^v_/, ""), role: asMe?.roles[id] }));
+  const owner = asMe?.first || undefined;
 
   // presenter B / X: a replay socket (offline fake + transport) shown in place of the live room; Esc / X returns
   const [override, setOverride] = useState<{ socket: VillageSocket; village: string; kind: "b" | "x" } | null>(null);
@@ -200,7 +203,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     setOverride({ socket: s, village, kind });
   };
   if (override) {
-    return <VillageRoom key={`replay:${override.kind}:${override.village}`} village={override.village} socket={override.socket} tabs={tabs} onTab={(v) => { exitReplay(); setTab(v); }} onNew={() => { exitReplay(); setTab(NEW_VILLAGE); }} make={make} api={{ ...apiCfg, fake: true }} details={details} onDetails={setDetails} replay onReplay={startReplay} onExitReplay={exitReplay} />;
+    return <VillageRoom key={`replay:${override.kind}:${override.village}`} village={override.village} socket={override.socket} tabs={tabs} onTab={(v) => { exitReplay(); setTab(v); }} onNew={() => { exitReplay(); setTab(NEW_VILLAGE); }} make={make} api={{ ...apiCfg, fake: true }} details={details} onDetails={setDetails} replay onReplay={startReplay} onExitReplay={exitReplay} owner={owner} />;
   }
   const active = tab === NEW_VILLAGE || !tab ? null : sockets[tab];
   if (!active && !wantNew && list.length) {
@@ -209,7 +212,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
   if (!active) {
     return (
       <main className="control founding" data-test="control" data-village="" data-mode="founding">
-        <Header tabs={tabs} tab={NEW_VILLAGE} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} phones={null} clock={null} nowMs={() => Date.now()} onWarp={() => {}} warpState="idle" />
+        <Header tabs={tabs} tab={NEW_VILLAGE} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} phones={null} clock={null} nowMs={() => Date.now()} onWarp={() => {}} warpState="idle" owner={owner} />
         <div className="cr-grid">
           <TranscriptRegion lines={[]} onSend={startVillage} />
           <LedgerRegion rows={[]} nowMs={() => Date.now()} />
@@ -240,7 +243,7 @@ export function ControlRoom({ socket, cfg, api, villages, spawn }: ControlRoomPr
     old?.close();
   };
   const nextVillage = () => setTab(list[(list.indexOf(tab) + 1) % list.length] ?? tab);
-  return <VillageRoom key={`${tab}:${roomEpoch(sockets[tab])}`} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} onReselect={reselect} onNextVillage={nextVillage} onReplay={startReplay} />;
+  return <VillageRoom key={`${tab}:${roomEpoch(sockets[tab])}`} village={tab} socket={active} tabs={tabs} onTab={setTab} onNew={() => setTab(NEW_VILLAGE)} make={make} api={apiCfg} details={details} onDetails={setDetails} onJump={jump} anyone={!!(home || list[0]) && tab !== (home || list[0])} onReselect={reselect} onNextVillage={nextVillage} onReplay={startReplay} owner={owner} />;
 }
 
 const EPOCHS = new WeakMap<object, number>();
@@ -250,6 +253,21 @@ function roomEpoch(s: object | undefined): number {
   if (!s) return 0;
   if (!EPOCHS.has(s)) EPOCHS.set(s, ++epochSeq);
   return EPOCHS.get(s)!;
+}
+
+/** blueprint.people from each socket's spec, for `?as=` role words on the switcher pills. */
+function useVillagePeople(sockets: Record<string, VillageSocket>): Record<string, any[]> {
+  const [people, setPeople] = useState<Record<string, any[]>>({});
+  useEffect(() => {
+    const unsubs = Object.entries(sockets).map(([id, s]) =>
+      s.subscribe((st) => {
+        const p = (st.spec as any)?.blueprint?.people;
+        if (Array.isArray(p)) setPeople((m) => (m[id] === p ? m : { ...m, [id]: p }));
+      })
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [sockets]);
+  return people;
 }
 
 /** village.name from each socket's control snapshot (spec), for the switcher pills. */
@@ -267,7 +285,8 @@ function useVillageNames(sockets: Record<string, VillageSocket>): Record<string,
   return names;
 }
 
-function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false, onReselect, onNextVillage, replay = false, onReplay, onExitReplay }: {
+function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details = false, onDetails, onJump, anyone = false, onReselect, onNextVillage, replay = false, onReplay, onExitReplay, owner }: {
+  owner?: string;
   onReselect?: () => void; onNextVillage?: () => void;
   /** presenter B/X replay in place of the live room: transport bar shown even in presenter mode */
   replay?: boolean; onReplay?: (kind: "b" | "x", beat: ArcBeat) => void; onExitReplay?: () => void;
@@ -429,7 +448,7 @@ function VillageRoom({ village, socket, tabs, onTab, onNew, make, api, details =
   const coordinator = coordP ? displayName(coordP, nameCtx(scene)) : "Coordinator";
   return (
     <main className={`control${founding ? " founding" : ""}${HERO ? " hero" : ""}${transport && !HERO ? " has-transport" : ""}`} data-test="control" data-status={state.status} data-village={village} data-mode={founding ? "founding" : "live"} data-frames={scene.frames} style={{ paddingBottom: `${Math.round(capH) + 32 + (transport && !HERO ? 56 : 0)}px` }}>
-      <Header tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} villageTime={PRESENTER ? villageTimeWords(scene.clock?.now ?? new Date(socket.nowMs()).toISOString(), scene.data) || " " : undefined} />
+      <Header owner={owner} tabs={tabs} tab={village} onTab={onTab} onNew={onNew} phones={scene.phones} clock={scene.clock} nowMs={socket.nowMs} onWarp={onWarp} warpState={warpState} details={details} onDetails={onDetails} villageTime={PRESENTER ? villageTimeWords(scene.clock?.now ?? new Date(socket.nowMs()).toISOString(), scene.data) || " " : undefined} />
       <ArcStrip beat={beat} selected={shown} onJump={(b) => (b === "anyone" ? onJump?.(b) : setSection(b))} />
       {state.status !== "live" && state.status !== "idle" && (!PRESENTER || downLong) ? (
         <p className="ws-banner" data-test="ws-banner">{state.status === "reconnecting" ? `Reconnecting to Core… (try ${state.attempt})` : state.status === "closed" ? `Not connected: ${state.closedReason ?? "closed"}` : "Connecting to Core…"}</p>
