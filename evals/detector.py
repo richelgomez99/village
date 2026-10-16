@@ -14,7 +14,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Any
 
-WINDOW_DAYS = 7
+WINDOW_DAYS = 14
 TRACE_RE = re.compile(r"^[0-9a-f]{32}$")
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
