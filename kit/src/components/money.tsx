@@ -19,7 +19,7 @@ export function useAnswer(elementId: string) {
   };
 }
 
-/** Marco's in-app verification (binding-driven). Thanks state shows the gate's `say` from the action result. */
+/** The verifier's in-app verification (binding-driven). Thanks state shows the gate's `say` from the action result. */
 export function VerificationPrompt({ id, props }: CatalogProps) {
   const ctx = useCtx();
   const answer = useAnswer(id);

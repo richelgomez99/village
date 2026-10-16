@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFakeWebSocket, isFakeClient, parseFakeOptions } from "../dev/fakeWs";
+import { FAKE_VILLAGES } from "../dev/fixtureData";
 import type { ClientName } from "./messages";
 import { VillageSocket, type LiveState } from "./ws";
 
@@ -15,7 +16,8 @@ export interface LiveConfig {
 export function liveConfig(client: ClientName, loc: Location = window.location): LiveConfig {
   const p = new URLSearchParams(loc.search);
   const fake = p.get("fake");
-  const village = p.get("village") ?? "v_reyes";
+  const env0 = (import.meta as any).env ?? {};
+  const village = p.get("village") ?? env0.VITE_VILLAGE ?? (fake ? FAKE_VILLAGES[0] : "");
   let stored: string | null = null;
   try {
     stored = localStorage.getItem("village_member_token");

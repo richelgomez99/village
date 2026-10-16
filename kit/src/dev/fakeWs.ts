@@ -5,7 +5,8 @@
 // received) is on window.__frames. Control Room: ?fake=control&seq=founding|scam|release|evolve replays that scene
 // (dev/fakeControl.ts); hello{village:"v_w147"} gets the block_spec control snapshot; window.__fake.warp(min) ticks the clock.
 import { FAKE_CLIENTS, blockControlSnapshot, clientForMember, fakeSnapshot, sequence, type FakeClient, type SeqFrame } from "./fixtureData";
-import { controlSequence, isControlSeq, type ControlSeq } from "./fakeControl";
+import { addCaption } from "../i18n/captions";
+import { controlHelloSnapshot, controlSequence, isControlSeq, type ControlSeq } from "./fakeControl";
 
 type Tail = "denied" | "timeout_tail" | "confirmed_tail";
 
@@ -113,10 +114,10 @@ class FakeHub {
   }
 
   /** Control Room replay: contract-shaped control frames to control sockets only. */
-  playControl(seq: ControlSeq) {
+  playControl(seq: ControlSeq, village?: string) {
     if (this.played.has(`seq:${seq}`)) return;
     this.played.add(`seq:${seq}`);
-    for (const t of controlSequence(seq)) {
+    for (const t of controlSequence(seq, village)) {
       const fire = () => this.sockets.forEach((s) => s.deliverControl(t.msg));
       const delay = t.ms / this.speed;
       if (delay <= 0) fire();
@@ -164,6 +165,7 @@ class FakeSocket extends EventTarget {
   onmessage: ((e: MessageEvent) => void) | null = null;
   onclose: ((e: Event) => void) | null = null;
   target: FakeClient;
+  village: string | undefined;
   private lastActionReq: Record<string, string> = {};
 
   constructor(public url: string, private hub: FakeHub, private me: FakeClient) {
@@ -186,9 +188,11 @@ class FakeSocket extends EventTarget {
         this.emit(blockControlSnapshot());
         return;
       }
-      this.emit(fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me }));
+      const empty = this.target === "control" ? controlHelloSnapshot(this.hub.opts.seq, f.village) : null;
+      this.village = f.village;
+      this.emit(empty ?? fakeSnapshot(this.target, { viewAs: !!asClient && asClient !== this.me }));
       if (this.target === "control") this.emit({ type: "control", kind: "counter", payload: { name: "phones_live", value: Math.max(1, this.hub.sockets.size), label: "phones live" }, at: "2026-10-16T14:01:40-04:00" });
-      if (this.target === "control" && this.hub.opts.seq) this.hub.playControl(this.hub.opts.seq);
+      if (this.target === "control" && this.hub.opts.seq) this.hub.playControl(this.hub.opts.seq, f.village);
       else this.hub.scheduleStart();
     } else if (f.type === "ping") {
       this.emit({ type: "pong", ts: f.ts });
@@ -250,6 +254,8 @@ export function isFakeClient(v: string | null): v is FakeClient {
 
 /** Returns a WebSocket-compatible constructor bound to one fake client; also exposes window.__fake for the presenter. */
 export function createFakeWebSocket(client: FakeClient, opts: FakeOptions): typeof WebSocket {
+  // the fixture's Spanish lines that live Core would caption with control{kind:"caption"}
+  addCaption("Me llamó Marco llorando, dice que está en problemas y necesita dos mil dólares.", "Marco called me crying, he says he's in trouble and needs two thousand dollars.");
   const hub = new FakeHub(opts);
   if (typeof window !== "undefined" && !opts.quiet) (window as any).__fake = { play: (n: "start" | Tail) => hub.play(n), reset: () => hub.reset(), warp: (m: number) => hub.warp(m), hub };
   const Ctor = function (this: unknown, url: string) {

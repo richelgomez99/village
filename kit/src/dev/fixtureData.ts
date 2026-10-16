@@ -76,6 +76,10 @@ export function baseData(client: FakeClient): Record<string, unknown> {
     case "ana":
       return {
         "alerts:active": [],
+        "member:m_carmen": { member_id: "m_carmen", name: "Carmen" },
+        "member:m_ana": { member_id: "m_ana", name: "Ana" },
+        "member:m_marco": { member_id: "m_marco", name: "Marco" },
+        "member:m_lucia": { member_id: "m_lucia", name: "Lucía" },
         "blueprint:life_areas": lifeAreas,
         "incidents:open": [],
         "verifications:pending?member=me": null,
@@ -142,3 +146,6 @@ export function blockControlSnapshot() {
   const identity = { member_id: null, name: "Control Room", role: "control", village_name: (blockSpec as any).village.name, lang: "en" };
   return { type: "snapshot", contract_version: "1.2.1", rev: (blockSpec as any).rev, village: (blockSpec as any).village.id, role: "control", member_id: null, spec: blockSpec, data: {}, now: SNAPSHOT_NOW, identity };
 }
+
+/** Villages the offline fake knows (Control Room switcher). */
+export const FAKE_VILLAGES = ["v_reyes", "v_w147"];

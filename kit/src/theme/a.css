@@ -195,3 +195,34 @@
 .caption-line { margin: 0; font-size: 1.2em; display: flex; gap: 12px; align-items: baseline; }
 .control .phone .bigbutton .caption, .control .phone .tonight .caption, .control .phone .alert .caption { color: inherit; opacity: 0.8; }
 .control .phone .bigbutton-label { display: inline-flex; flex-direction: column; }
+
+/* V2b: platform header, founding room, coverage meter, phone labels + QR under each */
+.cr-header .brand-block { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cr-header .brand-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cr-header .brand-dot { color: var(--muted); font-size: 24px; }
+.cr-header .tagline { margin: 0; color: var(--muted); font-size: 0.95em; max-width: 70ch; }
+.cr-header .tab-new { border-style: dashed; color: var(--amber); }
+.cr-header .tab-new.active { background: var(--amber); color: var(--night); border-color: var(--amber); }
+.r-transcript { grid-column: 1 / 5; }
+.founding .r-ledger { grid-column: 5 / 9; }
+.founding .r-blueprint { grid-column: 9 / 13; }
+.founding .r-phones { grid-column: 1 / 13; grid-row: auto; }
+.empty-hero { margin: 8px 0; font: 650 1.8em var(--display); line-height: 1.25; }
+.transcript { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow: auto; }
+.tr-line p { margin: 2px 0 0; line-height: 1.45; }
+.tr-ana p { font-size: 1.05em; }
+.tr-village { border-left: 3px solid var(--mint); padding-left: 10px; }
+.tr-village p { color: var(--text); }
+.founding-form { flex-direction: column; }
+.founding-form textarea { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); padding: 10px 12px; font: inherit; resize: vertical; }
+.founding-form button { align-self: flex-end; padding: 10px 16px; }
+.coverage { display: flex; flex-direction: column; gap: 6px; }
+.coverage-num { font: 600 1.15em var(--mono); color: var(--mint); }
+.coverage-bar { height: 8px; border-radius: 4px; background: var(--panel2); overflow: hidden; }
+.coverage-bar span { display: block; height: 100%; background: var(--mint); transition: width 0.3s; }
+.gaps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.gaps li { font-size: 0.85em; border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); }
+.phone-label { font: 650 1.1em var(--display); color: var(--text); }
+.skeleton-phone { display: grid; place-items: center; color: #6B6158; font-weight: 700; }
+.bezel .qr-tile { align-self: center; padding: 8px; font-size: 0.85em; }
+.qr-missing { margin: 0; }

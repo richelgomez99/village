@@ -41,7 +41,7 @@ export const defaultCtx: RenderCtx = {
   lang: "en",
   role: "helper",
   memberId: null,
-  village: "v_reyes",
+  village: "",
   nowMs: () => Date.now(),
   disabled: false,
   highlight: new Set(),

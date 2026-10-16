@@ -46,7 +46,7 @@ export interface SocketOptions {
 type Listener = (s: LiveState) => void;
 export type FrameListener = (f: ServerFrame) => void;
 
-export function initialLiveState(village = "v_reyes"): LiveState {
+export function initialLiveState(village = ""): LiveState {
   return {
     status: "idle", attempt: 0, closedReason: null, lastError: null, rev: 0, village, role: "", memberId: null,
     self: null, viewAs: null, identity: null, view: null, spec: null, data: {}, prompt: null, results: {}, highlight: [], control: [], events: []
@@ -304,7 +304,7 @@ export class VillageSocket {
     this.stopPing();
     const every = this.o.pingMs ?? 15000;
     this.pingTimer = setInterval(() => {
-      this.sendRaw({ type: "ping", ts: Date.now() });
+      // arm the dead-man before sending: a pong can arrive synchronously (fake server) and must clear it
       clearTimeout(this.deadTimer);
       this.deadTimer = setTimeout(() => {
         try {
@@ -313,6 +313,7 @@ export class VillageSocket {
           /* ignore */
         }
       }, this.o.deadMs ?? 10000);
+      this.sendRaw({ type: "ping", ts: Date.now() });
     }, every);
   }
 

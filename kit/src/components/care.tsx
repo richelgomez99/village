@@ -313,7 +313,7 @@ export function RefillCard({ props }: CatalogProps) {
   );
 }
 
-/** Elder: "Esta noche cuida Marco" (CarmenB / TonightCard). Absent key = render nothing; null = nobody (amber). */
+/** Elder: who is caring for her tonight (TonightCard, template "Esta noche cuida {name}"). Absent key = render nothing; null = nobody (amber). */
 export function TonightCard({ props }: CatalogProps) {
   const ctx = useCtx();
   if (!(props.bind in ctx.data)) return null;
