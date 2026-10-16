@@ -98,3 +98,6 @@
 
 ## Village as a chat participant (live, 13:46 and 14:02)
 - Ana (operator) posted "hey guys, will need someone to take care of mom tomorrow" → 0.3 s: Village "Tomorrow's Saturday, Marco's night. Marco, still good? Lucía, can you cover if not?" + asks to Marco and Lucía → 3.5 s: Lucía (demo actor) "Okay, Saturday is mine." → 3.8 s: Marco (demo actor) "I can't Saturday, sorry." → 3.9 s: Village "Saturday: Lucía covers for Marco. Mamá will be told at her check-in." (no leader approval; D39). Second run 14:02 ("cover for Marco tomorrow") exposed: Marco was still asked, three bubbles, asks not resolved, rota unchanged on phones → fixed in ASKS-2 + CORE-GLUE-6 + KIT-MEMBERS-3 (14:08).
+
+## Builder prompt on Arize Prompt Hub (14:17)
+- `village-builder` pushed with the arize SDK v8.59.1 (`ArizeClient.prompts.create` / `create_version` / `set_labels`): v1 `UHJvbXB0VmVyc2lvbjoxMDk0MDA6cnl0cQ==`, v2 `UHJvbXB0VmVyc2lvbjoxMDk0MDE6dFZIMw==` labelled `production`. Real founding replay (Sonnet 5.5, `scripts/build_village.py --llm on --replay --spans`): all 3 render_app spans carry `llm.prompt_template.name=village-builder`, `llm.prompt_template.version=UHJvbXB0VmVyc2lvbjoxMDk0MDE6dFZIMw==` (source hub); elder/coordinator/helper validated first try (7.1 / 11.1 / 10.3 s), total 58.6 s, spec valid.

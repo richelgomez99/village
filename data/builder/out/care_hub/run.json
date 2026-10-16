@@ -1,0 +1,657 @@
+{
+ "village_id": "v_reyes",
+ "trace_id": "3a23c91d6c6d4db090cb75ef6cb38c40",
+ "state": "review",
+ "states": [
+  "listening",
+  "clarify",
+  "working",
+  "draft",
+  "review"
+ ],
+ "mode": "full",
+ "roles": {
+  "elder": {
+   "status": "validated",
+   "ms": 7126,
+   "attempts": 1,
+   "reason": ""
+  },
+  "coordinator": {
+   "status": "validated",
+   "ms": 11149,
+   "attempts": 1,
+   "reason": ""
+  },
+  "helper": {
+   "status": "validated",
+   "ms": 10349,
+   "attempts": 1,
+   "reason": ""
+  }
+ },
+ "capabilities": {
+  "m_carmen": [
+   "fridge_card",
+   "check_in_call",
+   "phone_line"
+  ],
+  "m_ana": [
+   "village_chat",
+   "dashboard"
+  ],
+  "m_marco": [
+   "is_it_my_turn",
+   "refill_day"
+  ],
+  "m_lucia": [
+   "is_it_my_turn",
+   "refill_day"
+  ]
+ },
+ "critique": {
+  "applied": [],
+  "refused": [],
+  "assumptions": [
+   "Carmen: AI check-in call consent is null; assumes the call asks for consent first and runs in Spanish, within 07:00-22:30 and outside quiet hours.",
+   "Marco: availability (Tue/Thu/Fri/Sat) conflicts with his Sun-Thu night shifts; assumes nudges go out around 3pm after he wakes.",
+   "Lucía: notes say phone only but tech_comfort is app; assumes app is right and she declined AI calls (consent false), so no AI calls.",
+   "Ana: assumes she sees all money incidents on the dashboard and Marco and Lucía get turn/refill info via is_it_my_turn."
+  ],
+  "source": "model"
+ },
+ "ledger": [
+  "14:17 · done · members covered · member cards appear as named",
+  "14:17 · done · Calling Marco to confirm Tue/Thu/Fri/Sat and ask if Village may call him · Marco confirmed Tue/Thu/Fri/Sat · yes to calls (mocked dialer)",
+  "14:17 · done · Rota coverage check · every night has a name. Thursday is Marco.",
+  "14:17 · done · availability covered · rota coverage check: every night has a name, or Village names the gap",
+  "14:17 · done · Refill list · lisinopril 10 mg (was 5 mg, Oct 3, Dr. Park) · old bottle in the cabinet → need added",
+  "14:17 · done · meds covered · DailyMed lookup per med → facts with url provenance; refill list with supersession",
+  "14:17 · done · DailyMed: apixaban · ✓ (high-alert, bleeding) Apixaban Tablet, Film Coated label (Feb 24, 2025) https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=19a60552-374d-4b8b-a8ce-ceae252ea5ba",
+  "14:17 · done · DailyMed: atorvastatin · ✓ Atorvastatin Calcium Tablet, Film Coated label (Oct 14, 2026) https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=5d5977a5-98f2-a90d-e063-6394a90a5892",
+  "14:17 · done · DailyMed: metformin · ✓ Metformin Hydrochloride Tablet, Extended Release label (Oct 12, 2026) https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=056072d8-6228-4914-831d-ee7c0661b742",
+  "14:17 · done · DailyMed: lisinopril · ✓ Lisinopril Tablet label (Oct 09, 2026) https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=34ebeea1-6812-4697-84c4-b2ae4f39e55f",
+  "14:17 · done · routine covered · Rules on: never says how many pills · dose already logged → report, tell the on-duty person · missed dose → reminder, then the on-duty person",
+  "14:17 · done · money covered · Rules on: money in a family member's name → check with that person first · not confirmed → don't send · Village never moves money · verifier: Marco (first), Ana",
+  "14:17 · done · Family word · set (never shown here)",
+  "14:17 · done · home covered · Contacts: neighbor (third floor), building super",
+  "14:17 · done · emergencies covered · Emergency → 911 first · ladder 911 → Ana → Marco · Elmhurst Hospital on the fridge card",
+  "14:17 · done · channels covered · Surfaces: Carmen app + phone line + fridge card; Ana app + calls; Marco app + phone line + calls; Lucía app",
+  "14:17 · done · consent covered · Welcome call planned 13:30 · quiet hours pending her words",
+  "14:18 · done · Render elder view · validated in 7.1 s",
+  "14:18 · done · Render coordinator view · validated in 11.1 s",
+  "14:18 · done · Render helper view · validated in 10.3 s",
+  "14:18 · done · Patch from your words · RefillCard added to Lucía's view (helper)",
+  "14:18 · done · Draft ready · rev 5 · 3 apps · 4 people"
+ ],
+ "intake": {
+  "fields": {
+   "center": {
+    "age": 78,
+    "lives": "Queens",
+    "problems": [
+     "pills",
+     "money",
+     "visits"
+    ]
+   },
+   "members": {
+    "members": [
+     {
+      "name": "Lucía",
+      "relation": "sister",
+      "lives": "New Jersey",
+      "takes_on": [
+       "refills",
+       "insurance"
+      ],
+      "remote": true
+     },
+     {
+      "name": "Marco",
+      "relation": "family",
+      "lives": "Astoria"
+     },
+     {
+      "name": "Ana",
+      "relation": "self",
+      "lives": "Brooklyn",
+      "distance": "forty minutes"
+     }
+    ]
+   },
+   "availability": {
+    "helper_days": {
+     "days": [
+      "Tue",
+      "Thu",
+      "Fri",
+      "Sat"
+     ],
+     "constraints": [
+      "works nights",
+      "has to leave by nine-thirty",
+      "sleeps until two in the afternoon"
+     ],
+     "reminder": "text at three",
+     "window": "evenings"
+    },
+    "available_days": "Tuesday, Thursday, Friday, Saturday evenings",
+    "work_schedule": "works nights; Sunday to Thursday must leave by 9:30pm",
+    "sleep_schedule": "sleeps until 2pm",
+    "reminder_preference": "text at 3pm on his days",
+    "speaker_days": {
+     "days": [
+      "Mon",
+      "Wed",
+      "Sun"
+     ],
+     "after": "four"
+    },
+    "speaker_does": [
+     "doctor visits",
+     "fills the organizer Sunday"
+    ]
+   },
+   "meds": {
+    "meds": [
+     {
+      "name": "apixaban",
+      "said": "eliquis",
+      "slots": [
+       "morning",
+       "night"
+      ]
+     },
+     {
+      "name": "lisinopril",
+      "said": "lisinopril",
+      "slots": [
+       "morning"
+      ],
+      "change": {
+       "to": "10",
+       "when": "third",
+       "words": "Lisinopril in the morning, which Dr. Park just doubled to ten milligrams on the third."
+      }
+     },
+     {
+      "name": "metformin",
+      "said": "metformin",
+      "slots": [
+       "morning",
+       "night"
+      ]
+     },
+     {
+      "name": "atorvastatin",
+      "said": "atorvastatin",
+      "slots": [
+       "night"
+      ]
+     }
+    ],
+    "prescriber": "Dr. Park",
+    "pharmacy": "Farmacia La Esquina on 37th",
+    "risk": "old bottle still in the cabinet"
+   },
+   "routine": {
+    "how_taken": "weekly organizer (yellow lid morning, blue lid evening)",
+    "what_fails": "Two or three nights a week she calls me asking if she took them",
+    "who_called": "Ana"
+   },
+   "money": {
+    "incident": "caller claimed to be family, asked fifteen hundred in gift cards",
+    "handler": "Marco",
+    "accounts": "one checking account",
+    "family_word": "set"
+   },
+   "home": {
+    "routine": "4 fixed times a day",
+    "nearby": [
+     "neighbor (third floor)",
+     "building super"
+    ],
+    "building": "walk-up, no elevator",
+    "bp_log": [
+     "Mon",
+     "Wed",
+     "Fri"
+    ]
+   },
+   "emergencies": {
+    "first": "911 → Ana → Marco",
+    "hospital": "Elmhurst Hospital"
+   },
+   "channels": {
+    "center_lang": "es",
+    "center_channel": "phone",
+    "large_text": true,
+    "no_sms": true
+   },
+   "consent": {
+    "welcome_call": "13:30",
+    "center_rules": "pending her words (dislikes calls at night)"
+   }
+  },
+  "asked": [
+   "members.members",
+   "availability.helper_days",
+   "availability.speaker_days",
+   "meds.meds",
+   "routine.how_taken",
+   "money.incident",
+   "money.family_word",
+   "home.routine",
+   "emergencies.first",
+   "channels.center_channel",
+   "consent.welcome_call"
+  ],
+  "covered": [
+   "center",
+   "members",
+   "availability",
+   "meds",
+   "routine",
+   "money",
+   "home",
+   "emergencies",
+   "channels",
+   "consent"
+  ],
+  "meter": "10 of 10 covered · 0 gaps",
+  "gaps": [],
+  "family_word_set": true,
+  "applied": {
+   "Marco": [
+    "Tue",
+    "Thu",
+    "Fri",
+    "Sat"
+   ],
+   "contacts": [
+    "neighbor (third floor)",
+    "building super"
+   ],
+   "helper_refill_removed": true
+  }
+ },
+ "turns": [
+  {
+   "n": 1,
+   "topic": "members",
+   "question": "Who else is in this besides you and Marco, and where does everyone live relative to your mom?",
+   "meter_before": "1 of 10 covered · 9 gaps",
+   "answer": "Marco and me, and our sister Lucía in New Jersey. Marco's in Astoria, ten minutes from Mom. I'm in Brooklyn, forty minutes. Lucía can't come on short notice, but she does the refills and the insurance calls.",
+   "now_i_know": "Now I know: cards: Lucía (refills, insurance) · Marco · Ana",
+   "meter": "2 of 10 covered · 8 gaps",
+   "gaps": [
+    "Availability",
+    "Health: medications",
+    "Health: routine",
+    "Money",
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "What is Marco's week like? When can he actually be there?",
+   "will_build": [
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "CareRota",
+     "element": "rota",
+     "reason": "4 people share the turns; last Thursday nobody went"
+    },
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "VillageChat",
+     "element": "chat",
+     "reason": "the family and Village talk here"
+    },
+    {
+     "person": "m_marco",
+     "display_name": "Marco",
+     "role": "helper",
+     "component": "VillageChat",
+     "element": "chat",
+     "reason": "the family and Village talk here"
+    },
+    {
+     "person": "m_lucia",
+     "display_name": "Lucía",
+     "role": "helper",
+     "component": "VillageChat",
+     "element": "chat",
+     "reason": "the family and Village talk here"
+    },
+    {
+     "person": "m_marco",
+     "display_name": "Marco",
+     "role": "helper",
+     "component": "Alert",
+     "element": "al",
+     "reason": "anything urgent about Mamá shows here first"
+    },
+    {
+     "person": "m_lucia",
+     "display_name": "Lucía",
+     "role": "helper",
+     "component": "Alert",
+     "element": "al",
+     "reason": "anything urgent about Mamá shows here first"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "topic": "availability",
+   "question": "What is Marco's week like? When can he actually be there?",
+   "meter_before": "2 of 10 covered · 8 gaps",
+   "answer": "He works nights. Sunday to Thursday he has to leave by nine-thirty. He sleeps until two in the afternoon. He can do Tuesday, Thursday, Friday and Saturday evenings. He wants a text at three on his days so he doesn't forget.",
+   "now_i_know": "Now I know: Marco: Tue/Thu/Fri/Sat (text at three)",
+   "meter": "2 of 10 covered · 8 gaps",
+   "gaps": [
+    "Availability",
+    "Health: medications",
+    "Health: routine",
+    "Money",
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "And you?",
+   "will_build": [
+    {
+     "person": "m_marco",
+     "display_name": "Marco",
+     "role": "helper",
+     "component": "HelperAnswer",
+     "element": "ans",
+     "reason": "Marco works nights and asked for a text at three: one answer, 'is it my turn?'"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "topic": "availability",
+   "question": "And you?",
+   "meter_before": "2 of 10 covered · 8 gaps",
+   "answer": "Monday, Wednesday, Sunday, after four. I do all the doctor visits. Sunday lunch is at Mom's and I fill her pill organizer then.",
+   "now_i_know": "Now I know: you: Mon/Wed/Sun; organizer; unsure nights call Ana",
+   "meter": "3 of 10 covered · 7 gaps",
+   "gaps": [
+    "Health: medications",
+    "Health: routine",
+    "Money",
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "Her pills: what does she take, and who prescribed them?",
+   "will_build": [
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "PillOrganizer",
+     "element": "org",
+     "reason": "you fill her organizer on Sunday"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "topic": "meds",
+   "question": "Her pills: what does she take, and who prescribed them?",
+   "meter_before": "3 of 10 covered · 7 gaps",
+   "answer": "Eliquis morning and night. Lisinopril in the morning, which Dr. Park just doubled to ten milligrams on the third. Metformin twice a day. Atorvastatin at night. The old lisinopril bottle is still in her cabinet, that scares me. Farmacia La Esquina on 37th fills everything.",
+   "now_i_know": "Now I know: 4 medications, lisinopril now 10 mg, Dr. Park",
+   "meter": "4 of 10 covered · 6 gaps",
+   "gaps": [
+    "Health: routine",
+    "Money",
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "How does she take them, and what happens on the nights she isn't sure?",
+   "will_build": [
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "RefillCard",
+     "element": "refill",
+     "reason": "lisinopril changed to 10 mg; the refill list shows the old dose struck through"
+    },
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "DoseTracker",
+     "element": "dose",
+     "reason": "4 medications, morning and evening"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "topic": "routine",
+   "question": "How does she take them, and what happens on the nights she isn't sure?",
+   "meter_before": "4 of 10 covered · 6 gaps",
+   "answer": "Weekly organizer, yellow lid for morning, blue lid for evening. Two or three nights a week she calls me asking if she took them. Once she took them twice.",
+   "now_i_know": "Now I know: organizer; unsure nights call Ana",
+   "meter": "5 of 10 covered · 5 gaps",
+   "gaps": [
+    "Money",
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "Money. Tell me about the call last week.",
+   "will_build": [
+    {
+     "person": "m_carmen",
+     "display_name": "Mamá",
+     "role": "elder",
+     "component": "TonightCard",
+     "element": "tonight",
+     "reason": "she asks 'did I take them?' 2-3 nights a week: tonight's pills, read aloud"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "topic": "money",
+   "question": "Money. Tell me about the call last week.",
+   "meter_before": "5 of 10 covered · 5 gaps",
+   "answer": "Someone called saying he was Marco, crying, in trouble, needed fifteen hundred dollars in gift cards. She was on her way to the store when Marco happened to call her. Marco handles her money stuff with her. She has one checking account and that's it.",
+   "now_i_know": "Now I know: verifier: Marco, one checking account",
+   "meter": "6 of 10 covered · 4 gaps",
+   "gaps": [
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "Pick a word only the family knows. Every real call from Village says it, so a caller without it is not us.",
+   "will_build": [
+    {
+     "person": "m_marco",
+     "display_name": "Marco",
+     "role": "helper",
+     "component": "VerificationPrompt",
+     "element": "vp",
+     "reason": "Marco is the verifier: money asked in his name is checked with him first"
+    },
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "VerificationPrompt",
+     "element": "vp",
+     "reason": "you are the second verifier"
+    },
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "IncidentCard",
+     "element": "inc",
+     "reason": "every money incident reaches you"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "topic": "money",
+   "question": "Pick a word only the family knows. Every real call from Village says it, so a caller without it is not us.",
+   "meter_before": "6 of 10 covered · 4 gaps",
+   "answer": "[family word] · set",
+   "now_i_know": "Now I know: family word · set",
+   "meter": "6 of 10 covered · 4 gaps",
+   "gaps": [
+    "Home and day",
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "Her day and her home: what does a normal day look like, and is anyone nearby?",
+   "will_build": []
+  },
+  {
+   "n": 8,
+   "topic": "home",
+   "question": "Her day and her home: what does a normal day look like, and is anyone nearby?",
+   "meter_before": "6 of 10 covered · 4 gaps",
+   "answer": "Breakfast at eight with the morning pills. Blood pressure Monday, Wednesday, Friday, she writes it on a pad. Walk to the bakery at eleven with Doña Rosa, her neighbor on the third floor. Dinner at seven with her telenovela, evening pills at seven-thirty. It's a second-floor walk-up, no elevator; the super is Luis.",
+   "now_i_know": "Now I know: contacts: neighbor (third floor), building super",
+   "meter": "7 of 10 covered · 3 gaps",
+   "gaps": [
+    "Emergencies",
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "If she falls or can't breathe, who is first?",
+   "will_build": [
+    {
+     "person": "m_carmen",
+     "display_name": "Mamá",
+     "role": "elder",
+     "component": "BigButton",
+     "element": "b_help",
+     "reason": "a neighbor and the super are close by"
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "topic": "emergencies",
+   "question": "If she falls or can't breathe, who is first?",
+   "meter_before": "7 of 10 covered · 3 gaps",
+   "answer": "911, then me, then Marco. Elmhurst Hospital.",
+   "now_i_know": "Now I know: 911 → Ana → Marco · Elmhurst Hospital",
+   "meter": "8 of 10 covered · 2 gaps",
+   "gaps": [
+    "Channels and language",
+    "Consent and the center's own rules"
+   ],
+   "next": "Her phone and her language: what will she actually use?",
+   "will_build": [
+    {
+     "person": "m_carmen",
+     "display_name": "Mamá",
+     "role": "elder",
+     "component": "BigButton",
+     "element": "b_call",
+     "reason": "after 911, Ana is first"
+    },
+    {
+     "person": "m_marco",
+     "display_name": "Marco",
+     "role": "helper",
+     "component": "BigButton",
+     "element": "b_mom",
+     "reason": "Marco is next in the ladder"
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "topic": "channels",
+   "question": "Her phone and her language: what will she actually use?",
+   "meter_before": "8 of 10 covered · 2 gaps",
+   "answer": "Spanish only. A regular phone, she won't use apps. Big letters if anything. She'll answer a call; she won't read a text.",
+   "now_i_know": "Now I know: phone only, Spanish",
+   "meter": "9 of 10 covered · 1 gap",
+   "gaps": [
+    "Consent and the center's own rules"
+   ],
+   "next": "Two things Village can't take from you: Lucía's own yes to being called, and your mom's rules. Village asks Lucía in her app and calls your mom in Spanish to introduce itself. She can say no to all of it. When is she sharpest?",
+   "will_build": [
+    {
+     "person": "m_carmen",
+     "display_name": "Mamá",
+     "role": "elder",
+     "component": "BigButton",
+     "element": "b_village",
+     "reason": "phone only, Spanish: big buttons that call, no reading"
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "topic": "consent",
+   "question": "Two things Village can't take from you: Lucía's own yes to being called, and your mom's rules. Village asks Lucía in her app and calls your mom in Spanish to introduce itself. She can say no to all of it. When is she sharpest?",
+   "meter_before": "9 of 10 covered · 1 gap",
+   "answer": "After lunch, around one-thirty. And she hates calls at night.",
+   "now_i_know": "Now I know: welcome call 13:30 · quiet hours pending her words",
+   "meter": "10 of 10 covered · 0 gaps",
+   "gaps": [],
+   "next": "review",
+   "will_build": [
+    {
+     "person": "m_ana",
+     "display_name": "Ana",
+     "role": "coordinator",
+     "component": "Timeline",
+     "element": "tl",
+     "reason": "every decision with its source, including her own rules when she says them"
+    }
+   ]
+  }
+ ],
+ "question": null,
+ "review": {
+  "question": "Here is the draft: 4 people, 3 life areas, 5 needs, 18 rules on, 1 thing pending your mom. What is wrong?",
+  "answer": "Lucía should see the refill list too, she does the ordering.",
+  "patch": "RefillCard added to Lucía's view (helper)"
+ },
+ "closing": "Here is the draft: 4 people, 3 life areas, 5 needs, 18 rules on, 1 thing pending your mom. What is wrong?",
+ "timings": {
+  "llm": "claude-sonnet-5-5",
+  "blueprint_mode": "model",
+  "blueprint_ttft_ms": 3043,
+  "blueprint_ms": 11266,
+  "dailymed_ms": 134,
+  "render_ms": 12044,
+  "render_role_ms": {
+   "elder": 7126,
+   "coordinator": 11149,
+   "helper": 10349
+  },
+  "founder_work_ms": 58516,
+  "total_ms": 58564
+ },
+ "total_ms": 58564,
+ "error": null
+}
