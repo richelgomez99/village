@@ -190,3 +190,50 @@ async def test_block_village_binds_and_reyes_fixes() -> None:
     db.events.append(ev)
     msg = with_source_labels({"village": vid, "author": "village", "refs": [{"kind": "event", "id": "ev_glue_call", "label": "from her phone"}]})
     assert msg["refs"][0]["label"].endswith("check-in call") and "phone" not in msg["refs"][0]["label"]
+
+
+async def test_shift_swap_flips_rota_and_pushes_everywhere() -> None:
+    from datetime import date as _date, timedelta as _td
+
+    from core import services
+    from core.bindings import rota_me, rota_week
+
+    await reset_demo()
+    vid = villages.default_village_id()
+    week = rota_week(vid)
+    today = clock.now().date().isoformat()
+    later = [d for d in week if d["date"] > today and d.get("on_duty")]
+    assert later, "base rota has a later day"
+    target = later[0]
+    was = target["on_duty"]
+    cover = next(p["id"] for p in villages.people(vid) if p.get("view") == "helper" and p["id"] != was)
+    tonight_before = rota_me(cover, vid)["on_duty"]["member_id"]
+    sockets = {}
+    clients = []
+    for p in villages.people(vid):
+        ws = FakeWebSocket()
+        sockets[p["id"]] = ws
+        clients.append(Client(ws=ws, village=vid, member_id=p["id"], role=p.get("view") or "elder"))
+    room = FakeWebSocket()
+    clients.append(Client(ws=room, village=vid, member_id=None, role="control"))
+    hub.clients = clients
+    try:
+        ev = await services.record_event(vid, {"kind": "shift", "payload": {"date": target["date"], "on_duty": cover, "backup": was, "change": "swapped"}},
+                                         actor=cover, source={"kind": "app", "ref": cover})
+        await hub.broadcast_event(ev)
+        day = next(d for d in rota_week(vid) if d["date"] == target["date"])
+        assert day["on_duty"] == cover and day["backup"] == was
+        mine = rota_me(cover, vid, date=target["date"])
+        assert mine["is_my_turn"] and mine["on_duty"]["member_id"] == cover
+        assert rota_me(cover, vid)["on_duty"]["member_id"] == tonight_before  # tonight unchanged by a later swap
+        for mid, ws in sockets.items():
+            frame = next(f for f in ws.frames if f["type"] == "event" and f["event"]["kind"] == "shift")
+            assert any(d["date"] == target["date"] and d["on_duty"] == cover for d in frame["data"]["rota:week"]), mid
+        reasoning = [f for f in room.frames if f.get("kind") == "reasoning"]
+        dayname = _date.fromisoformat(target["date"]).strftime("%A")
+        assert reasoning and reasoning[-1]["payload"]["text"] == f"{dayname}: {villages.first_name(vid, cover)} covers for {villages.first_name(vid, was)}"
+        if villages.person(vid, was).get("view") == "helper":
+            lines = [l["text"]["en"] for l in next(f for f in sockets[was].frames if f["type"] == "event")["data"]["events:since_last_turn?member=me"]]
+            assert f"{villages.first_name(vid, cover)} covers your {dayname}" in lines
+    finally:
+        hub.clients = []

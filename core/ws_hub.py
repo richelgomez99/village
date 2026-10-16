@@ -13,6 +13,7 @@ from core.settings import CONTRACT_VERSION
 
 
 _TASKS: set[Any] = set()
+_SHIFTS_ANNOUNCED: set[Any] = set()
 VILLAGE_KEYED = {"reasoning", "caption", "ledger", "blueprint"}  # control kinds whose payload schema allows `village`
 
 
@@ -107,6 +108,18 @@ class Hub:
             await self.push_binds(client.village, changed_keys)
 
     async def broadcast_event(self, event: dict[str, Any]) -> None:
+        shift_key = (event.get("village"), event.get("id"), event.get("at"), str(event.get("payload")))
+        if event.get("kind") == "shift" and shift_key not in _SHIFTS_ANNOUNCED:  # once per row (LIVE and direct paths)
+            _SHIFTS_ANNOUNCED.add(shift_key)
+            from core.bindings import _weekday, shift_who
+
+            p = event.get("payload") or {}
+            cover, was = shift_who(p)
+            vid = event.get("village")
+            if p.get("date") and cover:
+                text = f"{_weekday(p['date'])}: {villages.first_name(vid, cover, cover)} " + (
+                    f"covers for {villages.first_name(vid, was, was)}" if was else "is on duty")
+                await self.control(vid, "reasoning", {"source": "builder", "kind": "decision", "text": text[:400], "mode": "acted_alone"})
         for client in list(self.clients):
             if client.village != event.get("village"):
                 continue
