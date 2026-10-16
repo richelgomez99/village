@@ -167,3 +167,26 @@ async def test_coordinator_snapshot_has_rounds_and_fact_history() -> None:
         from core.bindings_v3 import fact_history
 
         assert fact_history(vid, villages.care_recipient_id(vid), f"{rx}_dose")["versions"]
+
+
+async def test_block_village_binds_and_reyes_fixes() -> None:
+    from core.bindings import life_areas, with_source_labels
+
+    await reset_demo()
+    block = next(v for v in villages.village_ids() if villages.village_data(v).get("resources"))
+    coord = villages.coordinator_id(block)
+    d = snapshot_data("coordinator", coord, block)
+    for key in ("checkins:village", "needs:open", "resources:available", "claims:topic=all"):
+        assert d[key] and all(r["text"]["en"] for r in d[key]), key
+    assert any(r["status"] == "ok" for r in d["checkins:village"]) and any(r["status"] == "urgent" for r in d["checkins:village"])
+    assert d["needs:open"][0]["text"]["en"].startswith("Urgent")
+    assert any("checked" in a["status"]["en"] for a in life_areas(block))
+    vid = villages.default_village_id()
+    a = snapshot_data("coordinator", villages.coordinator_id(vid), vid)
+    assert all(i.get("status") != "acked" for i in a["incidents:open"])
+    assert all(r["at"] for r in a["rounds:latest"].get("rows", []))
+    ev = {"id": "ev_glue_call", "village": vid, "kind": "symptom", "payload": {}, "actor": villages.care_recipient_id(vid),
+          "source": {"kind": "call", "ref": "conv_x"}, "at": clock.now().isoformat()}
+    db.events.append(ev)
+    msg = with_source_labels({"village": vid, "author": "village", "refs": [{"kind": "event", "id": "ev_glue_call", "label": "from her phone"}]})
+    assert msg["refs"][0]["label"].endswith("check-in call") and "phone" not in msg["refs"][0]["label"]

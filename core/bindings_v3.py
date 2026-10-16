@@ -215,7 +215,9 @@ def resolve(bind: str, village_id: str) -> tuple[bool, Any]:
     hist = parse_history_bind(bind)
     if hist:
         return True, fact_history(village_id, *hist)
-    return False, None
+    from core.block_data import resolve as group_resolve
+
+    return group_resolve(bind, village_id)
 
 
 def resolve_all(binds: set[str], village_id: str) -> dict[str, Any]:
