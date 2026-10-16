@@ -1,3 +1,4 @@
+READY FOR MERGE V1
 # Lane reports (merged; each lane's LANE-REPORT.md is appended by a union merge)
 
 ## gate
@@ -31,7 +32,7 @@ T012 · done · `uv run pytest core/tests/test_verifications.py -q` · verificat
 T013 · done · `uv run pytest core/tests/test_verifications.py -q` · tool idempotency caches exact response bodies by `(conversation_id, tool_call_id)` and duplicate money webhooks create one verification
 
 ## voice
-IN PROGRESS V1
+READY FOR MERGE V1
 T001 · done · `elevenlabs agents push --dry-run` · mocked: no live push; API key now present but live operations stay dry-run until orchestrator says otherwise
 T002 · done · `uv run python scripts/check_tool_schemas.py`; `elevenlabs tools push --dry-run` · mocked: tool ids, workspace env values
 T003 · done · `python -m json.tool agents/agent_configs/mom-line.json >/dev/null` · mocked: voices and dashboard init hook enablement
