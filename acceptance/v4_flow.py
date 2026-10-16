@@ -152,6 +152,9 @@ async def main() -> int:
                 patched[k] = f["_t"]
         if patched:
             timings["yes_to_every_phone_patched_ms"] = int((max(patched.values()) - t0) * 1000)
+        # control frames ride the LIVE queue, so the final receipt can land just after the direct patch frames
+        await ctl.wait(lambda f: f.get("type") == "control" and f.get("kind") == "release"
+                       and f["payload"]["receipt"].get("result") != "in_progress", 15, cmark)
         rel = [f["payload"]["receipt"] for f in ctl.frames[cmark:] if f.get("type") == "control" and f.get("kind") == "release"]
         final = rel[-1] if rel else {}
         ok(final.get("result") == "released" and len(final.get("stages", [])) == 6, f"release frames: {len(rel)}, final {final.get('result')} ({final.get('id')})", fails)
@@ -164,6 +167,7 @@ async def main() -> int:
         got = (await http.get(f"/villages/{vid}/proposals")).json()
         ok(any(p["id"] == pid and p["status"] == "applied" for p in got["proposals"]), "proposal applied", fails)
         timings["server"] = got.get("timings")
+        timings["trigger_server"] = got.get("trigger_timings")
 
         # 6. receptionist screens an unknown caller claiming the verifier
         conv = f"conv_v4_screen_{int(time.time())}"
