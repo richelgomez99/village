@@ -45,6 +45,8 @@ async def _dispatch(table: str, row: dict[str, Any]) -> None:
 async def start_live() -> None:
     if live_status.task and not live_status.task.done():
         return
+    if await db.start_cloud_live():
+        log.info("fan-out source: SurrealDB LIVE SELECT")
     live_status.task = asyncio.create_task(_run())
     await asyncio.sleep(0)
 
@@ -56,3 +58,4 @@ async def stop_live() -> None:
             await live_status.task
     live_status.task = None
     live_status.status = "down"
+    await db.stop_cloud_live()

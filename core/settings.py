@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     surreal_db_db: str = Field(default="main", alias="SURREAL_DB_DB")
     surreal_db_user: str = Field(default="", alias="SURREAL_DB_USER")
     surreal_db_pass: str = Field(default="", alias="SURREAL_DB_PASS")
+    # LIVE SELECT feed from SurrealDB Cloud to the phones. Off -> the in-process feed only.
+    surreal_live: bool = Field(default=True, alias="SURREAL_LIVE")
     admin_key: str = Field(default="change-me-admin-key", alias="ADMIN_KEY")
     # D30: the demo village id; empty -> data/villages/index.json "default". Never hardcoded in core/.
     demo_village_id: str = Field(default="", alias="DEMO_VILLAGE_ID")
