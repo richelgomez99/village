@@ -113,3 +113,11 @@
 - One streamed tool call per provider, same prompts (chat classify / actor line), 14:52:
   - OpenAI gpt-6-sol: chat.mention 864 ms TTFT / 935 ms total; actors 933 / 1172 ms.
   - Anthropic Sonnet 5.5 (chat.mention): 797 / 916 ms; Haiku 5.5 (actors): 758 / 912 ms.
+
+## LIVE SELECT in Core against SurrealDB Cloud (Nov 16, 15:57 ET; branch live-select)
+- After the event. `scripts/live_select_cloud_check.py` on commit 99cd05c, Core's own listener (`start_cloud_live`) against the Cloud instance over wss. This replaces the "not yet run against SurrealDB Cloud" line in that commit's message.
+- `/health` source: `live_source` = surreal.
+- 10 of 10 rows written by Core reached the fan-out through the notification, once each (0 duplicates in the queue).
+- Write to fan-out: p50 20 ms, min 19 ms, max 185 ms.
+- A row created on a second connection arrived in 17 ms and was mirrored into memory first.
+- Scratch rows (village `v_livecheck`) deleted afterward; 0 left.
