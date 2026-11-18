@@ -52,6 +52,11 @@ async def stop() -> None:
     _state.clear()
 
 
+def outbox() -> Outbox | None:
+    """The running outbox, for writers outside the ledger (the builder's DailyMed check)."""
+    return _state.get("outbox")
+
+
 def health() -> dict[str, Any]:
     ob = _state.get("outbox")
     return ob.stats() if ob else {"queued": 0, "sent": 0, "dead": 0, "last_error": None, "running": False}

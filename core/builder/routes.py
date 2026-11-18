@@ -35,6 +35,16 @@ TASKS: set[asyncio.Task] = set()
 class CoreServices(MemoryServices):
     """MemoryServices that also writes through to core (db.specs, db.decisions, control frames)."""
 
+    def memory_outbox(self) -> Any:
+        if self.outbox is not None:
+            return self.outbox
+        try:
+            from core.memory import runtime as memory_runtime
+
+            return memory_runtime.outbox()
+        except Exception:
+            return None
+
     async def store_spec(self, village_id: str, spec: dict[str, Any], status: str = "draft") -> dict[str, Any]:
         stored = await super().store_spec(village_id, spec, status)
         try:

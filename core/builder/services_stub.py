@@ -17,6 +17,10 @@ class MemoryServices:
     decisions: list[dict[str, Any]] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
     facts: list[dict[str, Any]] = field(default_factory=list)
+    outbox: Any = None  # core.memory.outbox.Outbox; None = no memory writes
+
+    def memory_outbox(self) -> Any:
+        return self.outbox
 
     async def store_spec(self, village_id: str, spec: dict[str, Any], status: str = "draft") -> dict[str, Any]:
         stored = deepcopy(spec)

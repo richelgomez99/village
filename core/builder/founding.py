@@ -209,6 +209,19 @@ class Ledger:
         await self.finish(await self.start(what), status, what, result, mode)
 
 
+def _remember_label(services: Any, result: Any, village_id: str, center: str | None) -> None:
+    """Checked label -> memory outbox (one file append; the flusher sends it later)."""
+    outbox = services.memory_outbox() if hasattr(services, "memory_outbox") else None
+    if outbox is None:
+        return
+    try:
+        from core.memory.founding import enqueue_dailymed
+
+        enqueue_dailymed(outbox, result, village_id, center)
+    except Exception:  # noqa: BLE001 - memory never breaks founding
+        pass
+
+
 async def check_medications(run: BuilderRun, services: Any, opts: FoundingOptions, medications: list[str], ledger: Ledger, center: str | None) -> None:
     if not medications:
         return
@@ -227,6 +240,7 @@ async def check_medications(run: BuilderRun, services: Any, opts: FoundingOption
             run.facts.append(fact)
             if hasattr(services, "record_fact"):
                 await services.record_fact(fact)
+            _remember_label(services, r, run.village_id, center)
             title = (r.title or r.name).split("[")[0].strip().title()
             note = " (high-alert, bleeding)" if name in ("apixaban", "warfarin") else ""
             await ledger.finish(rid, "done", what, f"✓{note} {title} label ({r.published}) {r.url}")

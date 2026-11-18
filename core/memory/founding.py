@@ -8,6 +8,7 @@ ids so reseeding never duplicates (outbox item id = "founding:<village>:<id>").
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from core import village as village_reg
@@ -43,3 +44,43 @@ def enqueue_founding(outbox: Any, villages: list[str] | None = None) -> int:
                                       "event_id", "rule_id", "extra_labels")}
             n += outbox.enqueue(d["_item_id"], "fact", args)
     return n
+
+
+# ---- builder's DailyMed label check during founding (source = the label page)
+BUILDER_AGENT = "builder"
+
+
+def _label_date(published: str | None) -> datetime | None:
+    """DailyMed publishes dates as 'Oct 09, 2026'; ISO is accepted too."""
+    if not published:
+        return None
+    try:
+        return datetime.strptime(published.strip(), "%b %d, %Y").replace(tzinfo=cv.ET)
+    except ValueError:
+        return cv.to_dt(published)
+
+
+def dailymed_draft(result: Any, village: str, member: str | None) -> dict[str, Any] | None:
+    """Fact draft for one checked label (core.builder.dailymed.DailyMedResult); None when unchecked."""
+    if not getattr(result, "checked", False) or not result.title:
+        return None
+    entity = member or "village"
+    at = cv.iso(_label_date(result.published))  # label's published date, else now
+    return {
+        "village": village, "entity": entity, "key": cv.norm_key(f"med_label:{result.name}"),
+        "value": str(result.title)[:400], "observed_at": at,
+        "source": {"kind": "url", "ref": "dailymed", "url": result.url},
+        "event_id": None, "agent": BUILDER_AGENT, "rule_id": None,
+        "extra_labels": {"src": "url:dailymed"},
+        "_item_id": f"dailymed:{village}:{entity}:{result.name}:{result.setid or result.published}"[:300],
+    }
+
+
+def enqueue_dailymed(outbox: Any, result: Any, village: str, member: str | None) -> int:
+    """One outbox fact per label version; the same label twice adds nothing. Never awaits the network."""
+    d = dailymed_draft(result, village, member)
+    if d is None:
+        return 0
+    args = {k: d[k] for k in ("entity", "key", "value", "source", "village", "agent", "observed_at",
+                              "event_id", "rule_id", "extra_labels")}
+    return int(outbox.enqueue(d["_item_id"], "fact", args))
